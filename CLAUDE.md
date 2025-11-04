@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 autobid_mobile is a Flutter mobile application using **Clean Architecture**, **Riverpod** for state management, and **Supabase** as the backend.
 
+## Working Guidelines
+
+- **No documentation files**: Never create .md files (README, docs, etc.) unless explicitly requested
+- **Concise responses**: Code first, brief explanations only when needed. No verbose commentary unless asked
+
 ## Development Commands
 
 ### Running the Application
