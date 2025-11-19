@@ -1,0 +1,332 @@
+AUTOBID MOBILE - PROJECT FLOW GUIDE
+===================================
+
+APPLICATION ENTRY POINT
+-----------------------
+
+main.dart
+  Purpose: App entry point, initializes the Flutter app
+  Code: runApp(const App());
+  Flow: main.dart -> app/app.dart
+
+
+APP LAYER (Core Application Setup)
+-----------------------------------
+
+app/app.dart
+  Purpose: Root widget, configures themes and routing
+  Code: MaterialApp(theme: AppTheme.lightTheme, darkTheme: AppTheme.darkTheme, onGenerateRoute: AppRouter.onGenerateRoute)
+  Flow: app/app.dart -> app/core/theme/app_theme.dart + app/router/app_router.dart
+
+app/core/theme/app_theme.dart
+  Purpose: Defines light and dark theme configurations
+  Code: ThemeData(colorScheme: ColorScheme.light(primary: ColorConstants.primary))
+  Flow: app_theme.dart -> constants/color_constants.dart
+
+app/router/app_router.dart
+  Purpose: Handles all navigation routing in the app
+  Code: switch(settings.name) { case AuthRoutes.login: return MaterialPageRoute(builder: (_) => LoginPage()) }
+  Flow: app_router.dart -> modules/auth/auth_routes.dart -> modules/auth/presentation/pages/*
+
+
+CONSTANTS
+---------
+
+constants/color_constants.dart
+  Purpose: Central color definitions for the entire app
+  Code: static const Color primary = Color(0xFF7924E7);
+  Used by: All UI files for consistent theming
+
+
+AUTH MODULE (Complete Authentication Feature)
+----------------------------------------------
+
+Module Entry:
+
+modules/auth/auth_module.dart
+  Purpose: Dependency injection container for auth module
+  Code: class AuthModule { LoginController createLoginController() => LoginController(signInUseCase: _signInUseCase) }
+  Flow: auth_module.dart -> creates all controllers with dependencies
+
+modules/auth/auth_routes.dart
+  Purpose: Route path definitions for auth screens
+  Code: static const String login = '/login';
+  Used by: app/router/app_router.dart for navigation
+
+
+DOMAIN LAYER (Business Logic):
+
+modules/auth/domain/entities/user_entity.dart
+  Purpose: Core user data structure (business object)
+  Code: class UserEntity { final String id; final String email; final String username; }
+  Used by: All layers to represent user data
+
+modules/auth/domain/repositories/auth_repository.dart
+  Purpose: Abstract contract defining what auth operations exist
+  Code: abstract class AuthRepository { Future<UserEntity> signInWithUsername(String username, String password); }
+  Flow: domain/repositories -> implemented by data/repositories
+
+modules/auth/domain/usecases/sign_in_usecase.dart
+  Purpose: Business logic for signing in a user
+  Code: Future<UserEntity> call(String username, String password) { return repository.signInWithUsername(username, password); }
+  Flow: Controllers call usecase -> usecase calls repository
+
+modules/auth/domain/usecases/sign_in_with_google_usecase.dart
+  Purpose: Business logic for Google sign-in
+  Code: Future<UserEntity> call() { return repository.signInWithGoogle(); }
+  Flow: Controllers call usecase -> usecase calls repository
+
+modules/auth/domain/usecases/send_password_reset_usecase.dart
+  Purpose: Business logic for sending password reset
+  Code: Future<void> call(String username) { return repository.sendPasswordResetRequest(username); }
+  Flow: ForgotPasswordController calls usecase
+
+modules/auth/domain/usecases/verify_otp_usecase.dart
+  Purpose: Business logic for OTP verification
+  Code: Future<bool> call(String username, String otp) { return repository.verifyOtp(username, otp); }
+  Flow: ForgotPasswordController calls usecase
+
+
+DATA LAYER (Data Sources & Implementation):
+
+modules/auth/data/models/user_model.dart
+  Purpose: Data transfer object for user, with JSON serialization
+  Code: class UserModel extends UserEntity { factory UserModel.fromJson(Map<String, dynamic> json) { return UserModel(id: json['id']); } }
+  Flow: Converts API JSON to UserEntity
+
+modules/auth/data/datasources/auth_remote_datasource.dart
+  Purpose: Handles actual API calls to Supabase backend
+  Code: abstract class AuthRemoteDataSource { Future<UserModel> signInWithUsername(String username, String password); }
+  Flow: Repository calls datasource -> datasource calls Supabase
+
+modules/auth/data/repositories/auth_repository_impl.dart
+  Purpose: Concrete implementation of AuthRepository
+  Code: class AuthRepositoryImpl implements AuthRepository { Future<UserEntity> signInWithUsername(String username, String password) { return remoteDataSource.signInWithUsername(username, password); } }
+  Flow: Use cases call repository -> repository calls datasource
+
+
+PRESENTATION LAYER (UI & State Management):
+
+Controllers (State Management):
+
+modules/auth/presentation/controllers/onboarding_controller.dart
+  Purpose: Manages onboarding page state (current page, navigation)
+  Code: class OnboardingController extends ChangeNotifier { void nextPage() { pageController.nextPage(); } }
+  Used by: onboarding_page.dart
+
+modules/auth/presentation/controllers/login_controller.dart
+  Purpose: Manages login form state, validation, and authentication
+  Code: Future<void> signIn(String username, String password) { await signInUseCase.call(username, password); }
+  Flow: login_controller -> calls SignInUseCase
+  Used by: login_page.dart
+
+modules/auth/presentation/controllers/forgot_password_controller.dart
+  Purpose: Manages forgot password flow (enter username, verify OTP, success)
+  Code: enum ForgotPasswordStep { enterUsername, verifyOtp, success }; Future<void> sendResetRequest(String username) { await sendPasswordResetUseCase.call(username); }
+  Flow: forgot_password_controller -> calls SendPasswordResetUseCase + VerifyOtpUseCase
+  Used by: forgot_password_page.dart
+
+modules/auth/presentation/controllers/registration_controller.dart
+  Purpose: Manages registration form state and validation (skeleton for future implementation)
+  Code: Future<void> signUp({ required String email, required String username, required String password }) { /* TODO */ }
+  Used by: registration_page.dart
+
+
+Pages (UI Screens):
+
+modules/auth/presentation/pages/onboarding_page.dart
+  Purpose: Welcome screens showing app features (3 slides)
+  Code: PageView.builder(controller: _controller.pageController, itemCount: 3)
+  User sees: 3 feature slides -> Skip or Get Started -> navigates to login
+  Flow: onboarding_page -> uses OnboardingController -> navigates to login_page
+
+modules/auth/presentation/pages/login_page.dart
+  Purpose: Login screen with username/password fields and Google sign-in
+  Code: TextFormField(controller: _usernameController); ElevatedButton(onPressed: () => widget.controller.signIn())
+  User sees: Username field, Password field, Sign In button, Google button, Forgot Password link, Sign Up link
+  Flow: login_page -> uses LoginController -> calls signIn() -> navigates to home (TODO) or shows error
+
+modules/auth/presentation/pages/forgot_password_page.dart
+  Purpose: Password reset flow (enter username, verify OTP, success message)
+  Code: switch(widget.controller.currentStep) { case ForgotPasswordStep.enterUsername: return _buildUsernameStep(); }
+  User sees:
+    Step 1: Username field -> Continue button
+    Step 2: 6 OTP digit fields -> Verify button
+    Step 3: Success message -> Back to Login button
+  Flow: forgot_password_page -> uses ForgotPasswordController -> verifies OTP -> shows success
+
+modules/auth/presentation/pages/registration_page.dart
+  Purpose: Sign up form (skeleton - for future implementation)
+  Code: TextFormField(controller: _emailController); TextFormField(controller: _usernameController);
+  User sees: Email, Username, Password, Confirm Password fields, Create Account button
+  Flow: registration_page -> uses RegistrationController -> TODO: implement signup
+
+
+COMPLETE USER FLOW EXAMPLES
+----------------------------
+
+1. USER OPENS APP:
+   main.dart
+   -> app/app.dart
+   -> app/router/app_router.dart (initialRoute: '/')
+   -> modules/auth/presentation/pages/onboarding_page.dart
+   -> User sees 3 feature slides
+
+2. USER COMPLETES ONBOARDING:
+   onboarding_page.dart (user clicks "Get Started")
+   -> onboarding_controller.dart
+   -> Navigator.pushReplacementNamed(AuthRoutes.login)
+   -> app/router/app_router.dart
+   -> modules/auth/presentation/pages/login_page.dart
+   -> User sees login form
+
+3. USER LOGS IN:
+   login_page.dart (user enters username + password, clicks Sign In)
+   -> login_controller.signIn(username, password)
+   -> domain/usecases/sign_in_usecase.call(username, password)
+   -> domain/repositories/auth_repository.signInWithUsername()
+   -> data/repositories/auth_repository_impl.signInWithUsername()
+   -> data/datasources/auth_remote_datasource.signInWithUsername()
+   -> [Supabase API call - TODO]
+   -> Returns UserModel
+   -> Converts to UserEntity
+   -> Returns to controller
+   -> Controller updates state
+   -> [Navigate to home - TODO]
+
+4. USER FORGETS PASSWORD:
+   login_page.dart (user clicks "Forgot Password?")
+   -> Navigator.pushNamed(AuthRoutes.forgotPassword)
+   -> app/router/app_router.dart
+   -> forgot_password_page.dart
+   -> User enters username
+   -> forgot_password_controller.sendResetRequest(username)
+   -> domain/usecases/send_password_reset_usecase.call(username)
+   -> [Sends OTP to user]
+   -> Controller changes step to verifyOtp
+   -> User sees OTP input fields
+   -> User enters 6-digit code
+   -> forgot_password_controller.verifyOtp(otp)
+   -> domain/usecases/verify_otp_usecase.call(username, otp)
+   -> [Validates OTP with backend]
+   -> Controller changes step to success
+   -> User sees success message
+
+5. USER SIGNS UP:
+   login_page.dart (user clicks "Sign Up")
+   -> Navigator.pushNamed(AuthRoutes.registration)
+   -> app/router/app_router.dart
+   -> registration_page.dart
+   -> User fills form
+   -> registration_controller.signUp()
+   -> [TODO: implement signup logic]
+
+
+ARCHITECTURE PATTERN SUMMARY
+-----------------------------
+
+Modular Clean Architecture with 3 Layers:
+
+PRESENTATION LAYER (UI + Controllers)
+  Purpose: User interface and state management
+  Contains: pages/, controllers/
+  Rule: Can only call DOMAIN layer (use cases)
+
+  Flow: User interaction
+        -> Controller handles state
+        -> Controller calls Use Case
+
+DOMAIN LAYER (Business Logic)
+  Purpose: Core business rules and contracts
+  Contains: entities/, usecases/, repositories/ (abstract)
+  Rule: No dependencies on other layers, pure Dart
+
+  Flow: Use Case receives request
+        -> Use Case calls Repository (abstract)
+        -> Use Case returns result
+
+DATA LAYER (Implementation)
+  Purpose: Data sources and API implementation
+  Contains: models/, datasources/, repositories/ (concrete)
+  Rule: Can only implement DOMAIN contracts
+
+  Flow: Repository implementation receives request
+        -> Repository calls DataSource
+        -> DataSource calls API (Supabase)
+        -> DataSource returns Model
+        -> Repository returns Entity
+
+
+DEPENDENCY FLOW (Bottom to Top):
+
+Data Layer implements <- Domain Layer defines <- Presentation Layer uses
+
+Example:
+  auth_remote_datasource.dart (implements)
+  -> auth_repository_impl.dart (implements)
+  -> auth_repository.dart (abstract contract)
+  -> sign_in_usecase.dart (uses repository)
+  -> login_controller.dart (uses usecase)
+  -> login_page.dart (uses controller)
+
+
+MODULE STRUCTURE (Auth Module Example):
+
+modules/auth/
+  auth_module.dart                           -> DI container, creates all dependencies
+  auth_routes.dart                           -> Route path constants
+  domain/
+    entities/user_entity.dart                -> Business object
+    repositories/auth_repository.dart        -> Abstract contract
+    usecases/sign_in_usecase.dart           -> Business logic
+    usecases/sign_in_with_google_usecase.dart
+    usecases/send_password_reset_usecase.dart
+    usecases/verify_otp_usecase.dart
+  data/
+    models/user_model.dart                   -> DTO with JSON
+    datasources/auth_remote_datasource.dart  -> API calls
+    repositories/auth_repository_impl.dart   -> Repository implementation
+  presentation/
+    controllers/login_controller.dart        -> State management
+    controllers/onboarding_controller.dart
+    controllers/forgot_password_controller.dart
+    controllers/registration_controller.dart
+    pages/login_page.dart                    -> UI screen
+    pages/onboarding_page.dart
+    pages/forgot_password_page.dart
+    pages/registration_page.dart
+
+
+HOW TO ADD A NEW FEATURE MODULE:
+
+1. Create module folder: modules/feature_name/
+2. Create domain layer:
+   - entities/feature_entity.dart
+   - repositories/feature_repository.dart (abstract)
+   - usecases/do_something_usecase.dart
+3. Create data layer:
+   - models/feature_model.dart
+   - datasources/feature_remote_datasource.dart
+   - repositories/feature_repository_impl.dart
+4. Create presentation layer:
+   - controllers/feature_controller.dart
+   - pages/feature_page.dart
+5. Create module files:
+   - feature_module.dart (DI setup)
+   - feature_routes.dart (route constants)
+6. Register in app:
+   - Update app/router/app_router.dart with new routes
+
+
+THEME SYSTEM:
+-------------
+
+Light/Dark mode support via:
+  constants/color_constants.dart -> defines all colors
+  app/core/theme/app_theme.dart -> creates ThemeData for light/dark
+  app/app.dart -> applies themes with ThemeMode.system
+
+Usage in UI:
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+  Text('Hello', style: theme.textTheme.bodyLarge)
