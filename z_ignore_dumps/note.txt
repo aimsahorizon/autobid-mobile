@@ -1,0 +1,96 @@
+UI WIDGETS
+- Container() - complete component
+- Icon()
+- Text()
+- ElevatedButton()
+- SizedBox() - like container but only height and width
+
+USEFUL FUNCTIONS:
+setstate((){})
+
+-------
+
+FUNDAMENTAL WIDGETS
+
+- Scaffold() - takes appbar, body, and floating action button
+- AppBar() - takes leading, action, title
+- Center() - Centers Items
+
+- Column() - sets column of items but not scrollable
+- Row() - set row of items but not scrollable
+
+- ListView() - takes column and rows depending on the orientation and scrollable
+- ListView.builder() - similar and renders item using the builder instance taking context and index parameter
+which you can access data structures
+
+- GridView() - sets grid of items in row and column and is scrollable
+- GridView.builder() - can be used with SliverGridDelegateWithFixedCrossAxisCount
+
+- Stack() - Takes children and stacks them together
+
+- GestureDetector() - wrappable with specific widgets you want to be detected. Takes function.
+
+-------
+
+NAVIGATION WIDGETS
+
+Simple Direct Method:
+- Navigator() = Navigator.push(context, MaterialPageRoute(builder: (context) => PageName()))
+
+---
+
+Multiple Routes Methods:
+- Go in MaterialApp()
+- Add routes instance and define routes:
+
+~code~
+routes: (
+    '/routename': (context) => PageName()
+)
+
+// then we can use:
+Navigator.pushNamed(context, '/routename')
+
+---
+
+Common Ways to Handle Navigation:
+
+1. Using Drawer()
+- Add draw instance in Scaffold() below appbBar:
+- use Drawer() it uses child but you can use Colum() and set children
+- Drawer() takes DrawerHeader() inside child column or listview to defined header for the Drawer
+- Define ListTile() after DrawerHeader()
+- Listtile() takes ontap gesture detecter, you may set functions like Navigator.pushedNamed(context, '/routename')
+- Make sure to use Navigator.pop(context) for every list tile so drawer would close upon routing
+
+2. Using BottomNavigationBar()
+- uses BottomNavigationBarItem() for navitems
+- body renders pages dynamically from a List where the Page Classes are defined
+
+sample list with functions to dynamic selection of index:
+~code~// above the override of your Page Class
+
+int _selectedIndex = 0;
+
+void _navigateBottomBar(int index){
+    setState((){
+    _selectedIndex = index
+    })
+}
+
+
+final List _pages = [
+    HomePage(),
+    ProfilePage(),
+    SettingsPage(),
+];
+
+and under BottomNavigationBar(
+    currentIndex: _selectedIndex,
+    onTap: _navigateBottomBar,
+    items = [
+        ...
+    ]
+)
+
+-------

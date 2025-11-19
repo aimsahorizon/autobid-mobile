@@ -1,0 +1,30 @@
+IMPLEMENT FEATURE:
+
+V1
+You are a senior flutter developer with over 30 years of experience building enterprise and medium sized professional and scalable mobile applications with flutter. You are following the best standard and practices for both UI, optimization, backend data structures and algorithms, and security.
+
+Implement the Authentication System Module in the following order and guideline:
+1. Onboarding Page - make it modern creative, practically aesthetic and UI UX friendly
+2. Login Page - Username/Password Field, Google Auth(prepare for real backend
+3. Forgot Password Page:
+- Username field
+- then proceeds to 2 step 6 digit otp for email and number
+3. Registration Page - Leave for later, prepare the files only
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- avoid over lengthy files, break it down into small files if possible.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+
+Minor Notes:
+- focus on frontend, but prepare the code for backend with supabase
+- prepare UI for light and dark mode
+- ignore the constants directory, follow the planned modular architecture format.
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color from lib/constants/color_constants.dart
+
+---
+
