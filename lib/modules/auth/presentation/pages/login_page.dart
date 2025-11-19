@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import '../../../../../app/core/constants/color_constants.dart';
 import '../../auth_routes.dart';
 import '../controllers/login_controller.dart';
+import '../widgets/auth_text_field.dart';
+import '../widgets/auth_error_message.dart';
+import '../widgets/auth_loading_button.dart';
+import '../widgets/auth_divider.dart';
+import '../widgets/social_sign_in_button.dart';
 
 class LoginPage extends StatefulWidget {
   final LoginController controller;
@@ -24,6 +29,15 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  void _handleLogin() {
+    if (_formKey.currentState!.validate()) {
+      widget.controller.signIn(
+        _usernameController.text.trim(),
+        _passwordController.text,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -39,240 +53,167 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
-
-                // Title
-                Text('Welcome Back', style: theme.textTheme.displayLarge),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to continue bidding',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: isDark
-                        ? ColorConstants.textSecondaryDark
-                        : ColorConstants.textSecondaryLight,
-                  ),
-                ),
-
+                _buildHeader(theme, isDark),
                 const SizedBox(height: 48),
-
-                // Error message
-                ListenableBuilder(
-                  listenable: widget.controller,
-                  builder: (context, _) {
-                    if (widget.controller.errorMessage != null) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 20),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: ColorConstants.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: ColorConstants.error.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: ColorConstants.error,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                widget.controller.errorMessage!,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: ColorConstants.error,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: widget.controller.clearError,
-                              color: ColorConstants.error,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-
-                // Username field
-                TextFormField(
-                  controller: _usernameController,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    hintText: 'Enter your username',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your username';
-                    }
-                    return null;
-                  },
-                ),
-
+                _buildErrorMessage(),
+                _buildUsernameField(),
                 const SizedBox(height: 20),
-
-                // Password field
-                ListenableBuilder(
-                  listenable: widget.controller,
-                  builder: (context, _) {
-                    return TextFormField(
-                      controller: _passwordController,
-                      obscureText: widget.controller.obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        hintText: 'Enter your password',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            widget.controller.obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: widget.controller.togglePasswordVisibility,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        return null;
-                      },
-                    );
-                  },
-                ),
-
+                _buildPasswordField(),
                 const SizedBox(height: 16),
-
-                // Forgot password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.of(
-                        context,
-                      ).pushNamed(AuthRoutes.forgotPassword);
-                    },
-                    child: const Text('Forgot Password?'),
-                  ),
-                ),
-
+                _buildForgotPasswordLink(),
                 const SizedBox(height: 24),
-
-                // Login button
-                ListenableBuilder(
-                  listenable: widget.controller,
-                  builder: (context, _) {
-                    return SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: widget.controller.isLoading
-                            ? null
-                            : () {
-                                if (_formKey.currentState!.validate()) {
-                                  widget.controller.signIn(
-                                    _usernameController.text.trim(),
-                                    _passwordController.text,
-                                  );
-                                }
-                              },
-                        child: widget.controller.isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Sign In'),
-                      ),
-                    );
-                  },
-                ),
-
+                _buildLoginButton(),
                 const SizedBox(height: 32),
-
-                // Divider
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: theme.dividerColor)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('OR', style: theme.textTheme.bodySmall),
-                    ),
-                    Expanded(child: Divider(color: theme.dividerColor)),
-                  ],
-                ),
-
+                const AuthDivider(),
                 const SizedBox(height: 32),
-
-                // Google sign in
-                ListenableBuilder(
-                  listenable: widget.controller,
-                  builder: (context, _) {
-                    return SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: widget.controller.isLoading
-                            ? null
-                            : widget.controller.signInWithGoogle,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.g_mobiledata,
-                              size: 28,
-                              color: widget.controller.isLoading
-                                  ? null
-                                  : ColorConstants.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text('Continue with Google'),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
+                _buildGoogleSignIn(),
                 const SizedBox(height: 40),
-
-                // Sign up prompt
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account? ",
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(
-                          context,
-                        ).pushNamed(AuthRoutes.registration);
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text('Sign Up'),
-                    ),
-                  ],
-                ),
+                _buildSignUpPrompt(theme),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Welcome Back', style: theme.textTheme.displayLarge),
+        const SizedBox(height: 8),
+        Text(
+          'Sign in to continue bidding',
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: isDark
+                ? ColorConstants.textSecondaryDark
+                : ColorConstants.textSecondaryLight,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorMessage() {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        if (widget.controller.errorMessage != null) {
+          return AuthErrorMessage(
+            message: widget.controller.errorMessage!,
+            onDismiss: widget.controller.clearError,
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildUsernameField() {
+    return AuthTextField(
+      controller: _usernameController,
+      label: 'Username',
+      hint: 'Enter your username',
+      prefixIcon: Icons.person_outline,
+      keyboardType: TextInputType.text,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter your username';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        return AuthTextField(
+          controller: _passwordController,
+          label: 'Password',
+          hint: 'Enter your password',
+          prefixIcon: Icons.lock_outline,
+          obscureText: widget.controller.obscurePassword,
+          suffixIcon: IconButton(
+            icon: Icon(
+              widget.controller.obscurePassword
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+            ),
+            onPressed: widget.controller.togglePasswordVisibility,
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your password';
+            }
+            return null;
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildForgotPasswordLink() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: () {
+          Navigator.of(context).pushNamed(AuthRoutes.forgotPassword);
+        },
+        child: const Text('Forgot Password?'),
+      ),
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        return AuthLoadingButton(
+          isLoading: widget.controller.isLoading,
+          onPressed: _handleLogin,
+          label: 'Sign In',
+        );
+      },
+    );
+  }
+
+  Widget _buildGoogleSignIn() {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        return SocialSignInButton(
+          icon: Icons.g_mobiledata,
+          label: 'Continue with Google',
+          onPressed: widget.controller.signInWithGoogle,
+          isLoading: widget.controller.isLoading,
+        );
+      },
+    );
+  }
+
+  Widget _buildSignUpPrompt(ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          "Don't have an account? ",
+          style: theme.textTheme.bodyMedium,
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pushNamed(AuthRoutes.registration);
+          },
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(0, 0),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: const Text('Sign Up'),
+        ),
+      ],
     );
   }
 }
