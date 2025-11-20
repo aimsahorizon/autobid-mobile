@@ -12,7 +12,7 @@ class OnboardingController extends ChangeNotifier {
   }
 
   void nextPage() {
-    if (_currentPage < 2) {
+    if (_currentPage < 5) {
       pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,

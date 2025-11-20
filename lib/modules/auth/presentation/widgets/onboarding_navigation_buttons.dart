@@ -28,16 +28,16 @@ class OnboardingNavigationButtons extends StatelessWidget {
             child: Text(isLastPage ? 'Get Started' : 'Next'),
           ),
         ),
-        if (!isLastPage && !isFirstPage) ...[
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: TextButton(
-              onPressed: onBack,
-              child: const Text('Back'),
-            ),
-          ),
-        ],
+        // if (!isLastPage && !isFirstPage) ...[
+        //   const SizedBox(height: 12),
+        //   SizedBox(
+        //     width: double.infinity,
+        //     child: TextButton(
+        //       onPressed: onBack,
+        //       child: const Text('Back'),
+        //     ),
+        //   ),
+        // ],
       ],
     );
   }
