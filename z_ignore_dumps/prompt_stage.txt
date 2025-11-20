@@ -1,0 +1,45 @@
+Implementation Prompt
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI, optimization, backend 
+data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/auth/<registration_files> AND related files in lib/app
+- Update the registration feature in auth module with the following guidelines:
+-- It has to have 9 step KYC process:
+1. Philippine National ID -> ID Number, Front ID Photo, Back ID Photo
+2. Selfie with National ID with instructions: Hold next to face, visibility, readability, lighting condition, remove glasses if possible (expound these instructions)
+3. Secondary Philippines Government ID -> ID NUmber, Front ID Photo, Back ID Photo
+Note: After step 2, there should be a dialog prompting user to auto fill out the rest of information that is available and taken from ID scan using AI text recognition model to extract data from ID.
+
+4. Personal Information - Firstname, Middlename, Lastname, Date of Birth, Sex
+5. Account Information - email, phone number (PH +63), password, confirm password, accept and read terms and condition, accept and read privacy policy
+6. 2 Step 6 Digit OTP verification of (1) Phone -> (2) Email
+7. Address Information - Dynamically Filtered Philippine: Region, Province, City/Municipality, Barangay, Street Address, ZIP Code
+8. Proof of Address Validation - Certain documents to prove one's address is valid - upload document
+9. Review all information - user can go back to every step and edit their details
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Minor Notes:
+- Use the design theme from lib/app/core/theme/app_theme.dart
+- Handle Professionally and Robust
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart

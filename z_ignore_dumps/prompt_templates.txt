@@ -8,15 +8,8 @@ and scalable mobile applications with flutter. You are following
 the best standard and practices for both UI, optimization, backend 
 data structures and algorithms, and security.
 
-Instruction:
-Prepare the 4 different user logged-in Modules in the following order and guideline:
-Module 1: Browse Tab
-Module 2: Bids Tab
-Module 3: Lists Tab
-Module 4: Profile Tab
-- Prepare only the pages with bottom navigation bar
-- Do not create any UI yet, just the text indicating the page
-- prepare the rest of the folders and possible needed files but keep them empty
+Instructions:
+-
 
 Critical Note:
 - do not use super complex code, use only between junior to senior proficiency.
@@ -33,8 +26,7 @@ Break down the presentation UI files into small chunks, do not create lengthy fi
 - Scalable - new pages can reuse components
 
 Minor Notes:
-- focus on frontend, but prepare the code for backend with supabase
-- prepare UI for light and dark mode
+- 
 
 Design Preference:
 - Minimal, clean, modern, with soft colors, rounded corners, and spacing.
@@ -63,3 +55,5 @@ Easy maintenance - change once, affects all
 Testable - widgets can be tested independently
 Scalable - new pages can reuse components
 
+
+---
