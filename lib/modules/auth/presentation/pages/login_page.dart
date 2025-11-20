@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/controllers/theme_controller.dart';
 import '../../auth_routes.dart';
 import '../controllers/login_controller.dart';
 import '../widgets/auth_text_field.dart';
@@ -10,8 +11,13 @@ import '../widgets/social_sign_in_button.dart';
 
 class LoginPage extends StatefulWidget {
   final LoginController controller;
+  final ThemeController themeController;
 
-  const LoginPage({super.key, required this.controller});
+  const LoginPage({
+    super.key,
+    required this.controller,
+    required this.themeController,
+  });
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -29,12 +35,16 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      widget.controller.signIn(
+      await widget.controller.signIn(
         _usernameController.text.trim(),
         _passwordController.text,
       );
+
+      if (mounted && widget.controller.errorMessage == null) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
     }
   }
 
@@ -52,7 +62,8 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
+                _buildThemeToggle(),
+                const SizedBox(height: 20),
                 _buildHeader(theme, isDark),
                 const SizedBox(height: 48),
                 _buildErrorMessage(),
@@ -73,6 +84,25 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildThemeToggle() {
+    return Align(
+      alignment: Alignment.topRight,
+      child: ListenableBuilder(
+        listenable: widget.themeController,
+        builder: (context, _) {
+          return IconButton(
+            icon: Icon(
+              widget.themeController.isDarkMode
+                  ? Icons.light_mode_rounded
+                  : Icons.dark_mode_rounded,
+            ),
+            onPressed: widget.themeController.toggleTheme,
+          );
+        },
       ),
     );
   }
