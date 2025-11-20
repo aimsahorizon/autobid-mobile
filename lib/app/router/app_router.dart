@@ -29,11 +29,7 @@ class AppRouter {
         );
 
       case AuthRoutes.registration:
-        return MaterialPageRoute(
-          builder: (_) => RegistrationPage(
-            controller: AuthModule.instance.createRegistrationController(),
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => RegistrationPage());
 
       case AuthRoutes.forgotPassword:
         return MaterialPageRoute(
@@ -43,16 +39,12 @@ class AppRouter {
         );
 
       case '/home':
-        return MaterialPageRoute(
-          builder: (_) => const HomePage(),
-        );
+        return MaterialPageRoute(builder: (_) => const HomePage());
 
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
-            body: Center(
-              child: Text('No route defined for ${settings.name}'),
-            ),
+            body: Center(child: Text('No route defined for ${settings.name}')),
           ),
         );
     }
