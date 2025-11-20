@@ -17,6 +17,12 @@ class ColorConstants {
   static const Color surfaceDark = Color(0xFF1A0029);
   static const Color surfaceVariantDark = Color(0xFF2A0D3D);
 
+  // Additional Neutral Colors
+  static const Color backgroundSecondaryLight = Color(0xFFF5F5F5);
+  static const Color backgroundSecondaryDark = Color(0xFF1A0029);
+  static const Color borderLight = Color(0xFFE0E0E0);
+  static const Color borderDark = Color(0xFF2A0D3D);
+
   // Text Colors
   static const Color textPrimaryLight = Color(0xFF212121);
   static const Color textSecondaryLight = Color(0xFF757575);

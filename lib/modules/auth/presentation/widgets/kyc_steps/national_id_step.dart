@@ -1,0 +1,145 @@
+import 'package:flutter/material.dart';
+import '../../../../../app/core/constants/color_constants.dart';
+import '../../controllers/kyc_registration_controller.dart';
+import '../image_picker_card.dart';
+
+class NationalIdStep extends StatefulWidget {
+  final KYCRegistrationController controller;
+
+  const NationalIdStep({
+    super.key,
+    required this.controller,
+  });
+
+  @override
+  State<NationalIdStep> createState() => _NationalIdStepState();
+}
+
+class _NationalIdStepState extends State<NationalIdStep> {
+  final _idNumberController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller.nationalIdNumber != null) {
+      _idNumberController.text = widget.controller.nationalIdNumber!;
+    }
+    _idNumberController.addListener(() {
+      widget.controller.setNationalIdNumber(_idNumberController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _idNumberController.dispose();
+    super.dispose();
+  }
+
+  void _pickImage(String type) async {
+    // Mock image picker - in production, use image_picker package
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Image Picker'),
+        content: Text('Image picker for $type would open here'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              // Mock: Create a placeholder file
+              Navigator.pop(context);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Philippine National ID',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please provide your Philippine National ID information',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.brightness == Brightness.dark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 32),
+          TextFormField(
+            controller: _idNumberController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'National ID Number',
+              hintText: 'Enter your 12-digit National ID number',
+              prefixIcon: Icon(Icons.badge_rounded),
+            ),
+          ),
+          const SizedBox(height: 24),
+          ImagePickerCard(
+            label: 'Front of National ID',
+            hint: 'Clear photo of the front side',
+            imageFile: widget.controller.nationalIdFront,
+            icon: Icons.credit_card_rounded,
+            onTap: () => _pickImage('front'),
+          ),
+          const SizedBox(height: 24),
+          ImagePickerCard(
+            label: 'Back of National ID',
+            hint: 'Clear photo of the back side',
+            imageFile: widget.controller.nationalIdBack,
+            icon: Icons.credit_card_rounded,
+            onTap: () => _pickImage('back'),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: ColorConstants.info.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: ColorConstants.info.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  color: ColorConstants.info,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Make sure the ID is clearly visible and all text is readable',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: ColorConstants.info,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
