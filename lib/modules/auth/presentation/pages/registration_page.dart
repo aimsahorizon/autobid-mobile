@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/constants/color_constants.dart';
 import '../controllers/registration_controller.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_error_message.dart';
@@ -247,10 +247,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          'Already have an account? ',
-          style: theme.textTheme.bodyMedium,
-        ),
+        Text('Already have an account? ', style: theme.textTheme.bodyMedium),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
