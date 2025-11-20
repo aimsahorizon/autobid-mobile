@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/constants/color_constants.dart';
 
 class PageIndicators extends StatelessWidget {
   final int currentPage;
