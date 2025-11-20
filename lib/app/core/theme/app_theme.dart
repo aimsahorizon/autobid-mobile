@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// import 'package:google_fonts/google_fonts.dart';
 import '../constants/color_constants.dart';
 
 class AppTheme {
@@ -119,6 +120,36 @@ class AppTheme {
           fontSize: 12,
           color: ColorConstants.textSecondaryLight,
         ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: ColorConstants.surfaceLight,
+        indicatorColor: ColorConstants.primary.withValues(alpha: 0.15),
+        iconTheme: WidgetStateProperty.resolveWith<IconThemeData?>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: ColorConstants.primary, size: 28);
+          }
+          return IconThemeData(
+            color: ColorConstants.textSecondaryLight,
+            size: 24,
+          );
+        }),
+        // labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
+        //   if (states.contains(WidgetState.selected)) {
+        //     return GoogleFonts.inter(
+        //       fontSize: 12,
+        //       fontWeight: FontWeight.w600,
+        //       color: ColorConstants.primary,
+        //     );
+        //   }
+        //   return GoogleFonts.inter(
+        //     fontSize: 12,
+        //     fontWeight: FontWeight.w500,
+        //     color: ColorConstants.textSecondaryLight,
+        //   );
+        // }),
+        elevation: 8,
+        height: 80,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
     );
   }
@@ -243,6 +274,36 @@ class AppTheme {
           fontSize: 12,
           color: ColorConstants.textSecondaryDark,
         ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: ColorConstants.surfaceDark,
+        indicatorColor: ColorConstants.primary.withValues(alpha: 0.2),
+        iconTheme: WidgetStateProperty.resolveWith<IconThemeData?>((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: ColorConstants.primary, size: 28);
+          }
+          return IconThemeData(
+            color: ColorConstants.textSecondaryDark,
+            size: 24,
+          );
+        }),
+        // labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
+        //   if (states.contains(WidgetState.selected)) {
+        //     return GoogleFonts.inter(
+        //       fontSize: 12,
+        //       fontWeight: FontWeight.w600,
+        //       color: ColorConstants.primary,
+        //     );
+        //   }
+        //   return GoogleFonts.inter(
+        //     fontSize: 12,
+        //     fontWeight: FontWeight.w500,
+        //     color: ColorConstants.textSecondaryDark,
+        //   );
+        // }),
+        elevation: 8,
+        height: 80,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
     );
   }
