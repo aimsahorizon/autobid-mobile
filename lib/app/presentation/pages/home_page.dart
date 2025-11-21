@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
+import '../../../modules/browse/browse_module.dart';
 import '../../../modules/browse/presentation/pages/browse_page.dart';
 import '../../../modules/bids/presentation/pages/bids_page.dart';
 import '../../../modules/lists/presentation/pages/lists_page.dart';
+import '../../../modules/profile/profile_module.dart';
 import '../../../modules/profile/presentation/pages/profile_page.dart';
+import '../../core/controllers/theme_controller.dart';
 import '../../core/widgets/main_navigation.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final ThemeController themeController;
+
+  const HomePage({
+    super.key,
+    required this.themeController,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -15,12 +23,23 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const BrowsePage(),
-    const BidsPage(),
-    const ListsPage(),
-    const ProfilePage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      BrowsePage(
+        controller: BrowseModule.instance.createBrowseController(),
+      ),
+      const BidsPage(),
+      const ListsPage(),
+      ProfilePage(
+        controller: ProfileModule.instance.createProfileController(),
+        themeController: widget.themeController,
+      ),
+    ];
+  }
 
   void _onTabTapped(int index) {
     setState(() {

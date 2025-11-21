@@ -39,7 +39,9 @@ class AppRouter {
         );
 
       case '/home':
-        return MaterialPageRoute(builder: (_) => const HomePage());
+        return MaterialPageRoute(
+          builder: (_) => HomePage(themeController: themeController),
+        );
 
       default:
         return MaterialPageRoute(
