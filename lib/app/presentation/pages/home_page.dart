@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../modules/browse/browse_module.dart';
 import '../../../modules/browse/presentation/pages/browse_page.dart';
+import '../../../modules/bids/bids_module.dart';
 import '../../../modules/bids/presentation/pages/bids_page.dart';
+import '../../../modules/lists/lists_module.dart';
 import '../../../modules/lists/presentation/pages/lists_page.dart';
 import '../../../modules/profile/profile_module.dart';
 import '../../../modules/profile/presentation/pages/profile_page.dart';
@@ -32,8 +34,10 @@ class _HomePageState extends State<HomePage> {
       BrowsePage(
         controller: BrowseModule.instance.createBrowseController(),
       ),
-      const BidsPage(),
-      const ListsPage(),
+      BidsPage(
+        controller: BidsModule.instance.createBidsController(),
+      ),
+      ListsPage(controller: ListsModule.controller),
       ProfilePage(
         controller: ProfileModule.instance.createProfileController(),
         themeController: widget.themeController,
