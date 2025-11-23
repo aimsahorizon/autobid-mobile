@@ -1,9 +1,11 @@
 import '../../app/core/services/supabase_service.dart';
+import 'data/datasources/auction_detail_mock_datasource.dart';
 import 'data/datasources/auction_mock_datasource.dart';
 import 'data/datasources/auction_remote_datasource.dart';
 import 'data/repositories/auction_repository_impl.dart';
 import 'data/repositories/auction_repository_mock_impl.dart';
 import 'domain/repositories/auction_repository.dart';
+import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
 
 /// Dependency injection container for Browse module
@@ -28,6 +30,11 @@ class BrowseModule {
     return AuctionMockDataSource();
   }
 
+  /// Create auction detail mock data source
+  AuctionDetailMockDataSource _createDetailMockDataSource() {
+    return AuctionDetailMockDataSource();
+  }
+
   /// Create auction repository (switches based on useMockData flag)
   AuctionRepository _createRepository() {
     if (useMockData) {
@@ -42,5 +49,10 @@ class BrowseModule {
   /// Create browse controller
   BrowseController createBrowseController() {
     return BrowseController(_createRepository());
+  }
+
+  /// Create auction detail controller
+  AuctionDetailController createAuctionDetailController() {
+    return AuctionDetailController(_createDetailMockDataSource());
   }
 }
