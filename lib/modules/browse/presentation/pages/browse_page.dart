@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../browse_module.dart';
 import '../controllers/browse_controller.dart';
 import '../widgets/auction_card.dart';
+import 'auction_detail_page.dart';
 
 class BrowsePage extends StatefulWidget {
   final BrowseController controller;
@@ -151,7 +153,15 @@ class _BrowsePageState extends State<BrowsePage> {
                       return AuctionCard(
                         auction: auction,
                         onTap: () {
-                          // TODO: Navigate to auction details
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AuctionDetailPage(
+                                auctionId: auction.id,
+                                controller: BrowseModule.instance.createAuctionDetailController(),
+                              ),
+                            ),
+                          );
                         },
                       );
                     },
