@@ -1,6 +1,43 @@
 =====
 =====
 =====
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
 
 
 
@@ -43,6 +80,322 @@
 ---
 
 
+
+---
+
+
+
+---
+
+You are a Senior Flutter Developer, specialized in robust refactoring, debugging, and editing of existing code system.
+You are a master of design principles and understand the programming patterns and problems carefully.
+
+Reference:
+Focus on lib/module/browse and under lib/app/ for related files
+
+Tasks:
+- You embedded the active, won, and lost tab in bid history under browse module. It was meant for bids module.
+- Transfer those sub tabs to bids module, and revert the old code system of the bid history and related changes in browse module.
+
+Note:
+- Handle this professionally
+- Be consistent with the coding and design pattern
+- Add explanations with comments
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI UX design principles, 
+optimization, backend data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/modules/browse and related files on lib/app
+- We will work on improving the auction_detail_page
+Tasks:
+- for the BiddingInfoSection, I want you to arrange it in the best UI UX design layout as possible.
+- for the BiddingCardSection, make the mock backend work, create temporary gcash, maya, and card payment forms, but prepare it for paymongo sandbox api. make sure for the mock it should direct the user to unlocked version after submission demo.
+- layout the UI in the best UI UX arrangement and handle it professionally.
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+- every single component must be responsive for darkmode
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI, optimization, backend 
+data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/modules/profile and related files on lib/app
+Tasks:
+- Make the edit of photo and cover working
+- Add another section for customer support, Terms and Conditions, Privacy Policies, and related files (handle this professionally)
+- For customer support, create the most professional and practical customer support feature
+- the rest of the files, add some mock data, I will edit later
+- prepare each of these for real backend integration, just add comment instruction how to implement
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+- every single component must be responsive for darkmode
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI, optimization, backend 
+data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/modules/lists and related files on lib/app
+Tasks:
+1. Setup the sub tabs: Active, Pending, In Transaction, Drafts, Sold, Cancelled
+2. Active: All the seller lists that has been approved
+3. Pending: All the seller lists that is pending for admin review
+4. In transaction: All the seller lists that is in discussion with the winning bidder
+5. Drafts: All the seller lists left as a Draft
+6. Sold: All the seller lists that has been through successful transaction
+7. Cancelled: All the seller lists that has been cancelled from Active, Pending, or In Transaction
+Note: Prepare only the cards on the outside, we'll deal with the list card details
+additional tasks:
+- Add grid view and list view toggle in app bar
+- You are an online car auction expert, design the cards professionally and include relevant information.
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+- every single component must be responsive for darkmode
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI, optimization, backend 
+data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/modules/browse and related files on lib/app
+Tasks:
+1. Add 3 sub tabs: Active, Won, Lost
+2. Active--show cards where users started deposited in browse tab(it should sync with that specific auction card realtime)
+3. Won--Cards where the auction ended and users won from the browse tab detecting if they are the highest bidder
+4. Lost--Cards where users lost the bidding and the auction ended
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+- every single component must be responsive for darkmode
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI, optimization, backend 
+data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/modules/browse and related files on lib/app
+- Add 3 tabs at the bottom section:
+1. Bid History tab (prepare mock data, and actual supabase backend implementation)
+2. Car Info Tab (UI only and sample text, we will work on backend and proper dynamic data and every details needed)
+3. Q&A Tab - Contains category chips on top starting from All and etc..., then ask question button (opens a form user can ask quesitons specifying categories, and suggest common questions), then the question chips showing seller response status-people can only like not comment.
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI, optimization, backend 
+data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/modules/Profile
+Tasks:
+1. Make the cover and profile photo editable
+2. Add section where users can update their email (requires, password, 2 step otp for new email, and current number), number (requires password, 2 step otp for new number and current email)
+
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI, optimization, backend 
+data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/modules/browse and related files on lib/app
+We will now build the auction details after each cards are pressed.
+I need the following details for every single card:
+1. Car cover photo - with car year, make, model, and auction status
+2. Auction Detail Bidding info section - Time remaining (detailed with seconds), Current bid price, Reserve price status (met or not met), Reserve price(either shown or hidden) total number of bids, total number of watchers
+3. Car Photos Section - with categories chip (Exterior, Interior, Engine, Details, Documents), and photos shown below based on chip category selected
+4. Bidding Card Section - Initially locked and need deposit of 10k before starting to bid, we will use paymongo sandbox for dev that accepts, Gcash, Maya, and Cards
+after payment, the following should be displayed:
+- Minimum Bid, Bid Amount Input Field, Autofill Bid amounts with chips component. Minimum should be set by the seller. Increments by default should be (minimum, + button for users to add their custom increment chips should be above minimum.)
+
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI, optimization, backend 
+data structures and algorithms, and security.
+
+Instructions:
+- Focus on lib/modules/browse and related files on lib/app
+We will work on building the browser tab. This tab showcases the browsing of active car auctions in the platform.
+It composes of Auction Cards that displays the following:
+- Car Image
+- Year, Make, Model
+- Current Bid
+- Number of Watchers
+- Number of Bidders
+- Approximate time remaining (Do not show the seconds, stop at the minute and use approximate > or < if 1 minute remaining)
+This card can be clicked which we would implement later. Build this for now.
+
+Note: Prepare the cards and its details for supabase retrieval. You may now setup the supabase for the entire project BUT use the latest documentation for supabase flutter. Prioritize this if must.
+
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
 
 ---
 

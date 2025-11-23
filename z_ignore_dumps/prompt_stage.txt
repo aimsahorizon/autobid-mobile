@@ -1,23 +1,39 @@
 You are a senior flutter developer with over 30 years of 
 experience building enterprise and medium sized professional 
 and scalable mobile applications with flutter. You are following 
-the best standard and practices for both UI, optimization, backend 
-data structures and algorithms, and security.
+the best standard and practices for both UI UX design principles, 
+optimization, backend data structures and algorithms, and security.
 
 Instructions:
-- Focus on lib/modules/browse and related files on lib/app
-We will work on building the browser tab. This tab showcases the browsing of active car auctions in the platform.
-It composes of Auction Cards that displays the following:
-- Car Image
-- Year, Make, Model
-- Current Bid
-- Number of Watchers
-- Number of Bidders
-- Approximate time remaining (Do not show the seconds, stop at the minute and use approximate > or < if 1 minute remaining)
-This card can be clicked which we would implement later. Build this for now.
+* Focus on lib/modules/lists and all related files under lib/app.
+* Implement the full transaction pre-transaction discussion system. (Under lists module, under in transaction sub tabs upon clicking each cards)
+* Implement the complete 9-step “Create New Listing” flow with proper structure, mock data handling, form validation, and draft-saving logic.
 
-Note: Prepare the cards and its details for supabase retrieval. You may now setup the supabase for the entire project BUT use the latest documentation for supabase flutter. Prioritize this if must.
+Reference:
+* Pre-transaction flow phases:
+  discussion phase -> review both forms -> both confirmed -> submitted to admin -> approved? -> pretransaction becomes immutable -> deposit refunded/credited -> seller proceeds with transaction -> buyer monitors -> transaction complete -> platform & buyer review.
 
+Tasks:
+Note: Do Mockups, but prepare this for supabase integration, make sure it is easily switchable for actual backend.
+* For the transaction module, create a card-triggered pre-transaction discussion page with 4 subtabs: chat, my form, buyer form, progress.
+* Chat: build a basic but clean messaging interface for buyers and sellers to discuss form details.
+* My Form: implement structured inputs for all required pre-transaction agreements and legal checklist items.
+* Buyer Form: allow seller to review the submitted buyer form; include states for pending, reviewed, changes requested, confirmed.
+* Progress: show transaction timeline updates by system and seller, reflecting the pre-transaction → admin review → approval → ongoing → completion.
+* Ensure the entire pre-transaction pipeline is logically connected and the UI clearly guides the user.
+
+Next: Build the 9-step Create Listing Form:
+  1. Basic Information: Brand, Model, Variant, Year
+  2. Mechanical Specification: engine details, transmission, fuel, drive type, etc.
+  3. Dimensions & Capacity: full measurement and weight fields
+  4. Exterior Details: color, paint type, rims, tires
+  5. Condition & History: condition, mileage, owners, modifications, warranty, usage
+  6. Documentation & Location: plate, OR/CR, registration status & expiry, province, city/municipality
+  7. Photos: handle all 56 required image categories with dynamic list and status indicators
+  8. Final Details: description (min 50 chars), known issues, car features
+  9. Listing Summary: review each step, allow editing, support saving drafts in every step
+* After submission, create a modal dialog: “Listing Submitted!” with options (create another / view my listing).
+Listing should go in pending tab upon submission. prepare the backend integration but do the mock up for now.
 
 Critical Note:
 - do not use super complex code, use only between junior to senior proficiency.
@@ -36,3 +52,36 @@ Break down the presentation UI files into small chunks, do not create lengthy fi
 Design Preference:
 - Minimal, clean, modern, with soft colors, rounded corners, and spacing.
 - use the color theme from lib/core/theme/app_theme.dart
+- every single component must be responsive for darkmode
+
+---
+
+Instructions:
+Context:
+
+
+---
+
+
+INSTRUCTIONS:
+Reference: Focus on lib/modules/profile and related files on lib/app
+We will make the create listing work.
+
+
+---
+
+FOR BUSINESS MODEL
+INSTRUCTIONS:
+Reference:
+Focus on lib/modules/profile and related files on lib/app
+- lib/modules/profile
+- lib/modules/lists
+- lib/modules/browse
+related files on lib/app
+Context:
+We will implement the business model of this project.
+Our business model is a bit hybrid people can buy 
+Tasks:
+- Develop a sys
+
+
