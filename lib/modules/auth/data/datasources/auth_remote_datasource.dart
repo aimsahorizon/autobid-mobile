@@ -62,13 +62,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<UserModel> signUp(String email, String password, {String? username}) async {
+  Future<UserModel> signUp(
+    String email,
+    String password, {
+    String? username,
+  }) async {
     // TODO: Implement with Supabase
     await Future.delayed(const Duration(seconds: 1));
-    return UserModel(
-      id: '1',
-      email: email,
-      username: username,
-    );
+    return UserModel(id: '1', email: email, username: username);
   }
 }
