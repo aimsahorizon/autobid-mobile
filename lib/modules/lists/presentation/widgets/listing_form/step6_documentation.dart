@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
+import 'province_city_picker.dart';
+import '../../../data/datasources/demo_listing_data.dart';
+import 'demo_autofill_button.dart';
 
 class Step6Documentation extends StatefulWidget {
   final ListingDraftController controller;
@@ -14,9 +17,9 @@ class Step6Documentation extends StatefulWidget {
 
 class _Step6DocumentationState extends State<Step6Documentation> {
   late TextEditingController _plateController;
-  late TextEditingController _provinceController;
-  late TextEditingController _cityController;
 
+  String? _province;
+  String? _city;
   String? _orcrStatus;
   String? _registrationStatus;
   DateTime? _registrationExpiry;
@@ -26,22 +29,18 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     super.initState();
     final draft = widget.controller.currentDraft!;
     _plateController = TextEditingController(text: draft.plateNumber);
-    _provinceController = TextEditingController(text: draft.province);
-    _cityController = TextEditingController(text: draft.cityMunicipality);
+    _province = draft.province;
+    _city = draft.cityMunicipality;
     _orcrStatus = draft.orcrStatus;
     _registrationStatus = draft.registrationStatus;
     _registrationExpiry = draft.registrationExpiry;
 
     _plateController.addListener(_updateDraft);
-    _provinceController.addListener(_updateDraft);
-    _cityController.addListener(_updateDraft);
   }
 
   @override
   void dispose() {
     _plateController.dispose();
-    _provinceController.dispose();
-    _cityController.dispose();
     super.dispose();
   }
 
@@ -93,8 +92,8 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         orcrStatus: _orcrStatus,
         registrationStatus: _registrationStatus,
         registrationExpiry: _registrationExpiry,
-        province: _provinceController.text.isEmpty ? null : _provinceController.text,
-        cityMunicipality: _cityController.text.isEmpty ? null : _cityController.text,
+        province: _province,
+        cityMunicipality: _city,
         photoUrls: draft.photoUrls,
         description: draft.description,
         knownIssues: draft.knownIssues,
@@ -106,6 +105,19 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     );
   }
 
+  void _autofillDemoData() {
+    final demoData = DemoListingData.getDemoDataForStep(6);
+    setState(() {
+      _plateController.text = demoData['plateNumber'];
+      _orcrStatus = demoData['orcrStatus'];
+      _registrationStatus = demoData['registrationStatus'];
+      _registrationExpiry = demoData['registrationExpiry'];
+      _province = demoData['province'];
+      _city = demoData['cityMunicipality'];
+    });
+    _updateDraft();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -115,6 +127,8 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           'Step 6: Documentation & Location',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 16),
+        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         FormFieldWidget(
           controller: _plateController,
@@ -174,17 +188,17 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           ),
         ),
         const SizedBox(height: 16),
-        FormFieldWidget(
-          controller: _provinceController,
-          label: 'Province *',
-          hint: 'e.g., Metro Manila, Cebu',
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
-        ),
-        const SizedBox(height: 16),
-        FormFieldWidget(
-          controller: _cityController,
-          label: 'City/Municipality',
-          hint: 'e.g., Quezon City, Makati',
+        ProvinceCityPicker(
+          province: _province,
+          city: _city,
+          onChanged: (province, city) {
+            setState(() {
+              _province = province;
+              _city = city;
+            });
+            _updateDraft();
+          },
+          provinceValidator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
       ],
     );

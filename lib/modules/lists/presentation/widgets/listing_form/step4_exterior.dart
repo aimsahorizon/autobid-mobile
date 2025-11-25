@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
+import 'combo_box_widget.dart';
+import '../../../data/datasources/demo_listing_data.dart';
+import 'demo_autofill_button.dart';
 
 class Step4Exterior extends StatefulWidget {
   final ListingDraftController controller;
@@ -108,6 +111,19 @@ class _Step4ExteriorState extends State<Step4Exterior> {
     );
   }
 
+  void _autofillDemoData() {
+    final demoData = DemoListingData.getDemoDataForStep(4);
+    setState(() {
+      _colorController.text = demoData['exteriorColor'];
+      _paintType = demoData['paintType'];
+      _rimType = demoData['rimType'];
+      _rimSizeController.text = demoData['rimSize'];
+      _tireSizeController.text = demoData['tireSize'];
+      _tireBrandController.text = demoData['tireBrand'];
+    });
+    _updateDraft();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -117,6 +133,8 @@ class _Step4ExteriorState extends State<Step4Exterior> {
           'Step 4: Exterior Details',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 16),
+        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         FormFieldWidget(
           controller: _colorController,
@@ -125,7 +143,7 @@ class _Step4ExteriorState extends State<Step4Exterior> {
           validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
         const SizedBox(height: 16),
-        FormDropdownWidget(
+        ComboBoxWidget(
           label: 'Paint Type *',
           value: _paintType,
           items: const ['Solid', 'Metallic', 'Pearl', 'Matte'],
@@ -133,10 +151,10 @@ class _Step4ExteriorState extends State<Step4Exterior> {
             setState(() => _paintType = v);
             _updateDraft();
           },
-          validator: (v) => v == null ? 'Required' : null,
+          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
         const SizedBox(height: 16),
-        FormDropdownWidget(
+        ComboBoxWidget(
           label: 'Rim Type',
           value: _rimType,
           items: const ['Alloy', 'Steel', 'Chrome', 'Forged'],
