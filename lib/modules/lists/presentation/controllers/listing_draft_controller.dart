@@ -29,7 +29,7 @@ class ListingDraftController extends ChangeNotifier {
   int get currentStep => _currentDraft?.currentStep ?? 1;
   bool get canGoNext => _currentDraft != null && currentStep < 9;
   bool get canGoPrevious => _currentDraft != null && currentStep > 1;
-  bool get canSubmit => _currentDraft?.isComplete ?? false;
+  bool get canSubmit => (_currentDraft?.completionPercentage ?? 0) >= 100;
 
   /// Load all drafts for seller
   Future<void> loadDrafts(String sellerId) async {

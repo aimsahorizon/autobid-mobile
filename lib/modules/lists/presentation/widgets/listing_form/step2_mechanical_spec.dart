@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
+import 'combo_box_widget.dart';
+import '../../../data/datasources/demo_listing_data.dart';
+import 'demo_autofill_button.dart';
 
 class Step2MechanicalSpec extends StatefulWidget {
   final ListingDraftController controller;
@@ -113,6 +116,21 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
     );
   }
 
+  void _autofillDemoData() {
+    final demoData = DemoListingData.getDemoDataForStep(2);
+    setState(() {
+      _engineType = demoData['engineType'];
+      _displacementController.text = demoData['engineDisplacement'].toString();
+      _cylinderController.text = demoData['cylinderCount'].toString();
+      _horsepowerController.text = demoData['horsepower'].toString();
+      _torqueController.text = demoData['torque'].toString();
+      _transmission = demoData['transmission'];
+      _fuelType = demoData['fuelType'];
+      _driveType = demoData['driveType'];
+    });
+    _updateDraft();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -122,8 +140,10 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           'Step 2: Mechanical Specification',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 16),
+        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
-        FormDropdownWidget(
+        ComboBoxWidget(
           label: 'Engine Type *',
           value: _engineType,
           items: const ['Inline-4', 'V6', 'V8', 'Flat-4', 'Inline-3', 'Electric'],
@@ -131,7 +151,7 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
             setState(() => _engineType = v);
             _updateDraft();
           },
-          validator: (v) => v == null ? 'Required' : null,
+          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -163,7 +183,7 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
         const SizedBox(height: 16),
-        FormDropdownWidget(
+        ComboBoxWidget(
           label: 'Transmission *',
           value: _transmission,
           items: const ['Manual', 'Automatic', 'CVT', 'DCT'],
@@ -171,10 +191,10 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
             setState(() => _transmission = v);
             _updateDraft();
           },
-          validator: (v) => v == null ? 'Required' : null,
+          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
         const SizedBox(height: 16),
-        FormDropdownWidget(
+        ComboBoxWidget(
           label: 'Fuel Type *',
           value: _fuelType,
           items: const ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'Plug-in Hybrid'],
@@ -182,10 +202,10 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
             setState(() => _fuelType = v);
             _updateDraft();
           },
-          validator: (v) => v == null ? 'Required' : null,
+          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
         const SizedBox(height: 16),
-        FormDropdownWidget(
+        ComboBoxWidget(
           label: 'Drive Type',
           value: _driveType,
           items: const ['FWD', 'RWD', 'AWD', '4WD'],

@@ -177,7 +177,10 @@ class _CreateListingPageState extends State<CreateListingPage> {
       child: Row(
         children: List.generate(9, (index) {
           final step = index + 1;
-          final isCompleted = widget.controller.currentDraft!.isStepComplete(step);
+          // Step 9 should not show as complete unless all previous steps are done
+          final isCompleted = step == 9
+              ? widget.controller.currentDraft!.completionPercentage >= 100
+              : widget.controller.currentDraft!.isStepComplete(step);
           final isCurrent = step == widget.controller.currentStep;
 
           return Expanded(

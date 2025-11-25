@@ -3,6 +3,8 @@ import '../../../../app/core/constants/color_constants.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../controllers/lists_controller.dart';
 import '../widgets/listings_grid.dart';
+import '../../lists_module.dart';
+import 'create_listing_page.dart';
 
 class ListsPage extends StatefulWidget {
   final ListsController controller;
@@ -39,6 +41,22 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _navigateToCreateListing(BuildContext context) {
+    final controller = ListsModule.createListingDraftController();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateListingPage(
+          controller: controller,
+          sellerId: 'seller_001', // TODO: Get from auth service
+        ),
+      ),
+    ).then((_) {
+      // Reload listings after returning from create page
+      widget.controller.loadListings();
+    });
   }
 
   @override
@@ -100,21 +118,31 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
 
           return TabBarView(
             controller: _tabController,
-            children: _tabs.map((status) => ListingsGrid(
-              listings: widget.controller.getListingsByStatus(status),
-              isGridView: widget.controller.isGridView,
-              isLoading: widget.controller.isLoading,
-              emptyTitle: _getEmptyTitle(status),
-              emptySubtitle: _getEmptySubtitle(status),
-              emptyIcon: _getEmptyIcon(status),
-            )).toList(),
+            children: _tabs.map((status) {
+              final needsController = status == ListingStatus.draft || status == ListingStatus.cancelled;
+              final needsSellerId = needsController || status == ListingStatus.inTransaction;
+
+              return ListingsGrid(
+                listings: widget.controller.getListingsByStatus(status),
+                isGridView: widget.controller.isGridView,
+                isLoading: widget.controller.isLoading,
+                emptyTitle: _getEmptyTitle(status),
+                emptySubtitle: _getEmptySubtitle(status),
+                emptyIcon: _getEmptyIcon(status),
+                enableNavigation: true,
+                draftController: needsController ? ListsModule.createListingDraftController() : null,
+                sellerId: needsSellerId ? 'seller_001' : null,
+              );
+            }).toList(),
           );
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () => _navigateToCreateListing(context),
         icon: const Icon(Icons.add),
         label: const Text('New Listing'),
+        backgroundColor: ColorConstants.primary,
+        foregroundColor: Colors.white,
       ),
     );
   }

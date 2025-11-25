@@ -182,6 +182,32 @@ class TransactionController extends ChangeNotifier {
     }
   }
 
+  /// Update delivery status (seller only)
+  /// Progresses through: preparing -> inTransit -> delivered -> completed
+  Future<bool> updateDeliveryStatus(DeliveryStatus status) async {
+    if (_transaction == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.updateDeliveryStatus(
+        _transaction!.id,
+        status,
+      );
+      if (success) {
+        await loadTransaction(_transaction!.id, _transaction!.sellerId);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to update delivery status';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
   /// Clear error message
   void clearError() {
     _errorMessage = null;

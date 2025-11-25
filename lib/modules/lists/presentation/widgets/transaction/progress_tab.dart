@@ -6,10 +6,7 @@ import '../../../domain/entities/transaction_entity.dart';
 class ProgressTab extends StatelessWidget {
   final TransactionController controller;
 
-  const ProgressTab({
-    super.key,
-    required this.controller,
-  });
+  const ProgressTab({super.key, required this.controller});
 
   Future<void> _submitToAdmin(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -61,7 +58,8 @@ class ProgressTab extends StatelessWidget {
           return const Center(child: Text('No transaction data'));
         }
 
-        final canSubmitToAdmin = transaction.readyForAdminReview &&
+        final canSubmitToAdmin =
+            transaction.readyForAdminReview &&
             transaction.status == TransactionStatus.formReview;
 
         return SingleChildScrollView(
@@ -151,6 +149,12 @@ class ProgressTab extends StatelessWidget {
                 ),
               ],
 
+              // Delivery tracker (only shown after admin approval)
+              if (transaction.adminApproved) ...[
+                const SizedBox(height: 24),
+                _buildDeliveryTracker(context, transaction, isDark),
+              ],
+
               // Timeline
               if (timeline.isNotEmpty) ...[
                 const SizedBox(height: 32),
@@ -172,6 +176,250 @@ class ProgressTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildDeliveryTracker(
+    BuildContext context,
+    TransactionEntity transaction,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Delivery Progress',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: isDark
+                ? ColorConstants.textPrimaryDark
+                : ColorConstants.textPrimaryLight,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark
+                ? ColorConstants.surfaceDark
+                : ColorConstants.backgroundSecondaryLight,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              _buildDeliveryStep(
+                'Preparing',
+                'Vehicle being prepared for handover',
+                transaction.deliveryStatus.index >=
+                    DeliveryStatus.preparing.index,
+                transaction.deliveryStatus == DeliveryStatus.preparing,
+                Icons.build,
+                isDark,
+              ),
+              _buildDeliveryConnector(
+                transaction.deliveryStatus.index >=
+                    DeliveryStatus.inTransit.index,
+                isDark,
+              ),
+              _buildDeliveryStep(
+                'In Transit',
+                'Vehicle being transported to buyer',
+                transaction.deliveryStatus.index >=
+                    DeliveryStatus.inTransit.index,
+                transaction.deliveryStatus == DeliveryStatus.inTransit,
+                Icons.local_shipping,
+                isDark,
+              ),
+              _buildDeliveryConnector(
+                transaction.deliveryStatus.index >=
+                    DeliveryStatus.delivered.index,
+                isDark,
+              ),
+              _buildDeliveryStep(
+                'Delivered',
+                'Vehicle handed over to buyer',
+                transaction.deliveryStatus.index >=
+                    DeliveryStatus.delivered.index,
+                transaction.deliveryStatus == DeliveryStatus.delivered,
+                Icons.check_circle,
+                isDark,
+              ),
+              _buildDeliveryConnector(
+                transaction.deliveryStatus == DeliveryStatus.completed,
+                isDark,
+              ),
+              _buildDeliveryStep(
+                'Completed',
+                'Buyer confirmed receipt',
+                transaction.deliveryStatus == DeliveryStatus.completed,
+                false,
+                Icons.celebration,
+                isDark,
+              ),
+            ],
+          ),
+        ),
+        if (transaction.deliveryStatus != DeliveryStatus.completed) ...[
+          const SizedBox(height: 16),
+          _buildDeliveryActionButton(context, transaction),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDeliveryStep(
+    String title,
+    String subtitle,
+    bool isCompleted,
+    bool isActive,
+    IconData icon,
+    bool isDark,
+  ) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: isCompleted
+                ? ColorConstants.success
+                : (isActive
+                      ? ColorConstants.primary
+                      : (isDark
+                            ? ColorConstants.backgroundDark
+                            : Colors.grey[200])),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            isCompleted ? Icons.check : icon,
+            color: isCompleted || isActive
+                ? Colors.white
+                : (isDark ? Colors.grey[600] : Colors.grey[400]),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isCompleted || isActive
+                      ? (isDark
+                            ? ColorConstants.textPrimaryDark
+                            : ColorConstants.textPrimaryLight)
+                      : (isDark ? Colors.grey[600] : Colors.grey[400]),
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeliveryConnector(bool isCompleted, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(left: 19, top: 4, bottom: 4),
+      width: 2,
+      height: 20,
+      color: isCompleted
+          ? ColorConstants.success
+          : (isDark ? Colors.grey[700] : Colors.grey[300]),
+    );
+  }
+
+  Widget _buildDeliveryActionButton(
+    BuildContext context,
+    TransactionEntity transaction,
+  ) {
+    DeliveryStatus? nextStatus;
+    String buttonText = '';
+
+    switch (transaction.deliveryStatus) {
+      case DeliveryStatus.pending:
+        nextStatus = DeliveryStatus.preparing;
+        buttonText = 'Start Preparing Vehicle';
+        break;
+      case DeliveryStatus.preparing:
+        nextStatus = DeliveryStatus.inTransit;
+        buttonText = 'Mark as In Transit';
+        break;
+      case DeliveryStatus.inTransit:
+        nextStatus = DeliveryStatus.delivered;
+        buttonText = 'Mark as Delivered';
+        break;
+      case DeliveryStatus.delivered:
+        nextStatus = DeliveryStatus.completed;
+        buttonText = 'Complete Transaction';
+        break;
+      case DeliveryStatus.completed:
+        break;
+    }
+
+    if (nextStatus == null) return const SizedBox.shrink();
+
+    return ElevatedButton.icon(
+      onPressed: controller.isProcessing
+          ? null
+          : () async {
+              final success = await controller.updateDeliveryStatus(
+                nextStatus!,
+              );
+              if (success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Updated to: ${_getDeliveryStatusLabel(nextStatus)}',
+                    ),
+                  ),
+                );
+              }
+            },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: ColorConstants.primary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      icon: controller.isProcessing
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(Icons.arrow_forward),
+      label: Text(buttonText),
+    );
+  }
+
+  String _getDeliveryStatusLabel(DeliveryStatus status) {
+    switch (status) {
+      case DeliveryStatus.pending:
+        return 'Pending';
+      case DeliveryStatus.preparing:
+        return 'Preparing';
+      case DeliveryStatus.inTransit:
+        return 'In Transit';
+      case DeliveryStatus.delivered:
+        return 'Delivered';
+      case DeliveryStatus.completed:
+        return 'Completed';
+    }
   }
 
   Widget _buildProgressChecklist(TransactionEntity transaction, bool isDark) {
@@ -248,8 +496,8 @@ class ProgressTab extends StatelessWidget {
               color: completed
                   ? Colors.green
                   : (isDark
-                      ? ColorConstants.surfaceLight
-                      : ColorConstants.backgroundSecondaryLight),
+                        ? ColorConstants.surfaceLight
+                        : ColorConstants.backgroundSecondaryLight),
               border: completed
                   ? null
                   : Border.all(
@@ -269,11 +517,11 @@ class ProgressTab extends StatelessWidget {
               style: TextStyle(
                 color: completed
                     ? (isDark
-                        ? ColorConstants.textPrimaryDark
-                        : ColorConstants.textPrimaryLight)
+                          ? ColorConstants.textPrimaryDark
+                          : ColorConstants.textPrimaryLight)
                     : (isDark
-                        ? ColorConstants.textSecondaryDark
-                        : ColorConstants.textSecondaryLight),
+                          ? ColorConstants.textSecondaryDark
+                          : ColorConstants.textSecondaryLight),
                 fontWeight: completed ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
@@ -303,8 +551,9 @@ class ProgressTab extends StatelessWidget {
                     height: 32,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: _getTimelineEventColor(event.type)
-                          .withValues(alpha: 0.2),
+                      color: _getTimelineEventColor(
+                        event.type,
+                      ).withValues(alpha: 0.2),
                     ),
                     child: Icon(
                       _getTimelineEventIcon(event.type),
@@ -333,9 +582,7 @@ class ProgressTab extends StatelessWidget {
                     children: [
                       Text(
                         event.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 4),
                       Text(

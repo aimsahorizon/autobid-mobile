@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../controllers/transaction_controller.dart';
+import '../controllers/seller_transaction_demo_controller.dart';
 import '../widgets/transaction/chat_tab.dart';
 import '../widgets/transaction/my_form_tab.dart';
 import '../widgets/transaction/buyer_form_tab.dart';
@@ -25,10 +26,23 @@ class PreTransactionPage extends StatefulWidget {
 }
 
 class _PreTransactionPageState extends State<PreTransactionPage> {
+  late SellerTransactionDemoController _demoController;
+
   @override
   void initState() {
     super.initState();
+    _demoController = SellerTransactionDemoController(
+      widget.controller,
+      widget.userId,
+      widget.userName,
+    );
     widget.controller.loadTransaction(widget.transactionId, widget.userId);
+  }
+
+  @override
+  void dispose() {
+    _demoController.dispose();
+    super.dispose();
   }
 
   @override
@@ -60,6 +74,25 @@ class _PreTransactionPageState extends State<PreTransactionPage> {
             );
           },
         ),
+        actions: [
+          // Demo auto-play button
+          ListenableBuilder(
+            listenable: _demoController,
+            builder: (context, _) {
+              return IconButton(
+                onPressed: _demoController.isPlaying ? null : () => _demoController.startDemo(),
+                icon: _demoController.isPlaying
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.play_circle_outline),
+                tooltip: _demoController.isPlaying ? _demoController.currentStep : 'Demo Auto-Play',
+              );
+            },
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: widget.controller,
@@ -109,7 +142,9 @@ class _PreTransactionPageState extends State<PreTransactionPage> {
                   child: TabBar(
                     padding: const EdgeInsets.all(4),
                     indicator: BoxDecoration(
-                      color: isDark ? ColorConstants.surfaceLight : Colors.white,
+                      color: isDark
+                          ? ColorConstants.surfaceLight
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
@@ -152,9 +187,7 @@ class _PreTransactionPageState extends State<PreTransactionPage> {
                         controller: widget.controller,
                         userId: widget.userId,
                       ),
-                      ProgressTab(
-                        controller: widget.controller,
-                      ),
+                      ProgressTab(controller: widget.controller),
                     ],
                   ),
                 ),

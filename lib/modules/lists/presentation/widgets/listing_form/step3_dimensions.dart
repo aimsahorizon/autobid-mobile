@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
+import '../../../data/datasources/demo_listing_data.dart';
+import 'demo_autofill_button.dart';
 
 class Step3Dimensions extends StatefulWidget {
   final ListingDraftController controller;
@@ -125,6 +127,23 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
     );
   }
 
+  void _autofillDemoData() {
+    final demoData = DemoListingData.getDemoDataForStep(3);
+    setState(() {
+      _lengthController.text = demoData['length'].toString();
+      _widthController.text = demoData['width'].toString();
+      _heightController.text = demoData['height'].toString();
+      _wheelbaseController.text = demoData['wheelbase'].toString();
+      _clearanceController.text = demoData['groundClearance'].toString();
+      _seatingController.text = demoData['seatingCapacity'].toString();
+      _doorController.text = demoData['doorCount'].toString();
+      _fuelTankController.text = demoData['fuelTankCapacity'].toString();
+      _curbWeightController.text = demoData['curbWeight'].toString();
+      _grossWeightController.text = demoData['grossWeight'].toString();
+    });
+    _updateDraft();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -134,6 +153,8 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           'Step 3: Dimensions & Capacity',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 16),
+        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         FormFieldWidget(
           controller: _lengthController,

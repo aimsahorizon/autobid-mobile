@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
+import '../../../data/datasources/demo_listing_data.dart';
+import '../../../data/datasources/sample_photo_guide_datasource.dart';
+import 'demo_autofill_button.dart';
 
 class Step7Photos extends StatelessWidget {
   final ListingDraftController controller;
@@ -39,6 +42,104 @@ class Step7Photos extends StatelessWidget {
     }
   }
 
+  Future<void> _autofillDemoPhotos(BuildContext context) async {
+    final demoData = DemoListingData.getDemoDataForStep(7);
+    final photoUrls = demoData['photoUrls'] as Map<String, List<String>>;
+
+    for (final entry in photoUrls.entries) {
+      for (final url in entry.value) {
+        await controller.uploadPhoto(entry.key, url);
+      }
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All demo photos uploaded!')),
+      );
+    }
+  }
+
+  Future<void> _showSamplePhoto(BuildContext context, String category) async {
+    final datasource = SamplePhotoGuideDataSource();
+    final sampleUrl = await datasource.getSamplePhoto(category);
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: ColorConstants.primary,
+              child: Row(
+                children: [
+                  const Icon(Icons.lightbulb_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Sample Guide: $category',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            if (sampleUrl != null)
+              Image.network(
+                sampleUrl,
+                height: 300,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const SizedBox(
+                    height: 300,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 300,
+                    color: Colors.grey[300],
+                    child: const Center(
+                      child: Icon(Icons.image_not_supported, size: 64),
+                    ),
+                  );
+                },
+              )
+            else
+              Container(
+                height: 300,
+                color: Colors.grey[300],
+                child: const Center(
+                  child: Text('No sample available'),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'This is a reference photo showing the ideal angle and framing for "$category".',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -60,47 +161,53 @@ class Step7Photos extends StatelessWidget {
               color: isDark
                   ? ColorConstants.surfaceDark
                   : ColorConstants.backgroundSecondaryLight,
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Step 7: Photos',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Step 7: Photos',
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Upload photos for all 56 required categories',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDark
+                                    ? ColorConstants.textSecondaryDark
+                                    : ColorConstants.textSecondaryLight,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Upload photos for all 56 required categories',
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: uploadedCount >= 56
+                              ? Colors.green
+                              : ColorConstants.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '$uploadedCount/56',
                           style: TextStyle(
-                            fontSize: 14,
-                            color: isDark
-                                ? ColorConstants.textSecondaryDark
-                                : ColorConstants.textSecondaryLight,
+                            fontWeight: FontWeight.bold,
+                            color: uploadedCount >= 56
+                                ? Colors.white
+                                : ColorConstants.primary,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: uploadedCount >= 56
-                          ? Colors.green
-                          : ColorConstants.primary.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '$uploadedCount/56',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: uploadedCount >= 56
-                            ? Colors.white
-                            : ColorConstants.primary,
                       ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
+                  DemoAutofillButton(onPressed: () => _autofillDemoPhotos(context)),
                 ],
               ),
             ),
@@ -151,9 +258,19 @@ class Step7Photos extends StatelessWidget {
                                     style: const TextStyle(color: Colors.green),
                                   )
                                 : null,
-                            trailing: IconButton(
-                              icon: const Icon(Icons.camera_alt),
-                              onPressed: () => _pickImage(context, category),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.info_outline, size: 20),
+                                  tooltip: 'View sample',
+                                  onPressed: () => _showSamplePhoto(context, category),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.camera_alt),
+                                  onPressed: () => _pickImage(context, category),
+                                ),
+                              ],
                             ),
                           ),
                         );

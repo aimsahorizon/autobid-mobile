@@ -64,12 +64,10 @@ class ListingDraftEntity {
   // Step 7: Photos (56 categories)
   final Map<String, List<String>>? photoUrls; // category -> list of URLs
 
-  // Step 8: Final Details
+  // Step 8: Final Details & Pricing
   final String? description;
   final String? knownIssues;
   final List<String>? features;
-
-  // Step 9: Pricing (from summary)
   final double? startingPrice;
   final double? reservePrice;
   final DateTime? auctionEndDate;
@@ -160,9 +158,10 @@ class ListingDraftEntity {
       case 7:
         return photoUrls != null && photoUrls!.isNotEmpty;
       case 8:
-        return description != null && description!.length >= 50;
+        return description != null && description!.length >= 50 &&
+               startingPrice != null && auctionEndDate != null;
       case 9:
-        return startingPrice != null && auctionEndDate != null;
+        return true; // Summary step - always complete if reached
       default:
         return false;
     }

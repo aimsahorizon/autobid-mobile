@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
+import 'ai_price_predictor.dart';
+import '../../../data/datasources/demo_listing_data.dart';
+import 'demo_autofill_button.dart';
 
 class Step8FinalDetails extends StatefulWidget {
   final ListingDraftController controller;
@@ -16,8 +20,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   late TextEditingController _descriptionController;
   late TextEditingController _issuesController;
   late TextEditingController _featureController;
+  late TextEditingController _startingPriceController;
+  late TextEditingController _reservePriceController;
 
   List<String> _features = [];
+  DateTime? _auctionEndDate;
 
   @override
   void initState() {
@@ -26,10 +33,15 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _descriptionController = TextEditingController(text: draft.description);
     _issuesController = TextEditingController(text: draft.knownIssues);
     _featureController = TextEditingController();
+    _startingPriceController = TextEditingController(text: draft.startingPrice?.toString());
+    _reservePriceController = TextEditingController(text: draft.reservePrice?.toString());
     _features = draft.features ?? [];
+    _auctionEndDate = draft.auctionEndDate;
 
     _descriptionController.addListener(_updateDraft);
     _issuesController.addListener(_updateDraft);
+    _startingPriceController.addListener(_updateDraft);
+    _reservePriceController.addListener(_updateDraft);
   }
 
   @override
@@ -37,6 +49,8 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _descriptionController.dispose();
     _issuesController.dispose();
     _featureController.dispose();
+    _startingPriceController.dispose();
+    _reservePriceController.dispose();
     super.dispose();
   }
 
@@ -94,9 +108,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
         knownIssues: _issuesController.text.isEmpty ? null : _issuesController.text,
         features: _features.isEmpty ? null : _features,
-        startingPrice: draft.startingPrice,
-        reservePrice: draft.reservePrice,
-        auctionEndDate: draft.auctionEndDate,
+        startingPrice: _startingPriceController.text.isEmpty ? null : double.tryParse(_startingPriceController.text),
+        reservePrice: _reservePriceController.text.isEmpty ? null : double.tryParse(_reservePriceController.text),
+        auctionEndDate: _auctionEndDate,
       ),
     );
   }
@@ -117,15 +131,32 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _updateDraft();
   }
 
+  void _autofillDemoData() {
+    final demoData = DemoListingData.getDemoDataForStep(8);
+    setState(() {
+      _descriptionController.text = demoData['description'];
+      _issuesController.text = demoData['knownIssues'] ?? '';
+      _features = List<String>.from(demoData['features'] ?? []);
+      _startingPriceController.text = demoData['startingPrice'].toString();
+      _reservePriceController.text = demoData['reservePrice']?.toString() ?? '';
+      _auctionEndDate = demoData['auctionEndDate'];
+    });
+    _updateDraft();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final draft = widget.controller.currentDraft!;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 8: Final Details',
+          'Step 8: Final Details & Pricing',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 16),
+        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         FormFieldWidget(
           controller: _descriptionController,
@@ -189,6 +220,76 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             }).toList(),
           ),
         ],
+        const SizedBox(height: 32),
+        const Divider(),
+        const SizedBox(height: 16),
+        const Text(
+          'Pricing',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 16),
+        AiPricePredictor(
+          brand: draft.brand,
+          model: draft.model,
+          year: draft.year,
+          mileage: draft.mileage,
+          condition: draft.condition,
+          onAccept: (startingPrice) {
+            // Calculate reserve price (10% higher)
+            final reservePrice = startingPrice * 1.1;
+            setState(() {
+              _startingPriceController.text = startingPrice.toStringAsFixed(0);
+              _reservePriceController.text = reservePrice.toStringAsFixed(0);
+            });
+            _updateDraft();
+          },
+        ),
+        const SizedBox(height: 16),
+        FormFieldWidget(
+          controller: _startingPriceController,
+          label: 'Starting Price (₱) *',
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+        ),
+        const SizedBox(height: 16),
+        FormFieldWidget(
+          controller: _reservePriceController,
+          label: 'Reserve Price (₱)',
+          hint: 'Optional minimum acceptable price',
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        ),
+        const SizedBox(height: 16),
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _auctionEndDate ?? DateTime.now().add(const Duration(days: 7)),
+              firstDate: DateTime.now().add(const Duration(days: 1)),
+              lastDate: DateTime.now().add(const Duration(days: 90)),
+            );
+            if (picked != null) {
+              setState(() => _auctionEndDate = picked);
+              _updateDraft();
+            }
+          },
+          child: InputDecorator(
+            decoration: InputDecoration(
+              labelText: 'Auction End Date *',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(_auctionEndDate != null
+                    ? '${_auctionEndDate!.month}/${_auctionEndDate!.day}/${_auctionEndDate!.year}'
+                    : 'Select date'),
+                const Icon(Icons.calendar_today, size: 20),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

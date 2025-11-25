@@ -20,6 +20,11 @@ class TransactionEntity {
   final bool adminApproved;
   final DateTime? adminApprovedAt;
 
+  // Delivery tracking (only active after admin approval)
+  final DeliveryStatus deliveryStatus;
+  final DateTime? deliveryStartedAt;
+  final DateTime? deliveryCompletedAt;
+
   const TransactionEntity({
     required this.id,
     required this.listingId,
@@ -37,6 +42,9 @@ class TransactionEntity {
     this.buyerConfirmed = false,
     this.adminApproved = false,
     this.adminApprovedAt,
+    this.deliveryStatus = DeliveryStatus.pending,
+    this.deliveryStartedAt,
+    this.deliveryCompletedAt,
   });
 
   /// Check if both parties have submitted forms
@@ -220,4 +228,13 @@ enum TimelineEventType {
   completed,       // Transaction completed
   cancelled,       // Transaction cancelled
   disputed,        // Dispute raised
+}
+
+/// Delivery status for vehicle handover
+enum DeliveryStatus {
+  pending,      // Not started yet
+  preparing,    // Seller preparing vehicle
+  inTransit,    // Vehicle in transit
+  delivered,    // Vehicle delivered to buyer
+  completed,    // Delivery confirmed by buyer
 }
