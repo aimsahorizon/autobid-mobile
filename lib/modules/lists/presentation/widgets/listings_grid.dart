@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import 'listing_card.dart';
+import '../../data/datasources/listing_detail_mock_datasource.dart';
+import '../controllers/listing_draft_controller.dart';
+import '../pages/active_listing_detail_page.dart';
+import '../pages/pending_listing_detail_page.dart';
+import '../pages/draft_listing_detail_page.dart';
+import '../pages/sold_listing_detail_page.dart';
+import '../pages/cancelled_listing_detail_page.dart';
+import '../pages/pre_transaction_page.dart';
+import '../controllers/transaction_controller.dart';
+import '../../data/datasources/transaction_mock_datasource.dart';
 
 class ListingsGrid extends StatelessWidget {
   final List<SellerListingEntity> listings;
@@ -10,6 +20,9 @@ class ListingsGrid extends StatelessWidget {
   final String emptyTitle;
   final String emptySubtitle;
   final IconData emptyIcon;
+  final bool enableNavigation;
+  final ListingDraftController? draftController;
+  final String? sellerId;
 
   const ListingsGrid({
     super.key,
@@ -19,7 +32,79 @@ class ListingsGrid extends StatelessWidget {
     required this.emptySubtitle,
     required this.emptyIcon,
     this.isLoading = false,
+    this.enableNavigation = true,
+    this.draftController,
+    this.sellerId,
   });
+
+  void _navigateToDetail(
+    BuildContext context,
+    SellerListingEntity listing,
+  ) async {
+    if (!enableNavigation) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Convert to ListingDetailEntity
+    final datasource = ListingDetailMockDataSource();
+    final detailEntity = await datasource.convertToDetailEntity(listing);
+
+    if (!context.mounted) return;
+    Navigator.pop(context); // Close loading dialog
+
+    // Navigate to appropriate detail page based on status
+    Widget detailPage;
+    switch (listing.status) {
+      case ListingStatus.active:
+        detailPage = ActiveListingDetailPage(listing: detailEntity);
+        break;
+      case ListingStatus.pending:
+        detailPage = PendingListingDetailPage(listing: detailEntity);
+        break;
+      case ListingStatus.draft:
+        if (draftController == null || sellerId == null) return;
+        detailPage = DraftListingDetailPage(
+          listing: detailEntity,
+          controller: draftController!,
+          sellerId: sellerId!,
+        );
+        break;
+      case ListingStatus.sold:
+        detailPage = SoldListingDetailPage(listing: detailEntity);
+        break;
+      case ListingStatus.cancelled:
+        if (draftController == null || sellerId == null) return;
+        detailPage = CancelledListingDetailPage(
+          listing: detailEntity,
+          controller: draftController!,
+          sellerId: sellerId!,
+        );
+        break;
+      case ListingStatus.inTransaction:
+        if (sellerId == null) return;
+        // Create transaction controller for pre-transaction page
+        final transactionController = TransactionController(
+          TransactionMockDataSource(),
+        );
+        detailPage = PreTransactionPage(
+          controller: transactionController,
+          transactionId: listing.id,
+          userId: sellerId!,
+          userName: 'Seller', // TODO: Get actual user name from auth
+        );
+        break;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => detailPage),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +133,7 @@ class ListingsGrid extends StatelessWidget {
         itemBuilder: (context, index) => ListingCard(
           listing: listings[index],
           isGridView: true,
+          onTap: () => _navigateToDetail(context, listings[index]),
         ),
       );
     }
@@ -59,6 +145,7 @@ class ListingsGrid extends StatelessWidget {
       itemBuilder: (context, index) => ListingCard(
         listing: listings[index],
         isGridView: false,
+        onTap: () => _navigateToDetail(context, listings[index]),
       ),
     );
   }
