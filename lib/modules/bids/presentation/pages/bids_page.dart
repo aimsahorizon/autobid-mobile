@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../controllers/bids_controller.dart';
 import '../widgets/user_bids_list.dart';
+import '../../domain/entities/user_bid_entity.dart';
+import 'active_bid_detail_page.dart';
+import 'won_bid_detail_page.dart';
+import 'lost_bid_detail_page.dart';
 
 /// Main page for Bids module displaying user's auction participation
 /// Features three tabs: Active, Won, and Lost bids
@@ -47,6 +51,33 @@ class _BidsPageState extends State<BidsPage>
   /// Handles pull-to-refresh action
   Future<void> _handleRefresh() async {
     await widget.controller.loadUserBids();
+  }
+
+  void _navigateToActiveBid(BuildContext context, UserBidEntity bid) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ActiveBidDetailPage(auctionId: bid.auctionId),
+      ),
+    );
+  }
+
+  void _navigateToWonBid(BuildContext context, UserBidEntity bid) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WonBidDetailPage(auctionId: bid.auctionId),
+      ),
+    );
+  }
+
+  void _navigateToLostBid(BuildContext context, UserBidEntity bid) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LostBidDetailPage(auctionId: bid.auctionId),
+      ),
+    );
   }
 
   @override
@@ -134,6 +165,7 @@ class _BidsPageState extends State<BidsPage>
                         emptyTitle: 'No Active Bids',
                         emptySubtitle: 'Browse auctions and place a bid to get started!',
                         emptyIcon: Icons.gavel_rounded,
+                        onBidTap: (bid) => _navigateToActiveBid(context, bid),
                       ),
                       // Won bids tab
                       UserBidsList(
@@ -142,6 +174,7 @@ class _BidsPageState extends State<BidsPage>
                         emptyTitle: 'No Won Auctions',
                         emptySubtitle: 'Keep bidding to win your first auction!',
                         emptyIcon: Icons.emoji_events_outlined,
+                        onBidTap: (bid) => _navigateToWonBid(context, bid),
                       ),
                       // Lost bids tab
                       UserBidsList(
@@ -150,6 +183,7 @@ class _BidsPageState extends State<BidsPage>
                         emptyTitle: 'No Lost Auctions',
                         emptySubtitle: 'You haven\'t lost any auctions yet. Good luck!',
                         emptyIcon: Icons.sentiment_neutral_outlined,
+                        onBidTap: (bid) => _navigateToLostBid(context, bid),
                       ),
                     ],
                   ),

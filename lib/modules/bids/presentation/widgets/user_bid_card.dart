@@ -15,7 +15,7 @@ import '../../domain/entities/user_bid_entity.dart';
 /// - Status chips for won/lost auctions
 class UserBidCard extends StatefulWidget {
   final UserBidEntity bid;
-  final VoidCallback? onTap;
+  final Function(UserBidEntity)? onTap;
 
   const UserBidCard({
     super.key,
@@ -64,7 +64,7 @@ class _UserBidCardState extends State<UserBidCard> {
     final isDark = theme.brightness == Brightness.dark;
 
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: widget.onTap != null ? () => widget.onTap!(widget.bid) : null,
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
