@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../../app/core/constants/color_constants.dart';
+import '../../../domain/entities/auction_detail_entity.dart';
 
 class CarInfoTab extends StatelessWidget {
-  const CarInfoTab({super.key});
+  final AuctionDetailEntity auction;
+
+  const CarInfoTab({super.key, required this.auction});
 
   @override
   Widget build(BuildContext context) {
@@ -10,15 +13,26 @@ class CarInfoTab extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          _OverviewSection(),
-          SizedBox(height: 24),
-          _SpecificationsSection(),
-          SizedBox(height: 24),
-          _FeaturesSection(),
-          SizedBox(height: 24),
-          _ConditionSection(),
-          SizedBox(height: 32),
+        children: [
+          _OverviewSection(auction: auction),
+          const SizedBox(height: 24),
+          _EnginePerformanceSection(auction: auction),
+          const SizedBox(height: 24),
+          _DimensionsSection(auction: auction),
+          const SizedBox(height: 24),
+          _ExteriorSection(auction: auction),
+          const SizedBox(height: 24),
+          _ConditionHistorySection(auction: auction),
+          const SizedBox(height: 24),
+          _DocumentationSection(auction: auction),
+          const SizedBox(height: 24),
+          if (auction.features != null && auction.features!.isNotEmpty)
+            _FeaturesSection(auction: auction),
+          if (auction.features != null && auction.features!.isNotEmpty)
+            const SizedBox(height: 24),
+          if (auction.description != null || auction.knownIssues != null)
+            _DescriptionSection(auction: auction),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -26,42 +40,241 @@ class CarInfoTab extends StatelessWidget {
 }
 
 class _OverviewSection extends StatelessWidget {
-  const _OverviewSection();
+  final AuctionDetailEntity auction;
+
+  const _OverviewSection({required this.auction});
 
   @override
   Widget build(BuildContext context) {
     return _InfoCard(
       title: 'Overview',
       child: Column(
-        children: const [
-          _InfoRow(label: 'Make', value: 'Toyota'),
-          _InfoRow(label: 'Model', value: 'Supra GR'),
-          _InfoRow(label: 'Year', value: '2023'),
-          _InfoRow(label: 'Mileage', value: '12,500 km'),
-          _InfoRow(label: 'Transmission', value: 'Automatic'),
-          _InfoRow(label: 'Fuel Type', value: 'Gasoline'),
-          _InfoRow(label: 'Color', value: 'Renaissance Red 2.0'),
+        children: [
+          _InfoRow(label: 'Brand', value: auction.brand),
+          _InfoRow(label: 'Model', value: auction.model),
+          if (auction.variant != null)
+            _InfoRow(label: 'Variant', value: auction.variant!),
+          _InfoRow(label: 'Year', value: auction.year.toString()),
+          if (auction.mileage != null)
+            _InfoRow(label: 'Mileage', value: '${auction.mileage!.toStringAsFixed(0)} km'),
+          if (auction.transmission != null)
+            _InfoRow(label: 'Transmission', value: auction.transmission!),
+          if (auction.fuelType != null)
+            _InfoRow(label: 'Fuel Type', value: auction.fuelType!),
+          if (auction.exteriorColor != null)
+            _InfoRow(label: 'Color', value: auction.exteriorColor!),
+          if (auction.condition != null)
+            _InfoRow(label: 'Condition', value: auction.condition!),
+          if (auction.previousOwners != null)
+            _InfoRow(label: 'Previous Owners', value: auction.previousOwners!.toString()),
         ],
       ),
     );
   }
 }
 
-class _SpecificationsSection extends StatelessWidget {
-  const _SpecificationsSection();
+class _EnginePerformanceSection extends StatelessWidget {
+  final AuctionDetailEntity auction;
+
+  const _EnginePerformanceSection({required this.auction});
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show if we have engine data
+    if (auction.engineType == null &&
+        auction.horsepower == null &&
+        auction.torque == null) {
+      return const SizedBox.shrink();
+    }
+
+    return _InfoCard(
+      title: 'Engine & Performance',
+      child: Column(
+        children: [
+          if (auction.engineType != null)
+            _InfoRow(label: 'Engine', value: auction.engineType!),
+          if (auction.engineDisplacement != null)
+            _InfoRow(
+              label: 'Displacement',
+              value: '${auction.engineDisplacement!}L',
+            ),
+          if (auction.cylinderCount != null)
+            _InfoRow(label: 'Cylinders', value: '${auction.cylinderCount}'),
+          if (auction.horsepower != null)
+            _InfoRow(label: 'Horsepower', value: '${auction.horsepower} hp'),
+          if (auction.torque != null)
+            _InfoRow(label: 'Torque', value: '${auction.torque} Nm'),
+          if (auction.transmission != null)
+            _InfoRow(label: 'Transmission', value: auction.transmission!),
+          if (auction.driveType != null)
+            _InfoRow(label: 'Drive Type', value: auction.driveType!),
+          if (auction.fuelType != null)
+            _InfoRow(label: 'Fuel Type', value: auction.fuelType!),
+        ],
+      ),
+    );
+  }
+}
+
+class _DimensionsSection extends StatelessWidget {
+  final AuctionDetailEntity auction;
+
+  const _DimensionsSection({required this.auction});
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show if we have dimension data
+    if (auction.length == null &&
+        auction.seatingCapacity == null &&
+        auction.fuelTankCapacity == null) {
+      return const SizedBox.shrink();
+    }
+
+    return _InfoCard(
+      title: 'Dimensions & Capacity',
+      child: Column(
+        children: [
+          if (auction.length != null)
+            _InfoRow(label: 'Length', value: '${auction.length!.toStringAsFixed(0)} mm'),
+          if (auction.width != null)
+            _InfoRow(label: 'Width', value: '${auction.width!.toStringAsFixed(0)} mm'),
+          if (auction.height != null)
+            _InfoRow(label: 'Height', value: '${auction.height!.toStringAsFixed(0)} mm'),
+          if (auction.wheelbase != null)
+            _InfoRow(label: 'Wheelbase', value: '${auction.wheelbase!.toStringAsFixed(0)} mm'),
+          if (auction.groundClearance != null)
+            _InfoRow(
+              label: 'Ground Clearance',
+              value: '${auction.groundClearance!.toStringAsFixed(0)} mm',
+            ),
+          if (auction.seatingCapacity != null)
+            _InfoRow(label: 'Seating', value: '${auction.seatingCapacity} seats'),
+          if (auction.doorCount != null)
+            _InfoRow(label: 'Doors', value: '${auction.doorCount}'),
+          if (auction.fuelTankCapacity != null)
+            _InfoRow(label: 'Fuel Tank', value: '${auction.fuelTankCapacity!.toStringAsFixed(0)}L'),
+          if (auction.curbWeight != null)
+            _InfoRow(label: 'Curb Weight', value: '${auction.curbWeight!.toStringAsFixed(0)} kg'),
+          if (auction.grossWeight != null)
+            _InfoRow(label: 'Gross Weight', value: '${auction.grossWeight!.toStringAsFixed(0)} kg'),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExteriorSection extends StatelessWidget {
+  final AuctionDetailEntity auction;
+
+  const _ExteriorSection({required this.auction});
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show if we have exterior data
+    if (auction.exteriorColor == null &&
+        auction.rimType == null &&
+        auction.tireSize == null) {
+      return const SizedBox.shrink();
+    }
+
+    return _InfoCard(
+      title: 'Exterior Details',
+      child: Column(
+        children: [
+          if (auction.exteriorColor != null)
+            _InfoRow(label: 'Color', value: auction.exteriorColor!),
+          if (auction.paintType != null)
+            _InfoRow(label: 'Paint Type', value: auction.paintType!),
+          if (auction.rimType != null)
+            _InfoRow(label: 'Rim Type', value: auction.rimType!),
+          if (auction.rimSize != null)
+            _InfoRow(label: 'Rim Size', value: auction.rimSize!),
+          if (auction.tireSize != null)
+            _InfoRow(label: 'Tire Size', value: auction.tireSize!),
+          if (auction.tireBrand != null)
+            _InfoRow(label: 'Tire Brand', value: auction.tireBrand!),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConditionHistorySection extends StatelessWidget {
+  final AuctionDetailEntity auction;
+
+  const _ConditionHistorySection({required this.auction});
 
   @override
   Widget build(BuildContext context) {
     return _InfoCard(
-      title: 'Specifications',
+      title: 'Condition & History',
       child: Column(
-        children: const [
-          _InfoRow(label: 'Engine', value: '3.0L Inline-6 Turbo'),
-          _InfoRow(label: 'Horsepower', value: '382 hp @ 5,800 rpm'),
-          _InfoRow(label: 'Torque', value: '368 lb-ft @ 1,800 rpm'),
-          _InfoRow(label: '0-100 km/h', value: '4.1 seconds'),
-          _InfoRow(label: 'Top Speed', value: '250 km/h (limited)'),
-          _InfoRow(label: 'Drive Type', value: 'Rear-Wheel Drive'),
+        children: [
+          if (auction.condition != null)
+            _InfoRow(label: 'Overall Condition', value: auction.condition!),
+          if (auction.mileage != null)
+            _InfoRow(label: 'Mileage', value: '${auction.mileage!.toStringAsFixed(0)} km'),
+          if (auction.previousOwners != null)
+            _InfoRow(label: 'Previous Owners', value: '${auction.previousOwners}'),
+          if (auction.usageType != null)
+            _InfoRow(label: 'Usage Type', value: auction.usageType!),
+          if (auction.hasModifications != null)
+            _InfoRow(
+              label: 'Modifications',
+              value: auction.hasModifications!
+                ? (auction.modificationsDetails ?? 'Yes')
+                : 'None',
+            ),
+          if (auction.hasWarranty != null)
+            _InfoRow(
+              label: 'Warranty',
+              value: auction.hasWarranty!
+                ? (auction.warrantyDetails ?? 'Yes')
+                : 'No warranty',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DocumentationSection extends StatelessWidget {
+  final AuctionDetailEntity auction;
+
+  const _DocumentationSection({required this.auction});
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show if we have documentation data
+    if (auction.plateNumber == null &&
+        auction.orcrStatus == null &&
+        auction.province == null) {
+      return const SizedBox.shrink();
+    }
+
+    return _InfoCard(
+      title: 'Documentation & Location',
+      child: Column(
+        children: [
+          if (auction.plateNumber != null)
+            _InfoRow(label: 'Plate Number', value: auction.plateNumber!),
+          if (auction.orcrStatus != null)
+            _InfoRow(label: 'OR/CR Status', value: auction.orcrStatus!),
+          if (auction.registrationStatus != null)
+            _InfoRow(label: 'Registration', value: auction.registrationStatus!),
+          if (auction.registrationExpiry != null)
+            _InfoRow(
+              label: 'Registration Expiry',
+              value: '${auction.registrationExpiry!.month}/${auction.registrationExpiry!.day}/${auction.registrationExpiry!.year}',
+            ),
+          if (auction.province != null || auction.cityMunicipality != null)
+            _InfoRow(
+              label: 'Location',
+              value: [
+                if (auction.cityMunicipality != null) auction.cityMunicipality,
+                if (auction.province != null) auction.province,
+              ].join(', '),
+            ),
         ],
       ),
     );
@@ -69,61 +282,86 @@ class _SpecificationsSection extends StatelessWidget {
 }
 
 class _FeaturesSection extends StatelessWidget {
-  const _FeaturesSection();
+  final AuctionDetailEntity auction;
+
+  const _FeaturesSection({required this.auction});
 
   @override
   Widget build(BuildContext context) {
-    final features = [
-      'Premium JBL Sound System',
-      'Wireless Apple CarPlay',
-      'Adaptive Sport Suspension',
-      'Launch Control',
-      'Sport Differential',
-      'Brembo Brakes',
-      'HUD Display',
-      'Navigation System',
-      'Heated Seats',
-      'Keyless Entry',
-    ];
+    if (auction.features == null || auction.features!.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return _InfoCard(
       title: 'Features & Equipment',
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: features.map((f) => _FeatureChip(label: f)).toList(),
+        children: auction.features!.map((f) => _FeatureChip(label: f)).toList(),
       ),
     );
   }
 }
 
-class _ConditionSection extends StatelessWidget {
-  const _ConditionSection();
+class _DescriptionSection extends StatelessWidget {
+  final AuctionDetailEntity auction;
+
+  const _DescriptionSection({required this.auction});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return _InfoCard(
-      title: 'Condition Report',
+      title: 'Seller Information',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _ConditionBar(label: 'Exterior', rating: 4.5),
-          const SizedBox(height: 12),
-          const _ConditionBar(label: 'Interior', rating: 4.8),
-          const SizedBox(height: 12),
-          const _ConditionBar(label: 'Mechanical', rating: 5.0),
-          const SizedBox(height: 16),
-          Text(
-            'Seller Notes',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Garage kept, never tracked. Minor rock chips on front bumper. All scheduled maintenance completed at Toyota dealership. Comes with both keys, all original documents, and window sticker.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          if (auction.description != null) ...[
+            Text(
+              'Description',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              auction.description!,
+              style: theme.textTheme.bodyMedium,
+            ),
+            if (auction.knownIssues != null) const SizedBox(height: 16),
+          ],
+          if (auction.knownIssues != null) ...[
+            Text(
+              'Known Issues',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      auction.knownIssues!,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -189,19 +427,28 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark
-                  ? ColorConstants.textSecondaryDark
-                  : ColorConstants.textSecondaryLight,
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.right,
             ),
           ),
         ],
@@ -242,54 +489,6 @@ class _FeatureChip extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ConditionBar extends StatelessWidget {
-  final String label;
-  final double rating;
-
-  const _ConditionBar({
-    required this.label,
-    required this.rating,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: theme.textTheme.bodyMedium),
-            Text(
-              '${rating.toStringAsFixed(1)}/5.0',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: rating / 5.0,
-            minHeight: 8,
-            backgroundColor: isDark
-                ? ColorConstants.borderDark
-                : ColorConstants.backgroundSecondaryLight,
-            valueColor: AlwaysStoppedAnimation(
-              rating >= 4.5 ? ColorConstants.success : ColorConstants.primary,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

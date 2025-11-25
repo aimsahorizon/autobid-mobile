@@ -202,6 +202,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                     ),
                     const SizedBox(height: 24),
                     DetailTabsSection(
+                      auction: widget.controller.auction!,
                       bidHistory: widget.controller.bidHistory,
                       questions: widget.controller.questions,
                       isLoadingBidHistory: widget.controller.isLoadingBidHistory,
