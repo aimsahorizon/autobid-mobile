@@ -1,0 +1,1084 @@
+================================================================================
+AUTOBID MOBILE - COMPLETE BEGINNER'S GUIDE
+================================================================================
+
+GOAL OF THIS GUIDE:
+This guide explains how the autobid_mobile project is organized and how 
+different parts work together. You will understand where to find things and 
+how to add new features.
+
+================================================================================
+PART 1: THE MOST BASIC CONCEPT
+================================================================================
+
+Think of the app like a restaurant:
+
+  CUSTOMER (You, using the app on your phone)
+  |
+  WAITER (UI/Pages that show things and take your input)
+  |
+  CHEF (Logic that decides what to do with your request)
+  |
+  STORAGE (Database and files where data is kept)
+
+In code terms:
+  CUSTOMER = User tapping buttons
+  WAITER = Presentation Layer (pages, UI, controllers)
+  CHEF = Domain Layer (business logic, rules)
+  STORAGE = Data Layer (API calls, database)
+
+
+KEY IDEA:
+Each layer does ONE job and talks to the next layer.
+If you change storage, you don't touch the waiter.
+If you change the waiter, you don't touch the chef.
+
+This is called "SEPARATION OF CONCERNS" - it keeps code clean and easy to change.
+
+================================================================================
+PART 2: PROJECT STRUCTURE - THE FOLDERS
+================================================================================
+
+The project root folder structure:
+
+lib/
+  ├── main.dart             <- Entry point (starting point of app)
+  │
+  ├── app/                  <- Core app configuration
+  │   ├── app.dart          <- Root app setup (themes, routing)
+  │   ├── core/             <- Shared stuff used everywhere
+  │   ├── presentation/     <- App-level UI pages
+  │   └── router/           <- Navigation setup
+  │
+  └── modules/              <- Feature modules (each is self-contained)
+      ├── auth/             <- Authentication (login, signup, etc)
+      ├── browse/           <- Browse auctions
+      ├── bids/             <- Manage bids
+      ├── lists/            <- Save favorites
+      └── profile/          <- User profile
+
+
+================================================================================
+PART 3: WHAT IS A MODULE?
+================================================================================
+
+A MODULE is a complete, self-contained feature of the app.
+
+Example: The AUTH module handles ALL things related to authentication:
+  - How users log in
+  - How users sign up
+  - How passwords are reset
+  - All the screens and buttons for authentication
+  - All the rules about login
+  - Connection to the backend for user data
+
+The AUTH module is NOT allowed to depend on the BROWSE module.
+But BROWSE can use AUTH to know "who is the logged-in user?"
+
+Each module has the EXACT same structure:
+
+modules/auth/
+  ├── auth_module.dart           <- Setup/configuration
+  ├── auth_routes.dart           <- Navigation paths
+  ├── domain/                    <- Business logic
+  ├── data/                      <- Backend connection
+  └── presentation/              <- UI and screens
+
+
+================================================================================
+PART 4: THE THREE LAYERS (Most Important Concept)
+================================================================================
+
+EVERY MODULE HAS 3 LAYERS. LEARN THIS FIRST.
+
+---
+LAYER 1: PRESENTATION LAYER (What user SEES and INTERACTS with)
+---
+
+Location: modules/<feature_name>/presentation/
+
+Contains:
+  - pages/           <- Full screens that user sees
+  - widgets/         <- Small reusable UI components
+  - controllers/     <- Handle user actions and UI state
+
+Example (Auth Module):
+  presentation/
+    ├── pages/
+    │   ├── login_page.dart       <- The login screen
+    │   ├── signup_page.dart      <- The signup screen
+    │   └── forgot_password_page.dart
+    ├── widgets/
+    │   ├── login_form.dart       <- Just the form part
+    │   └── email_input_field.dart
+    └── controllers/
+        ├── login_controller.dart <- Handles login logic
+        └── signup_controller.dart
+
+What happens:
+  1. User opens LOGIN PAGE (presentation/pages/login_page.dart)
+  2. User types email and password
+  3. User taps "Login" button
+  4. LOGIN CONTROLLER (presentation/controllers/login_controller.dart) handles it
+  5. Controller tells backend to log in
+  6. Backend responds
+  7. Controller updates UI to show success or error
+
+KEY RULE FOR PRESENTATION:
+  - DO handle: user clicks, form inputs, showing/hiding UI
+  - DO NOT handle: calling database, complex calculations
+  - ONLY talk to: Controllers
+  - Controllers talk to: Domain layer (business logic)
+
+
+---
+LAYER 2: DOMAIN LAYER (The RULES and LOGIC)
+---
+
+Location: modules/<feature_name>/domain/
+
+Contains:
+  - entities/        <- Data structures (what is a user? what is an auction?)
+  - usecases/        <- Business rules (how to login? how to check if valid?)
+  - repositories/    <- Abstract contracts (what methods exist?)
+
+Example (Auth Module):
+  domain/
+    ├── entities/
+    │   └── user_entity.dart              <- What is a "User"?
+    │                                        Properties: id, email, username, etc
+    ├── repositories/
+    │   └── auth_repository.dart          <- What methods should exist?
+    │                                        Abstract means "just interface, no code"
+    └── usecases/
+        ├── sign_in_usecase.dart          <- Rule: How to sign in
+        ├── sign_up_usecase.dart          <- Rule: How to sign up
+        └── verify_password_reset_usecase.dart
+
+What happens:
+  1. LOGIN CONTROLLER calls "SignInUseCase"
+  2. SignInUseCase checks: Is email valid? Is password long enough?
+  3. SignInUseCase uses the abstract AuthRepository to get user data
+  4. AuthRepository (abstract) doesn't know HOW to get data (Supabase? Local? etc)
+  5. SignInUseCase returns either: Success with user data, or Error
+  6. LOGIN CONTROLLER receives result and updates UI
+
+KEY RULE FOR DOMAIN:
+  - DO: Define rules, interfaces, business logic
+  - DO NOT: Call API directly, talk to database, know about Flutter UI
+  - Pure Dart - no Flutter imports except what's needed
+  - ONLY talk to: Data layer (repositories)
+
+
+---
+LAYER 3: DATA LAYER (Where DATA comes from)
+---
+
+Location: modules/<feature_name>/data/
+
+Contains:
+  - models/          <- Data transfer objects (like entities but with JSON)
+  - datasources/     <- Where actual data comes from (API, database)
+  - repositories/    <- Implement the abstract repository from domain
+
+Example (Auth Module):
+  data/
+    ├── models/
+    │   └── user_model.dart               <- UserEntity but can be converted to/from JSON
+    ├── datasources/
+    │   └── auth_remote_datasource.dart   <- Calls Supabase API
+    └── repositories/
+        └── auth_repository_impl.dart     <- Implements auth_repository.dart from domain
+
+What happens:
+  1. SignInUseCase calls AuthRepository.signIn(email, password)
+  2. AuthRepositoryImpl (concrete implementation) receives it
+  3. AuthRepositoryImpl calls AuthRemoteDataSource
+  4. AuthRemoteDataSource makes HTTP request to Supabase
+  5. Supabase returns JSON data
+  6. AuthRemoteDataSource converts JSON to UserModel
+  7. AuthRepositoryImpl converts UserModel back to UserEntity
+  8. AuthRepositoryImpl returns UserEntity to SignInUseCase
+
+Why convert so much?
+  - UserModel knows about JSON (from Supabase)
+  - UserEntity is pure business object (no JSON knowledge)
+  - Keep layers separate - if Supabase format changes, only data layer changes
+
+KEY RULE FOR DATA:
+  - DO: Call APIs, manage databases, convert JSON
+  - DO NOT: Do business logic, show UI, decide what's valid
+  - ONLY talk to: Domain layer (implements abstract repositories)
+
+
+================================================================================
+PART 5: HOW LAYERS TALK TO EACH OTHER
+================================================================================
+
+FLOW (Bottom to Top):
+
+Presentation Layer
+        ↑ calls
+        ↓ receives result
+Domain Layer
+        ↑ calls
+        ↓ receives result
+Data Layer
+
+EXAMPLE: User taps LOGIN button
+
+Step 1: PRESENTATION
+  - LoginPage shows form
+  - User taps "Login" button
+  - LoginPage calls LoginController.login(email, password)
+
+Step 2: PRESENTATION -> DOMAIN (going UP)
+  - LoginController calls SignInUseCase(email, password)
+
+Step 3: DOMAIN -> DATA (going UP)
+  - SignInUseCase calls AuthRepository.signInWithEmail(email, password)
+
+Step 4: DATA (actual work)
+  - AuthRepositoryImpl calls AuthRemoteDataSource.signInWithEmail()
+  - AuthRemoteDataSource makes HTTP request to Supabase
+  - Supabase returns: { id: "123", email: "user@mail.com", username: "john" }
+
+Step 5: DATA -> DOMAIN (going DOWN)
+  - AuthRemoteDataSource converts JSON to UserModel
+  - AuthRepositoryImpl converts UserModel to UserEntity
+  - AuthRepositoryImpl returns UserEntity to SignInUseCase
+
+Step 6: DOMAIN -> PRESENTATION (going DOWN)
+  - SignInUseCase returns UserEntity to LoginController
+  - LoginController stores user (currentUser = UserEntity)
+  - LoginController tells UI to update: "Show home page"
+
+Step 7: PRESENTATION (update UI)
+  - LoginPage sees currentUser is not null
+  - LoginPage navigates to HomePage
+  - User sees home screen
+
+
+================================================================================
+PART 6: THE APP LAYER (Special - Global Stuff)
+================================================================================
+
+Location: lib/app/
+
+Purpose: Shared stuff that EVERY module uses
+
+Contents:
+
+app/app.dart
+  - Root widget of entire app
+  - Sets up themes (light/dark mode)
+  - Sets up routing system
+  - Code: MaterialApp(theme: lightTheme, darkTheme: darkTheme, ...)
+
+app/core/theme/app_theme.dart
+  - Defines light theme (colors, fonts, etc)
+  - Defines dark theme
+  - Every module uses these colors so app looks consistent
+
+app/core/widgets/
+  - Reusable UI components (buttons, headers, etc)
+  - Used by multiple modules
+  - Example: CustomButton that all screens use
+
+app/core/utils/
+  - Helper functions
+  - Example: formatDate(), validateEmail(), etc
+
+app/router/app_router.dart
+  - Central navigation system
+  - Maps route names to screens
+  - Code: "When user says go to /login, show LoginPage"
+
+
+================================================================================
+PART 7: MODULE FILES EXPLAINED
+================================================================================
+
+Every module has 2 special files:
+
+1. <module_name>_module.dart
+   Purpose: Setup and dependency injection for that module
+   Code example:
+     class AuthModule {
+       static AuthModule? _instance;
+       
+       factory AuthModule.instance => _instance ??= AuthModule._();
+       
+       AuthModule._();
+       
+       // Create and return login controller
+       LoginController createLoginController() {
+         return LoginController(
+           signInUseCase: SignInUseCase(
+             repository: AuthRepositoryImpl(
+               remoteDataSource: AuthRemoteDataSource()
+             )
+           )
+         );
+       }
+     }
+
+   Translation: "When someone asks for a LoginController, create it and 
+   give it all the things it needs (usecase, repository, datasource)"
+
+   Think: A factory that builds controllers fully equipped
+
+2. <module_name>_routes.dart
+   Purpose: Define navigation paths for that module
+   Code example:
+     class AuthRoutes {
+       static const String login = '/login';
+       static const String signup = '/signup';
+       static const String forgotPassword = '/forgot-password';
+     }
+
+   Translation: "These are the valid URLs for auth screens"
+   
+   Why separate from presentation?
+     - Navigation is a contract - can change without touching UI
+     - Other modules can import and use these routes
+     - Example: ProfilePage can say "go to AuthRoutes.login"
+
+
+================================================================================
+PART 8: UNDERSTANDING THE CURRENT PROJECT
+================================================================================
+
+This project has 5 main modules:
+
+MODULE 1: AUTH (authentication)
+  Purpose: User login, signup, password reset
+  Files: Sign in, Register, Forgot Password pages
+  Domain: SignInUseCase, SignUpUseCase, VerifyOtpUseCase
+  Data: Connects to Supabase for user authentication
+
+MODULE 2: BROWSE (auction listing)
+  Purpose: Show list of active auctions
+  Files: Browse page showing auction cards
+  Domain: AuctionEntity, GetAuctionsUseCase
+  Data: Connects to Supabase for auction data
+
+MODULE 3: BIDS (manage bids)
+  Purpose: Show user's bid history and active bids
+  Files: Bids page with tabs (active, won, lost)
+  Domain: BidEntity, GetUserBidsUseCase
+  Data: Connects to Supabase for bid data
+
+MODULE 4: LISTS (favorites)
+  Purpose: Save favorite auctions to lists
+  Files: Lists page showing user's saved lists
+  Domain: ListEntity, GetUserListsUseCase
+  Data: Connects to Supabase for list data
+
+MODULE 5: PROFILE (user profile)
+  Purpose: Show and edit user profile
+  Files: Profile page with edit capabilities
+  Domain: UpdateProfileUseCase, GetProfileUseCase
+  Data: Connects to Supabase for profile data
+
+
+================================================================================
+PART 9: FILE RELATIONSHIPS (How they connect)
+================================================================================
+
+Example: LOGIN FEATURE COMPLETE FLOW
+
+1. main.dart
+   ├── runs -> app/app.dart
+   │
+2. app/app.dart
+   ├── creates MaterialApp
+   ├── sets theme from -> app/core/theme/app_theme.dart
+   ├── sets router from -> app/router/app_router.dart
+   │
+3. app/router/app_router.dart
+   ├── has routes like AuthRoutes.login
+   ├── when route /login, creates -> modules/auth/presentation/pages/login_page.dart
+   │
+4. modules/auth/presentation/pages/login_page.dart
+   ├── calls -> modules/auth/presentation/controllers/login_controller.dart
+   │
+5. modules/auth/presentation/controllers/login_controller.dart
+   ├── calls -> modules/auth/domain/usecases/sign_in_usecase.dart
+   │
+6. modules/auth/domain/usecases/sign_in_usecase.dart
+   ├── calls -> modules/auth/domain/repositories/auth_repository.dart (abstract)
+   │
+7. modules/auth/data/repositories/auth_repository_impl.dart (implements abstract)
+   ├── calls -> modules/auth/data/datasources/auth_remote_datasource.dart
+   │
+8. modules/auth/data/datasources/auth_remote_datasource.dart
+   ├── calls -> Supabase API
+   ├── gets JSON response
+   ├── converts to -> modules/auth/data/models/user_model.dart
+   │
+9. Result goes back UP through all layers
+   ├── UserModel -> UserEntity
+   ├── Controller gets UserEntity
+   ├── UI shows result
+
+
+================================================================================
+PART 10: HOW TO ADD A NEW FEATURE (Step by Step)
+================================================================================
+
+Say you want to add "Notifications" feature:
+
+STEP 1: Create folder structure
+  Create: modules/notifications/
+  Create inside:
+    - notifications_module.dart
+    - notifications_routes.dart
+    - presentation/
+        - pages/
+        - controllers/
+        - widgets/
+    - domain/
+        - entities/
+        - repositories/
+        - usecases/
+    - data/
+        - models/
+        - datasources/
+        - repositories/
+
+STEP 2: Build DOMAIN LAYER (the rules)
+  
+  Create: modules/notifications/domain/entities/notification_entity.dart
+    class NotificationEntity {
+      final String id;
+      final String title;
+      final String message;
+      final DateTime createdAt;
+    }
+
+  Create: modules/notifications/domain/repositories/notification_repository.dart
+    abstract class NotificationRepository {
+      Future<List<NotificationEntity>> getNotifications();
+      Future<void> markAsRead(String notificationId);
+    }
+
+  Create: modules/notifications/domain/usecases/get_notifications_usecase.dart
+    class GetNotificationsUseCase {
+      final NotificationRepository repository;
+      GetNotificationsUseCase(this.repository);
+      
+      Future<List<NotificationEntity>> call() {
+        return repository.getNotifications();
+      }
+    }
+
+STEP 3: Build DATA LAYER (connect to backend)
+
+  Create: modules/notifications/data/models/notification_model.dart
+    class NotificationModel extends NotificationEntity {
+      factory NotificationModel.fromJson(Map<String, dynamic> json) {
+        return NotificationModel(
+          id: json['id'],
+          title: json['title'],
+          message: json['message'],
+          createdAt: DateTime.parse(json['created_at']),
+        );
+      }
+    }
+
+  Create: modules/notifications/data/datasources/notification_remote_datasource.dart
+    abstract class NotificationRemoteDataSource {
+      Future<List<NotificationModel>> getNotifications();
+    }
+
+    class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
+      Future<List<NotificationModel>> getNotifications() async {
+        // Call Supabase
+        // Get JSON
+        // Convert to NotificationModel
+        // Return
+      }
+    }
+
+  Create: modules/notifications/data/repositories/notification_repository_impl.dart
+    class NotificationRepositoryImpl implements NotificationRepository {
+      final NotificationRemoteDataSource remoteDataSource;
+      
+      Future<List<NotificationEntity>> getNotifications() async {
+        // Call datasource
+        // Get NotificationModel
+        // Convert to NotificationEntity
+        // Return
+      }
+    }
+
+STEP 4: Build PRESENTATION LAYER (the UI)
+
+  Create: modules/notifications/presentation/controllers/notifications_controller.dart
+    class NotificationsController extends ChangeNotifier {
+      final GetNotificationsUseCase _getNotificationsUseCase;
+      
+      List<NotificationEntity> _notifications = [];
+      List<NotificationEntity> get notifications => _notifications;
+      
+      void loadNotifications() async {
+        _notifications = await _getNotificationsUseCase();
+        notifyListeners();
+      }
+    }
+
+  Create: modules/notifications/presentation/pages/notifications_page.dart
+    class NotificationsPage extends StatefulWidget {
+      @override
+      State<NotificationsPage> createState() => _NotificationsPageState();
+    }
+    
+    class _NotificationsPageState extends State<NotificationsPage> {
+      late NotificationsController _controller;
+      
+      @override
+      void initState() {
+        _controller = NotificationModule.instance.createNotificationsController();
+        _controller.loadNotifications();
+        super.initState();
+      }
+      
+      @override
+      Widget build(BuildContext context) {
+        return ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) {
+            return ListView(
+              children: _controller.notifications.map((notification) {
+                return NotificationCard(notification: notification);
+              }).toList(),
+            );
+          },
+        );
+      }
+    }
+
+STEP 5: Setup MODULE (dependency injection)
+
+  Create: modules/notifications/notifications_module.dart
+    class NotificationModule {
+      static NotificationModule? _instance;
+      
+      factory NotificationModule.instance =>
+        _instance ??= NotificationModule._();
+      
+      NotificationModule._();
+      
+      NotificationsController createNotificationsController() {
+        return NotificationsController(
+          getNotificationsUseCase: GetNotificationsUseCase(
+            repository: NotificationRepositoryImpl(
+              remoteDataSource: NotificationRemoteDataSourceImpl(),
+            ),
+          ),
+        );
+      }
+    }
+
+STEP 6: Add ROUTES
+
+  Create: modules/notifications/notifications_routes.dart
+    class NotificationRoutes {
+      static const String notifications = '/notifications';
+    }
+
+STEP 7: Register in APP ROUTER
+
+  Update: app/router/app_router.dart
+    Add case:
+      case NotificationRoutes.notifications:
+        return MaterialPageRoute(
+          builder: (_) => NotificationsPage(),
+        );
+
+STEP 8: Use it
+  From any page, navigate:
+    Navigator.of(context).pushNamed(NotificationRoutes.notifications);
+
+
+================================================================================
+PART 11: COMMON MISTAKES (Don't Do These)
+================================================================================
+
+MISTAKE 1: Putting UI code in domain layer
+  WRONG:
+    class GetAuctionsUseCase {
+      void showDialog() { ... }  // NO! This is UI stuff
+    }
+  
+  RIGHT:
+    class GetAuctionsUseCase {
+      Future<List<AuctionEntity>> call() { ... }  // Business logic only
+    }
+    
+  Controller handles showing dialogs, not usecase.
+
+MISTAKE 2: Direct API calls in controllers
+  WRONG:
+    class BrowseController {
+      void loadAuctions() {
+        final response = await http.get(...);  // NO! This is data layer job
+      }
+    }
+  
+  RIGHT:
+    class BrowseController {
+      void loadAuctions() {
+        _auctions = await _getAuctionsUseCase();  // Use usecase instead
+      }
+    }
+
+MISTAKE 3: Circular dependencies between modules
+  WRONG:
+    auth module imports from profile module
+    profile module imports from auth module
+  
+  RIGHT:
+    Use profile module independently
+    If you need to know user info, auth passes it to profile
+    Modules should be loosely coupled
+
+MISTAKE 4: Creating huge files
+  WRONG:
+    lib/modules/browse/presentation/pages/browse_page.dart
+      Contains 500 lines with auction card, filters, sorting, everything
+  
+  RIGHT:
+    browse_page.dart - Main page (100 lines)
+    auction_card.dart - Card widget (80 lines)
+    auction_filters.dart - Filters widget (50 lines)
+    Each file does ONE thing
+
+MISTAKE 5: Not using the module.dart file
+  WRONG:
+    Creating LoginController directly in every file that needs it
+  
+  RIGHT:
+    Create it ONLY through AuthModule.instance.createLoginController()
+    This ensures all dependencies are proper
+
+
+================================================================================
+PART 12: THEME AND COLORS (Dark Mode Support)
+================================================================================
+
+How colors work:
+
+app/core/theme/app_theme.dart
+  ├── Light theme
+  │   └── Colors: white background, black text, etc
+  └── Dark theme
+      └── Colors: dark background, light text, etc
+
+In your UI page:
+  Get colors from theme, not hardcode:
+  
+  WRONG:
+    Container(color: Color(0xFFFFFFFF))  // Hardcode white, breaks dark mode
+  
+  RIGHT:
+    Container(
+      color: Theme.of(context).scaffoldBackgroundColor  // Automatic dark/light
+    )
+
+For custom colors:
+  Create in app_theme.dart and always use Theme.of(context)
+
+
+================================================================================
+PART 13: NAVIGATION (How to Move Between Screens)
+================================================================================
+
+There are 2 ways to navigate:
+
+METHOD 1: Named Routes (Recommended)
+  Advantages: Centralized, easy to track, modular
+  
+  Code:
+    Navigator.of(context).pushNamed(AuthRoutes.login);
+  
+  How it works:
+    1. Navigator looks up route name "/login"
+    2. app_router.dart has handler for "/login"
+    3. Handler creates LoginPage
+    4. LoginPage is shown
+
+METHOD 2: Direct Navigation (Don't use much)
+  Disadvantages: Hard to track, spreads code around
+  
+  Code:
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => LoginPage())
+    );
+
+FOR REPLACING SCREENS (like after login):
+  Use pushReplacementNamed (removes previous screen from history)
+  
+  Code:
+    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+  
+  Effect: User taps back, doesn't go back to login (already logged in)
+
+
+================================================================================
+PART 14: STATE MANAGEMENT (Updating UI)
+================================================================================
+
+Simple definition: State = data that changes over time
+
+Example: Is user logged in? (true/false - this is state)
+         Number of notifications (0, 1, 2, ... - this is state)
+
+When state changes, UI must update.
+
+This project uses: ChangeNotifier (simple approach)
+
+Example (LoginController):
+  class LoginController extends ChangeNotifier {
+    String? currentUser;  // This is state
+    
+    void login(String email, String password) {
+      // Call usecase
+      currentUser = result.user;
+      notifyListeners();  // Tell UI "I changed, rebuild me"
+    }
+  }
+
+In UI:
+  class LoginPage extends StatefulWidget {
+    @override
+    State<LoginPage> createState() => _LoginPageState();
+  }
+  
+  class _LoginPageState extends State<LoginPage> {
+    late LoginController _controller;
+    
+    @override
+    void initState() {
+      _controller = AuthModule.instance.createLoginController();
+      super.initState();
+    }
+    
+    @override
+    Widget build(BuildContext context) {
+      return ListenableBuilder(
+        listenable: _controller,  // "Listen to this controller"
+        builder: (context, _) {   // "Rebuild when it notifies"
+          if (_controller.currentUser != null) {
+            return HomePage();
+          } else {
+            return LoginForm();
+          }
+        },
+      );
+    }
+  }
+
+Translation:
+  - Controller holds data (state)
+  - When data changes, controller calls notifyListeners()
+  - UI listens via ListenableBuilder
+  - UI rebuilds when controller notifies
+
+
+================================================================================
+PART 15: COMMON TASKS (How To Do Things)
+================================================================================
+
+TASK 1: Get data from backend when page loads
+  In controller's init or in page's initState:
+    void loadData() async {
+      _data = await _getDataUseCase();
+      notifyListeners();
+    }
+
+TASK 2: Show error message to user
+  In controller:
+    String? _errorMessage;
+    
+    void doSomething() async {
+      try {
+        await _useCase();
+      } catch (e) {
+        _errorMessage = e.toString();
+        notifyListeners();
+      }
+    }
+  
+  In UI:
+    if (_controller.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_controller.errorMessage!))
+      );
+    }
+
+TASK 3: Add validation for form input
+  In usecase or controller:
+    if (!email.contains('@')) {
+      throw Exception('Invalid email');
+    }
+
+TASK 4: Call API to save data
+  Same pattern:
+    Repository calls DataSource
+    DataSource calls Supabase
+    Result comes back through layers
+
+TASK 5: Navigate to another screen
+  Navigator.of(context).pushNamed(AnotherRoutes.someRoute);
+
+TASK 6: Go back to previous screen
+  Navigator.of(context).pop();
+
+TASK 7: Show loading indicator while waiting for data
+  In controller:
+    bool _isLoading = false;
+    
+    void loadData() async {
+      _isLoading = true;
+      notifyListeners();
+      
+      try {
+        _data = await _useCase();
+      } finally {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+  
+  In UI:
+    if (_controller.isLoading) {
+      return CircularProgressIndicator();
+    }
+
+
+================================================================================
+PART 16: QUICK REFERENCE - FILE PURPOSES
+================================================================================
+
+PRESENTATION LAYER FILES:
+  *_page.dart
+    Purpose: Full screen UI
+    Imports: widgets, controllers, routes
+    DO: Layout, show data, handle user taps
+    DON'T: API calls, complex logic
+
+  *_widget.dart / *_card.dart
+    Purpose: Reusable UI component
+    Imports: models, themes
+    DO: Display data, small interactions
+    DON'T: API calls, state management
+
+  *_controller.dart
+    Purpose: State management + logic
+    Imports: usecases, entities
+    DO: Handle UI state, coordinate between UI and domain
+    DON'T: Direct API calls, show dialogs
+
+DOMAIN LAYER FILES:
+  *_entity.dart
+    Purpose: Business object data structure
+    Imports: Nothing (pure Dart)
+    DO: Define what the object looks like
+    DON'T: JSON, API knowledge
+
+  *_repository.dart
+    Purpose: Abstract contract of what data operations exist
+    Imports: entities
+    DO: Define method signatures
+    DON'T: Implementation, hardcode
+
+  *_usecase.dart
+    Purpose: Business rule / action
+    Imports: repositories, entities
+    DO: Coordinate domain logic, call repository
+    DON'T: UI, direct API, implementation details
+
+DATA LAYER FILES:
+  *_model.dart
+    Purpose: Data transfer object (like entity but with JSON)
+    Imports: entity it extends
+    DO: JSON serialization/deserialization
+    DON'T: Business logic
+
+  *_remote_datasource.dart
+    Purpose: Abstract interface to data sources
+    Imports: models
+    DO: Define method signatures
+    DON'T: Implementation
+
+  *_remote_datasource_impl.dart
+    Purpose: Actual API calls implementation
+    Imports: HTTP client, models
+    DO: Make API calls, convert JSON to models
+    DON'T: Business logic, UI
+
+  *_repository_impl.dart
+    Purpose: Implement abstract repository from domain
+    Imports: abstract repository, datasources, entities, models
+    DO: Call datasource, convert model to entity
+    DON'T: API calls (delegate to datasource)
+
+MODULE FILES:
+  *_module.dart
+    Purpose: Dependency injection setup
+    Imports: All classes from all layers
+    DO: Create and wire up dependencies
+    DON'T: Business logic
+
+  *_routes.dart
+    Purpose: Route path constants
+    Imports: Nothing
+    DO: Define static route strings
+    DON'T: Implementation
+
+APP LAYER FILES:
+  app.dart
+    Purpose: Root app configuration
+    Imports: themes, routers
+    DO: Setup MaterialApp, themes, navigation
+    DON'T: Feature-specific logic
+
+  app_theme.dart
+    Purpose: Light and dark theme definitions
+    Imports: Flutter material
+    DO: Define colors, fonts, theme data
+    DON'T: Feature-specific styling
+
+  app_router.dart
+    Purpose: Central navigation system
+    Imports: All routes, all pages
+    DO: Route name to page mapping
+    DON'T: Controller logic
+
+
+================================================================================
+PART 17: EXAMPLE PROJECT WALKTHROUGH
+================================================================================
+
+Let's trace: User browses auctions and clicks one
+
+1. APP STARTS
+   main.dart -> App widget -> app.dart
+   app.dart creates MaterialApp with:
+     - Light/Dark themes from app_theme.dart
+     - Router from app_router.dart
+
+2. USER SEES HOME WITH BOTTOM NAVIGATION
+   Initial route is "/" which shows home_page.dart
+   Bottom nav has Browse tab
+
+3. USER TAPS BROWSE TAB
+   Navigation changes, browse_page.dart shown
+   browse_page.dart has:
+     - BrowseController (from browse_module.dart)
+     - BrowseController calls GetAuctionsUseCase on page load
+
+4. GET AUCTIONS FLOW
+   BrowseController calls GetAuctionsUseCase
+   GetAuctionsUseCase calls AuctionRepository (abstract)
+   AuctionRepositoryImpl calls AuctionRemoteDataSource
+   AuctionRemoteDataSource calls Supabase API
+   Supabase returns JSON array of auctions
+   JSON converted to AuctionModel
+   AuctionModel converted to AuctionEntity
+   Entity returned through all layers back to Controller
+   Controller stores in _auctions list
+   Controller calls notifyListeners()
+
+5. UI UPDATES
+   browse_page.dart is listening via ListenableBuilder
+   Listens to BrowseController
+   When notified, rebuild happens
+   UI shows list of auction cards
+
+6. USER TAPS AN AUCTION CARD
+   Card's onTap calls:
+     Navigator.of(context).pushNamed(BrowseRoutes.auctionDetail, arguments: auction)
+
+7. NAVIGATION HANDLES ROUTE
+   app_router.dart sees BrowseRoutes.auctionDetail
+   Creates AuctionDetailPage passing the auction
+   AuctionDetailPage shown with full auction details
+
+8. REPEAT FOR OTHER FEATURES
+   Same pattern for: Bids, Lists, Profile
+
+
+================================================================================
+SUMMARY - REMEMBER THIS
+================================================================================
+
+1. Three layers:
+   PRESENTATION (UI) -> DOMAIN (Logic) -> DATA (Backend)
+
+2. Layers never skip each other:
+   UI never calls data directly
+   UI calls controller
+   Controller calls usecase
+   Usecase calls repository (abstract)
+   Repository impl calls datasource
+
+3. Every module is self-contained:
+   Has all 3 layers
+   Can be worked on independently
+   Has own module.dart and routes.dart
+
+4. Each file has ONE purpose:
+   Entity = what something looks like
+   Repository = what operations exist (abstract)
+   UseCase = how to do something
+   Controller = handle UI state
+   Page = show and interact with UI
+   DataSource = actually do the API call
+
+5. To add new feature:
+   1. Create module folder
+   2. Build domain (entities, repos abstract, usecases)
+   3. Build data (models, datasources, repos concrete)
+   4. Build presentation (controllers, pages, widgets)
+   5. Create module.dart for setup
+   6. Create routes.dart for navigation
+   7. Register in app_router.dart
+
+6. Use ChangeNotifier for state:
+   Controller extends ChangeNotifier
+   Holds data
+   Calls notifyListeners() when data changes
+   UI listens with ListenableBuilder
+
+7. Navigate with named routes:
+   Navigator.pushNamed(Routes.something)
+   app_router.dart maps name to page
+
+8. Always use themes for colors:
+   Theme.of(context) for consistent look
+   Works with dark mode automatically
+
+================================================================================
+END OF BEGINNER GUIDE
+================================================================================
+
+If you want to understand something deeper, read PROJECT_FLOW.txt or CLAUDE.md
+This guide is meant to give you the BIG PICTURE.
+
+Start with this guide, then dive into actual code files.
+Read files in order:
+  1. main.dart
+  2. app/app.dart
+  3. app/core/theme/app_theme.dart
+  4. app/router/app_router.dart
+  5. Pick a module (auth) and read:
+     - auth_routes.dart
+     - auth_module.dart
+     - domain/ folder
+     - data/ folder
+     - presentation/ folder
+
+Welcome to the project! You now understand the structure.

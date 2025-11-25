@@ -4,6 +4,7 @@ and scalable mobile applications with flutter. You are following
 the best standard and practices for both UI UX design principles, 
 optimization, backend data structures and algorithms, and security.
 
+<<<<<<< Updated upstream
 Instructions:
 * Focus on lib/modules/lists and all related files under lib/app.
 * Implement the full transaction pre-transaction discussion system. (Under lists module, under in transaction sub tabs upon clicking each cards)
@@ -35,6 +36,20 @@ Next: Build the 9-step Create Listing Form:
 * After submission, create a modal dialog: “Listing Submitted!” with options (create another / view my listing).
 Listing should go in pending tab upon submission. prepare the backend integration but do the mock up for now.
 
+=======
+Reference:
+Focus on lib/modules/bids and related files in lib/app
+
+Context:
+- I want to implement the details of each cards in bids module, let's handle this professionally.
+- Prepare a mock data for each of the card details in the 3 sub tabs under bids module, but make sure to prepare it for backend supabase integration
+
+Tasks:
+- for Active tab: this is exactly similar to browse auction detail, but it needs to be independent from it, and needs to have the deposits unlock already and the user is currently bidding.
+- for Won tab: this is typically similar to the "In transaction" in lists module, except that it has to be for the buyer. create and independent component for this, you may use the pre transaction as reference but the sub tabs has to be correct (chat, my form, seller's form, progress tracker)
+- Lost Tab: basically shows the ended auction from browse, where it is no longer active. the user has lost but can see the remaining information that is accessible aside from the bidding.
+ 
+>>>>>>> Stashed changes
 Critical Note:
 - do not use super complex code, use only between junior to senior proficiency.
 - do not over explain after output, only 1-3 line feedbacks.
@@ -51,22 +66,57 @@ Break down the presentation UI files into small chunks, do not create lengthy fi
 
 Design Preference:
 - Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+- use the color theme from lib/core/theme/app_theme.dart
+=======
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+- use the color theme from lib/core/theme/app_theme.dart
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 - use the color theme from lib/core/theme/app_theme.dart
 - every single component must be responsive for darkmode
 
 ---
 
+<<<<<<< Updated upstream
 Instructions:
 Context:
+=======
+<<<<<<< Updated upstream
+Instructions:
+Context:
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
 
 ---
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
 
 INSTRUCTIONS:
 Reference: Focus on lib/modules/profile and related files on lib/app
 We will make the create listing work.
 
+<<<<<<< Updated upstream
+=======
+=======
+Reference:
+Focus on lib/modules/lists and related files in lib/app
+
+Context: In transaction page cards seem to not work upon clicking. I am expecting it should show the pre transaction phase UI.
+Tasks:
+- Identify what is missing, and 
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
 ---
 
@@ -80,8 +130,72 @@ Focus on lib/modules/profile and related files on lib/app
 related files on lib/app
 Context:
 We will implement the business model of this project.
+<<<<<<< Updated upstream
 Our business model is a bit hybrid people can buy 
+=======
+<<<<<<< Updated upstream
+Our business model is a bit hybrid people can buy 
+=======
+Our business model is a bit hybrid. You need 1 bid token everytime you bid. and you need 1 listing token everytime you list a car.
+to obtain those token, users have 2 options. Either buy them directly or through subscription.
+
+DIRECT BIDDING TOKEN BUY:
+5 tokens = 99php
+25 tokens = 349 php
+100 tokens (+20 bonus) = 1299php
+
+DIRECT LISTING TOKEN BUY:
+1 token = 199php
+3 tokens = 499 php
+10 tokens = 1499php
+
+SUBSCRIPTIONS:
+Free plan:
+- 10 tokens per month, 1 listing per month
+- 199 per additional listing
+- basic notifications
+- 5,000 refundable deposit required
+
+Pro Basic (199 php/month):
+- 50 tokens
+- 3 listings per month
+- autobid feature
+- Pro Basic Badge on Profile
+- Monthly Summary reports section on profile
+
+Pro Plus (499 php/month)
+- 250 tokens per month
+- 10 listings per month
+- verified pro plus Badge
+- everything in pro basic aside from above mentioned
+
+Pro Basic (1699/yr)
+- 50 tokens per month
+- 3 listings per month
+- autobid feature
+- pro basic badge on profile
+- monthly summary reports section on profile
+
+Pro Plus (4499/year)
+- 250 tokens per month
+- 10 listings per month
+- verified pro plus Badge
+- everything in pro basic aside from above mentioned
+
+
+
+
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 Tasks:
 - Develop a sys
 
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes

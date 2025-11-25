@@ -67,23 +67,194 @@
 
 ---
 
+Reference:
+Focus on lib/modules/bids and related files in lib/app
 
+Context:
+- It seems that it only shows "Transaction not found" upon clicking the cards in pre transaction. I understand this doesn't have backend, but make sure the backend is ready only, and the mock implementation actually works temporarily to visualize the UI.
 
----
-
-
-
----
-
-
-
----
-
-
+Tasks:
+- identify and find a solution to make a temporary workaround work the pre transaction without changing the preparation for backend.
+- make sure it is switchable
+- Apply this as well for drafts and in cancelled->re-edit sub tabs.
 
 ---
 
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI UX design principles, 
+optimization, backend data structures and algorithms, and security.
 
+Reference:
+- Focus on lib/modules/lists and all related files under lib/app.
+
+Context:
+We recently made a 9 step process for creating a new listings for the car.
+Now, using the car details in the 9 steps, we will implement the car details in each of the cards in lists module sub tabs.
+
+Instructions:
+- EXCEPT FROM "In transaction" sub tabs in lists module, make every single one of the cards clickable
+- Create an interface for each of the cards, that is relevant to their individual purposes
+- Make sure each of the sub tabs card will show information that is correct as per their sub tabs they belong:
+Guide:
+* Active - Must show similar to browsing page auction detail, but for the seller side where seller can see every single detail in browse, and can especially comment reply to queries. (do not reuse cards from browsing)
+* Pending - Create a UI UX friendly interface to show all the car details in the 9 steps, and indicate that it is pending. Some of the cards, must show admin approval and would give options for users to post it live.
+* Drafts - Similar to pending somehow, but is editable and would lead to create listing STEP 1
+* Sold - Similar to pending but containts the complete details of the pre transaction features
+* cancelled - similar to pending but users has the option to edit (if edited resubmit for verification), or directly re-auction the car (in cases of reserved prices not met), or delete.
+Note: 
+- Handle this professionally, especially the UI UX layout, make sure the details is complete and correct as per the standard of online car auctions and practical practices.
+- Make sure each of these cards are independent widgets. they may have similarity but I need a robust setup
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+- every single component must be responsive for darkmode
+
+---
+
+You are a Senior Flutter Developer, specialized in robust refactoring, debugging, and editing of existing code system.
+You are a master of design principles and understand the programming patterns and problems carefully.
+
+Following the recent updates in create listings, I want you to add autofill demo for every single step to enhance user testing.
+
+Note:
+- Make sure this doesn't affect the existing backend codes and business logics.
+- Isolate this functionality and make it easily removable.
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+---
+
+You are a senior flutter developer with over 30 years of 
+experience building enterprise and medium sized professional 
+and scalable mobile applications with flutter. You are following 
+the best standard and practices for both UI UX design principles, 
+optimization, backend data structures and algorithms, and security.
+
+Instructions:
+* Focus on lib/modules/lists and all related files under lib/app.
+* Implement the full transaction pre-transaction discussion system. (Under lists module, under in transaction sub tabs upon clicking each cards)
+* Implement the complete 9-step “Create New Listing” flow with proper structure, mock data handling, form validation, and draft-saving logic.
+
+Reference:
+* Pre-transaction flow phases:
+  discussion phase -> review both forms -> both confirmed -> submitted to admin -> approved? -> pretransaction becomes immutable -> deposit refunded/credited -> seller proceeds with transaction -> buyer monitors -> transaction complete -> platform & buyer review.
+
+Tasks:
+Note: Do Mockups, but prepare this for supabase integration, make sure it is easily switchable for actual backend.
+* For the transaction module, create a card-triggered pre-transaction discussion page with 4 subtabs: chat, my form, buyer form, progress.
+* Chat: build a basic but clean messaging interface for buyers and sellers to discuss form details.
+* My Form: implement structured inputs for all required pre-transaction agreements and legal checklist items.
+* Buyer Form: allow seller to review the submitted buyer form; include states for pending, reviewed, changes requested, confirmed.
+* Progress: show transaction timeline updates by system and seller, reflecting the pre-transaction → admin review → approval → ongoing → completion.
+* Ensure the entire pre-transaction pipeline is logically connected and the UI clearly guides the user.
+
+Next: Build the 9-step Create Listing Form:
+  1. Basic Information: Brand, Model, Variant, Year
+  2. Mechanical Specification: engine details, transmission, fuel, drive type, etc.
+  3. Dimensions & Capacity: full measurement and weight fields
+  4. Exterior Details: color, paint type, rims, tires
+  5. Condition & History: condition, mileage, owners, modifications, warranty, usage
+  6. Documentation & Location: plate, OR/CR, registration status & expiry, province, city/municipality
+  7. Photos: handle all 56 required image categories with dynamic list and status indicators
+  8. Final Details: description (min 50 chars), known issues, car features
+  9. Listing Summary: review each step, allow editing, support saving drafts in every step
+* After submission, create a modal dialog: “Listing Submitted!” with options (create another / view my listing).
+Listing should go in pending tab upon submission. prepare the backend integration but do the mock up for now.
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+- every single component must be responsive for darkmode
+
+---
+
+<<<<<<< Updated upstream
+
+=======
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+
+=======
+<<<<<<< Updated upstream
+=======
+You are a Senior Flutter Developer, specialized in robust refactoring, debugging, and editing of existing code system.
+You are a master of design principles and understand the programming patterns and problems carefully.
+
+Reference:
+- Focus on lib/module/lists/ and under lib/app/ for related files
+
+Task:
+Update the create listing feature.
+- Move pricing in step 8
+- Make sure to add an AI pricing predictor that predicts the price of the car based on existing data (simulate this but prepare also a switchable structure for AI integration. add comment and todo). This is separate from the actual field of pricing, but add accept button to autofill if user accepts.
+- Make every single step in last step editable, not only when they are not done.
+- In step 1, 2, 4, and 5 (usage type only), Find a way to make every drop downs, typeable. Users can choose from the drop down but at the same time type for custom in case not on the options.
+- Step 6, make the province and city drop down, where province dynamically filters the city.
+
+Critical Note:
+- do not use super complex code, use only between junior to senior proficiency.
+- do not over explain after output, only 1-3 line feedbacks.
+- do not create unnecessary readme or docs files.
+- add comments to code blocks (except in presentation directory) that explains the every code logics for beginners
+
+Development Notes:
+Break down the presentation UI files into small chunks, do not create lengthy files:
+- DRY principle - no code duplication
+- Single responsibility - each widget does one thing
+- Easy maintenance - change once, affects all
+- Testable - widgets can be tested independently
+- Scalable - new pages can reuse components
+
+Design Preference:
+- Minimal, clean, modern, with soft colors, rounded corners, and spacing.
+- use the color theme from lib/core/theme/app_theme.dart
+- every single component must be responsive for darkmode
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 
 ---
 
@@ -399,6 +570,14 @@ Design Preference:
 
 ---
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 You are a senior flutter developer with over 30 years of 
 experience building enterprise and medium sized professional 
 and scalable mobile applications with flutter. You are following 
