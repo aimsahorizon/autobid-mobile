@@ -7,6 +7,8 @@ import '../../domain/entities/listing_draft_entity.dart';
 /// - Store photos in Supabase Storage
 /// - Handle draft expiration (e.g., 30 days)
 class ListingDraftMockDataSource {
+  // Toggle to switch between mock and real backend
+  // Set to true for mock data, false when backend is ready
   static const bool useMockData = true;
 
   // Simulated delay for network requests
@@ -34,8 +36,30 @@ class ListingDraftMockDataSource {
     try {
       return _mockDrafts.firstWhere((d) => d.id == draftId);
     } catch (e) {
-      return null;
+      // If not found, create a dynamic draft for visualization
+      return _createDynamicDraft(draftId);
     }
+  }
+
+  /// Creates a dynamic mock draft for any draft ID
+  /// This ensures UI works even if draft doesn't exist in mock data
+  ListingDraftEntity _createDynamicDraft(String draftId) {
+    return ListingDraftEntity(
+      id: draftId,
+      sellerId: 'seller_001',
+      currentStep: 5,
+      lastSaved: DateTime.now().subtract(const Duration(hours: 3)),
+      brand: 'Ford',
+      model: 'Mustang GT',
+      variant: 'Premium',
+      year: 2022,
+      engineType: 'V8',
+      transmission: 'Automatic',
+      fuelType: 'Gasoline',
+      horsepower: 460,
+      torque: 569,
+      mileage: 15000,
+    );
   }
 
   /// Save or update draft
@@ -94,7 +118,7 @@ class ListingDraftMockDataSource {
   Future<bool> submitListing(String draftId) async {
     await _delay();
     final draft = await getDraft(draftId);
-    if (draft == null || !draft.isComplete) return false;
+    if (draft == null || draft.completionPercentage < 100) return false;
 
     // In real implementation, create listing record
     await deleteDraft(draftId);

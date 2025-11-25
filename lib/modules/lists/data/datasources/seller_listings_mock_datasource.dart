@@ -4,6 +4,10 @@ import '../../domain/entities/seller_listing_entity.dart';
 /// Provides sample data for all listing statuses
 /// Replace with Supabase implementation for production
 class SellerListingsMockDataSource {
+  // Toggle to switch between mock and real backend
+  // Set to true for mock data, false when backend is ready
+  static const bool useMockData = true;
+
   /// Fetches all seller listings grouped by status
   Future<Map<ListingStatus, List<SellerListingEntity>>> getAllListings() async {
     // Simulate network delay
