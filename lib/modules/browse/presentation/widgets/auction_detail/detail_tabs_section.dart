@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../app/core/constants/color_constants.dart';
+import '../../../domain/entities/auction_detail_entity.dart';
 import '../../../domain/entities/bid_history_entity.dart';
 import '../../../domain/entities/qa_entity.dart';
 import 'bid_history_tab.dart';
@@ -15,6 +16,9 @@ import 'qa_tab.dart';
 /// - Bid History shows auction-specific bid timeline (not user's global bids)
 /// - User's global bids (Active/Won/Lost) are in Bids module, not here
 class DetailTabsSection extends StatelessWidget {
+  // Auction detail data for Car Info tab
+  final AuctionDetailEntity auction;
+
   // Bid history data - auction-specific bid timeline
   final List<BidHistoryEntity> bidHistory;
   final bool isLoadingBidHistory;
@@ -27,6 +31,7 @@ class DetailTabsSection extends StatelessWidget {
 
   const DetailTabsSection({
     super.key,
+    required this.auction,
     required this.bidHistory,
     required this.questions,
     required this.onAskQuestion,
@@ -93,7 +98,7 @@ class DetailTabsSection extends StatelessWidget {
                   isLoading: isLoadingBidHistory,
                 ),
                 // Car Info Tab: Static car details and specs
-                const CarInfoTab(),
+                CarInfoTab(auction: auction),
                 // Q&A Tab: Interactive questions and answers
                 QATab(
                   questions: questions,
