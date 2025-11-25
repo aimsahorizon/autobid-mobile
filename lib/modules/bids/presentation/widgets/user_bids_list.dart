@@ -18,7 +18,7 @@ class UserBidsList extends StatelessWidget {
   final String emptyTitle;
   final String emptySubtitle;
   final IconData emptyIcon;
-  final VoidCallback? onBidTap;
+  final Function(UserBidEntity)? onBidTap;
 
   const UserBidsList({
     super.key,
@@ -56,10 +56,10 @@ class UserBidsList extends StatelessWidget {
         mainAxisSpacing: 12,
       ),
       itemCount: bids.length,
-      itemBuilder: (context, index) => UserBidCard(
-        bid: bids[index],
-        onTap: onBidTap,
-      ),
+      itemBuilder: (context, index) {
+        final bid = bids[index];
+        return UserBidCard(bid: bid, onTap: onBidTap);
+      },
     );
   }
 }
