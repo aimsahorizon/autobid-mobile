@@ -1,0 +1,652 @@
+# AI INTEGRATION GUIDE
+Complete guide for implementing AI features in AutoBid Mobile
+
+=============================================================================
+OVERVIEW
+=============================================================================
+
+This application has 2 AI-powered features ready for integration:
+
+1. ID Information Extractor (OCR/AI Vision)
+   - Location: Registration flow → Secondary ID step
+   - Purpose: Auto-extract ID details from uploaded images
+   - File: lib/app/core/services/ai_service.dart (IDExtractionService)
+
+2. Vehicle Price Predictor (ML/AI)
+   - Location: Create Listing flow → Step 8 (Final Details)
+   - Purpose: Suggest optimal starting and reserve prices
+   - File: lib/app/core/services/ai_service.dart (PricePredictionService)
+
+=============================================================================
+FEATURE 1: ID INFORMATION EXTRACTOR
+=============================================================================
+
+WHAT IT DOES:
+-------------
+When a user uploads their secondary ID (front image), they are prompted:
+"Would you like AI to automatically extract information from your ID?"
+
+If they choose "Yes, use AI":
+1. Shows loading dialog with AI processing animation
+2. Calls IDExtractionService.extractIDInfo(File idImage)
+3. Displays extracted data (ID number, name, type, etc.)
+4. User can accept (autofill form) or decline (manual fill)
+
+INTEGRATION POINTS:
+------------------
+Main Service: lib/app/core/services/ai_service.dart
+- Class: IDExtractionService
+- Method: Future<Map<String, dynamic>> extractIDInfo(File idImage)
+
+UI Components:
+- lib/modules/auth/presentation/widgets/kyc_steps/secondary_id_step.dart
+  (Triggers AI extraction when front ID is uploaded)
+
+- lib/modules/auth/presentation/widgets/kyc_steps/ai_id_extractor_dialog.dart
+  (Shows extraction progress and results)
+
+EXPECTED INPUT:
+--------------
+- File object: Image of Philippine government ID (National ID, Driver's License, etc.)
+- Image format: JPEG/PNG
+- Max size: Already compressed to 1920x1080, 85% quality
+
+EXPECTED OUTPUT FORMAT:
+----------------------
+Return a Map<String, dynamic> with these fields:
+
+{
+  'id_number': '1234-5678-9012-3456',           // Required
+  'id_type': 'Driver\'s License',               // Required
+  'full_name': 'Juan Dela Cruz',                // Optional
+  'date_of_birth': '1990-01-15',                // Optional (YYYY-MM-DD)
+  'address': '123 Main St, Manila',             // Optional
+  'expiry_date': '2030-12-31',                  // Optional (YYYY-MM-DD)
+  'confidence': 0.92                            // Required (0.0 to 1.0)
+}
+
+Note: Only 'id_number', 'id_type', and 'confidence' are used for autofill.
+Other fields are displayed but not currently saved.
+
+HOW TO IMPLEMENT:
+----------------
+
+OPTION 1: Cloud-based OCR API (Recommended for accuracy)
+----------------------------------------------------------
+Use services like:
+- Google Cloud Vision API (text detection + document understanding)
+- Azure Computer Vision (ID card recognition)
+- AWS Textract (document analysis)
+- Mindee API (ID parsing - specialized for IDs)
+
+Example with Google Cloud Vision:
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<Map<String, dynamic>> extractIDInfo(File idImage) async {
+  // Read image and encode to base64
+  final bytes = await idImage.readAsBytes();
+  final base64Image = base64Encode(bytes);
+
+  // Call Google Vision API
+  final response = await http.post(
+    Uri.parse('https://vision.googleapis.com/v1/images:annotate?key=YOUR_API_KEY'),
+    headers: {'Content-Type': 'application/json'},
+    body: json.encode({
+      'requests': [{
+        'image': {'content': base64Image},
+        'features': [
+          {'type': 'TEXT_DETECTION'},
+          {'type': 'DOCUMENT_TEXT_DETECTION'}
+        ]
+      }]
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    final text = data['responses'][0]['fullTextAnnotation']['text'];
+
+    // Parse extracted text to find ID fields
+    return _parseIDText(text);
+  } else {
+    throw Exception('Vision API failed: ${response.statusCode}');
+  }
+}
+
+Map<String, dynamic> _parseIDText(String text) {
+  // Implement regex patterns to extract ID info
+  // Example for Philippine National ID:
+  final idNumberRegex = RegExp(r'\d{4}-\d{4}-\d{4}-\d{4}');
+  final match = idNumberRegex.firstMatch(text);
+
+  return {
+    'id_number': match?.group(0) ?? '',
+    'id_type': 'Philippine National ID',
+    'confidence': 0.85,
+  };
+}
+```
+
+Configuration in ai_service.dart (line 17):
+```dart
+IDExtractionService(
+  apiKey: 'YOUR_GOOGLE_CLOUD_API_KEY',
+  apiEndpoint: 'https://vision.googleapis.com/v1/images:annotate',
+  useEdgeModel: false, // Use cloud API
+)
+```
+
+OPTION 2: Edge AI (On-device, privacy-friendly)
+------------------------------------------------
+Use ML Kit or Tesseract for on-device OCR:
+
+Add dependencies in pubspec.yaml:
+```yaml
+dependencies:
+  google_ml_kit: ^0.18.0  # For ML Kit
+  # OR
+  flutter_tesseract_ocr: ^2.0.0  # For Tesseract
+```
+
+Example with ML Kit:
+```dart
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+
+Future<Map<String, dynamic>> extractIDInfo(File idImage) async {
+  final inputImage = InputImage.fromFile(idImage);
+  final textRecognizer = TextRecognizer();
+
+  try {
+    final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+    final text = recognizedText.text;
+
+    // Parse the text
+    return _parseIDText(text);
+  } finally {
+    textRecognizer.close();
+  }
+}
+```
+
+Configuration in ai_service.dart (line 17):
+```dart
+IDExtractionService(
+  useEdgeModel: true, // No API key needed
+)
+```
+
+OPTION 3: Hybrid Approach
+--------------------------
+Use edge AI first (fast, free), fallback to cloud if confidence is low:
+
+```dart
+Future<Map<String, dynamic>> extractIDInfo(File idImage) async {
+  // Try edge model first
+  final edgeResult = await _extractWithMLKit(idImage);
+
+  if (edgeResult['confidence'] >= 0.80) {
+    return edgeResult; // Good enough
+  }
+
+  // Fallback to cloud for better accuracy
+  return await _extractWithCloudAPI(idImage);
+}
+```
+
+WHERE TO ADD YOUR CODE:
+-----------------------
+File: lib/app/core/services/ai_service.dart
+Method: IDExtractionService.extractIDInfo() (line 50-115)
+
+Replace the mock implementation (line 65-115) with your chosen approach.
+
+TESTING CHECKLIST:
+-----------------
+□ Upload clear Philippine National ID → Should extract 16-digit number
+□ Upload Driver's License → Should detect ID type and number
+□ Upload blurry image → Should show low confidence or error
+□ Decline AI extraction → Should allow manual fill
+□ Accept extracted data → Should autofill ID number and type fields
+
+=============================================================================
+FEATURE 2: VEHICLE PRICE PREDICTOR
+=============================================================================
+
+WHAT IT DOES:
+-------------
+In the create listing flow (step 8), after user enters vehicle details
+(brand, model, year, mileage, condition), the AI automatically:
+1. Analyzes the data
+2. Predicts optimal starting price
+3. Suggests reserve price (+10% of predicted)
+4. Shows confidence score and breakdown
+
+User can click "Use AI Suggestions" to autofill both price fields.
+
+INTEGRATION POINTS:
+------------------
+Main Service: lib/app/core/services/ai_service.dart
+- Class: PricePredictionService
+- Method: Future<Map<String, dynamic>> predictPrice(Map<String, dynamic> vehicleData)
+
+UI Component:
+- lib/modules/lists/presentation/widgets/listing_form/ai_price_predictor.dart
+  (Displays prediction UI, line 28 creates service instance)
+
+Used in:
+- lib/modules/lists/presentation/widgets/listing_form/step8_final_details.dart
+  (Step 8 of create listing flow)
+
+EXPECTED INPUT:
+--------------
+Map with vehicle features:
+
+{
+  'brand': 'Toyota',           // Required
+  'model': 'Corolla',          // Required
+  'year': 2020,                // Required (int)
+  'mileage': 45000,            // Required (int, in kilometers)
+  'condition': 'good',         // Required (excellent/good/fair/needs work)
+
+  // Optional fields (not yet captured but can be added):
+  'transmission': 'automatic',
+  'fuel_type': 'gasoline',
+  'body_type': 'sedan',
+  'color': 'white',
+  'province': 'Metro Manila',
+}
+
+EXPECTED OUTPUT FORMAT:
+----------------------
+Return a Map<String, dynamic> with these fields:
+
+{
+  'predicted_price': 850000.0,              // Required (double, in PHP)
+  'confidence': 0.88,                       // Required (0.0 to 1.0)
+
+  'price_range': {                          // Optional but recommended
+    'min': 800000.0,
+    'max': 900000.0,
+  },
+
+  'factors': {                              // Optional, for transparency
+    'base_price': 900000.0,
+    'year_impact': 0.85,
+    'mileage_impact': 0.90,
+    'condition_impact': 0.95,
+  }
+}
+
+Note: Only 'predicted_price' and 'confidence' are required.
+Other fields help users understand the prediction.
+
+HOW TO IMPLEMENT:
+----------------
+
+OPTION 1: Cloud-based ML Model (Recommended for accuracy)
+----------------------------------------------------------
+Train a regression model on Philippine car market data or use AutoML:
+
+Services to consider:
+- Google Vertex AI AutoML (tabular regression)
+- Azure Machine Learning (regression model)
+- AWS SageMaker (deploy custom model)
+- Custom Flask/FastAPI server with scikit-learn/XGBoost
+
+Example with REST API:
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<Map<String, dynamic>> predictPrice(Map<String, dynamic> vehicleData) async {
+  final response = await http.post(
+    Uri.parse('https://your-ml-api.com/predict'),
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json',
+    },
+    body: json.encode({
+      'brand': vehicleData['brand'],
+      'model': vehicleData['model'],
+      'year': vehicleData['year'],
+      'mileage': vehicleData['mileage'],
+      'condition': vehicleData['condition'],
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    return {
+      'predicted_price': data['price'],
+      'confidence': data['confidence'],
+      'price_range': data['range'],
+    };
+  } else {
+    throw Exception('Price prediction failed: ${response.statusCode}');
+  }
+}
+```
+
+Configuration in ai_service.dart (line 149):
+```dart
+PricePredictionService(
+  apiKey: 'YOUR_ML_API_KEY',
+  modelEndpoint: 'https://your-ml-api.com/predict',
+  useEdgeModel: false,
+)
+```
+
+MODEL TRAINING TIPS:
+-------------------
+If training your own model:
+
+1. Data collection:
+   - Scrape Philippine car listing sites (Carousell, AutoDeal, etc.)
+   - Features: brand, model, year, mileage, condition, location, body type
+   - Target: listing prices (filter outliers)
+
+2. Feature engineering:
+   - Vehicle age = current_year - year
+   - Brand popularity score (Toyota, Honda = high demand)
+   - Depreciation curves by vehicle type
+   - Location adjustment (NCR vs provinces)
+
+3. Model selection:
+   - Start with: Linear Regression, Decision Trees
+   - Best results: XGBoost, Random Forest, LightGBM
+   - Advanced: Neural Networks (if large dataset)
+
+4. Evaluation metrics:
+   - RMSE (Root Mean Square Error) - lower is better
+   - MAE (Mean Absolute Error)
+   - R² score - aim for > 0.85
+
+5. Deployment:
+   - Simple: Flask REST API on cloud server
+   - Production: Docker + Cloud Run / Lambda
+   - Edge: Convert to TFLite (see Option 2)
+
+OPTION 2: Edge AI (On-device inference)
+----------------------------------------
+Convert trained model to TensorFlow Lite:
+
+Add dependency in pubspec.yaml:
+```yaml
+dependencies:
+  tflite_flutter: ^0.10.0
+```
+
+Example implementation:
+```dart
+import 'package:tflite_flutter/tflite_flutter.dart';
+
+class PricePredictionService {
+  Interpreter? _interpreter;
+
+  Future<void> _loadModel() async {
+    _interpreter = await Interpreter.fromAsset('assets/models/price_model.tflite');
+  }
+
+  Future<Map<String, dynamic>> predictPrice(Map<String, dynamic> vehicleData) async {
+    if (_interpreter == null) await _loadModel();
+
+    // Prepare input tensor (normalize/encode features)
+    final input = _prepareInput(vehicleData);
+    final output = List.filled(1, 0.0).reshape([1, 1]);
+
+    // Run inference
+    _interpreter!.run(input, output);
+
+    return {
+      'predicted_price': output[0][0],
+      'confidence': 0.85, // Calculate based on model metrics
+    };
+  }
+
+  List<List<double>> _prepareInput(Map<String, dynamic> data) {
+    // Convert features to normalized values
+    // Example: [brand_encoded, year_normalized, mileage_normalized, ...]
+    return [[/* feature values */]];
+  }
+}
+```
+
+Add model file:
+- Place your .tflite model in assets/models/
+- Update pubspec.yaml:
+  ```yaml
+  flutter:
+    assets:
+      - assets/models/price_model.tflite
+  ```
+
+Configuration in ai_service.dart (line 149):
+```dart
+PricePredictionService(useEdgeModel: true)
+```
+
+OPTION 3: Simple Rule-Based (Current Implementation)
+----------------------------------------------------
+The current mock implementation uses basic rules (line 242-290 in ai_service.dart):
+- Base price by brand
+- Depreciation by age
+- Adjustment by mileage
+- Multiplier by condition
+
+This works as a fallback but lacks market accuracy. You can improve it by:
+- Adding real market data for base prices
+- Using statistical depreciation curves
+- Factoring in seasonal trends
+- Adjusting for regional differences
+
+WHERE TO ADD YOUR CODE:
+-----------------------
+File: lib/app/core/services/ai_service.dart
+Method: PricePredictionService.predictPrice() (line 178-277)
+
+Replace the mock implementation with your chosen approach.
+
+TESTING CHECKLIST:
+-----------------
+□ Enter brand + model + year → Should show loading animation
+□ Complete all fields → Should display predicted price
+□ Price should be reasonable (PHP 300K - 5M for typical cars)
+□ Confidence > 80% → Green indicator
+□ Confidence < 80% → Yellow warning
+□ Click "Use AI Suggestions" → Autofills starting and reserve price
+□ Change any field → Should re-predict automatically
+
+=============================================================================
+CONFIGURATION
+=============================================================================
+
+Both services support flexible configuration:
+
+Cloud-based setup (in your app initialization):
+```dart
+// In main.dart or a service initialization file
+final idExtractor = IDExtractionService(
+  apiKey: 'YOUR_VISION_API_KEY',
+  apiEndpoint: 'https://vision.googleapis.com/v1/images:annotate',
+  useEdgeModel: false,
+);
+
+final pricePredictor = PricePredictionService(
+  apiKey: 'YOUR_ML_API_KEY',
+  modelEndpoint: 'https://your-ml-api.com/predict',
+  useEdgeModel: false,
+);
+```
+
+Edge-based setup (privacy-focused, offline-capable):
+```dart
+final idExtractor = IDExtractionService(useEdgeModel: true);
+final pricePredictor = PricePredictionService(useEdgeModel: true);
+```
+
+Environment Variables (Recommended):
+Create .env file (already in .gitignore):
+```
+VISION_API_KEY=your_google_cloud_key
+VISION_API_ENDPOINT=https://vision.googleapis.com/v1/images:annotate
+
+PRICE_API_KEY=your_ml_api_key
+PRICE_API_ENDPOINT=https://your-ml-api.com/predict
+```
+
+Load in app (using flutter_dotenv):
+```yaml
+dependencies:
+  flutter_dotenv: ^5.1.0
+```
+
+```dart
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  await dotenv.load();
+
+  final idService = IDExtractionService(
+    apiKey: dotenv.env['VISION_API_KEY'],
+    apiEndpoint: dotenv.env['VISION_API_ENDPOINT'],
+  );
+
+  runApp(MyApp());
+}
+```
+
+=============================================================================
+COST ESTIMATION
+=============================================================================
+
+CLOUD-BASED COSTS:
+-----------------
+Google Cloud Vision (ID Extraction):
+- First 1,000 requests/month: FREE
+- After: $1.50 per 1,000 requests
+- Estimated: ~500 registrations/month = FREE tier
+
+ML API (Price Prediction):
+- Depends on provider
+- Google Vertex AI: ~$0.05 per prediction
+- Custom server: hosting cost only (~$5-20/month)
+- Estimated: ~1,000 listings/month = $50 or less
+
+EDGE-BASED COSTS:
+----------------
+- Zero API costs
+- One-time model training cost (if DIY)
+- Free ML Kit / Tesseract libraries
+
+RECOMMENDATION:
+- Start with cloud for accuracy
+- Switch to edge once you have enough data to train
+- Use hybrid: edge first, cloud fallback
+
+=============================================================================
+RECOMMENDED IMPLEMENTATION SEQUENCE
+=============================================================================
+
+PHASE 1: Quick Start (1-2 days)
+-------------------------------
+1. Sign up for Google Cloud (free tier)
+2. Enable Vision API for ID extraction
+3. Update IDExtractionService with API integration (Option 1)
+4. Test with real Philippine IDs
+5. Keep price predictor on mock for now
+
+PHASE 2: Price Prediction (1-2 weeks)
+-------------------------------------
+1. Collect car listing data (web scraping)
+2. Train basic regression model (XGBoost recommended)
+3. Deploy to Flask/FastAPI server
+4. Update PricePredictionService with API integration
+5. Test accuracy with real market prices
+
+PHASE 3: Optimization (ongoing)
+-------------------------------
+1. Monitor accuracy and user feedback
+2. Retrain models with new data monthly
+3. Consider edge deployment for cost savings
+4. Add more vehicle features for better predictions
+
+=============================================================================
+SUPPORT & RESOURCES
+=============================================================================
+
+DOCUMENTATION LINKS:
+-------------------
+Google Cloud Vision:
+https://cloud.google.com/vision/docs/ocr
+
+ML Kit Text Recognition:
+https://developers.google.com/ml-kit/vision/text-recognition
+
+TensorFlow Lite Flutter:
+https://pub.dev/packages/tflite_flutter
+
+Scikit-learn (Model Training):
+https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.GradientBoostingRegressor.html
+
+SAMPLE DATASETS:
+---------------
+Philippine car prices:
+- Carousell API/scraping
+- AutoDeal listings
+- PhilKotse price guides
+
+RECOMMENDED TOOLS:
+-----------------
+- Postman: Test API integrations
+- Python Jupyter: Train models
+- Google Colab: Free GPU for training
+- VS Code REST Client: Quick API testing
+
+=============================================================================
+TROUBLESHOOTING
+=============================================================================
+
+Common issues and solutions:
+
+ISSUE: "API key not working"
+SOLUTION: Check API is enabled in cloud console, verify key format
+
+ISSUE: "Low confidence scores (<70%)"
+SOLUTION:
+- Improve image quality requirements
+- Use document-specific Vision API features
+- Add pre-processing (crop, enhance contrast)
+
+ISSUE: "Price predictions way off"
+SOLUTION:
+- Check if model trained on Philippine market data
+- Verify feature normalization/scaling
+- Add more training data for rare brands
+
+ISSUE: "Slow inference time"
+SOLUTION:
+- Enable caching for repeated predictions
+- Use edge model instead of API calls
+- Optimize model size (quantization)
+
+ISSUE: "Model too large for mobile"
+SOLUTION:
+- Use TFLite quantization (8-bit)
+- Deploy model to server instead
+- Split features into multiple smaller models
+
+=============================================================================
+FINAL NOTES
+=============================================================================
+
+1. Both AI features are already fully integrated into the UI
+2. Only the AI logic needs implementation (in ai_service.dart)
+3. Mock implementations currently work for demo purposes
+4. All error handling and user flows are complete
+5. Services are isolated - can implement independently
+6. Configuration is flexible (cloud, edge, or hybrid)
+
+Good luck with your AI integration!
+For questions, refer to the code comments in ai_service.dart.
