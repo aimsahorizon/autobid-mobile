@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment variables - sensitive data
+.env
+
+# Others
+z_ignore_dumps/
+
+node_modules/
