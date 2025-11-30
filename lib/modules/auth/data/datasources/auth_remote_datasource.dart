@@ -301,9 +301,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw Exception('User not authenticated. Please verify OTP first.');
       }
 
-      // Insert KYC registration data into pending_registrations table
-      // Data will be moved to proper tables upon admin approval
-      await _supabase.from('pending_registrations').insert(kycData.toJson());
+      // Insert KYC registration data into users table
+      // kyc_status will default to 'pending' and await admin approval
+      await _supabase.from('users').insert(kycData.toJson());
     } on PostgrestException catch (e) {
       // Handle database errors (e.g., duplicate username, constraint violations)
       throw Exception('Failed to submit KYC registration: ${e.message}');
@@ -315,14 +315,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<KycRegistrationModel?> getKycRegistrationStatus(String userId) async {
     try {
-      // Query pending_registrations table for the user's registration status
+      // Query users table for the user's KYC registration status
       final response = await _supabase
-          .from('pending_registrations')
+          .from('users')
           .select()
           .eq('id', userId)
           .maybeSingle();
 
-      // Return null if no registration found (might be approved already), otherwise convert to model
+      // Return null if no registration found, otherwise convert to model
       if (response == null) return null;
 
       return KycRegistrationModel.fromJson(response);
