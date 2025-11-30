@@ -1,5 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../domain/usecases/send_email_otp_usecase.dart';
+import '../../domain/usecases/send_phone_otp_usecase.dart';
+import '../../domain/usecases/sign_up_usecase.dart';
+import '../../domain/usecases/verify_email_otp_usecase.dart';
+import '../../domain/usecases/verify_phone_otp_usecase.dart';
+import '../../../profile/data/datasources/profile_supabase_datasource.dart';
 
 enum KYCStep {
   nationalId,
@@ -14,6 +20,29 @@ enum KYCStep {
 }
 
 class KYCRegistrationController extends ChangeNotifier {
+  final SignUpUseCase? _signUpUseCase;
+  final ProfileSupabaseDataSource? _profileDataSource;
+  final SendEmailOtpUseCase? _sendEmailOtpUseCase;
+  final SendPhoneOtpUseCase? _sendPhoneOtpUseCase;
+  final VerifyEmailOtpUseCase? _verifyEmailOtpUseCase;
+  final VerifyPhoneOtpUseCase? _verifyPhoneOtpUseCase;
+
+  /// Constructor with optional dependencies for Supabase integration
+  /// If not provided, registration will use mock implementation
+  KYCRegistrationController({
+    SignUpUseCase? signUpUseCase,
+    ProfileSupabaseDataSource? profileDataSource,
+    SendEmailOtpUseCase? sendEmailOtpUseCase,
+    SendPhoneOtpUseCase? sendPhoneOtpUseCase,
+    VerifyEmailOtpUseCase? verifyEmailOtpUseCase,
+    VerifyPhoneOtpUseCase? verifyPhoneOtpUseCase,
+  }) : _signUpUseCase = signUpUseCase,
+       _profileDataSource = profileDataSource,
+       _sendEmailOtpUseCase = sendEmailOtpUseCase,
+       _sendPhoneOtpUseCase = sendPhoneOtpUseCase,
+       _verifyEmailOtpUseCase = verifyEmailOtpUseCase,
+       _verifyPhoneOtpUseCase = verifyPhoneOtpUseCase;
+
   KYCStep _currentStep = KYCStep.nationalId;
   bool _isLoading = false;
   String? _errorMessage;
@@ -41,6 +70,7 @@ class KYCRegistrationController extends ChangeNotifier {
   String? _sex;
 
   // Step 5: Account Info
+  String? _username;
   String? _email;
   String? _phoneNumber;
   String? _password;
@@ -92,6 +122,7 @@ class KYCRegistrationController extends ChangeNotifier {
   String? get sex => _sex;
 
   // Step 5 getters
+  String? get username => _username;
   String? get email => _email;
   String? get phoneNumber => _phoneNumber;
   String? get password => _password;
@@ -188,6 +219,11 @@ class KYCRegistrationController extends ChangeNotifier {
   }
 
   // Step 5 setters
+  void setUsername(String value) {
+    _username = value;
+    notifyListeners();
+  }
+
   void setEmail(String value) {
     _email = value;
     notifyListeners();
@@ -222,6 +258,63 @@ class KYCRegistrationController extends ChangeNotifier {
   void setEmailOtpVerified(bool value) {
     _emailOtpVerified = value;
     notifyListeners();
+  }
+
+  // Step 6: OTP sending and verification methods
+  Future<void> sendPhoneOtp() async {
+    if (_phoneNumber == null || _sendPhoneOtpUseCase == null) {
+      throw Exception('Phone number not set or use case not available');
+    }
+
+    try {
+      await _sendPhoneOtpUseCase!.call(_phoneNumber!);
+    } catch (e) {
+      throw Exception('Failed to send phone OTP: $e');
+    }
+  }
+
+  Future<void> sendEmailOtp() async {
+    if (_email == null || _sendEmailOtpUseCase == null) {
+      throw Exception('Email not set or use case not available');
+    }
+
+    try {
+      await _sendEmailOtpUseCase!.call(_email!);
+    } catch (e) {
+      throw Exception('Failed to send email OTP: $e');
+    }
+  }
+
+  Future<bool> verifyPhoneOtp(String otp) async {
+    if (_phoneNumber == null || _verifyPhoneOtpUseCase == null) {
+      return false;
+    }
+
+    try {
+      final isVerified = await _verifyPhoneOtpUseCase!.call(_phoneNumber!, otp);
+      if (isVerified) {
+        setPhoneOtpVerified(true);
+      }
+      return isVerified;
+    } catch (e) {
+      throw Exception('Phone OTP verification failed: $e');
+    }
+  }
+
+  Future<bool> verifyEmailOtp(String otp) async {
+    if (_email == null || _verifyEmailOtpUseCase == null) {
+      return false;
+    }
+
+    try {
+      final isVerified = await _verifyEmailOtpUseCase!.call(_email!, otp);
+      if (isVerified) {
+        setEmailOtpVerified(true);
+      }
+      return isVerified;
+    } catch (e) {
+      throw Exception('Email OTP verification failed: $e');
+    }
   }
 
   // Step 7 setters
@@ -366,6 +459,10 @@ class KYCRegistrationController extends ChangeNotifier {
   }
 
   bool validateAccountInfoStep() {
+    if (_username == null || _username!.isEmpty) {
+      setError('Please enter a username');
+      return false;
+    }
     if (_email == null || _email!.isEmpty) {
       setError('Please enter your email');
       return false;
@@ -462,8 +559,44 @@ class KYCRegistrationController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await Future.delayed(const Duration(seconds: 2));
-      // Mock API call
+      // Check if dependencies are injected (real Supabase implementation)
+      if (_signUpUseCase != null && _profileDataSource != null) {
+        // Step 1: Create auth account
+        final user = await _signUpUseCase!.call(
+          email: _email!,
+          password: _password!,
+          username: _email!.split('@')[0],
+        );
+
+        // Step 2: Upload profile photo (selfie)
+        final profilePhotoUrl = await _profileDataSource!.uploadProfilePhoto(
+          user.id,
+          _selfieWithId!,
+        );
+
+        // Step 3: Create user profile with all KYC data
+        await _profileDataSource!.createProfile(
+          userId: user.id,
+          username: _email!.split('@')[0],
+          fullName: '$_firstName ${_middleName ?? ''} $_lastName'.trim(),
+          email: _email!,
+          contactNumber: _phoneNumber,
+        );
+
+        // Step 4: Update profile with photo URL
+        await _profileDataSource!.updateProfile(
+          userId: user.id,
+          profilePhotoUrl: profilePhotoUrl,
+        );
+
+        // TODO: Upload ID documents to user-documents bucket
+        // This requires a separate storage method for private documents
+        // For now, we've completed the basic profile creation
+      } else {
+        // Mock implementation - just delay
+        await Future.delayed(const Duration(seconds: 2));
+      }
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
