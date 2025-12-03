@@ -36,26 +36,32 @@ class BidSupabaseDataSource {
   }
 
   /// Get bid history for a listing/auction
-  /// Joins with users table to get bidder info
+  /// Joins with users table to get bidder info (LEFT JOIN to handle missing users)
   Future<List<Map<String, dynamic>>> getBidHistory(String auctionId) async {
     try {
+      print('DEBUG [BidDataSource]: Fetching bid history for listing_id: $auctionId');
+
+      // Query bids without users join (simpler, avoids FK issues)
       final response = await _supabase
           .from('bids')
-          .select('''
-            id,
-            amount,
-            is_auto_bid,
-            created_at,
-            bidder_id,
-            users!inner(username, avatar_url)
-          ''')
+          .select('id, amount, is_auto_bid, created_at, bidder_id')
           .eq('listing_id', auctionId)
           .order('amount', ascending: false);
 
-      return List<Map<String, dynamic>>.from(response);
+      print('DEBUG [BidDataSource]: Query response type: ${response.runtimeType}');
+      print('DEBUG [BidDataSource]: Response data: $response');
+
+      final result = List<Map<String, dynamic>>.from(response);
+      print('DEBUG [BidDataSource]: Returning ${result.length} bids');
+
+      return result;
     } on PostgrestException catch (e) {
+      print('ERROR [BidDataSource]: PostgrestException - ${e.message}');
+      print('ERROR [BidDataSource]: Code: ${e.code}, Details: ${e.details}');
       throw Exception('Failed to get bid history: ${e.message}');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('ERROR [BidDataSource]: Exception - $e');
+      print('ERROR [BidDataSource]: Stack trace: $stackTrace');
       throw Exception('Failed to get bid history: $e');
     }
   }

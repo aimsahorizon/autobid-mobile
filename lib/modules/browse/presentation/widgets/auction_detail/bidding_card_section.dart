@@ -8,7 +8,10 @@ class BiddingCardSection extends StatefulWidget {
   final double currentBid;
   final VoidCallback onDeposit;
   final Function(double) onPlaceBid;
+  final Function(bool, double?, double)? onAutoBidToggle;
   final bool isProcessing;
+  final bool isAutoBidActive;
+  final double? maxAutoBid;
 
   const BiddingCardSection({
     super.key,
@@ -17,7 +20,10 @@ class BiddingCardSection extends StatefulWidget {
     required this.currentBid,
     required this.onDeposit,
     required this.onPlaceBid,
+    this.onAutoBidToggle,
     this.isProcessing = false,
+    this.isAutoBidActive = false,
+    this.maxAutoBid,
   });
 
   @override
@@ -26,14 +32,22 @@ class BiddingCardSection extends StatefulWidget {
 
 class _BiddingCardSectionState extends State<BiddingCardSection> {
   final _bidController = TextEditingController();
+  final _maxAutoBidController = TextEditingController();
+  final _customIncrementController = TextEditingController();
   final List<double> _customIncrements = [];
   late double _nextMinimumBid;
+  bool _showAutoBidSection = false;
+  double _selectedIncrement = 1000; // Default increment
 
   @override
   void initState() {
     super.initState();
     _nextMinimumBid = widget.currentBid + 1000;
     _bidController.text = _nextMinimumBid.toStringAsFixed(0);
+    _showAutoBidSection = widget.isAutoBidActive;
+    if (widget.maxAutoBid != null) {
+      _maxAutoBidController.text = widget.maxAutoBid!.toStringAsFixed(0);
+    }
   }
 
   @override
@@ -48,7 +62,230 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   @override
   void dispose() {
     _bidController.dispose();
+    _maxAutoBidController.dispose();
     super.dispose();
+  }
+
+  void _showAutoBidDialog() {
+    final tempController = TextEditingController(
+      text: widget.maxAutoBid?.toStringAsFixed(0) ?? '',
+    );
+    double selectedIncrement = _selectedIncrement;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: ColorConstants.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.auto_mode, color: ColorConstants.primary),
+              ),
+              const SizedBox(width: 12),
+              const Text('Auto-Bid Setup'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Set your maximum bid amount and increment.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: ColorConstants.textSecondaryLight,
+                      ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: tempController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(
+                    labelText: 'Maximum Auto-Bid Amount',
+                    hintText: 'e.g., ${_formatNumber(_nextMinimumBid + 50000)}',
+                    prefixText: '₱ ',
+                    prefixIcon: const Icon(Icons.price_check),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    helperText: 'Must be at least ₱${_formatNumber(_nextMinimumBid + 10000)}',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Bid Increment',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('₱1,000'),
+                      selected: selectedIncrement == 1000,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setDialogState(() => selectedIncrement = 1000);
+                          _customIncrementController.clear();
+                        }
+                      },
+                    ),
+                    ChoiceChip(
+                      label: const Text('₱5,000'),
+                      selected: selectedIncrement == 5000,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setDialogState(() => selectedIncrement = 5000);
+                          _customIncrementController.clear();
+                        }
+                      },
+                    ),
+                    ChoiceChip(
+                      label: const Text('₱10,000'),
+                      selected: selectedIncrement == 10000,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setDialogState(() => selectedIncrement = 10000);
+                          _customIncrementController.clear();
+                        }
+                      },
+                    ),
+                    ChoiceChip(
+                      label: const Text('₱25,000'),
+                      selected: selectedIncrement == 25000,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setDialogState(() => selectedIncrement = 25000);
+                          _customIncrementController.clear();
+                        }
+                      },
+                    ),
+                    ChoiceChip(
+                      label: const Text('₱50,000'),
+                      selected: selectedIncrement == 50000,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setDialogState(() => selectedIncrement = 50000);
+                          _customIncrementController.clear();
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _customIncrementController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(
+                    labelText: 'Custom Increment',
+                    hintText: 'Enter custom amount',
+                    prefixText: '₱ ',
+                    prefixIcon: const Icon(Icons.edit),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    helperText: 'Or enter your own increment',
+                  ),
+                  onChanged: (value) {
+                    final customValue = double.tryParse(value);
+                    if (customValue != null && customValue > 0) {
+                      setDialogState(() => selectedIncrement = customValue);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: ColorConstants.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: ColorConstants.info.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 20, color: ColorConstants.info),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Auto-bid will increase by ₱${_formatNumber(selectedIncrement)} each time',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: ColorConstants.info,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                final amount = double.tryParse(tempController.text) ?? 0;
+                if (amount >= _nextMinimumBid + 10000) {
+                  setState(() {
+                    _showAutoBidSection = true;
+                    _maxAutoBidController.text = amount.toStringAsFixed(0);
+                    _selectedIncrement = selectedIncrement;
+                  });
+                  widget.onAutoBidToggle?.call(true, amount, selectedIncrement);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Auto-bid activated! Increment: ₱${_formatNumber(selectedIncrement)}'),
+                      backgroundColor: ColorConstants.success,
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Maximum must be at least ₱${_formatNumber(_nextMinimumBid + 10000)}',
+                      ),
+                      backgroundColor: ColorConstants.error,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.check),
+              label: const Text('Activate'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _toggleAutoBid() {
+    if (widget.isAutoBidActive || _showAutoBidSection) {
+      // Deactivate auto-bid
+      setState(() {
+        _showAutoBidSection = false;
+        _maxAutoBidController.clear();
+      });
+      widget.onAutoBidToggle?.call(false, null, 0);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Auto-bid deactivated'),
+          backgroundColor: ColorConstants.warning,
+        ),
+      );
+    } else {
+      // Show setup dialog
+      _showAutoBidDialog();
+    }
   }
 
   void _addCustomIncrement() {
@@ -372,6 +609,116 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 ],
               ),
               const SizedBox(height: 20),
+              // Auto-bid section
+              if (_showAutoBidSection || widget.isAutoBidActive) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        ColorConstants.primary.withValues(alpha: 0.1),
+                        ColorConstants.primary.withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: ColorConstants.primary.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: ColorConstants.primary.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.auto_mode, size: 18, color: ColorConstants.primary),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Auto-Bid Active',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: ColorConstants.primary,
+                            ),
+                          ),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: _toggleAutoBid,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: ColorConstants.error.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.close, size: 14, color: ColorConstants.error),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Stop',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: ColorConstants.error,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Text(
+                            'Max Auto-Bid:',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: isDark
+                                  ? ColorConstants.textSecondaryDark
+                                  : ColorConstants.textSecondaryLight,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '₱${_formatNumber(double.tryParse(_maxAutoBidController.text) ?? 0)}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: ColorConstants.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 14,
+                            color: ColorConstants.primary.withValues(alpha: 0.7),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'System will auto-bid ₱1,000 increments when outbid',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: ColorConstants.primary.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              // Manual bid button
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -406,6 +753,26 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                         ),
                 ),
               ),
+              // Auto-bid toggle button
+              if (!_showAutoBidSection && !widget.isAutoBidActive) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _toggleAutoBid,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: ColorConstants.primary.withValues(alpha: 0.5)),
+                    ),
+                    icon: const Icon(Icons.auto_mode),
+                    label: const Text(
+                      'Enable Auto-Bid',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

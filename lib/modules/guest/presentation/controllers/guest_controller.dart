@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../data/datasources/guest_supabase_datasource.dart';
+import '../../data/datasources/guest_mock_datasource.dart';
 import '../../domain/entities/account_status_entity.dart';
 
 class GuestController extends ChangeNotifier {
   final GuestSupabaseDataSource dataSource;
+  final GuestMockDataSource mockDataSource = GuestMockDataSource();
 
   GuestController({required this.dataSource});
 
@@ -14,6 +16,7 @@ class GuestController extends ChangeNotifier {
   List<Map<String, dynamic>> _auctions = [];
   String? _errorMessage;
   String? _statusEmail;
+  bool _useMockData = false; // Toggle between mock and real data
 
   int get currentTabIndex => _currentTabIndex;
   bool get isLoadingStatus => _isLoadingStatus;
@@ -22,6 +25,7 @@ class GuestController extends ChangeNotifier {
   List<Map<String, dynamic>> get auctions => _auctions;
   String? get errorMessage => _errorMessage;
   String? get statusEmail => _statusEmail;
+  bool get useMockData => _useMockData;
 
   void setTabIndex(int index) {
     _currentTabIndex = index;
@@ -51,7 +55,13 @@ class GuestController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _auctions = await dataSource.getGuestAuctionListings();
+      if (_useMockData) {
+        print('DEBUG [GuestController]: Loading MOCK auction data');
+        _auctions = await mockDataSource.getGuestAuctionListings();
+      } else {
+        print('DEBUG [GuestController]: Loading DATABASE auction data');
+        _auctions = await dataSource.getGuestAuctionListings();
+      }
       _isLoadingAuctions = false;
       notifyListeners();
     } catch (e) {
@@ -59,6 +69,15 @@ class GuestController extends ChangeNotifier {
       _errorMessage = e.toString();
       notifyListeners();
     }
+  }
+
+  /// Toggle between mock and database data
+  void toggleDataSource() {
+    _useMockData = !_useMockData;
+    print('DEBUG [GuestController]: Data source toggled to ${_useMockData ? "MOCK" : "DATABASE"}');
+    notifyListeners();
+    // Reload auctions with new data source
+    loadGuestAuctions();
   }
 
   void clearError() {

@@ -2,13 +2,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/auction_model.dart';
 import '../models/auction_detail_model.dart';
 import '../../domain/entities/auction_filter.dart';
+import 'deposit_supabase_datasource.dart';
 
 /// Supabase datasource for auction operations
 /// Handles fetching, filtering, and managing auctions from vehicles table
 class AuctionSupabaseDataSource {
   final SupabaseClient _supabase;
+  late final DepositSupabaseDatasource _depositDatasource;
 
-  AuctionSupabaseDataSource(this._supabase);
+  AuctionSupabaseDataSource(this._supabase) {
+    _depositDatasource = DepositSupabaseDatasource(supabase: _supabase);
+  }
 
   /// Get all active auctions with comprehensive filtering
   /// Uses listings table with full-text search across multiple fields
@@ -142,6 +146,15 @@ class AuctionSupabaseDataSource {
         }
       });
 
+      // Check if user has deposited (if logged in)
+      bool hasUserDeposited = false;
+      if (userId != null) {
+        hasUserDeposited = await _depositDatasource.hasUserDeposited(
+          auctionId: auctionId,
+          userId: userId,
+        );
+      }
+
       // Build auction detail model
       return AuctionDetailModel.fromJson({
         ...listingResponse,
@@ -153,7 +166,7 @@ class AuctionSupabaseDataSource {
             listingResponse['current_bid'] >= listingResponse['reserve_price'],
         'show_reserve_price': true,
         'bidders_count': listingResponse['total_bids'] ?? 0,
-        'has_user_deposited': false, // Will be implemented with bids module
+        'has_user_deposited': hasUserDeposited,
         'photos': photosByCategory,
       });
     } on PostgrestException catch (e) {

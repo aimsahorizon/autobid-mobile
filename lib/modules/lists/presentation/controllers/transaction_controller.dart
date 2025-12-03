@@ -38,6 +38,9 @@ class TransactionController extends ChangeNotifier {
 
   /// Load transaction and all related data
   Future<void> loadTransaction(String transactionId, String userId) async {
+    print('DEBUG [TransactionController]: ========================================');
+    print('DEBUG [TransactionController]: Loading transaction: $transactionId');
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -46,8 +49,15 @@ class TransactionController extends ChangeNotifier {
       _transaction = await _dataSource.getTransaction(transactionId);
       if (_transaction == null) {
         _errorMessage = 'Transaction not found';
+        print('ERROR [TransactionController]: Transaction not found');
         return;
       }
+
+      print('DEBUG [TransactionController]: Transaction status: ${_transaction!.status.label}');
+      print('DEBUG [TransactionController]: Delivery status: ${_transaction!.deliveryStatus}');
+      print('DEBUG [TransactionController]: Seller form submitted: ${_transaction!.sellerFormSubmitted}');
+      print('DEBUG [TransactionController]: Buyer form submitted: ${_transaction!.buyerFormSubmitted}');
+      print('DEBUG [TransactionController]: Admin approved: ${_transaction!.adminApproved}');
 
       final role = getUserRole(userId);
       final otherRole = role == FormRole.seller ? FormRole.buyer : FormRole.seller;
@@ -59,11 +69,20 @@ class TransactionController extends ChangeNotifier {
         _loadOtherPartyForm(transactionId, otherRole),
         _loadTimeline(transactionId),
       ]);
-    } catch (e) {
+
+      print('DEBUG [TransactionController]: Loaded ${_chatMessages.length} messages');
+      print('DEBUG [TransactionController]: Loaded ${_timeline.length} timeline events');
+      print('DEBUG [TransactionController]: ✅ Transaction loaded successfully');
+      print('DEBUG [TransactionController]: Notifying listeners...');
+
+    } catch (e, stackTrace) {
       _errorMessage = 'Failed to load transaction';
+      print('ERROR [TransactionController]: Failed to load transaction: $e');
+      print('STACK [TransactionController]: $stackTrace');
     } finally {
       _isLoading = false;
       notifyListeners();
+      print('DEBUG [TransactionController]: ========================================');
     }
   }
 

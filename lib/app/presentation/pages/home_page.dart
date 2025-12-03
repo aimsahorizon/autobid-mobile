@@ -5,8 +5,10 @@ import '../../../modules/bids/bids_module.dart';
 import '../../../modules/bids/presentation/pages/bids_page.dart';
 import '../../../modules/lists/lists_module.dart';
 import '../../../modules/lists/presentation/pages/lists_page.dart';
+import '../../../modules/notifications/notifications_module.dart';
 import '../../../modules/profile/profile_module.dart';
 import '../../../modules/profile/presentation/pages/profile_page.dart';
+import '../../core/config/supabase_config.dart';
 import '../../core/controllers/theme_controller.dart';
 import '../../core/widgets/main_navigation.dart';
 
@@ -30,6 +32,10 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize notification controller and load initial data
+    _initializeNotifications();
+
     _pages = [
       BrowsePage(
         controller: BrowseModule.instance.createBrowseController(),
@@ -40,9 +46,20 @@ class _HomePageState extends State<HomePage> {
       ListsPage(controller: ListsModule.controller),
       ProfilePage(
         controller: ProfileModule.instance.createProfileController(),
+        pricingController: ProfileModule.instance.createPricingController(),
         themeController: widget.themeController,
       ),
     ];
+  }
+
+  /// Initialize notifications and load initial data
+  void _initializeNotifications() {
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId != null) {
+      final notificationController = NotificationsModule.instance.controller;
+      notificationController.loadNotifications(userId);
+      notificationController.loadUnreadCount(userId);
+    }
   }
 
   void _onTabTapped(int index) {

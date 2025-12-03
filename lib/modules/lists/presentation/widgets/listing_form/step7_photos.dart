@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
@@ -12,6 +13,9 @@ class Step7Photos extends StatelessWidget {
   const Step7Photos({super.key, required this.controller});
 
   Future<void> _pickImage(BuildContext context, String category) async {
+    print('DEBUG [Step7Photos]: ========================================');
+    print('DEBUG [Step7Photos]: Attempting to pick image for category: $category');
+
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
@@ -32,13 +36,86 @@ class Step7Photos extends StatelessWidget {
       ),
     );
 
-    if (action != null && context.mounted) {
-      final success = await controller.uploadPhoto(category, 'mock_$action');
-      if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Photo uploaded for $category')),
+    if (action == null) {
+      print('DEBUG [Step7Photos]: User cancelled image selection');
+      return;
+    }
+
+    print('DEBUG [Step7Photos]: User selected: $action');
+
+    if (!context.mounted) return;
+
+    try {
+      final picker = ImagePicker();
+      XFile? pickedFile;
+
+      if (action == 'camera') {
+        print('DEBUG [Step7Photos]: Opening camera...');
+        pickedFile = await picker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: 1920,
+          maxHeight: 1080,
+          imageQuality: 85,
+        );
+      } else {
+        print('DEBUG [Step7Photos]: Opening gallery...');
+        pickedFile = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1920,
+          maxHeight: 1080,
+          imageQuality: 85,
         );
       }
+
+      if (pickedFile == null) {
+        print('DEBUG [Step7Photos]: No image selected');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No image selected')),
+          );
+        }
+        return;
+      }
+
+      print('DEBUG [Step7Photos]: Image picked - Path: ${pickedFile.path}');
+      print('DEBUG [Step7Photos]: Image size: ${await pickedFile.length()} bytes');
+      print('DEBUG [Step7Photos]: Uploading to controller...');
+
+      final success = await controller.uploadPhoto(category, pickedFile.path);
+
+      print('DEBUG [Step7Photos]: Upload result: $success');
+
+      if (context.mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Photo uploaded for $category'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Failed to upload photo for $category'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e, stackTrace) {
+      print('ERROR [Step7Photos]: Failed to pick/upload image: $e');
+      print('STACK [Step7Photos]: $stackTrace');
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      print('DEBUG [Step7Photos]: ========================================');
     }
   }
 

@@ -9,8 +9,6 @@ import '../controllers/login_otp_controller.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_error_message.dart';
 import '../widgets/auth_loading_button.dart';
-import '../widgets/auth_divider.dart';
-import '../widgets/social_sign_in_button.dart';
 import 'login_otp_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -60,14 +58,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _handleGoogleSignIn() async {
-    final success = await widget.controller.signInWithGoogle();
-
-    if (mounted && success && widget.controller.currentStep == LoginStep.otpVerification) {
-      _navigateToOtpPage();
-    }
-  }
-
   void _navigateToOtpPage() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -107,10 +97,6 @@ class _LoginPageState extends State<LoginPage> {
                 _buildForgotPasswordLink(),
                 const SizedBox(height: 24),
                 _buildLoginButton(),
-                const SizedBox(height: 32),
-                const AuthDivider(),
-                const SizedBox(height: 32),
-                _buildGoogleSignIn(),
                 const SizedBox(height: 32),
                 _buildGuestModeLink(theme, isDark),
                 const SizedBox(height: 24),
@@ -240,20 +226,6 @@ class _LoginPageState extends State<LoginPage> {
           isLoading: widget.controller.isLoading,
           onPressed: _handleLogin,
           label: 'Sign In',
-        );
-      },
-    );
-  }
-
-  Widget _buildGoogleSignIn() {
-    return ListenableBuilder(
-      listenable: widget.controller,
-      builder: (context, _) {
-        return SocialSignInButton(
-          icon: Icons.g_mobiledata,
-          label: 'Continue with Google',
-          onPressed: _handleGoogleSignIn,
-          isLoading: widget.controller.isLoading,
         );
       },
     );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../controllers/pricing_controller.dart';
-import 'payment_page.dart';
+import 'stripe_payment_page.dart';
 
 class TokenPurchasePage extends StatefulWidget {
   final String userId;
@@ -28,11 +28,11 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
   }
 
   Future<void> _purchasePackage(TokenPackageEntity package) async {
-    // Navigate to payment page
+    // Navigate to Stripe payment page
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => PaymentPage(
+        builder: (context) => StripePaymentPage(
           package: package,
           userId: widget.userId,
           onSuccess: () {

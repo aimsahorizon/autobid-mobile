@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/payment_entity.dart';
 import '../controllers/auction_detail_controller.dart';
 import '../widgets/auction_detail/auction_cover_photo.dart';
@@ -12,6 +13,7 @@ import '../widgets/payment/gcash_payment_form.dart';
 import '../widgets/payment/maya_payment_form.dart';
 import '../widgets/payment/card_payment_form.dart';
 import '../widgets/payment/payment_success_sheet.dart';
+import 'deposit_payment_page.dart';
 
 class AuctionDetailPage extends StatefulWidget {
   final String auctionId;
@@ -36,19 +38,50 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     widget.controller.loadAuctionDetail(widget.auctionId);
   }
 
-  void _handleDeposit() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => PaymentMethodSheet(
-        amount: 10000,
-        onSelect: (method) {
-          Navigator.pop(context);
-          _showPaymentForm(method);
-        },
+  Future<void> _handleDeposit() async {
+    final auction = widget.controller.auction;
+    if (auction == null) return;
+
+    // Get current user ID
+    final userId = SupabaseConfig.currentUser?.id;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please login to participate in auction'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
+
+    // Get deposit amount (default 5000 if not specified)
+    final depositAmount = 5000.0; // Auction deposit amount
+
+    // Navigate to Stripe deposit payment page
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DepositPaymentPage(
+          auctionId: auction.id,
+          userId: userId,
+          depositAmount: depositAmount,
+          onSuccess: () {
+            // Reload auction to update deposit status
+            widget.controller.loadAuctionDetail(auction.id);
+          },
+        ),
       ),
     );
+
+    if (result == true && mounted) {
+      // Deposit successful - show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Deposit successful! You can now place bids on this auction.'),
+          backgroundColor: ColorConstants.success,
+        ),
+      );
+    }
   }
 
   void _showPaymentForm(PaymentMethod method) {
@@ -129,8 +162,15 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
   }
 
   void _handleBid(double amount) async {
-    final success = await widget.controller.placeBid(amount);
-    if (success && mounted) {
+    // Get current user ID
+    final userId = SupabaseConfig.currentUser?.id;
+
+    // Place bid with user ID
+    final success = await widget.controller.placeBid(amount, userId: userId);
+
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -145,6 +185,17 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
+    } else if (widget.controller.errorMessage != null) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      widget.controller.clearError();
     }
   }
 

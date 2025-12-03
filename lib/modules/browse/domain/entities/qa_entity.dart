@@ -52,50 +52,59 @@ class QAEntity {
 }
 
 /// Predefined categories for Q&A filtering
+/// IMPORTANT: These must match the database CHECK constraint in sql/11_qa_schema.sql
 class QACategory {
-  static const String all = 'All';
-  static const String general = 'General';
-  static const String mechanical = 'Mechanical';
-  static const String history = 'History';
-  static const String pricing = 'Pricing';
-  static const String shipping = 'Shipping';
+  static const String all = 'all';
+  static const String general = 'general';
+  static const String condition = 'condition';
+  static const String history = 'history';
+  static const String features = 'features';
+  static const String documents = 'documents';
+  static const String price = 'price';
 
   /// Get all available categories for UI
   static List<String> get categories => [
         all,
         general,
-        mechanical,
+        condition,
         history,
-        pricing,
-        shipping,
+        features,
+        documents,
+        price,
       ];
+
+  /// Format category for display (capitalize first letter)
+  static String formatForDisplay(String category) {
+    if (category.isEmpty) return category;
+    return category[0].toUpperCase() + category.substring(1);
+  }
 }
 
 /// Common suggested questions users can quickly select
 class SuggestedQuestions {
   static List<Map<String, String>> get questions => [
         {
-          'category': QACategory.mechanical,
-          'question': 'Has the car been in any accidents?'
+          'category': QACategory.condition,
+          'question': 'What is the current mileage?'
         },
         {
           'category': QACategory.history,
-          'question': 'How many previous owners?'
+          'question': 'Has the car been in any accidents?'
         },
         {
-          'category': QACategory.mechanical,
-          'question': 'When was the last oil change?'
+          'category': QACategory.condition,
+          'question': 'When was the last service performed?'
         },
         {
-          'category': QACategory.general,
-          'question': 'Are there any known issues?'
+          'category': QACategory.features,
+          'question': 'Does it have a spare tire and tools?'
         },
         {
-          'category': QACategory.shipping,
-          'question': 'Do you offer delivery options?'
+          'category': QACategory.documents,
+          'question': 'Are all registration papers available?'
         },
         {
-          'category': QACategory.pricing,
+          'category': QACategory.price,
           'question': 'Is the reserve price negotiable?'
         },
       ];

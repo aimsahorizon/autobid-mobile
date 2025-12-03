@@ -7,6 +7,9 @@ import '../../modules/auth/presentation/pages/forgot_password_page.dart';
 import '../../modules/auth/presentation/pages/login_page.dart';
 import '../../modules/auth/presentation/pages/onboarding_page.dart';
 import '../../modules/auth/presentation/pages/registration_page.dart';
+import '../../modules/guest/guest_module.dart';
+import '../../modules/guest/guest_routes.dart';
+import '../../modules/guest/presentation/pages/guest_page.dart';
 
 class AppRouter {
   static Route<dynamic> onGenerateRoute(
@@ -35,6 +38,14 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => ForgotPasswordPage(
             controller: AuthModule.instance.createForgotPasswordController(),
+          ),
+        );
+
+      case GuestRoutes.main:
+        return MaterialPageRoute(
+          builder: (_) => GuestPage(
+            controller: GuestModule.instance.createGuestController(),
+            themeController: themeController,
           ),
         );
 

@@ -1,0 +1,109 @@
+=============================================================================
+LISTING MODULE BACKEND IMPLEMENTATION - COMPLETE
+=============================================================================
+
+SQL SCHEMAS CREATED:
+--------------------
+1. sql/4_listings_schema.sql - Complete database schema
+   - listing_drafts table (for saving progress)
+   - listings table (for submitted/approved/active listings)
+   - Functions for submission, approval, making live, completing sales
+   - Views for active auctions and seller summaries
+   - Helper functions for watchers increment/decrement
+
+2. sql/5_listings_rls.sql - Row Level Security policies
+   - Sellers can only view/edit their own drafts and listings
+   - Public can view active listings only
+   - Prevents privilege escalation
+
+3. sql/6_listings_storage.sql - Storage bucket for listing photos
+   - listing-photos bucket (public read)
+   - Users can only upload/delete their own photos
+
+FLUTTER MODELS CREATED:
+----------------------
+1. lib/modules/lists/data/models/listing_draft_model.dart
+   - Converts between database JSON and ListingDraftEntity
+   - Handles all 56+ fields across 9 steps
+
+2. lib/modules/lists/data/models/listing_model.dart
+   - Converts between database JSON and domain entities
+   - Maps to both SellerListingEntity and ListingDetailEntity
+
+DATASOURCE CREATED:
+------------------
+lib/modules/lists/data/datasources/listing_supabase_datasource.dart
+
+DRAFT OPERATIONS:
+- createDraft() - Create new empty draft
+- getSellerDrafts() - Get all seller's drafts
+- getDraft() - Get specific draft by ID
+- saveDraft() - Auto-save draft progress
+- deleteDraft() - Soft delete draft
+- uploadPhoto() - Upload photo to storage
+- deletePhoto() - Delete photo from storage
+
+LISTING SUBMISSION:
+- submitListing() - Submit draft as listing (calls DB function)
+
+LISTING RETRIEVAL (by tab status):
+- getPendingListings() - Waiting for admin approval
+- getApprovedListings() - Approved, waiting for seller to make live
+- getActiveListings() - Live auctions
+- getEndedListings() - Auction ended, in transaction
+- getSoldListings() - Successfully sold
+- getCancelledListings() - Cancelled or rejected
+
+LISTING ACTIONS:
+- makeListingLive() - Seller makes approved listing active
+- completeSale() - Mark listing as sold
+- cancelListing() - Cancel listing
+
+BROWSE MODULE UPDATED:
+---------------------
+lib/modules/browse/data/datasources/auction_supabase_datasource.dart
+- Updated to fetch from 'listings' table instead of 'vehicles'
+- Maps cover_photo_url, auction_end_time fields correctly
+- Uses JSONB photo_urls for auction details
+- Watcher functions now use RPC calls
+
+LISTING LIFECYCLE:
+-----------------
+1. DRAFT → User creates listing, saves progress across 9 steps
+2. PENDING → User submits draft, waits for admin approval
+3. APPROVED → Admin approves, listing waits for seller action
+4. ACTIVE → Seller makes listing live, auction starts
+5. ENDED → Auction time expires, enters transaction phase
+6. SOLD → Transaction completed successfully
+OR
+6. CANCELLED → Listing cancelled/rejected at any stage
+
+DATABASE SETUP:
+--------------
+Run these SQL files in Supabase SQL Editor (in order):
+1. sql/4_listings_schema.sql
+2. sql/5_listings_rls.sql
+3. sql/6_listings_storage.sql
+
+FEATURES IMPLEMENTED:
+--------------------
+✓ Draft auto-save functionality
+✓ 9-step listing creation with progress tracking
+✓ Photo upload with categorization (56 categories)
+✓ Admin approval workflow
+✓ Seller makes listing live after approval
+✓ Active listings appear in browse module
+✓ All listing tabs properly filtered by status
+✓ Complete transaction lifecycle support
+✓ RLS security preventing unauthorized access
+✓ Soft deletes for data retention
+
+READY FOR:
+---------
+- User can create listings and save as drafts
+- User can submit listings for admin approval
+- Admin can approve/reject listings (backend ready)
+- User can make approved listings live
+- Active listings display in browse module
+- Complete sales after auction ends
+=============================================================================

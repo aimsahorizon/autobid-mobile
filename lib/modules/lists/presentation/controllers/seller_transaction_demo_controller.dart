@@ -30,61 +30,79 @@ class SellerTransactionDemoController extends ChangeNotifier {
     _currentStep = 'Starting demo...';
     notifyListeners();
 
+    print('DEBUG [DemoController]: ========================================');
+    print('DEBUG [DemoController]: Starting demo auto-play');
+
     try {
       // Step 1: Submit seller form
+      print('DEBUG [DemoController]: Step 1 - Submitting seller form');
       await _submitSellerForm();
-      await _delay(2000);
+      await _delay(3000); // Increased delay to ensure UI updates
 
       // Step 2: Send chat message
+      print('DEBUG [DemoController]: Step 2 - Sending chat message');
       await _sendChatMessage('Hello! I just submitted my seller form.');
       await _delay(2000);
 
       // Step 3: Simulate buyer form submission
+      print('DEBUG [DemoController]: Step 3 - Simulating buyer form submission');
       await _submitBuyerForm();
-      await _delay(2000);
+      await _delay(3000); // Increased delay
 
       // Step 4: Send another message
+      print('DEBUG [DemoController]: Step 4 - Sending confirmation message');
       await _sendChatMessage('All forms are now submitted. Ready to proceed!');
       await _delay(2000);
 
       // Step 5: Confirm seller form
+      print('DEBUG [DemoController]: Step 5 - Confirming seller form');
       await _confirmSellerForm();
-      await _delay(2000);
+      await _delay(3000); // Increased delay
 
       // Step 6: Submit to admin
+      print('DEBUG [DemoController]: Step 6 - Submitting to admin');
       await _submitToAdmin();
-      await _delay(2000);
+      await _delay(3000); // Increased delay
 
       // Step 7: Simulate admin approval
+      print('DEBUG [DemoController]: Step 7 - Simulating admin approval');
       await _simulateAdminApproval();
-      await _delay(2000);
+      await _delay(3000); // Increased delay
 
       // Step 8: Start delivery - Preparing
+      print('DEBUG [DemoController]: Step 8 - Delivery: Preparing');
       await _updateDelivery(DeliveryStatus.preparing);
-      await _delay(2000);
+      await _delay(3000); // Increased delay
 
       // Step 9: In Transit
+      print('DEBUG [DemoController]: Step 9 - Delivery: In Transit');
       await _updateDelivery(DeliveryStatus.inTransit);
-      await _delay(2000);
+      await _delay(3000); // Increased delay
 
       // Step 10: Delivered
+      print('DEBUG [DemoController]: Step 10 - Delivery: Delivered');
       await _updateDelivery(DeliveryStatus.delivered);
-      await _delay(2000);
+      await _delay(3000); // Increased delay
 
       // Step 11: Completed
+      print('DEBUG [DemoController]: Step 11 - Delivery: Completed');
       await _updateDelivery(DeliveryStatus.completed);
-      await _delay(1500);
+      await _delay(2000);
 
       _currentStep = 'Demo completed!';
+      print('DEBUG [DemoController]: ✅ Demo completed successfully');
       notifyListeners();
 
-    } catch (e) {
+    } catch (e, stackTrace) {
       _currentStep = 'Demo error: $e';
+      print('ERROR [DemoController]: ❌ Demo failed: $e');
+      print('STACK [DemoController]: $stackTrace');
       notifyListeners();
     } finally {
-      await _delay(1500);
+      await _delay(2000);
       _isPlaying = false;
       _currentStep = '';
+      print('DEBUG [DemoController]: ========================================');
       notifyListeners();
     }
   }

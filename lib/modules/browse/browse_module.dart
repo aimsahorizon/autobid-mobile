@@ -23,7 +23,7 @@ class BrowseModule {
   /// Toggle this to switch between mock and real data
   /// true = Use mock data (no Supabase needed)
   /// false = Use Supabase backend
-  static bool useMockData = true;
+  static bool useMockData = false;
 
   /// Singleton controller instances
   static BrowseController? _browseController;
