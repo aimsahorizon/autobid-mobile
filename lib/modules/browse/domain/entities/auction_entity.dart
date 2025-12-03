@@ -9,6 +9,7 @@ class AuctionEntity {
   final int watchersCount;
   final int biddersCount;
   final DateTime endTime;
+  final String sellerId;
 
   const AuctionEntity({
     required this.id,
@@ -20,6 +21,7 @@ class AuctionEntity {
     required this.watchersCount,
     required this.biddersCount,
     required this.endTime,
+    required this.sellerId,
   });
 
   /// Calculate time remaining in minutes

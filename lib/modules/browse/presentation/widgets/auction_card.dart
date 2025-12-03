@@ -28,6 +28,13 @@ class AuctionCard extends StatelessWidget {
     return '$days days';
   }
 
+  String _formatPrice(double price) {
+    return price.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -106,7 +113,7 @@ class AuctionCard extends StatelessWidget {
     return Row(
       children: [
         Text(
-          '₱${auction.currentBid.toStringAsFixed(0)}',
+          '₱${_formatPrice(auction.currentBid)}',
           style: theme.textTheme.titleLarge?.copyWith(
             color: ColorConstants.primary,
             fontWeight: FontWeight.bold,

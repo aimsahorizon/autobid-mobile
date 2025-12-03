@@ -148,6 +148,26 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     }
   }
 
+  void _handleAutoBidToggle(bool isActive, double? maxBid, double increment) {
+    widget.controller.setAutoBid(isActive, maxBid, increment);
+    if (isActive && maxBid != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.auto_mode, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('Auto-bid enabled up to ₱${maxBid.toStringAsFixed(0)}'),
+            ],
+          ),
+          backgroundColor: ColorConstants.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,7 +218,10 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                       currentBid: auction.currentBid,
                       onDeposit: _handleDeposit,
                       onPlaceBid: _handleBid,
+                      onAutoBidToggle: _handleAutoBidToggle,
                       isProcessing: widget.controller.isProcessing,
+                      isAutoBidActive: widget.controller.isAutoBidActive,
+                      maxAutoBid: widget.controller.maxAutoBid,
                     ),
                     const SizedBox(height: 24),
                     DetailTabsSection(

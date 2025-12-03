@@ -1,27 +1,33 @@
-import '../../../../app/core/services/supabase_service.dart';
-import '../../domain/entities/auction_filter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/auction_model.dart';
+import '../models/auction_detail_model.dart';
+import '../../domain/entities/auction_filter.dart';
 
-/// Remote data source for auctions using Supabase
-class AuctionRemoteDataSource {
-  final SupabaseService _supabaseService;
+/// Supabase datasource for auction operations
+/// Handles fetching, filtering, and managing auctions from vehicles table
+class AuctionSupabaseDataSource {
+  final SupabaseClient _supabase;
 
-  AuctionRemoteDataSource(this._supabaseService);
+  AuctionSupabaseDataSource(this._supabase);
 
-  /// Fetch all active auctions from Supabase with optional filtering
-  /// Uses comprehensive filtering across multiple fields
-  Future<List<AuctionModel>> getActiveAuctions({AuctionFilter? filter}) async {
+  /// Get all active auctions with comprehensive filtering
+  /// Uses listings table with full-text search across multiple fields
+  Future<List<AuctionModel>> getActiveAuctions({
+    AuctionFilter? filter,
+  }) async {
     try {
-      var queryBuilder = _supabaseService.client
+      // Build base query - query listings table directly for access to all fields
+      var queryBuilder = _supabase
           .from('listings')
           .select('id, cover_photo_url, year, brand, model, current_bid, watchers_count, total_bids, auction_end_time, seller_id, created_at')
           .eq('status', 'active')
           .gt('auction_end_time', DateTime.now().toIso8601String())
           .isFilter('deleted_at', null);
 
-      // Apply comprehensive search across text fields
+      // Apply search query (comprehensive search across multiple text fields)
       if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
         final query = filter.searchQuery!.toLowerCase();
+        // Search in: brand, model, variant, description, exterior_color, condition, transmission, fuel_type, drive_type, location
         queryBuilder = queryBuilder.or(
           'brand.ilike.%$query%,'
           'model.ilike.%$query%,'
@@ -92,6 +98,7 @@ class AuctionRemoteDataSource {
 
       // Convert to AuctionModel list
       return (response as List).map((json) {
+        // Map database columns to model fields
         return AuctionModel.fromJson({
           'id': json['id'],
           'car_image_url': json['cover_photo_url'] ?? '',
@@ -105,42 +112,84 @@ class AuctionRemoteDataSource {
           'seller_id': json['seller_id'],
         });
       }).toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to get auctions: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to fetch auctions: $e');
+      throw Exception('Failed to get auctions: $e');
     }
   }
 
-  /// Fetch single auction by ID
-  Future<AuctionModel?> getAuctionById(String id) async {
+  /// Get auction details by ID with all related data
+  /// Includes listing photos from photo_urls JSONB field
+  Future<AuctionDetailModel> getAuctionDetail(String auctionId, String? userId) async {
     try {
-      final response = await _supabaseService.client
-          .from('auctions')
+      // Get listing details
+      final listingResponse = await _supabase
+          .from('listings')
           .select()
-          .eq('id', id)
-          .maybeSingle();
+          .eq('id', auctionId)
+          .eq('status', 'active')
+          .isFilter('deleted_at', null)
+          .single();
 
-      if (response == null) return null;
-      return AuctionModel.fromJson(response);
+      // Get photos from JSONB field
+      final photoUrls = listingResponse['photo_urls'] as Map<String, dynamic>? ?? {};
+      final Map<String, List<String>> photosByCategory = {};
+
+      photoUrls.forEach((category, urls) {
+        if (urls is List) {
+          photosByCategory[category] = List<String>.from(urls);
+        }
+      });
+
+      // Build auction detail model
+      return AuctionDetailModel.fromJson({
+        ...listingResponse,
+        'car_image_url': listingResponse['cover_photo_url'] ?? '',
+        'make': listingResponse['brand'],
+        'minimum_bid': listingResponse['starting_price'],
+        'end_time': listingResponse['auction_end_time'],
+        'is_reserve_met': listingResponse['reserve_price'] != null &&
+            listingResponse['current_bid'] >= listingResponse['reserve_price'],
+        'show_reserve_price': true,
+        'bidders_count': listingResponse['total_bids'] ?? 0,
+        'has_user_deposited': false, // Will be implemented with bids module
+        'photos': photosByCategory,
+      });
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to get auction details: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to fetch auction: $e');
+      throw Exception('Failed to get auction details: $e');
     }
   }
 
-  /// Search auctions by make or model
-  Future<List<AuctionModel>> searchAuctions(String query) async {
+  /// Add auction to user's watchlist
+  /// Increments watchers_count on listing
+  Future<void> watchAuction(String userId, String auctionId) async {
     try {
-      final response = await _supabaseService.client
-          .from('auctions')
-          .select()
-          .or('make.ilike.%$query%,model.ilike.%$query%')
-          .gt('end_time', DateTime.now().toIso8601String())
-          .order('end_time', ascending: true);
-
-      return (response as List)
-          .map((json) => AuctionModel.fromJson(json))
-          .toList();
+      // Increment watchers count
+      await _supabase.rpc('increment_watchers', params: {
+        'listing_id': auctionId,
+      });
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to watch auction: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to search auctions: $e');
+      throw Exception('Failed to watch auction: $e');
+    }
+  }
+
+  /// Remove auction from user's watchlist
+  /// Decrements watchers_count on listing
+  Future<void> unwatchAuction(String userId, String auctionId) async {
+    try {
+      // Decrement watchers count
+      await _supabase.rpc('decrement_watchers', params: {
+        'listing_id': auctionId,
+      });
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to unwatch auction: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to unwatch auction: $e');
     }
   }
 }
