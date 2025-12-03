@@ -3,12 +3,12 @@ import '../../../../app/core/constants/color_constants.dart';
 import '../../domain/entities/user_bid_entity.dart';
 import 'user_bid_card.dart';
 
-/// Grid list widget for displaying user bids
-/// Shows loading state, empty state, or 2-column grid of bid cards
+/// Grid/List widget for displaying user bids
+/// Shows loading state, empty state, or grid/list of bid cards
 /// Used in Active, Won, and Lost tabs
 ///
 /// Features:
-/// - Responsive 2-column grid layout
+/// - Responsive 2-column grid or list layout
 /// - Customizable empty state for each tab
 /// - Loading indicator while data fetches
 /// - Optional tap callback for navigation to auction detail
@@ -19,6 +19,7 @@ class UserBidsList extends StatelessWidget {
   final String emptySubtitle;
   final IconData emptyIcon;
   final Function(UserBidEntity)? onBidTap;
+  final bool isGridView;
 
   const UserBidsList({
     super.key,
@@ -28,6 +29,7 @@ class UserBidsList extends StatelessWidget {
     required this.emptyIcon,
     this.isLoading = false,
     this.onBidTap,
+    this.isGridView = true,
   });
 
   @override
@@ -46,21 +48,33 @@ class UserBidsList extends StatelessWidget {
       );
     }
 
-    // Display bids in 2-column grid
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.72, // Card height ratio
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: bids.length,
-      itemBuilder: (context, index) {
-        final bid = bids[index];
-        return UserBidCard(bid: bid, onTap: onBidTap);
-      },
-    );
+    // Display bids in grid or list based on toggle
+    return isGridView
+        ? GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.72, // Card height ratio
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: bids.length,
+            itemBuilder: (context, index) {
+              final bid = bids[index];
+              return UserBidCard(bid: bid, onTap: onBidTap);
+            },
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: bids.length,
+            itemBuilder: (context, index) {
+              final bid = bids[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: UserBidCard(bid: bid, onTap: onBidTap),
+              );
+            },
+          );
   }
 }
 

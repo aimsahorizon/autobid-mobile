@@ -1,4 +1,5 @@
 import '../../domain/entities/user_bid_entity.dart';
+import '../../presentation/controllers/bids_controller.dart';
 
 /// Mock data source for user's bid history across all auctions
 /// Provides sample data for Active, Won, and Lost tabs in Bids module
@@ -9,7 +10,7 @@ import '../../domain/entities/user_bid_entity.dart';
 /// - Filter by status (active/won/lost) based on auction end_time and user's bid position
 ///
 /// TODO: Replace with SupabaseUserBidsDataSource for production
-class UserBidsMockDataSource {
+class UserBidsMockDataSource implements IUserBidsDataSource {
   /// Simulated network delay for realistic UX
   static const _mockDelay = Duration(milliseconds: 600);
 
@@ -19,7 +20,8 @@ class UserBidsMockDataSource {
   /// Active: Auctions still ongoing where user has placed bids
   /// Won: Ended auctions where user was the highest bidder
   /// Lost: Ended auctions where user was outbid
-  Future<Map<String, List<UserBidEntity>>> getUserBids() async {
+  @override
+  Future<Map<String, List<UserBidEntity>>> getUserBids([String? userId]) async {
     // Simulate network delay
     await Future.delayed(_mockDelay);
 

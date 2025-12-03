@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/user_bid_entity.dart';
-import '../../data/datasources/user_bids_mock_datasource.dart';
+
+/// Abstract data source interface for user bids
+/// Allows switching between mock and Supabase implementations
+abstract class IUserBidsDataSource {
+  Future<Map<String, List<UserBidEntity>>> getUserBids([String? userId]);
+}
 
 /// Controller for managing user's bid history state
 /// Handles loading and categorizing bids by status (active, won, lost)
@@ -8,8 +14,8 @@ import '../../data/datasources/user_bids_mock_datasource.dart';
 /// State management pattern: ChangeNotifier for reactive UI updates
 /// Usage: Inject into BidsPage and listen for state changes
 class BidsController extends ChangeNotifier {
-  // Data source dependency - can be swapped with real implementation
-  final UserBidsMockDataSource _dataSource;
+  // Data source dependency - can be mock or Supabase implementation
+  final IUserBidsDataSource _dataSource;
 
   BidsController(this._dataSource);
 
@@ -37,8 +43,11 @@ class BidsController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Get current user ID for Supabase queries
+      final userId = SupabaseConfig.client.auth.currentUser?.id;
+
       // Fetch all bids grouped by status from data source
-      final bidsMap = await _dataSource.getUserBids();
+      final bidsMap = await _dataSource.getUserBids(userId);
 
       // Update state with categorized bids
       _activeBids = bidsMap['active'] ?? [];
@@ -58,7 +67,9 @@ class BidsController extends ChangeNotifier {
   /// Useful for background polling without full reload
   Future<void> refreshActiveBids() async {
     try {
-      _activeBids = await _dataSource.getActiveBids();
+      final userId = SupabaseConfig.client.auth.currentUser?.id;
+      final bidsMap = await _dataSource.getUserBids(userId);
+      _activeBids = bidsMap['active'] ?? [];
       notifyListeners();
     } catch (e) {
       // Silent fail - don't interrupt user experience
