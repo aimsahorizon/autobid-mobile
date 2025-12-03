@@ -25,7 +25,9 @@ class ProfileController extends ChangeNotifier {
       _profile = await _repository.getUserProfile();
       _errorMessage = null;
     } catch (e) {
-      _errorMessage = 'Failed to load profile';
+      // Log actual error for debugging
+      print('Profile load error: $e');
+      _errorMessage = 'Failed to load profile: $e';
       _profile = null;
     } finally {
       _isLoading = false;

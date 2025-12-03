@@ -170,7 +170,7 @@ class _TicketCard extends StatelessWidget {
               children: [
                 Icon(Icons.category_outlined, size: 14, color: ColorConstants.textSecondaryLight),
                 const SizedBox(width: 4),
-                Text(ticket.category.label, style: theme.textTheme.bodySmall),
+                Text(ticket.categoryName, style: theme.textTheme.bodySmall),
                 const SizedBox(width: 16),
                 Icon(Icons.access_time, size: 14, color: ColorConstants.textSecondaryLight),
                 const SizedBox(width: 4),
@@ -226,8 +226,6 @@ class _StatusBadge extends StatelessWidget {
         return ColorConstants.primary;
       case TicketStatus.inProgress:
         return ColorConstants.warning;
-      case TicketStatus.waitingOnCustomer:
-        return ColorConstants.info;
       case TicketStatus.resolved:
         return ColorConstants.success;
       case TicketStatus.closed:
@@ -268,8 +266,9 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
 
     await SupportMockDataSource().createTicket(
       subject: _subjectController.text,
-      category: _selectedCategory,
-      message: _messageController.text,
+      categoryId: 'cat_${_selectedCategory.name}',
+      categoryName: _selectedCategory.label,
+      description: _messageController.text,
     );
 
     if (mounted) {
@@ -457,7 +456,7 @@ class _MessageBubble extends StatelessWidget {
             Text(message.message, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 4),
             Text(
-              _formatTime(message.timestamp),
+              _formatTime(message.createdAt),
               style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
             ),
           ],
