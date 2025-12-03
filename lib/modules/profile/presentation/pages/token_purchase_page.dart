@@ -55,10 +55,12 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
   }
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 
   @override
@@ -67,9 +69,7 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Purchase Tokens'),
-      ),
+      appBar: AppBar(title: const Text('Purchase Tokens')),
       body: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, _) {
@@ -83,7 +83,11 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: ColorConstants.error),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: ColorConstants.error,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Error loading packages',
@@ -97,7 +101,8 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
-                    onPressed: () => widget.controller.loadUserPricing(widget.userId),
+                    onPressed: () =>
+                        widget.controller.loadUserPricing(widget.userId),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Retry'),
                   ),
@@ -121,7 +126,8 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
-                    onPressed: () => widget.controller.loadUserPricing(widget.userId),
+                    onPressed: () =>
+                        widget.controller.loadUserPricing(widget.userId),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Refresh'),
                   ),
@@ -141,7 +147,10 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [ColorConstants.primary, ColorConstants.secondary],
+                      colors: [
+                        ColorConstants.primary,
+                        ColorConstants.secondary,
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -173,10 +182,11 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
                                 const SizedBox(height: 4),
                                 Text(
                                   widget.controller.biddingTokens.toString(),
-                                  style: theme.textTheme.headlineMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
                               ],
                             ),
@@ -194,10 +204,11 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
                                 const SizedBox(height: 4),
                                 Text(
                                   widget.controller.listingTokens.toString(),
-                                  style: theme.textTheme.headlineMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
                               ],
                             ),
@@ -220,15 +231,19 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
                 Text(
                   'Each bid consumes 1 bidding token',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight,
+                    color: isDark
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight,
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...widget.controller.biddingPackages.map((package) => _PackageCard(
-                  package: package,
-                  onPurchase: () => _purchasePackage(package),
-                  isDark: isDark,
-                )),
+                ...widget.controller.biddingPackages.map(
+                  (package) => _PackageCard(
+                    package: package,
+                    onPurchase: () => _purchasePackage(package),
+                    isDark: isDark,
+                  ),
+                ),
                 const SizedBox(height: 32),
 
                 // Listing tokens section
@@ -242,15 +257,19 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
                 Text(
                   'Each listing submission consumes 1 listing token',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight,
+                    color: isDark
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight,
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...widget.controller.listingPackages.map((package) => _PackageCard(
-                  package: package,
-                  onPurchase: () => _purchasePackage(package),
-                  isDark: isDark,
-                )),
+                ...widget.controller.listingPackages.map(
+                  (package) => _PackageCard(
+                    package: package,
+                    onPurchase: () => _purchasePackage(package),
+                    isDark: isDark,
+                  ),
+                ),
               ],
             ),
           );
@@ -272,10 +291,12 @@ class _PackageCard extends StatelessWidget {
   });
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 
   @override
@@ -286,10 +307,14 @@ class _PackageCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Row(
@@ -301,7 +326,9 @@ class _PackageCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              package.type == TokenType.bidding ? Icons.gavel : Icons.format_list_bulleted,
+              package.type == TokenType.bidding
+                  ? Icons.gavel
+                  : Icons.format_list_bulleted,
               color: ColorConstants.primary,
               size: 28,
             ),
@@ -345,7 +372,10 @@ class _PackageCard extends StatelessWidget {
               FilledButton(
                 onPressed: onPurchase,
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                 ),
                 child: const Text('Buy'),
               ),
