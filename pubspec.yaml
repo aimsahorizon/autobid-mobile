@@ -50,6 +50,15 @@ dependencies:
   # Image picker for camera/gallery
   image_picker: ^1.1.2
 
+  # Local storage for settings
+  shared_preferences: ^2.3.3
+
+  # HTTP client for API calls
+  http: ^1.2.0
+
+  # Stripe payment integration
+  flutter_stripe: ^11.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
