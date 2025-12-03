@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../../../app/core/controllers/theme_controller.dart';
+import '../controllers/pricing_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../widgets/pricing_section.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_section.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/account_settings_section.dart';
 import '../widgets/support_section.dart';
+import 'subscription_page.dart';
+import 'token_purchase_page.dart';
 import 'update_email_page.dart';
 import 'update_phone_page.dart';
 import 'customer_support_page.dart';
@@ -15,11 +20,13 @@ import 'legal_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ProfileController controller;
+  final PricingController pricingController;
   final ThemeController themeController;
 
   const ProfilePage({
     super.key,
     required this.controller,
+    required this.pricingController,
     required this.themeController,
   });
 
@@ -34,6 +41,12 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     widget.controller.loadProfile();
+
+    // Load pricing data
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId != null) {
+      widget.pricingController.loadUserPricing(userId);
+    }
   }
 
   void _handleCoverPhotoTap() {
@@ -167,6 +180,36 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _navigateToTokenPurchase() {
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TokenPurchasePage(
+          userId: userId,
+          controller: widget.pricingController,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToSubscription() {
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SubscriptionPage(
+          userId: userId,
+          controller: widget.pricingController,
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleSignOut() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -244,6 +287,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     username: profile.username,
                     contactNumber: profile.contactNumber,
                     email: profile.email,
+                  ),
+                  const SizedBox(height: 16),
+                  PricingSection(
+                    pricingController: widget.pricingController,
+                    onManageTokens: _navigateToTokenPurchase,
+                    onManageSubscription: _navigateToSubscription,
                   ),
                   const SizedBox(height: 16),
                   AccountSettingsSection(
