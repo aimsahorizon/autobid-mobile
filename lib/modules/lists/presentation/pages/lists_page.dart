@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/config/supabase_config.dart';
+import '../../../notifications/notifications_module.dart';
+import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../controllers/lists_controller.dart';
 import '../widgets/listings_grid.dart';
@@ -7,11 +10,11 @@ import '../../lists_module.dart';
 import 'create_listing_page.dart';
 
 class ListsPage extends StatefulWidget {
-  final ListsController controller;
+  final ListsController? controller;
 
   const ListsPage({
     super.key,
-    required this.controller,
+    this.controller,
   });
 
   @override
@@ -24,17 +27,21 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
   static const _tabs = [
     ListingStatus.active,
     ListingStatus.pending,
+    ListingStatus.approved,
     ListingStatus.inTransaction,
     ListingStatus.draft,
     ListingStatus.sold,
     ListingStatus.cancelled,
   ];
 
+  // Get controller from module directly to handle toggling
+  ListsController get _controller => ListsModule.controller;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
-    widget.controller.loadListings();
+    _controller.loadListings();
   }
 
   @override
@@ -44,19 +51,72 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
   }
 
   void _navigateToCreateListing(BuildContext context) {
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to create a listing')),
+      );
+      return;
+    }
+
     final controller = ListsModule.createListingDraftController();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CreateListingPage(
           controller: controller,
-          sellerId: 'seller_001', // TODO: Get from auth service
+          sellerId: userId,
         ),
       ),
     ).then((_) {
-      // Reload listings after returning from create page
-      widget.controller.loadListings();
+      _controller.loadListings();
     });
+  }
+
+  void _toggleDemoMode(BuildContext context) {
+    final wasUsingMock = ListsModule.useMockData;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Switch Data Source'),
+        content: Text(
+          wasUsingMock
+              ? 'Switch to Supabase database?\n\nThis will show real data from your backend.'
+              : 'Switch to mock data?\n\nThis will show demo data for testing.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Toggle mode - this disposes old controller and creates new one
+              ListsModule.toggleDemoMode();
+
+              // Trigger rebuild and load data from new controller
+              setState(() {
+                _controller.loadListings();
+              });
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    ListsModule.useMockData
+                        ? 'Switched to mock data'
+                        : 'Switched to database',
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Text('Switch'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -66,25 +126,110 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('My Listings'),
         actions: [
+          // Notification bell with unread count badge
           ListenableBuilder(
-            listenable: widget.controller,
+            listenable: NotificationsModule.instance.controller,
+            builder: (context, _) {
+              final notificationController = NotificationsModule.instance.controller;
+              final unreadCount = notificationController.unreadCount;
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsPage(),
+                        ),
+                      );
+                    },
+                    tooltip: 'Notifications',
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => _controller.loadListings(),
+            tooltip: 'Refresh',
+          ),
+          ListenableBuilder(
+            listenable: _controller,
             builder: (context, _) => IconButton(
               icon: Icon(
-                widget.controller.isGridView
+                _controller.isGridView
                     ? Icons.view_list_rounded
                     : Icons.grid_view_rounded,
               ),
-              onPressed: widget.controller.toggleViewMode,
-              tooltip: widget.controller.isGridView ? 'List view' : 'Grid view',
+              onPressed: _controller.toggleViewMode,
+              tooltip: _controller.isGridView ? 'List view' : 'Grid view',
             ),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'toggle_demo') {
+                _toggleDemoMode(context);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'toggle_demo',
+                child: Row(
+                  children: [
+                    Icon(
+                      ListsModule.useMockData
+                          ? Icons.cloud_outlined
+                          : Icons.storage_outlined,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      ListsModule.useMockData
+                          ? 'Switch to Database'
+                          : 'Switch to Mock Data',
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: ListenableBuilder(
-            listenable: widget.controller,
+            listenable: _controller,
             builder: (context, _) => TabBar(
               controller: _tabController,
               isScrollable: true,
@@ -102,7 +247,7 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
               ),
               tabs: _tabs.map((status) => _TabWithBadge(
                 label: status.tabLabel,
-                count: widget.controller.getCountByStatus(status),
+                count: _controller.getCountByStatus(status),
                 color: _getStatusColor(status),
               )).toList(),
             ),
@@ -110,9 +255,9 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         ),
       ),
       body: ListenableBuilder(
-        listenable: widget.controller,
+        listenable: _controller,
         builder: (context, _) {
-          if (widget.controller.isLoading) {
+          if (_controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -121,17 +266,19 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
             children: _tabs.map((status) {
               final needsController = status == ListingStatus.draft || status == ListingStatus.cancelled;
               final needsSellerId = needsController || status == ListingStatus.inTransaction;
+              final userId = SupabaseConfig.client.auth.currentUser?.id;
 
               return ListingsGrid(
-                listings: widget.controller.getListingsByStatus(status),
-                isGridView: widget.controller.isGridView,
-                isLoading: widget.controller.isLoading,
+                listings: _controller.getListingsByStatus(status),
+                isGridView: _controller.isGridView,
+                isLoading: _controller.isLoading,
                 emptyTitle: _getEmptyTitle(status),
                 emptySubtitle: _getEmptySubtitle(status),
                 emptyIcon: _getEmptyIcon(status),
                 enableNavigation: true,
                 draftController: needsController ? ListsModule.createListingDraftController() : null,
-                sellerId: needsSellerId ? 'seller_001' : null,
+                sellerId: needsSellerId ? userId : null,
+                onListingUpdated: () => _controller.loadListings(),
               );
             }).toList(),
           );
@@ -153,6 +300,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return ColorConstants.success;
       case ListingStatus.pending:
         return ColorConstants.warning;
+      case ListingStatus.approved:
+        return ColorConstants.info;
       case ListingStatus.inTransaction:
         return ColorConstants.primary;
       case ListingStatus.draft:
@@ -170,6 +319,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return 'No active listings';
       case ListingStatus.pending:
         return 'No pending listings';
+      case ListingStatus.approved:
+        return 'No approved listings';
       case ListingStatus.inTransaction:
         return 'No transactions';
       case ListingStatus.draft:
@@ -187,6 +338,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return 'Your approved listings will appear here';
       case ListingStatus.pending:
         return 'Listings awaiting review will appear here';
+      case ListingStatus.approved:
+        return 'Approved listings ready to publish will appear here';
       case ListingStatus.inTransaction:
         return 'Listings in buyer discussion will appear here';
       case ListingStatus.draft:
@@ -204,6 +357,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return Icons.local_offer_outlined;
       case ListingStatus.pending:
         return Icons.hourglass_empty;
+      case ListingStatus.approved:
+        return Icons.check_circle_outline;
       case ListingStatus.inTransaction:
         return Icons.handshake_outlined;
       case ListingStatus.draft:

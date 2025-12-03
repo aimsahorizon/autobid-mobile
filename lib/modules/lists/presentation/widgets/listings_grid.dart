@@ -6,6 +6,7 @@ import '../../data/datasources/listing_detail_mock_datasource.dart';
 import '../controllers/listing_draft_controller.dart';
 import '../pages/active_listing_detail_page.dart';
 import '../pages/pending_listing_detail_page.dart';
+import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
 import '../pages/sold_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
@@ -23,6 +24,7 @@ class ListingsGrid extends StatelessWidget {
   final bool enableNavigation;
   final ListingDraftController? draftController;
   final String? sellerId;
+  final VoidCallback? onListingUpdated;
 
   const ListingsGrid({
     super.key,
@@ -35,6 +37,7 @@ class ListingsGrid extends StatelessWidget {
     this.enableNavigation = true,
     this.draftController,
     this.sellerId,
+    this.onListingUpdated,
   });
 
   void _navigateToDetail(
@@ -65,6 +68,9 @@ class ListingsGrid extends StatelessWidget {
         break;
       case ListingStatus.pending:
         detailPage = PendingListingDetailPage(listing: detailEntity);
+        break;
+      case ListingStatus.approved:
+        detailPage = ApprovedListingDetailPage(listing: detailEntity);
         break;
       case ListingStatus.draft:
         if (draftController == null || sellerId == null) return;
@@ -100,10 +106,15 @@ class ListingsGrid extends StatelessWidget {
         break;
     }
 
-    Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => detailPage),
     );
+
+    // Reload listings if there was an update (delete/submit)
+    if (result != null && onListingUpdated != null) {
+      onListingUpdated!();
+    }
   }
 
   @override

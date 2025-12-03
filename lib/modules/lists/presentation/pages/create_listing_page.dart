@@ -32,10 +32,16 @@ class _CreateListingPageState extends State<CreateListingPage> {
   @override
   void initState() {
     super.initState();
+    _initializeDraft();
+  }
+
+  Future<void> _initializeDraft() async {
     if (widget.draftId != null) {
-      widget.controller.loadDraft(widget.draftId!);
+      // Load existing draft for editing
+      await widget.controller.loadDraft(widget.draftId!);
     } else {
-      widget.controller.createNewDraft(widget.sellerId);
+      // Create new draft for new listing
+      await widget.controller.createNewDraft(widget.sellerId);
     }
   }
 
@@ -83,12 +89,12 @@ class _CreateListingPageState extends State<CreateListingPage> {
       backgroundColor: Colors.transparent,
       builder: (context) => ListingSuccessModal(
         onCreateAnother: () {
-          Navigator.pop(context);
+          Navigator.pop(context); // Close modal
           widget.controller.createNewDraft(widget.sellerId);
         },
         onViewListing: () {
-          Navigator.pop(context);
-          Navigator.pop(context);
+          Navigator.pop(context); // Close modal
+          Navigator.pop(context, true); // Return true to indicate submission success
         },
       ),
     );
@@ -138,12 +144,41 @@ class _CreateListingPageState extends State<CreateListingPage> {
           listenable: widget.controller,
           builder: (context, _) {
             if (widget.controller.isLoading) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Initializing listing...'),
+                  ],
+                ),
+              );
             }
 
             final draft = widget.controller.currentDraft;
             if (draft == null) {
-              return const Center(child: Text('Failed to load draft'));
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    SizedBox(height: 16),
+                    Text(
+                      widget.controller.errorMessage ?? 'Failed to initialize listing',
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await _initializeDraft();
+                      },
+                      icon: Icon(Icons.refresh),
+                      label: Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
             }
 
             return Column(

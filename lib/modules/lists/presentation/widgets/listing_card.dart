@@ -27,9 +27,13 @@ class _ListingCardState extends State<ListingCard> {
   @override
   void initState() {
     super.initState();
-    if (widget.listing.status == ListingStatus.active && widget.listing.endTime != null) {
+    if (widget.listing.status == ListingStatus.active &&
+        widget.listing.endTime != null) {
       _updateTimeRemaining();
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTimeRemaining());
+      _timer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _updateTimeRemaining(),
+      );
     }
   }
 
@@ -52,7 +56,9 @@ class _ListingCardState extends State<ListingCard> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.isGridView ? _buildGridCard(context) : _buildListCard(context);
+    return widget.isGridView
+        ? _buildGridCard(context)
+        : _buildListCard(context);
   }
 
   Widget _buildGridCard(BuildContext context) {
@@ -63,10 +69,14 @@ class _ListingCardState extends State<ListingCard> {
       onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+          color: isDark
+              ? ColorConstants.surfaceDark
+              : ColorConstants.surfaceLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+            color: isDark
+                ? ColorConstants.borderDark
+                : ColorConstants.borderLight,
           ),
         ),
         child: Column(
@@ -116,10 +126,14 @@ class _ListingCardState extends State<ListingCard> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+          color: isDark
+              ? ColorConstants.surfaceDark
+              : ColorConstants.surfaceLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+            color: isDark
+                ? ColorConstants.borderDark
+                : ColorConstants.borderLight,
           ),
         ),
         child: Row(
@@ -131,9 +145,8 @@ class _ListingCardState extends State<ListingCard> {
                 width: 100,
                 height: 80,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
-                  color: ColorConstants.backgroundSecondaryLight,
-                ),
+                placeholder: (_, __) =>
+                    Container(color: ColorConstants.backgroundSecondaryLight),
                 errorWidget: (_, __, ___) => Container(
                   color: ColorConstants.backgroundSecondaryLight,
                   child: const Icon(Icons.directions_car),
@@ -178,10 +191,7 @@ class _CardImage extends StatelessWidget {
   final String imageUrl;
   final ListingStatus status;
 
-  const _CardImage({
-    required this.imageUrl,
-    required this.status,
-  });
+  const _CardImage({required this.imageUrl, required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -204,11 +214,7 @@ class _CardImage extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: _StatusBadge(status: status),
-          ),
+          Positioned(top: 8, right: 8, child: _StatusBadge(status: status)),
         ],
       ),
     );
@@ -245,6 +251,8 @@ class _StatusBadge extends StatelessWidget {
         return ColorConstants.success;
       case ListingStatus.pending:
         return ColorConstants.warning;
+      case ListingStatus.approved:
+        return ColorConstants.info;
       case ListingStatus.inTransaction:
         return ColorConstants.primary;
       case ListingStatus.draft:
@@ -261,10 +269,7 @@ class _PriceInfo extends StatelessWidget {
   final SellerListingEntity listing;
   final bool compact;
 
-  const _PriceInfo({
-    required this.listing,
-    this.compact = false,
-  });
+  const _PriceInfo({required this.listing, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -272,7 +277,8 @@ class _PriceInfo extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final hasCurrentBid = listing.currentBid != null;
-    final displayPrice = listing.soldPrice ?? listing.currentBid ?? listing.startingPrice;
+    final displayPrice =
+        listing.soldPrice ?? listing.currentBid ?? listing.startingPrice;
     final priceLabel = listing.status == ListingStatus.sold
         ? 'Sold'
         : (hasCurrentBid ? 'Current' : 'Starting');
@@ -282,7 +288,9 @@ class _PriceInfo extends StatelessWidget {
         Text(
           '$priceLabel: ',
           style: theme.textTheme.bodySmall?.copyWith(
-            color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight,
+            color: isDark
+                ? ColorConstants.textSecondaryDark
+                : ColorConstants.textSecondaryLight,
             fontSize: compact ? 11 : 12,
           ),
         ),
@@ -290,7 +298,9 @@ class _PriceInfo extends StatelessWidget {
           '₱${_formatAmount(displayPrice)}',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.bold,
-            color: listing.status == ListingStatus.sold ? ColorConstants.success : ColorConstants.primary,
+            color: listing.status == ListingStatus.sold
+                ? ColorConstants.success
+                : ColorConstants.primary,
             fontSize: compact ? 13 : 14,
           ),
         ),
@@ -320,7 +330,9 @@ class _PriceInfo extends StatelessWidget {
     if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(2)}M';
     }
-    return amount.toStringAsFixed(0).replaceAllMapped(
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
@@ -331,16 +343,15 @@ class _StatsRow extends StatelessWidget {
   final SellerListingEntity listing;
   final bool compact;
 
-  const _StatsRow({
-    required this.listing,
-    this.compact = false,
-  });
+  const _StatsRow({required this.listing, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight;
+    final textColor = isDark
+        ? ColorConstants.textSecondaryDark
+        : ColorConstants.textSecondaryLight;
     final iconSize = compact ? 12.0 : 14.0;
     final fontSize = compact ? 10.0 : 11.0;
 
@@ -375,10 +386,7 @@ class _StatusInfo extends StatelessWidget {
   final SellerListingEntity listing;
   final Duration timeRemaining;
 
-  const _StatusInfo({
-    required this.listing,
-    required this.timeRemaining,
-  });
+  const _StatusInfo({required this.listing, required this.timeRemaining});
 
   @override
   Widget build(BuildContext context) {
@@ -390,6 +398,12 @@ class _StatusInfo extends StatelessWidget {
           icon: Icons.hourglass_empty,
           label: 'Awaiting Review',
           color: ColorConstants.warning,
+        );
+      case ListingStatus.approved:
+        return _InfoChip(
+          icon: Icons.rocket_launch_outlined,
+          label: 'Ready to Publish',
+          color: ColorConstants.info,
         );
       case ListingStatus.inTransaction:
         return _InfoChip(
@@ -407,7 +421,7 @@ class _StatusInfo extends StatelessWidget {
         return _InfoChip(
           icon: Icons.check_circle,
           label: 'To ${listing.winnerName ?? "Buyer"}',
-          color: ColorConstants.success,
+          color: ColorConstants.info,
         );
       case ListingStatus.cancelled:
         return _InfoChip(

@@ -18,8 +18,8 @@ class DraftListingDetailPage extends StatelessWidget {
     required this.sellerId,
   });
 
-  void _continueDraft(BuildContext context) {
-    Navigator.push(
+  void _continueDraft(BuildContext context) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CreateListingPage(
@@ -29,9 +29,14 @@ class DraftListingDetailPage extends StatelessWidget {
         ),
       ),
     );
+
+    // If draft was submitted, go back to listings page with result
+    if (result == true && context.mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
-  void _deleteDraft(BuildContext context) {
+  void _deleteDraft(BuildContext context) async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -45,12 +50,26 @@ class DraftListingDetailPage extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: Implement delete draft
+            onPressed: () async {
               Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to list
+
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator()),
+              );
+
+              final success = await controller.deleteDraft(listing.id);
+
+              if (!context.mounted) return;
+              Navigator.pop(context); // Close loading
+              Navigator.pop(context, true); // Go back to list with result
+
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Draft deleted')),
+                SnackBar(
+                  content: Text(success ? 'Draft deleted' : 'Failed to delete draft'),
+                ),
               );
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),

@@ -91,6 +91,9 @@ enum ListingStatus {
   /// Listing is awaiting admin approval
   pending,
 
+  /// Listing approved by admin, waiting for seller to make live
+  approved,
+
   /// Auction ended, in discussion with winner
   inTransaction,
 
@@ -113,6 +116,8 @@ extension ListingStatusExtension on ListingStatus {
         return 'Active';
       case ListingStatus.pending:
         return 'Pending';
+      case ListingStatus.approved:
+        return 'Approved';
       case ListingStatus.inTransaction:
         return 'In Transaction';
       case ListingStatus.draft:
@@ -131,6 +136,8 @@ extension ListingStatusExtension on ListingStatus {
         return 'Active';
       case ListingStatus.pending:
         return 'Pending';
+      case ListingStatus.approved:
+        return 'Approved';
       case ListingStatus.inTransaction:
         return 'In Trans.';
       case ListingStatus.draft:
