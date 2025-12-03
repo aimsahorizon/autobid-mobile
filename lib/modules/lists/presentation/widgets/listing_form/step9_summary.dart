@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../app/core/config/supabase_config.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
 
@@ -13,12 +14,16 @@ class Step9Summary extends StatelessWidget {
   });
 
   Future<void> _submitListing(BuildContext context) async {
-    final success = await controller.submitListing();
+    // Get current user ID from Supabase
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+
+    final success = await controller.submitListing(userId);
     if (success) {
       onSubmitSuccess();
     } else if (context.mounted) {
+      final errorMessage = controller.errorMessage ?? 'Please complete all required fields';
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
+        SnackBar(content: Text(errorMessage)),
       );
     }
   }
