@@ -1,9 +1,14 @@
-import '../../app/core/services/supabase_service.dart';
+import '../../app/core/config/supabase_config.dart';
+import '../profile/data/datasources/pricing_supabase_datasource.dart';
+import '../profile/data/repositories/pricing_repository_impl.dart';
+import '../profile/domain/usecases/consume_bidding_token_usecase.dart';
 import 'data/datasources/auction_detail_mock_datasource.dart';
 import 'data/datasources/auction_mock_datasource.dart';
-import 'data/datasources/auction_remote_datasource.dart';
-import 'data/repositories/auction_repository_impl.dart';
+import 'data/datasources/auction_supabase_datasource.dart';
+import 'data/datasources/bid_supabase_datasource.dart';
+import 'data/datasources/qa_supabase_datasource.dart';
 import 'data/repositories/auction_repository_mock_impl.dart';
+import 'data/repositories/auction_repository_supabase_impl.dart';
 import 'domain/repositories/auction_repository.dart';
 import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
@@ -18,11 +23,34 @@ class BrowseModule {
   /// Toggle this to switch between mock and real data
   /// true = Use mock data (no Supabase needed)
   /// false = Use Supabase backend
-  static const bool useMockData = true;
+  static bool useMockData = true;
 
-  /// Create auction remote data source
-  AuctionRemoteDataSource _createRemoteDataSource() {
-    return AuctionRemoteDataSource(SupabaseService.instance);
+  /// Singleton controller instances
+  static BrowseController? _browseController;
+
+  /// Create Supabase datasources
+  AuctionSupabaseDataSource _createAuctionSupabaseDataSource() {
+    return AuctionSupabaseDataSource(SupabaseConfig.client);
+  }
+
+  BidSupabaseDataSource _createBidSupabaseDataSource() {
+    return BidSupabaseDataSource(SupabaseConfig.client);
+  }
+
+  QASupabaseDataSource _createQASupabaseDataSource() {
+    return QASupabaseDataSource(SupabaseConfig.client);
+  }
+
+  /// Create pricing datasource for token consumption
+  PricingSupabaseDatasource _createPricingSupabaseDataSource() {
+    return PricingSupabaseDatasource(supabase: SupabaseConfig.client);
+  }
+
+  /// Create consume bidding token use case
+  ConsumeBiddingTokenUsecase _createConsumeBiddingTokenUsecase() {
+    final datasource = _createPricingSupabaseDataSource();
+    final repository = PricingRepositoryImpl(datasource: datasource);
+    return ConsumeBiddingTokenUsecase(repository: repository);
   }
 
   /// Create mock data source
@@ -38,12 +66,18 @@ class BrowseModule {
   /// Create auction repository (switches based on useMockData flag)
   AuctionRepository _createRepository() {
     if (useMockData) {
-      // Use mock data - no backend needed
       return AuctionRepositoryMockImpl(_createMockDataSource());
     } else {
-      // Use real Supabase backend
-      return AuctionRepositoryImpl(_createRemoteDataSource());
+      return AuctionRepositorySupabaseImpl(_createAuctionSupabaseDataSource());
     }
+  }
+
+  /// Get or create browse controller (based on useMockData flag)
+  BrowseController get controller {
+    if (_browseController == null) {
+      _browseController = BrowseController(_createRepository());
+    }
+    return _browseController!;
   }
 
   /// Create browse controller
@@ -51,8 +85,30 @@ class BrowseModule {
     return BrowseController(_createRepository());
   }
 
-  /// Create auction detail controller
+  /// Toggle demo mode (switch between mock and Supabase)
+  static void toggleDemoMode() {
+    useMockData = !useMockData;
+    dispose();
+  }
+
+  /// Dispose resources when module is no longer needed
+  static void dispose() {
+    _browseController?.dispose();
+    _browseController = null;
+  }
+
+  /// Create auction detail controller (switches based on useMockData flag)
   AuctionDetailController createAuctionDetailController() {
-    return AuctionDetailController(_createDetailMockDataSource());
+    if (useMockData) {
+      return AuctionDetailController.mock(_createDetailMockDataSource());
+    } else {
+      return AuctionDetailController.supabase(
+        auctionDataSource: _createAuctionSupabaseDataSource(),
+        bidDataSource: _createBidSupabaseDataSource(),
+        qaDataSource: _createQASupabaseDataSource(),
+        consumeBiddingTokenUsecase: _createConsumeBiddingTokenUsecase(),
+        userId: SupabaseConfig.client.auth.currentUser?.id,
+      );
+    }
   }
 }
