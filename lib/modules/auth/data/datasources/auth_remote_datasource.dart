@@ -11,6 +11,7 @@ abstract class AuthRemoteDataSource {
   Future<void> signOut();
   Future<void> sendPasswordResetRequest(String username);
   Future<bool> verifyOtp(String username, String otp);
+  Future<void> resetPassword(String username, String newPassword);
   Future<UserModel> signUp(String email, String password, {String? username});
 
   // OTP methods for registration flow
@@ -23,6 +24,7 @@ abstract class AuthRemoteDataSource {
   Future<void> submitKycRegistration(KycRegistrationModel kycData);
   Future<KycRegistrationModel?> getKycRegistrationStatus(String userId);
   Future<bool> checkUsernameAvailable(String username);
+  Future<void> setPasswordForOtpUser(String password);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -61,27 +63,74 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> signInWithUsername(String username, String password) async {
     try {
-      // Supabase uses email for authentication
-      // Assuming username is email format or we have email mapping
+      // Step 1: Look up user by username and check account status
+      final userRecord = await _supabase
+          .from('users')
+          .select('email, phone_number, status, account_status, display_name')
+          .eq('username', username)
+          .maybeSingle();
+
+      // Check if user exists
+      if (userRecord == null) {
+        throw AuthException('Invalid username or passwords');
+      }
+
+      // Check if account is approved
+      final status = userRecord['status'] as String?;
+      if (status != 'approved') {
+        if (status == 'pending') {
+          throw AuthException(
+            'Your account is pending approval. Please wait for admin verification.',
+          );
+        } else if (status == 'rejected') {
+          throw AuthException(
+            'Your account has been rejected. Please contact support.',
+          );
+        } else {
+          throw AuthException('Your account is not approved yet.');
+        }
+      }
+
+      // Check if account is active
+      final accountStatus = userRecord['account_status'] as String?;
+      if (accountStatus == 'suspended') {
+        throw AuthException(
+          'Your account has been suspended. Please contact support.',
+        );
+      } else if (accountStatus == 'banned') {
+        throw AuthException(
+          'Your account has been banned. Please contact support.',
+        );
+      }
+
+      final emailToUse = userRecord['email'] as String;
+      final phoneNumber = userRecord['phone_number'] as String?;
+      final displayName = userRecord['display_name'] as String?;
+
+      // Step 2: Authenticate with Supabase Auth using email and password
       final response = await _supabase.auth.signInWithPassword(
-        email: username.contains('@') ? username : '$username@autobid.com',
+        email: emailToUse,
         password: password,
       );
 
       if (response.user == null) {
-        throw Exception('Sign in failed: No user returned');
+        throw AuthException('Invalid usernames or password');
       }
 
-      // Convert to UserModel
+      // Convert to UserModel with phone number from users table
       return UserModel(
         id: response.user!.id,
         email: response.user!.email ?? '',
-        username: response.user!.userMetadata?['username'] as String?,
-        displayName: response.user!.userMetadata?['display_name'] as String?,
+        username: username,
+        displayName: displayName ?? response.user!.userMetadata?['display_name'] as String?,
         photoUrl: response.user!.userMetadata?['avatar_url'] as String?,
+        phoneNumber: phoneNumber,
       );
     } on AuthException catch (e) {
-      throw Exception('Sign in failed: ${e.message}');
+      // Re-throw AuthException with proper message
+      throw Exception(e.message);
+    } on PostgrestException catch (e) {
+      throw Exception('Database error: ${e.message}');
     } catch (e) {
       throw Exception('Sign in failed: $e');
     }
@@ -144,14 +193,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> sendPasswordResetRequest(String username) async {
     try {
-      // Convert username to email if needed
-      final email = username.contains('@') ? username : '$username@autobid.com';
+      // Look up the actual email associated with the username from users table
+      final userRecord = await _supabase
+          .from('users')
+          .select('email')
+          .eq('username', username)
+          .maybeSingle();
 
-      // Send password reset email via Supabase
+      // Check if user exists
+      if (userRecord == null) {
+        throw Exception('Username not found');
+      }
+
+      final email = userRecord['email'] as String;
+
+      // Send password reset email via Supabase to the actual email
       await _supabase.auth.resetPasswordForEmail(
         email,
         redirectTo: 'io.supabase.autobid://reset-password',
       );
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to find user: ${e.message}');
     } on AuthException catch (e) {
       throw Exception('Password reset failed: ${e.message}');
     } catch (e) {
@@ -162,10 +224,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<bool> verifyOtp(String username, String otp) async {
     try {
-      // Convert username to email
-      final email = username.contains('@') ? username : '$username@autobid.com';
+      // Look up the actual email associated with the username from users table
+      final userRecord = await _supabase
+          .from('users')
+          .select('email')
+          .eq('username', username)
+          .maybeSingle();
 
-      // Verify OTP with Supabase
+      // Check if user exists
+      if (userRecord == null) {
+        throw Exception('Username not found');
+      }
+
+      final email = userRecord['email'] as String;
+
+      // Verify OTP with Supabase using the actual email
       final response = await _supabase.auth.verifyOTP(
         type: OtpType.email,
         email: email,
@@ -174,10 +247,46 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Return true if verification successful
       return response.user != null;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to find user: ${e.message}');
     } on AuthException catch (e) {
       throw Exception('OTP verification failed: ${e.message}');
     } catch (e) {
       throw Exception('OTP verification failed: $e');
+    }
+  }
+
+  @override
+  Future<void> resetPassword(String username, String newPassword) async {
+    try {
+      // Look up the email associated with the username from users table
+      final userRecord = await _supabase
+          .from('users')
+          .select('email')
+          .eq('username', username)
+          .maybeSingle();
+
+      // Check if user exists
+      if (userRecord == null) {
+        throw Exception('Username not found');
+      }
+
+      final email = userRecord['email'] as String;
+
+      // Update password for the authenticated user
+      // Note: User must be authenticated (via OTP verification) to update password
+      await _supabase.auth.updateUser(
+        UserAttributes(
+          email: email,
+          password: newPassword,
+        ),
+      );
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to find user: ${e.message}');
+    } on AuthException catch (e) {
+      throw Exception('Password reset failed: ${e.message}');
+    } catch (e) {
+      throw Exception('Password reset failed: $e');
     }
   }
 
@@ -312,6 +421,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
+  /// Set password for OTP-authenticated user
+  /// This enables password-based login after OTP registration
+  @override
+  Future<void> setPasswordForOtpUser(String password) async {
+    try {
+      // Update the current user's password in Supabase Auth
+      final response = await _supabase.auth.updateUser(
+        UserAttributes(password: password),
+      );
+
+      if (response.user == null) {
+        throw Exception('Failed to set password');
+      }
+    } on AuthException catch (e) {
+      throw Exception('Failed to set password: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to set password: $e');
+    }
+  }
+
   @override
   Future<KycRegistrationModel?> getKycRegistrationStatus(String userId) async {
     try {
@@ -336,22 +465,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<bool> checkUsernameAvailable(String username) async {
     try {
-      // Check if username exists in pending_registrations table
-      final pendingResponse = await _supabase
-          .from('pending_registrations')
+      // Check if username exists in users table (all users: pending, approved, rejected)
+      final response = await _supabase
+          .from('users')
           .select('username')
           .eq('username', username)
           .maybeSingle();
 
-      // Check if username exists in user_public_data table (approved users)
-      final publicResponse = await _supabase
-          .from('user_public_data')
-          .select('username')
-          .eq('username', username)
-          .maybeSingle();
-
-      // Username is available if it doesn't exist in either table
-      return pendingResponse == null && publicResponse == null;
+      // Username is available if it doesn't exist
+      return response == null;
     } on PostgrestException catch (e) {
       throw Exception('Failed to check username availability: ${e.message}');
     } catch (e) {

@@ -8,6 +8,7 @@ abstract class AuthRepository {
   Future<void> signOut();
   Future<void> sendPasswordResetRequest(String username);
   Future<bool> verifyOtp(String username, String otp);
+  Future<void> resetPassword(String username, String newPassword);
   Future<UserEntity> signUp(String email, String password, {String? username});
 
   // OTP methods for registration flow

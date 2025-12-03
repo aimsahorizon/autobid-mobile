@@ -1,22 +1,27 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
 import '../image_picker_card.dart';
 
 class SecondaryIdStep extends StatefulWidget {
   final KYCRegistrationController controller;
+  final VoidCallback? onRequestAiExtraction;
 
   const SecondaryIdStep({
     super.key,
     required this.controller,
+    this.onRequestAiExtraction,
   });
 
   @override
-  State<SecondaryIdStep> createState() => _SecondaryIdStepState();
+  State<SecondaryIdStep> createState() => SecondaryIdStepState();
 }
 
-class _SecondaryIdStepState extends State<SecondaryIdStep> {
+class SecondaryIdStepState extends State<SecondaryIdStep> {
   final _idNumberController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
   final List<String> _idTypes = [
     'Driver\'s License',
@@ -47,25 +52,222 @@ class _SecondaryIdStepState extends State<SecondaryIdStep> {
     super.dispose();
   }
 
+  // Shows image source picker (camera or gallery)
   void _pickImage(String type) async {
-    // Mock image picker
-    showDialog(
+    final source = await showDialog<ImageSource>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Image Picker'),
-        content: Text('Image picker for $type would open here'),
+        title: const Text('Select Image Source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      // Pick image from selected source
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final File imageFile = File(image.path);
+
+        // Set the image in controller
+        if (type == 'front') {
+          widget.controller.setSecondaryIdFront(imageFile);
+        } else {
+          widget.controller.setSecondaryIdBack(imageFile);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
+    }
+  }
+
+  // Public method to trigger AI extraction (called from parent when Next is pressed)
+  void triggerAiExtraction() async {
+    // Check if required images exist
+    if (widget.controller.secondaryIdFront == null ||
+        widget.controller.nationalIdFront == null) {
+      return;
+    }
+
+    await _showAiExtractionDialog();
+  }
+
+  // Shows AI extraction dialog with mock processing
+  Future<void> _showAiExtractionDialog() async {
+    final useAI = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [ColorConstants.primary, Colors.purple],
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'AI Auto-fill',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Would you like AI to automatically extract and fill your personal information from your IDs?',
+              style: TextStyle(fontSize: 14),
+            ),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: ColorConstants.success, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'You can review and edit all information in the next steps',
+                    style: TextStyle(fontSize: 12, color: ColorConstants.success),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Skip'),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.auto_awesome, size: 18),
+            label: const Text('Use AI'),
           ),
         ],
       ),
     );
+
+    // If user declined or canceled, proceed to next step
+    if (useAI != true) {
+      if (mounted && widget.onRequestAiExtraction != null) {
+        widget.onRequestAiExtraction!();
+      }
+      return;
+    }
+
+    // Show processing dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Extracting information from IDs...'),
+                  SizedBox(height: 8),
+                  Text(
+                    'This may take a few seconds',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      try {
+        // Perform AI extraction
+        final extractedData = await widget.controller.extractDataFromIds();
+
+        if (mounted) {
+          Navigator.pop(context); // Close processing dialog
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Successfully extracted ${_getExtractedFieldCount(extractedData)} fields from your IDs!',
+              ),
+              backgroundColor: ColorConstants.success,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context); // Close processing dialog
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to extract data: $e'),
+              backgroundColor: ColorConstants.error,
+            ),
+          );
+        }
+      }
+
+      // After AI extraction completes, proceed to next step
+      if (mounted && widget.onRequestAiExtraction != null) {
+        widget.onRequestAiExtraction!();
+      }
+    }
+  }
+
+  int _getExtractedFieldCount(dynamic data) {
+    // Count non-null fields
+    int count = 0;
+    if (data.firstName != null) count++;
+    if (data.middleName != null) count++;
+    if (data.lastName != null) count++;
+    if (data.dateOfBirth != null) count++;
+    if (data.sex != null) count++;
+    if (data.address != null) count++;
+    if (data.province != null) count++;
+    if (data.city != null) count++;
+    if (data.barangay != null) count++;
+    if (data.zipCode != null) count++;
+    return count;
   }
 
   @override

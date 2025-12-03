@@ -2,48 +2,50 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../domain/usecases/send_email_otp_usecase.dart';
 import '../../domain/usecases/send_phone_otp_usecase.dart';
-import '../../domain/usecases/sign_up_usecase.dart';
 import '../../domain/usecases/verify_email_otp_usecase.dart';
 import '../../domain/usecases/verify_phone_otp_usecase.dart';
-import '../../../profile/data/datasources/profile_supabase_datasource.dart';
+import '../../data/datasources/auth_remote_datasource.dart';
+import '../../data/models/kyc_registration_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../app/core/services/ai_id_extraction_service.dart';
 
 enum KYCStep {
-  nationalId,
-  selfieWithId,
-  secondaryId,
-  personalInfo,
-  accountInfo,
-  otpVerification,
-  address,
-  proofOfAddress,
-  review,
+  accountInfo,        // Step 1: Username, email, phone, password, T&C
+  otpVerification,    // Step 2: Verify email and phone
+  nationalId,         // Step 3: Upload National ID for AI extraction
+  selfieWithId,       // Step 4: Selfie verification
+  secondaryId,        // Step 5: Secondary ID - triggers AI autofill
+  personalInfo,       // Step 6: Personal details (auto-filled from AI)
+  address,            // Step 7: Address details (auto-filled from AI)
+  proofOfAddress,     // Step 8: Proof of address document
+  review,             // Step 9: Final review before submission
 }
 
 class KYCRegistrationController extends ChangeNotifier {
-  final SignUpUseCase? _signUpUseCase;
-  final ProfileSupabaseDataSource? _profileDataSource;
+  final AuthRemoteDataSource? _authDataSource;
   final SendEmailOtpUseCase? _sendEmailOtpUseCase;
   final SendPhoneOtpUseCase? _sendPhoneOtpUseCase;
   final VerifyEmailOtpUseCase? _verifyEmailOtpUseCase;
   final VerifyPhoneOtpUseCase? _verifyPhoneOtpUseCase;
+  final IAiIdExtractionService _aiService;
 
   /// Constructor with optional dependencies for Supabase integration
   /// If not provided, registration will use mock implementation
   KYCRegistrationController({
-    SignUpUseCase? signUpUseCase,
-    ProfileSupabaseDataSource? profileDataSource,
+    AuthRemoteDataSource? authDataSource,
     SendEmailOtpUseCase? sendEmailOtpUseCase,
     SendPhoneOtpUseCase? sendPhoneOtpUseCase,
     VerifyEmailOtpUseCase? verifyEmailOtpUseCase,
     VerifyPhoneOtpUseCase? verifyPhoneOtpUseCase,
-  }) : _signUpUseCase = signUpUseCase,
-       _profileDataSource = profileDataSource,
+    IAiIdExtractionService? aiService,
+  }) : _authDataSource = authDataSource,
        _sendEmailOtpUseCase = sendEmailOtpUseCase,
        _sendPhoneOtpUseCase = sendPhoneOtpUseCase,
        _verifyEmailOtpUseCase = verifyEmailOtpUseCase,
-       _verifyPhoneOtpUseCase = verifyPhoneOtpUseCase;
+       _verifyPhoneOtpUseCase = verifyPhoneOtpUseCase,
+       _aiService = aiService ?? MockAiIdExtractionService();
 
-  KYCStep _currentStep = KYCStep.nationalId;
+  KYCStep _currentStep = KYCStep.accountInfo;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -225,11 +227,19 @@ class KYCRegistrationController extends ChangeNotifier {
   }
 
   void setEmail(String value) {
+    // Reset email OTP verification if email changed
+    if (_email != null && _email != value) {
+      _emailOtpVerified = false;
+    }
     _email = value;
     notifyListeners();
   }
 
   void setPhoneNumber(String value) {
+    // Reset phone OTP verification if phone number changed
+    if (_phoneNumber != null && _phoneNumber != value) {
+      _phoneOtpVerified = false;
+    }
     _phoneNumber = value;
     notifyListeners();
   }
@@ -391,6 +401,43 @@ class KYCRegistrationController extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Trigger AI extraction from secondary ID and autofill data
+  /// This is called after secondary ID upload
+  Future<ExtractedIdData> extractDataFromIds() async {
+    if (_secondaryIdFront == null || _nationalIdFront == null) {
+      throw Exception('Both secondary and national ID are required for extraction');
+    }
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final extractedData = await _aiService.extractFromSecondaryId(
+        secondaryIdFront: _secondaryIdFront!,
+        secondaryIdBack: _secondaryIdBack,
+        nationalIdFront: _nationalIdFront!,
+        nationalIdBack: _nationalIdBack,
+      );
+
+      // Autofill the extracted data
+      if (extractedData.firstName != null) _firstName = extractedData.firstName;
+      if (extractedData.middleName != null) _middleName = extractedData.middleName;
+      if (extractedData.lastName != null) _lastName = extractedData.lastName;
+      if (extractedData.dateOfBirth != null) _dateOfBirth = extractedData.dateOfBirth;
+      if (extractedData.sex != null) _sex = extractedData.sex;
+      if (extractedData.province != null) _province = extractedData.province;
+      if (extractedData.city != null) _city = extractedData.city;
+      if (extractedData.barangay != null) _barangay = extractedData.barangay;
+      if (extractedData.zipCode != null) _zipCode = extractedData.zipCode;
+      if (extractedData.address != null) _street = extractedData.address;
+
+      return extractedData;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   // Validation methods
@@ -560,38 +607,123 @@ class KYCRegistrationController extends ChangeNotifier {
 
     try {
       // Check if dependencies are injected (real Supabase implementation)
-      if (_signUpUseCase != null && _profileDataSource != null) {
-        // Step 1: Create auth account
-        final user = await _signUpUseCase!.call(
+      if (_authDataSource != null) {
+        // Get current authenticated user (must exist after OTP verification)
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user == null) {
+          throw Exception('User not authenticated. Please verify OTP first.');
+        }
+
+        final userId = user.id;
+
+        // Step 0: Set password for the OTP-authenticated user
+        // This enables password-based login after registration
+        if (_password != null && _password!.isNotEmpty) {
+          await _authDataSource.setPasswordForOtpUser(_password!);
+        }
+
+        // Step 1: Upload all KYC documents to kyc-documents bucket
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+        // Upload national ID front
+        final nationalIdFrontPath = '$userId/national_id_front_$timestamp.${_nationalIdFront!.path.split('.').last}';
+        await Supabase.instance.client.storage
+            .from('kyc-documents')
+            .upload(nationalIdFrontPath, _nationalIdFront!);
+        final nationalIdFrontUrl = Supabase.instance.client.storage
+            .from('kyc-documents')
+            .getPublicUrl(nationalIdFrontPath);
+
+        // Upload national ID back
+        final nationalIdBackPath = '$userId/national_id_back_$timestamp.${_nationalIdBack!.path.split('.').last}';
+        await Supabase.instance.client.storage
+            .from('kyc-documents')
+            .upload(nationalIdBackPath, _nationalIdBack!);
+        final nationalIdBackUrl = Supabase.instance.client.storage
+            .from('kyc-documents')
+            .getPublicUrl(nationalIdBackPath);
+
+        // Upload selfie with ID
+        final selfieWithIdPath = '$userId/selfie_with_id_$timestamp.${_selfieWithId!.path.split('.').last}';
+        await Supabase.instance.client.storage
+            .from('kyc-documents')
+            .upload(selfieWithIdPath, _selfieWithId!);
+        final selfieWithIdUrl = Supabase.instance.client.storage
+            .from('kyc-documents')
+            .getPublicUrl(selfieWithIdPath);
+
+        // Upload secondary ID front
+        final secondaryIdFrontPath = '$userId/secondary_id_front_$timestamp.${_secondaryIdFront!.path.split('.').last}';
+        await Supabase.instance.client.storage
+            .from('kyc-documents')
+            .upload(secondaryIdFrontPath, _secondaryIdFront!);
+        final secondaryIdFrontUrl = Supabase.instance.client.storage
+            .from('kyc-documents')
+            .getPublicUrl(secondaryIdFrontPath);
+
+        // Upload secondary ID back
+        final secondaryIdBackPath = '$userId/secondary_id_back_$timestamp.${_secondaryIdBack!.path.split('.').last}';
+        await Supabase.instance.client.storage
+            .from('kyc-documents')
+            .upload(secondaryIdBackPath, _secondaryIdBack!);
+        final secondaryIdBackUrl = Supabase.instance.client.storage
+            .from('kyc-documents')
+            .getPublicUrl(secondaryIdBackPath);
+
+        // Upload proof of address
+        final proofOfAddressPath = '$userId/proof_of_address_$timestamp.${_proofOfAddress!.path.split('.').last}';
+        await Supabase.instance.client.storage
+            .from('kyc-documents')
+            .upload(proofOfAddressPath, _proofOfAddress!);
+        final proofOfAddressUrl = Supabase.instance.client.storage
+            .from('kyc-documents')
+            .getPublicUrl(proofOfAddressPath);
+
+        // Step 2: Create KYC registration model with all data
+        // Convert sex to single character format (M/F) if needed
+        String sexCode = _sex!;
+        if (_sex == 'Male') {
+          sexCode = 'M';
+        } else if (_sex == 'Female') {
+          sexCode = 'F';
+        } else if (_sex!.length > 1) {
+          // Handle any other format - take first character
+          sexCode = _sex![0].toUpperCase();
+        }
+
+        final kycModel = KycRegistrationModel(
+          id: userId,
           email: _email!,
-          password: _password!,
-          username: _email!.split('@')[0],
+          phoneNumber: _phoneNumber!,
+          username: _username!,
+          firstName: _firstName!,
+          lastName: _lastName!,
+          middleName: _middleName,
+          dateOfBirth: _dateOfBirth!,
+          sex: sexCode,
+          region: _region!,
+          province: _province!,
+          city: _city!,
+          barangay: _barangay!,
+          streetAddress: _street!,
+          zipcode: _zipCode!,
+          nationalIdNumber: _nationalIdNumber!,
+          nationalIdFrontUrl: nationalIdFrontUrl,
+          nationalIdBackUrl: nationalIdBackUrl,
+          secondaryGovIdType: _secondaryIdType!,
+          secondaryGovIdNumber: _secondaryIdNumber!,
+          secondaryGovIdFrontUrl: secondaryIdFrontUrl,
+          secondaryGovIdBackUrl: secondaryIdBackUrl,
+          proofOfAddressType: 'Utility Bill', // You may want to add a field for this
+          proofOfAddressUrl: proofOfAddressUrl,
+          selfieWithIdUrl: selfieWithIdUrl,
+          acceptedTermsAt: DateTime.now(),
+          acceptedPrivacyAt: DateTime.now(),
+          submittedAt: DateTime.now(),
         );
 
-        // Step 2: Upload profile photo (selfie)
-        final profilePhotoUrl = await _profileDataSource!.uploadProfilePhoto(
-          user.id,
-          _selfieWithId!,
-        );
-
-        // Step 3: Create user profile with all KYC data
-        await _profileDataSource!.createProfile(
-          userId: user.id,
-          username: _email!.split('@')[0],
-          fullName: '$_firstName ${_middleName ?? ''} $_lastName'.trim(),
-          email: _email!,
-          contactNumber: _phoneNumber,
-        );
-
-        // Step 4: Update profile with photo URL
-        await _profileDataSource!.updateProfile(
-          userId: user.id,
-          profilePhotoUrl: profilePhotoUrl,
-        );
-
-        // TODO: Upload ID documents to user-documents bucket
-        // This requires a separate storage method for private documents
-        // For now, we've completed the basic profile creation
+        // Step 3: Submit KYC registration to database
+        await _authDataSource!.submitKycRegistration(kycModel);
       } else {
         // Mock implementation - just delay
         await Future.delayed(const Duration(seconds: 2));

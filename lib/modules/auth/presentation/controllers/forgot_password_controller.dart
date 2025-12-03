@@ -1,27 +1,44 @@
 import 'package:flutter/material.dart';
 import '../../domain/usecases/send_password_reset_usecase.dart';
 import '../../domain/usecases/verify_otp_usecase.dart';
+import '../../domain/usecases/reset_password_usecase.dart';
 
-enum ForgotPasswordStep { enterUsername, verifyOtp, success }
+enum ForgotPasswordStep { enterUsername, verifyOtp, setNewPassword, success }
 
 class ForgotPasswordController extends ChangeNotifier {
   final SendPasswordResetUseCase sendPasswordResetUseCase;
   final VerifyOtpUseCase verifyOtpUseCase;
+  final ResetPasswordUseCase resetPasswordUseCase;
 
   ForgotPasswordController({
     required this.sendPasswordResetUseCase,
     required this.verifyOtpUseCase,
+    required this.resetPasswordUseCase,
   });
 
   ForgotPasswordStep _currentStep = ForgotPasswordStep.enterUsername;
   bool _isLoading = false;
   String? _errorMessage;
   String _username = '';
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   ForgotPasswordStep get currentStep => _currentStep;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get username => _username;
+  bool get obscurePassword => _obscurePassword;
+  bool get obscureConfirmPassword => _obscureConfirmPassword;
+
+  void togglePasswordVisibility() {
+    _obscurePassword = !_obscurePassword;
+    notifyListeners();
+  }
+
+  void toggleConfirmPasswordVisibility() {
+    _obscureConfirmPassword = !_obscureConfirmPassword;
+    notifyListeners();
+  }
 
   Future<void> sendResetRequest(String username) async {
     if (username.isEmpty) {
@@ -63,7 +80,8 @@ class ForgotPasswordController extends ChangeNotifier {
       _isLoading = false;
 
       if (isValid) {
-        _currentStep = ForgotPasswordStep.success;
+        // Move to password reset step instead of success
+        _currentStep = ForgotPasswordStep.setNewPassword;
       } else {
         _errorMessage = 'Invalid code. Please try again.';
       }
@@ -71,6 +89,42 @@ class ForgotPasswordController extends ChangeNotifier {
     } catch (e) {
       _isLoading = false;
       _errorMessage = 'Verification failed. Please try again.';
+      notifyListeners();
+    }
+  }
+
+  Future<void> resetPassword(String password, String confirmPassword) async {
+    // Validate password fields
+    if (password.isEmpty || confirmPassword.isEmpty) {
+      _errorMessage = 'Please fill in all fields';
+      notifyListeners();
+      return;
+    }
+
+    if (password.length < 8) {
+      _errorMessage = 'Password must be at least 8 characters';
+      notifyListeners();
+      return;
+    }
+
+    if (password != confirmPassword) {
+      _errorMessage = 'Passwords do not match';
+      notifyListeners();
+      return;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await resetPasswordUseCase.call(_username, password);
+      _isLoading = false;
+      _currentStep = ForgotPasswordStep.success;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Failed to reset password. Please try again.';
       notifyListeners();
     }
   }

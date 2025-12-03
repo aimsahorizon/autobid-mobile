@@ -12,6 +12,7 @@ import 'domain/usecases/sign_up_usecase.dart';
 import 'domain/usecases/verify_email_otp_usecase.dart';
 import 'domain/usecases/verify_otp_usecase.dart';
 import 'domain/usecases/verify_phone_otp_usecase.dart';
+import 'domain/usecases/reset_password_usecase.dart';
 import 'presentation/controllers/forgot_password_controller.dart';
 import 'presentation/controllers/kyc_registration_controller.dart';
 import 'presentation/controllers/login_controller.dart';
@@ -33,6 +34,7 @@ class AuthModule {
   late final SignInWithGoogleUseCase _signInWithGoogleUseCase;
   late final SendPasswordResetUseCase _sendPasswordResetUseCase;
   late final VerifyOtpUseCase _verifyOtpUseCase;
+  late final ResetPasswordUseCase _resetPasswordUseCase;
   late final SignUpUseCase _signUpUseCase;
   late final SendEmailOtpUseCase _sendEmailOtpUseCase;
   late final SendPhoneOtpUseCase _sendPhoneOtpUseCase;
@@ -61,6 +63,7 @@ class AuthModule {
     _signInWithGoogleUseCase = SignInWithGoogleUseCase(_authRepository);
     _sendPasswordResetUseCase = SendPasswordResetUseCase(_authRepository);
     _verifyOtpUseCase = VerifyOtpUseCase(_authRepository);
+    _resetPasswordUseCase = ResetPasswordUseCase(_authRepository);
     _signUpUseCase = SignUpUseCase(_authRepository);
     _sendEmailOtpUseCase = SendEmailOtpUseCase(_authRepository);
     _sendPhoneOtpUseCase = SendPhoneOtpUseCase(_authRepository);
@@ -90,6 +93,7 @@ class AuthModule {
     return ForgotPasswordController(
       sendPasswordResetUseCase: _sendPasswordResetUseCase,
       verifyOtpUseCase: _verifyOtpUseCase,
+      resetPasswordUseCase: _resetPasswordUseCase,
     );
   }
 
@@ -98,11 +102,10 @@ class AuthModule {
   }
 
   /// Create KYC registration controller with Supabase integration
-  /// Injects SignUpUseCase and ProfileDataSource for real registration
+  /// Injects AuthRemoteDataSource and OTP use cases for KYC registration
   KYCRegistrationController createKYCRegistrationController() {
     return KYCRegistrationController(
-      signUpUseCase: _signUpUseCase,
-      profileDataSource: _profileDataSource,
+      authDataSource: _remoteDataSource,
       sendEmailOtpUseCase: _sendEmailOtpUseCase,
       sendPhoneOtpUseCase: _sendPhoneOtpUseCase,
       verifyEmailOtpUseCase: _verifyEmailOtpUseCase,

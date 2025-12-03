@@ -20,6 +20,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _usernameController = TextEditingController();
   final List<TextEditingController> _otpControllers = List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _otpFocusNodes = List.generate(6, (_) => FocusNode());
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   @override
   void dispose() {
@@ -30,6 +32,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     for (var node in _otpFocusNodes) {
       node.dispose();
     }
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -58,6 +62,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     controller: widget.controller,
                     otpControllers: _otpControllers,
                     otpFocusNodes: _otpFocusNodes,
+                  );
+                case ForgotPasswordStep.setNewPassword:
+                  return _NewPasswordStep(
+                    controller: widget.controller,
+                    passwordController: _passwordController,
+                    confirmPasswordController: _confirmPasswordController,
                   );
                 case ForgotPasswordStep.success:
                   return _SuccessStep(controller: widget.controller);
@@ -132,7 +142,7 @@ class _OtpStep extends StatelessWidget {
         IconHeader(
           icon: Icons.mail_outline,
           title: 'Verify Code',
-          subtitle: 'We sent a 6-digit code to ${controller.username}',
+          subtitle: 'We sent a 6-digit code to the email associated with ${controller.username}',
         ),
         const SizedBox(height: 40),
         if (controller.errorMessage != null)
@@ -167,6 +177,78 @@ class _OtpStep extends StatelessWidget {
   }
 }
 
+class _NewPasswordStep extends StatelessWidget {
+  final ForgotPasswordController controller;
+  final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
+
+  const _NewPasswordStep({
+    required this.controller,
+    required this.passwordController,
+    required this.confirmPasswordController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const IconHeader(
+          icon: Icons.lock_outline,
+          title: 'Create New Password',
+          subtitle: 'Enter your new password',
+        ),
+        const SizedBox(height: 40),
+        if (controller.errorMessage != null)
+          AuthErrorMessage(
+            message: controller.errorMessage!,
+            onDismiss: controller.clearError,
+          ),
+        AuthTextField(
+          controller: passwordController,
+          label: 'New Password',
+          hint: 'Enter new password',
+          prefixIcon: Icons.lock_outline,
+          obscureText: controller.obscurePassword,
+          suffixIcon: IconButton(
+            icon: Icon(
+              controller.obscurePassword
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+            ),
+            onPressed: controller.togglePasswordVisibility,
+          ),
+        ),
+        const SizedBox(height: 20),
+        AuthTextField(
+          controller: confirmPasswordController,
+          label: 'Confirm Password',
+          hint: 'Re-enter new password',
+          prefixIcon: Icons.lock_outline,
+          obscureText: controller.obscureConfirmPassword,
+          suffixIcon: IconButton(
+            icon: Icon(
+              controller.obscureConfirmPassword
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+            ),
+            onPressed: controller.toggleConfirmPasswordVisibility,
+          ),
+        ),
+        const SizedBox(height: 32),
+        AuthLoadingButton(
+          isLoading: controller.isLoading,
+          onPressed: () => controller.resetPassword(
+            passwordController.text,
+            confirmPasswordController.text,
+          ),
+          label: 'Reset Password',
+        ),
+      ],
+    );
+  }
+}
+
 class _SuccessStep extends StatelessWidget {
   final ForgotPasswordController controller;
 
@@ -195,7 +277,7 @@ class _SuccessStep extends StatelessWidget {
         ),
         const SizedBox(height: 40),
         Text(
-          'Password Reset Sent!',
+          'Password Changed!',
           style: theme.textTheme.displayMedium,
           textAlign: TextAlign.center,
         ),
@@ -203,7 +285,7 @@ class _SuccessStep extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Text(
-            "We've sent a password reset link to ${controller.username}",
+            "Your password has been successfully reset. You can now log in with your new password.",
             style: theme.textTheme.bodyLarge?.copyWith(
               color: isDark
                   ? ColorConstants.textSecondaryDark

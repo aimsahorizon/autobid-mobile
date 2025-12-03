@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../../../../app/core/controllers/theme_controller.dart';
+import '../../auth_module.dart';
 import '../../auth_routes.dart';
+import '../../../guest/guest_routes.dart';
 import '../controllers/login_controller.dart';
+import '../controllers/login_otp_controller.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_error_message.dart';
 import '../widgets/auth_loading_button.dart';
 import '../widgets/auth_divider.dart';
 import '../widgets/social_sign_in_button.dart';
+import 'login_otp_page.dart';
 
 class LoginPage extends StatefulWidget {
   final LoginController controller;
@@ -27,25 +31,54 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  late final LoginOtpController _otpController;
+
+  @override
+  void initState() {
+    super.initState();
+    _otpController = AuthModule.instance.createLoginOtpController();
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      await widget.controller.signIn(
+      final success = await widget.controller.signIn(
         _usernameController.text.trim(),
         _passwordController.text,
       );
 
-      if (mounted && widget.controller.errorMessage == null) {
-        Navigator.of(context).pushReplacementNamed('/home');
+      if (mounted && success && widget.controller.currentStep == LoginStep.otpVerification) {
+        _navigateToOtpPage();
       }
     }
+  }
+
+  void _handleGoogleSignIn() async {
+    final success = await widget.controller.signInWithGoogle();
+
+    if (mounted && success && widget.controller.currentStep == LoginStep.otpVerification) {
+      _navigateToOtpPage();
+    }
+  }
+
+  void _navigateToOtpPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => LoginOtpPage(
+          email: widget.controller.userEmail!,
+          phoneNumber: widget.controller.userPhoneNumber!,
+          otpController: _otpController,
+          loginController: widget.controller,
+        ),
+      ),
+    );
   }
 
   @override
@@ -78,7 +111,9 @@ class _LoginPageState extends State<LoginPage> {
                 const AuthDivider(),
                 const SizedBox(height: 32),
                 _buildGoogleSignIn(),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
+                _buildGuestModeLink(theme, isDark),
+                const SizedBox(height: 24),
                 _buildSignUpPrompt(theme),
               ],
             ),
@@ -217,10 +252,32 @@ class _LoginPageState extends State<LoginPage> {
         return SocialSignInButton(
           icon: Icons.g_mobiledata,
           label: 'Continue with Google',
-          onPressed: widget.controller.signInWithGoogle,
+          onPressed: _handleGoogleSignIn,
           isLoading: widget.controller.isLoading,
         );
       },
+    );
+  }
+
+  Widget _buildGuestModeLink(ThemeData theme, bool isDark) {
+    return OutlinedButton.icon(
+      onPressed: () {
+        Navigator.of(context).pushNamed(GuestRoutes.main);
+      },
+      icon: const Icon(Icons.preview_rounded),
+      label: const Text('Browse as Guest'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        side: BorderSide(
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
+          width: 1.5,
+        ),
+      ),
     );
   }
 

@@ -94,6 +94,11 @@ class KycRegistrationModel extends KycRegistrationEntity {
 
   // Convert model to JSON (to send to Supabase)
   Map<String, dynamic> toJson() {
+    // Automatically generate display_name from first and last name
+    final displayName = middleName != null && middleName!.isNotEmpty
+        ? '$firstName $middleName $lastName'
+        : '$firstName $lastName';
+
     return {
       'id': id,
       'email': email,
@@ -122,6 +127,7 @@ class KycRegistrationModel extends KycRegistrationEntity {
       'selfie_with_id_url': selfieWithIdUrl,
       'accepted_terms_at': acceptedTermsAt.toIso8601String(),
       'accepted_privacy_at': acceptedPrivacyAt.toIso8601String(),
+      'display_name': displayName, // Auto-generated from first/middle/last name
       'status': status,
       'reviewed_by': reviewedBy,
       'reviewed_at': reviewedAt?.toIso8601String(),
