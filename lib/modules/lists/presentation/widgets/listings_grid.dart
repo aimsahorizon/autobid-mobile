@@ -10,9 +10,9 @@ import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
 import '../pages/sold_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
-import '../pages/pre_transaction_page.dart';
-import '../controllers/transaction_controller.dart';
-import '../../data/datasources/transaction_mock_datasource.dart';
+import '../../../transactions/presentation/pages/pre_transaction_page.dart';
+import '../../../transactions/presentation/controllers/transaction_controller.dart';
+import '../../../transactions/data/datasources/transaction_mock_datasource.dart';
 
 class ListingsGrid extends StatelessWidget {
   final List<SellerListingEntity> listings;

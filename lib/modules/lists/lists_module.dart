@@ -3,14 +3,14 @@ import '../profile/data/datasources/pricing_supabase_datasource.dart';
 import '../profile/data/repositories/pricing_repository_impl.dart';
 import '../profile/domain/usecases/consume_listing_token_usecase.dart';
 import 'presentation/controllers/lists_controller.dart';
-import 'presentation/controllers/transaction_controller.dart';
 import 'presentation/controllers/listing_draft_controller.dart';
-import 'data/datasources/transaction_mock_datasource.dart';
 import 'data/datasources/listing_draft_mock_datasource.dart';
 import 'data/datasources/listing_supabase_datasource.dart';
-import 'data/datasources/seller_transaction_supabase_datasource.dart';
-import 'data/datasources/chat_supabase_datasource.dart';
-import 'data/datasources/timeline_supabase_datasource.dart';
+import '../transactions/presentation/controllers/transaction_controller.dart';
+import '../transactions/data/datasources/transaction_mock_datasource.dart';
+import '../transactions/data/datasources/seller_transaction_supabase_datasource.dart';
+import '../transactions/data/datasources/chat_supabase_datasource.dart';
+import '../transactions/data/datasources/timeline_supabase_datasource.dart';
 
 /// Lists module dependency injection
 /// Handles seller listing management, transactions, and draft creation
