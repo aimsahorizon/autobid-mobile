@@ -1,0 +1,938 @@
+================================================================================
+NEXT.JS ADMIN PORTAL - IMPLEMENTATION GUIDE
+================================================================================
+Version: 1.0
+Purpose: Guide for building the Next.js web admin portal for AutoBid
+Target Stack: Next.js + Supabase + TypeScript + Tailwind CSS
+================================================================================
+
+OVERVIEW:
+This is a unified admin portal for all admin roles (super_admin, operations_admin,
+finance_admin, support_admin, moderator). All roles use the same Next.js application
+with role-based UI rendering and API access control.
+
+================================================================================
+SECTION 1: ARCHITECTURE
+================================================================================
+
+TECH STACK:
+- Next.js 14+ (App Router)
+- Supabase Client (authentication + database)
+- TypeScript (strict mode)
+- Tailwind CSS + shadcn/ui (components)
+- Recharts (dashboard charts)
+- React Query / SWR (data fetching)
+- Zustand / Redux (state management)
+
+PROJECT STRUCTURE:
+```
+nextjs-admin-portal/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   │   └── page.tsx
+│   │   └── layout.tsx (minimal layout)
+│   ├── (dashboard)/
+│   │   ├── layout.tsx (sidebar, header, role-based navigation)
+│   │   ├── page.tsx (dashboard home - role-specific)
+│   │   ├── auctions/
+│   │   │   ├── monitor/
+│   │   │   │   └── page.tsx (Moderator access ✓)
+│   │   │   └── [id]/
+│   │   │       └── page.tsx (auction detail)
+│   │   ├── kyc/
+│   │   │   ├── queue/
+│   │   │   │   └── page.tsx (Operations Admin only)
+│   │   │   └── [userId]/
+│   │   │       └── page.tsx (KYC review detail)
+│   │   ├── payments/
+│   │   │   ├── verify/
+│   │   │   │   └── page.tsx (Finance Admin only)
+│   │   │   └── refunds/
+│   │   │       └── page.tsx (Finance Admin only)
+│   │   ├── support/
+│   │   │   ├── tickets/
+│   │   │   │   └── page.tsx (Support Admin + Operations Admin)
+│   │   │   └── [ticketId]/
+│   │   │       └── page.tsx (ticket detail)
+│   │   ├── users/
+│   │   │   ├── page.tsx (Operations Admin, read-only for Support)
+│   │   │   └── [userId]/
+│   │   │       └── page.tsx (user profile detail)
+│   │   ├── reports/
+│   │   │   └── page.tsx (Finance Admin + Super Admin)
+│   │   ├── settings/
+│   │   │   └── page.tsx (Super Admin only)
+│   │   └── audit-logs/
+│   │       └── page.tsx (Super Admin only)
+│   └── api/
+│       ├── auth/
+│       │   └── callback/
+│       │       └── route.ts (Supabase auth callback)
+│       └── admin/
+│           ├── dashboard-metrics/
+│           │   └── route.ts (GET - all admins)
+│           ├── kyc/
+│           │   ├── queue/
+│           │   │   └── route.ts (GET/POST - ops_admin)
+│           │   └── [userId]/
+│           │       └── route.ts (GET/PATCH - ops_admin)
+│           ├── auctions/
+│           │   ├── monitor/
+│           │   │   └── route.ts (GET - moderator ✓)
+│           │   └── [auctionId]/
+│           │       └── route.ts (GET/PATCH - moderator ✓)
+│           ├── payments/
+│           │   └── verify/
+│           │       └── route.ts (POST - finance_admin)
+│           └── audit-logs/
+│               └── route.ts (GET - super_admin)
+├── components/
+│   ├── dashboard/
+│   │   ├── sidebar.tsx (role-based navigation)
+│   │   ├── header.tsx
+│   │   ├── metrics-card.tsx
+│   │   └── charts/
+│   │       ├── revenue-chart.tsx
+│   │       ├── user-growth-chart.tsx
+│   │       └── auction-activity-chart.tsx
+│   ├── kyc/
+│   │   ├── kyc-queue-table.tsx
+│   │   ├── kyc-review-form.tsx
+│   │   └── document-viewer.tsx (zoomable image viewer)
+│   ├── auctions/
+│   │   ├── auction-monitor-table.tsx (Moderator ✓)
+│   │   ├── live-bid-stream.tsx (Moderator ✓)
+│   │   └── auction-timeline.tsx
+│   ├── payments/
+│   │   ├── payment-queue-table.tsx
+│   │   └── payment-verification-form.tsx
+│   └── ui/ (shadcn/ui components)
+│       ├── button.tsx
+│       ├── card.tsx
+│       ├── table.tsx
+│       ├── dialog.tsx
+│       └── ...
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts (browser client)
+│   │   ├── server.ts (server-side client)
+│   │   └── middleware.ts (auth middleware)
+│   ├── permissions.ts (RBAC helper functions)
+│   ├── types.ts (TypeScript types from DB)
+│   └── utils.ts
+├── hooks/
+│   ├── useAdmin.ts (current admin user + role)
+│   ├── usePermissions.ts (check permissions)
+│   └── useDashboardMetrics.ts (real-time metrics)
+└── middleware.ts (Next.js middleware for auth)
+```
+
+================================================================================
+SECTION 2: AUTHENTICATION & AUTHORIZATION
+================================================================================
+
+AUTHENTICATION (Supabase Auth):
+```typescript
+// lib/supabase/client.ts
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+
+export const supabase = createClientComponentClient()
+
+// Login function
+export async function signInAdmin(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) throw error
+
+  // Verify user is in admin_users table
+  const { data: adminUser } = await supabase
+    .from('admin_users')
+    .select('id, username, email, full_name, role_id, admin_roles(role_name)')
+    .eq('id', data.user.id)
+    .single()
+
+  if (!adminUser) {
+    await supabase.auth.signOut()
+    throw new Error('User is not authorized as admin')
+  }
+
+  return adminUser
+}
+```
+
+ROLE-BASED ACCESS CONTROL:
+```typescript
+// lib/permissions.ts
+export type AdminRole = 'super_admin' | 'moderator'
+
+export type Permission =
+  | 'dashboard.view'
+  | 'kyc.review' | 'kyc.approve'
+  | 'auction.monitor' | 'auction.cancel' | 'auction.flag'
+  | 'payment.verify' | 'payment.refund'
+  | 'user.view' | 'user.edit' | 'user.suspend'
+  | 'support.view' | 'support.reply'
+  | 'reports.financial' | 'reports.generate'
+  | 'system.config'
+  | 'audit.view'
+
+// Permission matrix (matches admin_system_requirements.txt)
+const ROLE_PERMISSIONS: Record<AdminRole, Permission[]> = {
+  super_admin: [
+    'dashboard.view', 'kyc.review', 'kyc.approve', 'auction.monitor',
+    'auction.cancel', 'auction.flag', 'payment.verify', 'payment.refund',
+    'user.view', 'user.edit', 'user.suspend', 'support.view', 'support.reply',
+    'reports.financial', 'reports.generate', 'system.config', 'audit.view'
+  ],
+  moderator: [
+    'dashboard.view', 'auction.monitor', 'auction.flag'
+  ],
+}
+
+export function hasPermission(role: AdminRole, permission: Permission): boolean {
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false
+}
+
+export function canAccessRoute(role: AdminRole, route: string): boolean {
+  const routePermissionMap: Record<string, Permission> = {
+    '/kyc': 'kyc.review',
+    '/payments': 'payment.verify',
+    '/auctions/monitor': 'auction.monitor', // Moderator ✓
+    '/support': 'support.view',
+    '/reports': 'reports.financial',
+    '/settings': 'system.config',
+    '/audit-logs': 'audit.view',
+  }
+
+  const requiredPermission = routePermissionMap[route]
+  if (!requiredPermission) return true // Public route
+
+  return hasPermission(role, requiredPermission)
+}
+```
+
+MIDDLEWARE (Route Protection):
+```typescript
+// middleware.ts
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
+
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // Redirect to login if not authenticated
+  if (!session && !req.nextUrl.pathname.startsWith('/login')) {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  // Check if user is admin
+  if (session) {
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('role_id, admin_roles(role_name)')
+      .eq('id', session.user.id)
+      .single()
+
+    if (!adminUser) {
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+
+    // Role-based route protection
+    const role = adminUser.admin_roles.role_name as AdminRole
+    const path = req.nextUrl.pathname
+
+    if (!canAccessRoute(role, path)) {
+      return NextResponse.redirect(new URL('/unauthorized', req.url))
+    }
+  }
+
+  return res
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+}
+```
+
+================================================================================
+SECTION 3: ROLE-SPECIFIC DASHBOARDS
+================================================================================
+
+MODERATOR DASHBOARD (Primary Use Case):
+```typescript
+// app/(dashboard)/page.tsx
+'use client'
+
+import { useAdmin } from '@/hooks/useAdmin'
+import { ModeratorDashboard } from '@/components/dashboard/moderator-dashboard'
+import { OperationsDashboard } from '@/components/dashboard/operations-dashboard'
+import { FinanceDashboard } from '@/components/dashboard/finance-dashboard'
+// ... other role dashboards
+
+export default function DashboardPage() {
+  const { admin, role } = useAdmin()
+
+  // Render role-specific dashboard
+  switch (role) {
+    case 'moderator':
+      return <ModeratorDashboard admin={admin} />
+    case 'super_admin':
+      return <SuperAdminDashboard admin={admin} />
+    default:
+      return <UnauthorizedPage />
+  }
+}
+```
+
+MODERATOR DASHBOARD COMPONENT:
+```typescript
+// components/dashboard/moderator-dashboard.tsx
+'use client'
+
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase/client'
+import { MetricsCard } from './metrics-card'
+import { AuctionMonitorTable } from '@/components/auctions/auction-monitor-table'
+import { RecentAlerts } from './recent-alerts'
+
+export function ModeratorDashboard({ admin }) {
+  const { data: metrics } = useQuery({
+    queryKey: ['moderator-metrics'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('admin_dashboard_metrics')
+        .select('*')
+        .order('metric_date', { ascending: false })
+        .limit(1)
+        .single()
+      return data
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds
+  })
+
+  const { data: activeAuctions } = useQuery({
+    queryKey: ['active-auctions'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('admin_auction_monitoring')
+        .select(`
+          *,
+          auctions (
+            id,
+            title,
+            current_highest_bid,
+            end_time
+          )
+        `)
+        .order('is_final_two_minutes', { ascending: false })
+        .order('is_flagged', { ascending: false })
+      return data
+    },
+    refetchInterval: 10000, // Refresh every 10 seconds
+  })
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Moderator Dashboard</h1>
+
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <MetricsCard
+          title="Active Auctions"
+          value={metrics?.active_auctions ?? 0}
+          icon="🏷️"
+        />
+        <MetricsCard
+          title="Final 2 Minutes"
+          value={activeAuctions?.filter(a => a.is_final_two_minutes).length ?? 0}
+          icon="🔴"
+          variant="danger"
+        />
+        <MetricsCard
+          title="Flagged Auctions"
+          value={activeAuctions?.filter(a => a.is_flagged).length ?? 0}
+          icon="⚠️"
+          variant="warning"
+        />
+        <MetricsCard
+          title="Active Bidders"
+          value={metrics?.active_bidders ?? 0}
+          icon="👥"
+        />
+      </div>
+
+      {/* Recent Alerts */}
+      <RecentAlerts adminId={admin.id} />
+
+      {/* Live Auction Monitoring */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Live Auction Monitoring</h2>
+        <AuctionMonitorTable auctions={activeAuctions ?? []} />
+      </div>
+    </div>
+  )
+}
+```
+
+AUCTION MONITORING PAGE (Moderator Access):
+```typescript
+// app/(dashboard)/auctions/monitor/page.tsx
+'use client'
+
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase/client'
+import { AuctionMonitorTable } from '@/components/auctions/auction-monitor-table'
+import { AuctionFilters } from '@/components/auctions/auction-filters'
+
+export default function AuctionMonitorPage() {
+  const [filters, setFilters] = useState({
+    status: 'all',
+    category: 'all',
+    flagged: false,
+  })
+
+  const { data: auctions, refetch } = useQuery({
+    queryKey: ['auction-monitor', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('admin_auction_monitoring')
+        .select(`
+          *,
+          auctions (
+            id,
+            title,
+            category,
+            current_highest_bid,
+            bid_count,
+            end_time,
+            status
+          )
+        `)
+
+      if (filters.flagged) {
+        query = query.eq('is_flagged', true)
+      }
+
+      const { data } = await query
+        .order('is_final_two_minutes', { ascending: false })
+        .order('time_remaining_seconds', { ascending: true })
+
+      return data
+    },
+    refetchInterval: 10000, // Auto-refresh every 10 seconds
+  })
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('auction-monitoring')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'admin_auction_monitoring',
+        filter: 'is_final_two_minutes=eq.true'
+      }, () => {
+        refetch() // Refetch when final 2 minutes triggered
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [refetch])
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Live Auction Monitoring</h1>
+
+      <AuctionFilters filters={filters} onChange={setFilters} />
+
+      <AuctionMonitorTable
+        auctions={auctions ?? []}
+        onFlag={handleFlag}
+        onViewDetails={handleViewDetails}
+      />
+    </div>
+  )
+
+  async function handleFlag(auctionId: string, reason: string) {
+    await supabase
+      .from('admin_auction_monitoring')
+      .update({
+        is_flagged: true,
+        flag_reason: reason,
+        monitored_by: admin.id
+      })
+      .eq('auction_id', auctionId)
+
+    // Log audit trail
+    await supabase
+      .from('admin_audit_log')
+      .insert({
+        admin_id: admin.id,
+        action: 'auction.flagged',
+        resource_type: 'auction',
+        resource_id: auctionId,
+        details: { reason },
+      })
+
+    refetch()
+  }
+}
+```
+
+================================================================================
+SECTION 4: REAL-TIME FEATURES
+================================================================================
+
+REAL-TIME AUCTION MONITORING (Moderator):
+```typescript
+// hooks/useLiveAuctionMonitoring.ts
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
+
+export function useLiveAuctionMonitoring() {
+  const [finalTwoMinuteAuctions, setFinalTwoMinuteAuctions] = useState<any[]>([])
+  const [flaggedAuctions, setFlaggedAuctions] = useState<any[]>([])
+
+  useEffect(() => {
+    // Subscribe to final 2-minute alerts
+    const channel = supabase
+      .channel('auction-alerts')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'admin_auction_monitoring',
+        filter: 'is_final_two_minutes=eq.true'
+      }, (payload) => {
+        // Show browser notification
+        if (Notification.permission === 'granted') {
+          new Notification('🔴 Auction Ending Soon!', {
+            body: `Auction ${payload.new.auction_id} is in the final 2 minutes`,
+            icon: '/auction-icon.png',
+          })
+        }
+
+        // Play audio alert
+        const audio = new Audio('/alert.mp3')
+        audio.play()
+
+        // Update state
+        setFinalTwoMinuteAuctions(prev => [...prev, payload.new])
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'admin_auction_monitoring',
+        filter: 'is_flagged=eq.true'
+      }, (payload) => {
+        setFlaggedAuctions(prev => [...prev, payload.new])
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  return { finalTwoMinuteAuctions, flaggedAuctions }
+}
+```
+
+REAL-TIME BID STREAM (Moderator):
+```typescript
+// components/auctions/live-bid-stream.tsx
+'use client'
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
+
+export function LiveBidStream({ auctionId }: { auctionId: string }) {
+  const [bids, setBids] = useState<any[]>([])
+
+  useEffect(() => {
+    // Fetch initial bids
+    supabase
+      .from('bids')
+      .select('*')
+      .eq('auction_id', auctionId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => setBids(data ?? []))
+
+    // Subscribe to new bids
+    const channel = supabase
+      .channel(`auction-${auctionId}-bids`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'bids',
+        filter: `auction_id=eq.${auctionId}`
+      }, (payload) => {
+        setBids(prev => [payload.new, ...prev])
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [auctionId])
+
+  return (
+    <div className="bg-white rounded-lg shadow p-4 max-h-96 overflow-y-auto">
+      <h3 className="text-lg font-semibold mb-4">Live Bid Stream</h3>
+      <div className="space-y-2">
+        {bids.map((bid) => (
+          <div key={bid.id} className="flex justify-between items-center border-b pb-2">
+            <div>
+              <span className="font-medium">Bidder #{bid.bidder_number}</span>
+              <span className="text-sm text-gray-500 ml-2">
+                {bid.is_auto_bid ? '🤖 Auto-bid' : '👤 Manual'}
+              </span>
+            </div>
+            <div className="text-right">
+              <div className="font-bold">₱{bid.amount.toLocaleString()}</div>
+              <div className="text-xs text-gray-500">
+                {new Date(bid.created_at).toLocaleTimeString()}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+================================================================================
+SECTION 5: API ROUTES (Server-Side)
+================================================================================
+
+DASHBOARD METRICS API:
+```typescript
+// app/api/admin/dashboard-metrics/route.ts
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+
+export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies })
+
+  // Verify admin authentication
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Verify user is admin
+  const { data: adminUser } = await supabase
+    .from('admin_users')
+    .select('id')
+    .eq('id', session.user.id)
+    .single()
+
+  if (!adminUser) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Fetch latest dashboard metrics
+  const { data: metrics, error } = await supabase
+    .from('admin_dashboard_metrics')
+    .select('*')
+    .order('metric_date', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(metrics)
+}
+```
+
+AUCTION MONITORING API (Moderator Access):
+```typescript
+// app/api/admin/auctions/monitor/route.ts
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
+import { hasPermission } from '@/lib/permissions'
+
+export async function GET(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies })
+
+  // Verify admin authentication
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Verify user is admin with auction.monitor permission
+  const { data: adminUser } = await supabase
+    .from('admin_users')
+    .select('id, admin_roles(role_name)')
+    .eq('id', session.user.id)
+    .single()
+
+  if (!adminUser || !hasPermission(adminUser.admin_roles.role_name, 'auction.monitor')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Fetch auction monitoring data
+  const { data: auctions, error } = await supabase
+    .from('admin_auction_monitoring')
+    .select(`
+      *,
+      auctions (
+        id,
+        title,
+        category,
+        current_highest_bid,
+        bid_count,
+        end_time,
+        status
+      )
+    `)
+    .order('is_final_two_minutes', { ascending: false })
+    .order('time_remaining_seconds', { ascending: true })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json(auctions)
+}
+
+export async function PATCH(request: Request) {
+  const supabase = createRouteHandlerClient({ cookies })
+  const body = await request.json()
+
+  // Verify admin authentication
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Verify user is admin with auction.flag permission
+  const { data: adminUser } = await supabase
+    .from('admin_users')
+    .select('id, admin_roles(role_name)')
+    .eq('id', session.user.id)
+    .single()
+
+  if (!adminUser || !hasPermission(adminUser.admin_roles.role_name, 'auction.flag')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Flag auction
+  const { error } = await supabase
+    .from('admin_auction_monitoring')
+    .update({
+      is_flagged: true,
+      flag_reason: body.reason,
+      monitored_by: session.user.id,
+    })
+    .eq('auction_id', body.auctionId)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  // Log audit trail
+  await supabase
+    .from('admin_audit_log')
+    .insert({
+      admin_id: session.user.id,
+      action: 'auction.flagged',
+      resource_type: 'auction',
+      resource_id: body.auctionId,
+      details: { reason: body.reason },
+    })
+
+  return NextResponse.json({ success: true })
+}
+```
+
+================================================================================
+SECTION 6: SIDEBAR NAVIGATION (Role-Based)
+================================================================================
+
+```typescript
+// components/dashboard/sidebar.tsx
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useAdmin } from '@/hooks/useAdmin'
+import { hasPermission } from '@/lib/permissions'
+
+export function Sidebar() {
+  const pathname = usePathname()
+  const { admin, role } = useAdmin()
+
+  const navItems = [
+    {
+      label: 'Dashboard',
+      href: '/',
+      icon: '📊',
+      permission: 'dashboard.view',
+    },
+    {
+      label: 'Auction Monitoring',
+      href: '/auctions/monitor',
+      icon: '🏷️',
+      permission: 'auction.monitor', // Moderator ✓
+    },
+    {
+      label: 'KYC Review',
+      href: '/kyc/queue',
+      icon: '🆔',
+      permission: 'kyc.review', // Moderator ✗
+    },
+    {
+      label: 'Payment Verification',
+      href: '/payments/verify',
+      icon: '💳',
+      permission: 'payment.verify', // Moderator ✗
+    },
+    {
+      label: 'Support Tickets',
+      href: '/support/tickets',
+      icon: '🎫',
+      permission: 'support.view', // Moderator ✗
+    },
+    {
+      label: 'User Management',
+      href: '/users',
+      icon: '👥',
+      permission: 'user.view', // Moderator ✗
+    },
+    {
+      label: 'Reports',
+      href: '/reports',
+      icon: '📈',
+      permission: 'reports.financial', // Moderator ✗
+    },
+    {
+      label: 'System Settings',
+      href: '/settings',
+      icon: '⚙️',
+      permission: 'system.config', // Moderator ✗
+    },
+    {
+      label: 'Audit Logs',
+      href: '/audit-logs',
+      icon: '📜',
+      permission: 'audit.view', // Moderator ✗
+    },
+  ]
+
+  return (
+    <aside className="w-64 bg-gray-900 text-white min-h-screen p-4">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">AutoBid Admin</h1>
+        <p className="text-sm text-gray-400">{admin.full_name}</p>
+        <p className="text-xs text-gray-500 capitalize">{role.replace('_', ' ')}</p>
+      </div>
+
+      <nav className="space-y-2">
+        {navItems
+          .filter(item => hasPermission(role, item.permission))
+          .map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`
+                flex items-center gap-3 px-4 py-2 rounded-lg transition
+                ${pathname === item.href
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-gray-800'
+                }
+              `}
+            >
+              <span className="text-xl">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+      </nav>
+    </aside>
+  )
+}
+```
+
+**MODERATOR SEES:**
+- ✅ Dashboard
+- ✅ Auction Monitoring
+- ❌ KYC Review (hidden)
+- ❌ Payment Verification (hidden)
+- ❌ Support Tickets (hidden)
+- ❌ User Management (hidden)
+- ❌ Reports (hidden)
+- ❌ System Settings (hidden)
+- ❌ Audit Logs (hidden)
+
+================================================================================
+SECTION 7: DEPLOYMENT
+================================================================================
+
+ENVIRONMENT VARIABLES (.env.local):
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key (server-side only)
+```
+
+BUILD & DEPLOY:
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Deploy to Vercel (recommended for Next.js)
+vercel deploy
+```
+
+VERCEL DEPLOYMENT:
+1. Connect GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy (auto-deploys on git push to main)
+
+================================================================================
+SECTION 8: SECURITY BEST PRACTICES
+================================================================================
+
+1. ✅ NEVER use SUPABASE_SERVICE_ROLE_KEY on client-side
+2. ✅ ALWAYS verify admin role on server-side API routes
+3. ✅ ALWAYS check permissions before rendering UI components
+4. ✅ ALWAYS use RLS policies in Supabase (defense in depth)
+5. ✅ ALWAYS log admin actions to admin_audit_log
+6. ✅ ALWAYS validate input (use Zod for schema validation)
+7. ✅ ALWAYS use HTTPS in production
+8. ✅ ALWAYS enable 2FA for admin accounts
+9. ✅ ALWAYS set session timeout (30 minutes recommended)
+10. ✅ ALWAYS use Content Security Policy (CSP) headers
+
+================================================================================
+END OF NEXT.JS ADMIN PORTAL GUIDE
+================================================================================
+
+For database schema and admin requirements, refer to:
+- memory/database_schema.txt
+- memory/admin_system_requirements.txt
+- memory/IMPLEMENTATION_REFERENCE.txt

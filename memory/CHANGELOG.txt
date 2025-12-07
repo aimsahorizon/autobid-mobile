@@ -1,0 +1,158 @@
+================================================================================
+AUTOBID MOBILE - DOCUMENTATION CHANGELOG
+================================================================================
+Date: 2025-12-07
+Version: 2.1 - Simplified Admin Roles
+================================================================================
+
+CHANGE SUMMARY:
+Simplified admin system from 5 roles to 2 roles (Super Admin and Moderator)
+for cleaner architecture and easier management.
+
+================================================================================
+WHAT CHANGED
+================================================================================
+
+BEFORE (5 Roles):
+1. Super Admin - Full system access
+2. Operations Admin - KYC, auctions, support
+3. Finance Admin - Payments, refunds, reports
+4. Support Admin - Support tickets only
+5. Moderator - Auction monitoring only
+
+AFTER (2 Roles):
+1. Super Admin - Full system access (all previous admin functions)
+2. Moderator - Auction monitoring and content moderation only
+
+================================================================================
+RATIONALE
+================================================================================
+
+Benefits of 2-Role System:
+✅ Simpler to understand and manage
+✅ Clearer permission boundaries (admin vs moderator)
+✅ Easier to train new staff
+✅ Reduced complexity in Next.js portal
+✅ Fewer role-permission mappings to maintain
+✅ More aligned with typical organizational structure
+
+Super Admin consolidates:
+- KYC review (previously operations_admin)
+- Payment verification (previously finance_admin)
+- Support tickets (previously support_admin + operations_admin)
+- All financial reports and analytics
+- System configuration
+- User management
+
+Moderator remains focused on:
+- Real-time auction monitoring
+- Flagging suspicious activity
+- Content moderation
+- Read-only access
+
+================================================================================
+FILES UPDATED
+================================================================================
+
+1. admin_system_requirements.txt
+   - Removed operations_admin, finance_admin, support_admin
+   - Updated permission matrix to 2 columns (Super Admin, Moderator)
+   - Consolidated all admin features under Super Admin
+
+2. database_schema.txt
+   - admin_roles table: CHECK constraint now only ('super_admin', 'moderator')
+   - admin_roles data: Only 2 INSERT statements
+   - Updated RLS policies (removed operations_admin, finance_admin, support_admin references)
+
+3. nextjs_admin_portal_guide.txt
+   - AdminRole type: Only 'super_admin' | 'moderator'
+   - ROLE_PERMISSIONS: Only 2 keys
+   - Dashboard switch: Only 2 cases
+   - Removed unused dashboard components
+
+4. README.txt
+   - Updated admin roles summary (2 roles)
+   - Updated document descriptions
+
+5. IMPLEMENTATION_REFERENCE.txt
+   - Updated admin system overview
+   - Updated ADMIN ROLE PERMISSIONS section
+   - Consolidated features under Super Admin
+
+================================================================================
+DATABASE MIGRATION (If Existing Data)
+================================================================================
+
+If you already have data with old roles:
+
+```sql
+-- Migrate operations_admin → super_admin
+UPDATE admin_users SET role_id = (
+  SELECT id FROM admin_roles WHERE role_name = 'super_admin'
+) WHERE role_id = (
+  SELECT id FROM admin_roles WHERE role_name = 'operations_admin'
+);
+
+-- Migrate finance_admin → super_admin
+UPDATE admin_users SET role_id = (
+  SELECT id FROM admin_roles WHERE role_name = 'super_admin'
+) WHERE role_id = (
+  SELECT id FROM admin_roles WHERE role_name = 'finance_admin'
+);
+
+-- Migrate support_admin → super_admin
+UPDATE admin_users SET role_id = (
+  SELECT id FROM admin_roles WHERE role_name = 'super_admin'
+) WHERE role_id = (
+  SELECT id FROM admin_roles WHERE role_name = 'support_admin'
+);
+
+-- Delete old roles
+DELETE FROM admin_roles WHERE role_name IN ('operations_admin', 'finance_admin', 'support_admin');
+
+-- Moderators stay as-is (no migration needed)
+```
+
+================================================================================
+NEXT.JS PORTAL CHANGES
+================================================================================
+
+Code to Remove:
+- OperationsDashboard component
+- FinanceDashboard component
+- SupportDashboard component
+- Related routes and pages
+
+All features now in:
+- SuperAdminDashboard (full access)
+- ModeratorDashboard (limited access)
+
+Navigation Simplification:
+BEFORE: 5 different navigation configs
+AFTER: 2 navigation configs (super_admin sees all, moderator sees limited)
+
+================================================================================
+NO IMPACT ON
+================================================================================
+
+✅ Flutter mobile app (no admin features)
+✅ Database schema structure (same tables, just fewer roles)
+✅ Encryption implementation
+✅ Thesis defense enhancements
+✅ All 51 tables remain the same
+✅ RLS policies (just simplified who can access)
+✅ Audit logging (continues to track all actions)
+
+================================================================================
+SUMMARY
+================================================================================
+
+This simplification makes the admin system easier to manage while maintaining
+all functionality. Super Admins have full access to everything, and Moderators
+have focused access to auction monitoring and content moderation.
+
+All documentation files have been updated for consistency.
+
+================================================================================
+END OF CHANGELOG
+================================================================================

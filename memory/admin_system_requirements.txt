@@ -1,0 +1,1411 @@
+================================================================================
+AUTOBID MOBILE - ADMIN SYSTEM REQUIREMENTS
+================================================================================
+Version: 1.0
+Purpose: Complete admin module specification for auction management system
+Scope: Dashboard, KYC review, live monitoring, financial management, operations
+================================================================================
+
+================================================================================
+SECTION 1: ADMIN ROLES & PERMISSIONS
+================================================================================
+
+Role Hierarchy:
+--------------------------------------------------------------------------------
+1. SUPER_ADMIN
+   - Full system access
+   - User management (create/delete admins and moderators)
+   - KYC review and approval
+   - Auction monitoring and management
+   - Payment verification and refunds
+   - User support tickets
+   - Content moderation
+   - Dispute resolution
+   - Financial reports and analytics
+   - Token package management
+   - System configuration
+   - Database management
+   - Audit log access
+
+2. MODERATOR
+   - Auction monitoring (real-time)
+   - Content review (listings/descriptions)
+   - Flag inappropriate content
+   - Flag suspicious auctions
+   - Monitor Q&A and transaction chats
+   - Limited read-only access
+
+Permission Matrix:
+--------------------------------------------------------------------------------
+Feature                     | Super Admin | Moderator
+----------------------------|-------------|----------
+Dashboard Overview          |      ✓      |     ✓
+KYC Review                  |      ✓      |     ✗
+KYC Approval/Rejection      |      ✓      |     ✗
+Auction Live Monitoring     |      ✓      |     ✓
+Auction Cancellation        |      ✓      |     ✗
+Auction Flagging            |      ✓      |     ✓
+Bid Management              |      ✓      |     ✗
+Payment Verification        |      ✓      |     ✗
+Refund Processing           |      ✓      |     ✗
+Financial Reports           |      ✓      |     ✗
+User Management             |      ✓      |     ✗
+Support Tickets             |      ✓      |     ✗
+Content Moderation          |      ✓      |     ✓
+System Settings             |      ✓      |     ✗
+Audit Logs                  |      ✓      |     ✗
+Admin User Creation         |      ✓      |     ✗
+
+================================================================================
+SECTION 2: DASHBOARD OVERVIEW
+================================================================================
+
+Real-Time Metrics (Auto-refresh every 30 seconds):
+--------------------------------------------------------------------------------
+1. User Metrics
+   - Total registered users
+   - Active users (last 30 days)
+   - Pending KYC reviews (with alert if > 50)
+   - Approved users
+   - Rejected/suspended users
+   - New registrations (today, this week, this month)
+
+2. Auction Metrics
+   - Total auctions (all-time)
+   - Active auctions (live now)
+   - Scheduled auctions (starting soon)
+   - Completed auctions (last 30 days)
+   - Average auction duration
+   - Auctions ending in next 2 hours (alert)
+
+3. Bidding Metrics
+   - Total bids placed (today)
+   - Active bidders (currently participating)
+   - Average bids per auction
+   - Highest bid today
+   - Auto-bid vs manual bid ratio
+
+4. Financial Metrics
+   - Total revenue (all-time)
+   - Revenue this month
+   - Revenue today
+   - Pending payments (awaiting verification)
+   - Total token sales
+   - Average transaction value
+   - Commission earned (platform fee)
+
+5. Transaction Metrics
+   - Active transactions (in progress)
+   - Completed transactions (last 30 days)
+   - Pending buyer forms
+   - Pending seller forms
+   - Delivery in progress
+   - Disputes/issues
+
+6. System Health
+   - Database connection status
+   - Supabase realtime status
+   - Storage usage (percentage)
+   - API response time (avg)
+   - Error rate (last hour)
+   - Active admin sessions
+
+Charts & Visualizations:
+--------------------------------------------------------------------------------
+1. Revenue Trend (Line chart, last 30 days)
+2. User Growth (Line chart, last 12 months)
+3. Auction Activity (Bar chart, daily for last 7 days)
+4. Bid Distribution (Pie chart, by auction category)
+5. KYC Status Breakdown (Donut chart)
+6. Payment Methods (Pie chart)
+7. Top Auction Categories (Bar chart)
+
+Quick Actions Panel:
+--------------------------------------------------------------------------------
+- Review Pending KYC (button with badge count)
+- Monitor Live Auctions (button)
+- View Support Tickets (button with unresolved count)
+- Generate Financial Report (button)
+- System Announcements (button)
+
+Alerts & Notifications:
+--------------------------------------------------------------------------------
+- 🔴 Critical: Auction ending in 2 minutes (moderator notification required)
+- 🟠 Warning: Pending KYC > 50 submissions
+- 🟠 Warning: Payment pending verification > 24 hours
+- 🟠 Warning: Support ticket unresolved > 48 hours
+- 🟡 Info: New dispute filed
+- 🟢 Success: Daily revenue target reached
+
+================================================================================
+SECTION 3: KYC REVIEW SYSTEM
+================================================================================
+
+KYC Review Dashboard:
+--------------------------------------------------------------------------------
+Filters:
+- Status: Pending / Under Review / All
+- Date Range: Today / Last 7 days / Last 30 days / Custom
+- Sort: Newest first / Oldest first / Priority
+
+Display Columns:
+- User ID
+- Full Name
+- Email
+- Phone Number (masked: +63 9XX XXX XXXX)
+- Submission Date
+- Days Pending
+- Priority (calculated: > 7 days = High, > 3 days = Medium, else Normal)
+- Quick Actions: View / Assign to Me
+
+KYC Review Detail Page:
+--------------------------------------------------------------------------------
+Layout: Split screen (Left: Documents, Right: Review Form)
+
+Left Panel - Document Viewer:
+1. Personal Information (Editable if corrections needed)
+   - Full Name
+   - Date of Birth
+   - Sex
+   - Phone Number
+   - Address (full breakdown)
+
+2. National ID (Primary)
+   - ID Type: Philippine National ID
+   - ID Number: [REDACTED until view]
+   - Front Photo (zoomable, rotatable)
+   - Back Photo (zoomable, rotatable)
+   - View Decrypted ID Number (button, logs access)
+
+3. Secondary Government ID
+   - ID Type: [Driver's License / Passport / etc.]
+   - ID Number: [REDACTED until view]
+   - Front Photo (zoomable, rotatable)
+   - Back Photo (zoomable, rotatable)
+   - View Decrypted ID Number (button, logs access)
+
+4. Proof of Address
+   - Document Type: [Utility Bill / Bank Statement / etc.]
+   - Document Photo (zoomable, PDF viewer if applicable)
+   - Address Match Check (auto-compare with submitted address)
+
+5. Selfie with ID
+   - Photo (zoomable)
+   - Face Match Score (if AI face recognition enabled)
+   - Manual Verification Checklist:
+     □ Face is clearly visible
+     □ ID is clearly visible in photo
+     □ ID matches national ID photo
+     □ No signs of tampering
+
+Document Verification Tools:
+- Zoom controls (25% to 400%)
+- Rotate image (90° increments)
+- Download original (for offline verification)
+- Side-by-side comparison (compare ID front/back)
+- Image enhancement (brightness/contrast)
+
+Right Panel - Review Form:
+1. Verification Checklist (Required for approval)
+   □ Name matches across all documents
+   □ Date of birth matches across all documents
+   □ ID numbers are valid format
+   □ Photos are clear and not tampered
+   □ Selfie matches ID photo
+   □ Address proof is recent (< 3 months)
+   □ No duplicate account detected (check by phone/email/ID)
+
+2. AI Verification Results (if enabled)
+   - Face Match Score: 95.2% (Selfie vs National ID)
+   - ID OCR Extraction: [Show extracted text vs submitted data]
+   - Document Authenticity: Likely Genuine / Suspicious / Needs Review
+
+3. Duplicate Check Results
+   - Matching Phone Numbers: 0 found
+   - Matching Email: 0 found
+   - Matching National ID: 0 found
+   - Similar Names: [List if found]
+
+4. Review Decision
+   Radio Buttons:
+   ○ Approve - User can participate in auctions
+   ○ Request Corrections - Ask user to resubmit specific documents
+   ○ Reject - Permanently deny (with reason required)
+   ○ Suspend - Temporarily suspend for investigation
+
+5. Admin Notes (Required for Rejection/Suspension)
+   Text area (max 500 characters)
+   - Visible to: Super Admin only / Operations team / User
+
+6. Required Documents for Resubmission (if Request Corrections)
+   □ National ID Front
+   □ National ID Back
+   □ Secondary ID Front
+   □ Secondary ID Back
+   □ Proof of Address
+   □ Selfie with ID
+
+7. Rejection Reasons (Predefined + Custom)
+   □ Blurry or unclear photos
+   □ Expired ID
+   □ ID number invalid
+   □ Selfie does not match ID
+   □ Proof of address too old (> 3 months)
+   □ Duplicate account detected
+   □ Suspected fraud
+   □ Other: [Text field]
+
+8. Priority Flag
+   □ Mark as High Priority (escalate to supervisor)
+
+9. Action Buttons
+   [Save Draft] [Submit Review] [Escalate to Supervisor]
+
+Post-Review Actions:
+- Email notification sent to user (auto-generated based on decision)
+- SMS notification (if rejected/approved)
+- Audit log entry created
+- If approved: User status changed to 'approved', can now bid
+- If rejected: User notified with reason, can appeal or resubmit
+
+KYC Batch Operations:
+--------------------------------------------------------------------------------
+- Bulk assign reviews to specific admin
+- Bulk approve (if all checks passed, for trusted source imports)
+- Export KYC queue to CSV (for reporting)
+
+KYC Analytics:
+--------------------------------------------------------------------------------
+- Average review time (per admin)
+- Approval rate (overall and per admin)
+- Rejection reasons breakdown (chart)
+- Pending queue trend (line chart, last 30 days)
+- SLA compliance (% reviewed within 24/48/72 hours)
+
+================================================================================
+SECTION 4: AUCTION LIVE MONITORING
+================================================================================
+
+Live Auction Dashboard:
+--------------------------------------------------------------------------------
+View Modes:
+1. Grid View (cards showing auction thumbnails)
+2. List View (table with details)
+3. Timeline View (sorted by end time)
+
+Filters:
+- Status: All / Ending Soon (< 1 hour) / Final 2 Minutes / Just Ended
+- Category: All / Sedan / SUV / Pickup / Motorcycle / etc.
+- Bid Activity: All / High Activity (> 10 bids) / Low Activity (< 5 bids)
+- Bidding Type: All / Public / Private
+- Issues: All / Flagged / Disputed
+
+Auto-Refresh: Every 10 seconds (configurable: 5s / 10s / 30s / Manual)
+
+Display Columns (List View):
+- Auction ID
+- Vehicle (thumbnail + year/make/model)
+- Seller Name (link to profile)
+- Current Highest Bid
+- Total Bids Count
+- Active Bidders Count
+- Time Remaining (live countdown)
+- Status Indicator:
+  🟢 Active (> 15 minutes)
+  🟡 Ending Soon (5-15 minutes)
+  🔴 Final 2 Minutes (< 2 minutes)
+  ⏸️ Snipe Guard Extended
+  ✅ Ended
+  ⚠️ Flagged/Disputed
+
+- Quick Actions: [Monitor] [View Details] [Flag]
+
+Auction Detail Monitoring Page:
+--------------------------------------------------------------------------------
+Layout: Multi-panel dashboard
+
+Top Panel - Auction Overview:
+- Vehicle: 2020 Toyota Camry LE
+- Seller: Juan Dela Cruz (ID: user_123) [View Profile]
+- Auction ID: auct_456
+- Category: Sedan
+- Status: 🔴 Final 2 Minutes (00:01:47 remaining)
+- Starting Price: ₱500,000
+- Reserve Price: ₱750,000 (hidden from public)
+- Current Highest Bid: ₱820,000
+- Minimum Bid Increment: ₱10,000
+- Total Bids: 47
+- Active Bidders: 12
+- Watchers: 89
+- Bidding Type: Public
+- Snipe Guard: Enabled (30 seconds)
+- Auto-Bid Enabled: 8 bidders
+
+Alert Banner (if Final 2 Minutes):
+🔴 MODERATOR ALERT: This auction is in the final 2 minutes. Monitor for suspicious activity.
+
+Panel 1 - Live Bid Stream (Real-time):
+Scrollable list, newest first, auto-scroll:
+```
+[00:01:45] Bidder#7 placed bid: ₱820,000 (Auto-bid)
+[00:02:13] Bidder#3 placed bid: ₱810,000 (Manual)
+[00:02:45] Snipe Guard Triggered! Timer extended by +30 seconds
+[00:03:02] Bidder#12 placed bid: ₱800,000 (Auto-bid)
+[00:04:11] Bidder#7 placed bid: ₱790,000 (Manual)
+...
+```
+
+Filters:
+- Show All / Auto-bids Only / Manual Only
+- Highlight Suspicious Activity (multiple bids from same IP, rapid bidding)
+
+Panel 2 - Bidder Activity Table:
+Columns:
+- Bidder (anonymized: Bidder#1, Bidder#2)
+- Total Bids
+- Highest Bid
+- Last Bid Time
+- Bid Type (Auto / Manual)
+- IP Address (masked: 192.168.x.x) - for fraud detection
+- Status: 🟢 Active / ⚠️ Flagged
+- Actions: [View History] [Flag]
+
+Panel 3 - Timeline & Events:
+```
+[2025-12-07 14:30:00] Auction started
+[2025-12-07 14:32:15] First bid placed: ₱520,000
+[2025-12-07 15:45:33] Reserve price met: ₱750,000
+[2025-12-07 16:27:10] Snipe guard triggered (1st time)
+[2025-12-07 16:28:55] Final 2 minutes - Moderator notified
+[2025-12-07 16:29:42] Admin flagged bid #45 as suspicious
+[2025-12-07 16:30:00] Auction ended
+[2025-12-07 16:30:05] Winner: Bidder#7 (₱820,000)
+```
+
+Panel 4 - Auction Settings & Controls:
+Display:
+- Minimum Bid Increment: ₱10,000
+- Snipe Guard: Enabled (30 seconds)
+- Allow Rebid: Yes (2nd highest bidder can match)
+- Private Auction: No
+- Reserve Price: ₱750,000 (Met ✓)
+
+Admin Controls (Requires authorization):
+- [Pause Auction] (emergency, requires reason)
+- [Extend Time] (input: minutes to add)
+- [Cancel Auction] (requires reason, refunds all deposits)
+- [Flag Bid] (mark specific bid as suspicious)
+- [Disqualify Bidder] (remove bidder, refund deposit)
+- [End Auction Early] (crown current highest as winner)
+
+Panel 5 - Chat/Q&A Monitor:
+Recent questions from bidders (if Q&A enabled):
+```
+[16:25] Bidder#3: "Is the car's mileage verified?"
+  └─ [16:26] Seller: "Yes, it's 45,000 km certified."
+
+[16:20] Bidder#8: "Can I inspect before bidding?"
+  └─ [Pending Response]
+```
+
+Admin can:
+- [Flag Inappropriate Message]
+- [Warn User] (send warning)
+- [Mute User] (prevent further messages)
+
+Panel 6 - Vehicle & Listing Details:
+- Photos (gallery with 12 images)
+- Description (full text)
+- Features (bulleted list)
+- Vehicle History (if available):
+  - Insurance Status: Active (Expires: 2026-03-15)
+  - Maintenance History: 5 records (Last: 2025-11-02)
+  - Damage History: None reported
+  - Past Condition: Excellent
+  - Current Condition: Very Good (minor scratches)
+
+Moving Timer Display:
+- Large countdown: 00:01:47
+- Color-coded:
+  - Green: > 5 minutes
+  - Yellow: 2-5 minutes
+  - Red (pulsing): < 2 minutes
+- Audio alert: Play sound when < 2 minutes (can be muted)
+
+Final 2-Minute Moderator Notification:
+- Desktop notification (if browser supports)
+- Push notification to admin mobile app
+- Email alert (if enabled)
+- In-app banner alert
+- Audio chime
+
+Highlight Highest Bid:
+- Current highest bid: Bold, larger font, highlighted background
+- Highest bidder: Show "Leading" badge
+- If reserve not met: Show "Reserve Not Met" warning
+
+Suspicious Activity Detection (Auto-flagged):
+- Multiple bids from same IP within 10 seconds
+- Bidder with no prior activity suddenly placing high bids
+- Pattern matching known fraud behavior
+- Seller and bidder from same IP address
+- Unusual bid timing (exactly on second boundaries)
+
+Export Options:
+- [Export Bid Log to CSV]
+- [Export Timeline to PDF]
+- [Generate Auction Report] (summary for review)
+
+================================================================================
+SECTION 5: FINANCIAL MANAGEMENT
+================================================================================
+
+Financial Dashboard:
+--------------------------------------------------------------------------------
+Summary Cards:
+1. Total Revenue (All-Time)
+   - Value: ₱12,450,000
+   - Trend: +15% vs last month
+
+2. Revenue This Month
+   - Value: ₱850,000
+   - Target: ₱1,000,000 (85% achieved)
+   - Days Remaining: 12
+
+3. Revenue Today
+   - Value: ₱45,200
+   - Average Daily: ₱27,400 (+65% vs avg)
+
+4. Pending Payments
+   - Count: 23 transactions
+   - Total Value: ₱345,000
+   - Oldest: 3 days ago (alert if > 2 days)
+
+5. Commission Earned
+   - This Month: ₱102,000
+   - Commission Rate: 12% (average across all transactions)
+
+6. Token Sales
+   - Total Tokens Sold: 450,000 tokens
+   - Revenue from Tokens: ₱675,000
+   - Most Popular Package: 100 tokens (₱150)
+
+Revenue Breakdown:
+--------------------------------------------------------------------------------
+Tables with filters:
+
+1. Payment Transactions
+   Columns:
+   - Transaction ID
+   - User (Name + ID)
+   - Type: Token Purchase / Auction Deposit / Final Payment
+   - Amount
+   - Payment Method: GCash / PayMaya / Bank Transfer / Credit Card
+   - Status: Pending / Verified / Completed / Refunded / Failed
+   - Created Date
+   - Verified Date
+   - Verified By (Admin name)
+   - Actions: [View Receipt] [Verify] [Refund]
+
+   Filters:
+   - Status: All / Pending / Verified / Refunded
+   - Payment Method: All / GCash / PayMaya / Bank / Card
+   - Date Range: Today / Last 7 days / Last 30 days / Custom
+   - Amount Range: Min-Max
+
+2. Token Transactions
+   Columns:
+   - Transaction ID
+   - User (Name + ID)
+   - Type: Purchase / Consumed (Listing) / Consumed (Bidding) / Refund
+   - Tokens Amount
+   - Cash Value
+   - Balance After
+   - Created Date
+   - Reference (Auction ID / Listing ID if consumed)
+
+3. Refund Requests
+   Columns:
+   - Request ID
+   - User (Name + ID)
+   - Original Transaction ID
+   - Amount
+   - Reason (dropdown: Duplicate Payment / Auction Cancelled / User Request / Fraud)
+   - Status: Pending / Approved / Rejected / Processed
+   - Requested Date
+   - Processed By (Admin)
+   - Processed Date
+   - Actions: [Approve] [Reject] [Process Refund]
+
+Payment Verification Detail Page:
+--------------------------------------------------------------------------------
+For each pending payment:
+
+Payment Information:
+- Transaction ID: pay_123456
+- User: Juan Dela Cruz (user_789)
+- User Email: juan@example.com
+- User Phone: +63 917 123 4567
+- Type: Auction Deposit
+- Auction ID: auct_456 (2020 Toyota Camry)
+- Amount: ₱50,000
+- Payment Method: GCash
+- Created: 2025-12-07 14:30:00 (2 hours ago)
+
+Proof of Payment:
+- Screenshot (zoomable image viewer)
+- Download Original (button)
+
+Verification Tools:
+- Reference Number: [Extracted from image or user-entered]
+- Payment Date/Time: [From screenshot]
+- Match Amount: ₱50,000 ✓ (auto-check)
+
+GCash/PayMaya Verification (Integration):
+- [Check Transaction Status via API] (button)
+- API Response: Transaction Found ✓ / Not Found ✗
+
+Manual Verification Checklist:
+□ Amount matches exactly (₱50,000)
+□ Reference number is valid
+□ Payment date is recent (< 24 hours)
+□ Screenshot is not edited/tampered
+□ Sender name matches user account
+□ Payment method account verified (if first time)
+
+Admin Decision:
+Radio Buttons:
+○ Approve - Mark payment as verified, proceed with auction/listing
+○ Reject - Invalid proof, ask user to resubmit
+○ Request Clarification - Ask user for more info
+
+Admin Notes:
+[Text area for verification notes]
+
+Actions:
+[Approve Payment] [Reject Payment] [Request More Info]
+
+Post-Verification:
+- User notified via email/SMS
+- If deposit: User can now participate in auction
+- If final payment: Transaction moves to delivery stage
+- Audit log entry created
+
+Refund Processing:
+--------------------------------------------------------------------------------
+Refund Detail Page:
+
+Refund Request Information:
+- Request ID: ref_789
+- User: Maria Santos (user_456)
+- Original Transaction: pay_123 (₱50,000 - Auction Deposit)
+- Auction: auct_789 (2019 Honda Civic) - Status: Cancelled by Seller
+- Refund Amount: ₱50,000
+- Reason: Auction Cancelled
+- Requested: 2025-12-07 10:00:00
+- Days Pending: 0
+
+Original Payment Details:
+- Payment Method: GCash
+- Account Number: 0917-123-4567
+- Receipt: [View Image]
+
+Refund Method:
+○ Same Payment Method (GCash to same number)
+○ Bank Transfer (requires bank details)
+○ Token Credit (convert to platform tokens)
+
+Bank Transfer Details (if selected):
+- Bank Name: [Dropdown]
+- Account Number: [Input]
+- Account Name: [Input]
+
+Admin Approval:
+Radio Buttons:
+○ Approve Refund
+○ Reject Refund (requires reason)
+
+If Approved:
+- Processing Fee Deduction: ₱0 (waived for seller cancellations)
+- Net Refund Amount: ₱50,000
+- Processing Time: 1-3 business days
+
+Actions:
+[Approve Refund] [Reject Refund]
+
+Post-Approval:
+- Mark refund as "Approved, Pending Processing"
+- Finance team processes refund externally (GCash/Bank)
+- Admin marks as "Processed" after confirming transfer
+- User notified via email/SMS
+
+Token Package Management:
+--------------------------------------------------------------------------------
+Token Packages Table:
+Columns:
+- Package ID
+- Package Name (e.g., "Starter Pack", "Pro Bundle")
+- Token Amount (e.g., 50, 100, 500)
+- Price (₱)
+- Price per Token (calculated)
+- Discount % (vs base price)
+- Active Status (Yes/No)
+- Sales Count (total sold)
+- Revenue (total)
+- Actions: [Edit] [Deactivate] [View Analytics]
+
+Create/Edit Token Package:
+- Package Name: [Input]
+- Token Amount: [Number input]
+- Price: [Number input] ₱
+- Discount Percentage: [Number input] %
+- Description: [Text area]
+- Active: [Checkbox] (show on purchase page)
+- Promotional: [Checkbox] (highlight as "Best Value")
+
+Token Pricing Strategy:
+- Base Price: ₱1.50 per token (set by super admin)
+- Package Discounts:
+  - 50 tokens: ₱75 (₱1.50 each, 0% discount)
+  - 100 tokens: ₱140 (₱1.40 each, 7% discount)
+  - 500 tokens: ₱650 (₱1.30 each, 13% discount)
+  - 1000 tokens: ₱1,200 (₱1.20 each, 20% discount)
+
+Financial Reports:
+--------------------------------------------------------------------------------
+Report Types:
+
+1. Daily Revenue Report
+   - Date: [Select Date]
+   - Total Revenue: ₱45,200
+   - Breakdown:
+     - Token Sales: ₱18,000 (120 tokens sold)
+     - Auction Deposits: ₱20,000 (4 deposits)
+     - Final Payments: ₱7,200 (commission from 2 completed sales)
+   - Payment Methods:
+     - GCash: ₱25,000 (55%)
+     - PayMaya: ₱12,000 (27%)
+     - Bank Transfer: ₱8,200 (18%)
+   - [Export to PDF] [Export to Excel]
+
+2. Monthly Revenue Report
+   - Month: [Select Month/Year]
+   - Total Revenue: ₱850,000
+   - Total Transactions: 234
+   - Average Transaction: ₱3,632
+   - Breakdown by Type: [Chart]
+   - Breakdown by Payment Method: [Chart]
+   - Top Revenue Days: [Table]
+   - [Export to PDF] [Export to Excel]
+
+3. Commission Report
+   - Date Range: [Select Range]
+   - Total Transactions: 45
+   - Total Sale Value: ₱4,500,000
+   - Total Commission: ₱540,000
+   - Average Commission Rate: 12%
+   - Commission Breakdown by Category: [Table]
+   - [Export to PDF] [Export to Excel]
+
+4. Token Sales Report
+   - Date Range: [Select Range]
+   - Total Tokens Sold: 12,500
+   - Total Revenue: ₱18,750
+   - Breakdown by Package: [Table]
+   - Most Popular Package: 100 tokens (65 purchases)
+   - Average Purchase Size: 125 tokens
+   - [Export to PDF] [Export to Excel]
+
+5. Refund Report
+   - Date Range: [Select Range]
+   - Total Refunds: 12
+   - Total Refunded Amount: ₱95,000
+   - Refund Reasons Breakdown: [Chart]
+   - Average Processing Time: 1.5 days
+   - [Export to PDF] [Export to Excel]
+
+6. Financial Reconciliation Report
+   - Date Range: [Select Range]
+   - Expected Revenue: ₱850,000
+   - Verified Payments: ₱842,000
+   - Pending Verification: ₱8,000
+   - Refunded: ₱5,000
+   - Net Revenue: ₱837,000
+   - Discrepancy: ₱13,000 (flagged for review)
+   - [Export to PDF] [Export to Excel]
+
+Export Formats:
+- PDF (formatted report with charts)
+- Excel (raw data with pivot tables)
+- CSV (for external analysis)
+
+Scheduled Reports:
+- Daily Revenue Summary (emailed at 6 AM)
+- Weekly Performance Report (every Monday)
+- Monthly Financial Report (1st of each month)
+
+================================================================================
+SECTION 6: USER MANAGEMENT
+================================================================================
+
+User Management Dashboard:
+--------------------------------------------------------------------------------
+Filters:
+- User Type: All / Buyer / Seller / Both
+- Account Status: All / Approved / Pending / Rejected / Suspended
+- Registration Date: All / Today / Last 7 days / Last 30 days / Custom
+- Activity: All / Active (logged in last 30 days) / Inactive
+- Sort: Newest / Oldest / Most Active / Alphabetical
+
+Display Columns:
+- User ID
+- Username
+- Full Name
+- Email
+- Phone Number (masked)
+- User Type (Buyer / Seller / Both)
+- Account Status (Approved / Pending / Suspended)
+- Registration Date
+- Last Login
+- Total Bids (if buyer)
+- Total Listings (if seller)
+- Actions: [View Profile] [Edit] [Suspend] [Delete]
+
+User Profile Detail Page:
+--------------------------------------------------------------------------------
+Tabs: Overview | Activity | Transactions | KYC Documents | Audit Log
+
+Tab 1 - Overview:
+Personal Information:
+- Full Name: Juan Dela Cruz
+- Username: juandc123
+- Email: juan@example.com
+- Phone: +63 917 123 4567
+- Date of Birth: 1990-05-15 (35 years old)
+- Sex: Male
+- Address: [Full address from normalized table]
+
+Account Information:
+- User ID: user_123
+- User Type: Seller
+- Account Status: Approved
+- Registration Date: 2025-01-15
+- Last Login: 2025-12-07 14:30:00
+- Email Verified: Yes
+- Phone Verified: Yes
+
+KYC Status:
+- Status: Approved
+- Submitted: 2025-01-15 10:00:00
+- Reviewed By: admin_456 (Maria Santos)
+- Reviewed Date: 2025-01-15 14:30:00
+- Review Notes: [View]
+
+Token Balance:
+- Current Balance: 150 tokens
+- Total Purchased: 500 tokens
+- Total Consumed: 350 tokens
+- [Add Tokens] [Deduct Tokens] (admin override)
+
+Admin Actions:
+- [Edit Profile] (change username, email, phone)
+- [Reset Password] (send reset email)
+- [Verify Email] (manual override)
+- [Verify Phone] (manual override)
+- [Suspend Account] (requires reason)
+- [Delete Account] (requires confirmation + reason)
+- [Impersonate User] (for support, logs action)
+
+Tab 2 - Activity:
+Recent Activity Log (last 50 actions):
+```
+[2025-12-07 14:30] Logged in from IP 192.168.1.1
+[2025-12-07 14:32] Viewed auction auct_456
+[2025-12-07 14:35] Placed bid ₱820,000 on auct_456
+[2025-12-07 14:40] Added auction auct_789 to watchlist
+[2025-12-07 14:45] Logged out
+...
+```
+
+Activity Stats:
+- Total Logins: 45
+- Average Session Duration: 25 minutes
+- Most Active Time: 2:00 PM - 4:00 PM
+- Devices Used: 2 (Mobile: Android, Desktop: Windows)
+- IP Addresses: 3 unique IPs
+
+Tab 3 - Transactions:
+Purchases (if buyer):
+- Total Purchases: 3
+- Total Spent: ₱2,450,000
+- Average Purchase: ₱816,667
+- Pending Transactions: 1
+
+Sales (if seller):
+- Total Sales: 7
+- Total Revenue: ₱4,200,000
+- Average Sale: ₱600,000
+- Active Listings: 2
+
+Transaction History Table:
+Columns:
+- Transaction ID
+- Type (Buy / Sell)
+- Auction (vehicle)
+- Amount
+- Status (Pending / In Progress / Completed / Cancelled)
+- Created Date
+- Actions: [View Details]
+
+Tab 4 - KYC Documents:
+Display all submitted documents (encrypted):
+- National ID Front/Back [View] (decrypt on demand, logs access)
+- Secondary ID Front/Back [View]
+- Proof of Address [View]
+- Selfie with ID [View]
+
+Download Options:
+- [Download All Documents] (ZIP file, encrypted)
+
+Resubmission History:
+- Initial Submission: 2025-01-15 (Approved)
+- Resubmission 1: None
+
+Tab 5 - Audit Log:
+All admin actions on this user:
+```
+[2025-01-15 14:30] Admin admin_456 approved KYC
+[2025-02-20 10:00] Admin admin_789 added 50 tokens (compensation for bug)
+[2025-03-10 16:00] Admin admin_456 viewed KYC documents
+...
+```
+
+Filters:
+- Action Type: All / KYC Review / Profile Edit / Token Adjustment / Login Activity
+- Admin: All / Specific Admin
+- Date Range: Last 7 days / Last 30 days / All Time
+
+Bulk User Operations:
+--------------------------------------------------------------------------------
+Select multiple users (checkboxes):
+- [Bulk Suspend] (requires reason)
+- [Bulk Export to CSV]
+- [Bulk Email] (send announcement)
+- [Bulk Token Grant] (promotional tokens)
+
+User Statistics:
+--------------------------------------------------------------------------------
+Charts:
+1. User Growth (line chart, last 12 months)
+2. User Type Distribution (pie chart)
+3. Account Status Breakdown (donut chart)
+4. Active vs Inactive Users (bar chart)
+5. Top Users by Bids (table, top 10)
+6. Top Sellers by Revenue (table, top 10)
+
+================================================================================
+SECTION 7: SUPPORT TICKET MANAGEMENT
+================================================================================
+
+Support Dashboard:
+--------------------------------------------------------------------------------
+Summary Cards:
+1. Open Tickets: 34
+2. Unassigned: 12
+3. High Priority: 5
+4. Avg Response Time: 2.5 hours
+5. Avg Resolution Time: 18 hours
+
+Filters:
+- Status: All / Open / In Progress / Resolved / Closed
+- Priority: All / Low / Medium / High / Critical
+- Category: All / Account / Payment / Auction / Technical / Other
+- Assigned To: All / Me / Unassigned / Specific Admin
+- Date Range: Today / Last 7 days / Last 30 days / Custom
+
+Display Columns:
+- Ticket ID
+- Subject
+- User (Name + ID)
+- Category
+- Priority
+- Status
+- Assigned To
+- Created Date
+- Last Updated
+- Response SLA (⚠️ if breached)
+- Actions: [View] [Assign to Me]
+
+Ticket Detail Page:
+--------------------------------------------------------------------------------
+Ticket Information:
+- Ticket ID: ticket_123
+- Subject: "Cannot upload proof of payment"
+- Category: Payment
+- Priority: High
+- Status: Open
+- Created: 2025-12-07 10:00:00 (5 hours ago)
+- Last Updated: 2025-12-07 12:30:00
+
+User Information:
+- Name: Maria Santos (user_456)
+- Email: maria@example.com
+- Phone: +63 917 987 6543
+- Account Status: Approved
+- [View Full Profile]
+
+Conversation Thread:
+```
+[10:00] Maria Santos (User):
+"Hi, I'm trying to upload my proof of payment for auction auct_789, but I keep getting an error message 'File too large'. I tried compressing the image but it still won't upload. Please help!"
+
+Attachments: screenshot_error.png
+
+[12:30] Admin Juan (Support):
+"Hello Maria, thank you for reaching out. I can see the issue. Our system has a 5MB file size limit. Can you try compressing your image to under 5MB? You can use tools like TinyPNG or reduce the image resolution. Let me know if you need further assistance."
+
+[13:15] Maria Santos (User):
+"I already tried that, it's still not working. Can you check if there's a technical issue?"
+
+[Status changed to: In Progress]
+[Assigned to: Tech Support Team]
+```
+
+Admin Reply Form:
+- [Text area for response]
+- [Attach File] (for screenshots, guides)
+- [Use Template] (predefined responses)
+- Priority:
+  □ Mark as High Priority
+  □ Escalate to Technical Team
+- Internal Note: [Text area] (not visible to user)
+- Actions:
+  [Send Reply] [Send & Close Ticket] [Save as Draft]
+
+Ticket Actions:
+- [Assign to Me]
+- [Assign to Another Admin] (dropdown)
+- [Change Priority] (Low / Medium / High / Critical)
+- [Change Category] (dropdown)
+- [Change Status] (Open / In Progress / Resolved / Closed)
+- [Merge with Another Ticket] (if duplicate)
+- [Escalate to Technical Team]
+- [Close Ticket]
+
+Ticket Templates (Predefined Responses):
+- "Password Reset Instructions"
+- "KYC Approval Process"
+- "Payment Verification Steps"
+- "Auction Rules Explanation"
+- "Token Purchase Guide"
+- [Create New Template]
+
+Ticket Attachments:
+- User Attachments: [View All]
+- Admin Attachments: [Upload Guide/Screenshot]
+
+Internal Notes (Admin Only):
+```
+[12:35] Admin Juan: "Checked logs, user's file is 12MB. System correctly rejecting. Need to guide user on compression."
+[13:20] Admin Juan: "Escalated to tech team to investigate if there's a bug in the compression process."
+```
+
+SLA Tracking:
+- First Response SLA: 1 hour (Met ✓)
+- Resolution SLA: 24 hours (⚠️ 5 hours remaining)
+
+Post-Resolution Survey:
+- Auto-send survey when ticket is closed
+- Rating: 1-5 stars
+- Feedback: Text area
+
+Support Analytics:
+--------------------------------------------------------------------------------
+Charts:
+1. Ticket Volume (line chart, last 30 days)
+2. Tickets by Category (pie chart)
+3. Tickets by Priority (bar chart)
+4. Avg Response Time Trend (line chart)
+5. Avg Resolution Time Trend (line chart)
+6. Customer Satisfaction Score (gauge, 1-5 stars)
+
+Tables:
+1. Top Issues (most frequent categories)
+2. Admin Performance (response time, resolution time, tickets handled)
+3. Unresolved Tickets (> 48 hours)
+
+================================================================================
+SECTION 8: CONTENT MODERATION
+================================================================================
+
+Listing Moderation Queue:
+--------------------------------------------------------------------------------
+Filters:
+- Status: All / Pending Review / Approved / Flagged / Rejected
+- Category: All / Sedan / SUV / Pickup / Motorcycle / etc.
+- Reason: All / Inappropriate Content / Misleading Info / Spam
+- Date Range: Today / Last 7 days / Last 30 days / Custom
+
+Display Columns:
+- Listing ID
+- Vehicle (thumbnail + title)
+- Seller (Name + ID)
+- Category
+- Status
+- Flagged Count (# of reports)
+- Reason (if flagged)
+- Created Date
+- Actions: [Review] [Approve] [Reject]
+
+Listing Review Page:
+--------------------------------------------------------------------------------
+Layout: Split screen (Left: Listing Preview, Right: Moderation Form)
+
+Left Panel - Listing Preview:
+- Photos (gallery, 12 images max)
+- Title: 2020 Toyota Camry LE
+- Description: [Full text]
+- Price: Starting ₱500,000, Reserve ₱750,000
+- Features: [Bulleted list]
+- Vehicle Details:
+  - Year: 2020
+  - Make: Toyota
+  - Model: Camry
+  - Trim: LE
+  - Mileage: 45,000 km
+  - Transmission: Automatic
+  - Fuel Type: Gasoline
+  - Color: White
+
+Right Panel - Moderation Form:
+Content Checklist:
+□ Photos are clear and show the actual vehicle
+□ No watermarks or third-party logos
+□ Description is accurate and not misleading
+□ No profanity or inappropriate language
+□ Pricing is reasonable (not spam)
+□ Vehicle details match photos
+□ No contact information in description (against rules)
+□ No duplicate listing
+
+AI Detection Results (if enabled):
+- Inappropriate Content: None detected ✓
+- Duplicate Detection: No duplicates found ✓
+- Price Anomaly: Price is within expected range ✓
+
+Flag Reports (if flagged by users):
+```
+[Report 1] User user_789: "Photos show different cars"
+[Report 2] User user_456: "Seller is asking for off-platform payment in description"
+```
+
+Admin Decision:
+○ Approve - Listing goes live
+○ Request Changes - Ask seller to edit specific parts
+○ Reject - Remove listing (requires reason)
+
+Required Changes (if Request Changes):
+□ Update photos (describe issue)
+□ Edit description (specify violations)
+□ Correct vehicle details
+□ Adjust pricing
+
+Rejection Reasons:
+□ Inappropriate or offensive content
+□ Misleading information
+□ Spam or duplicate listing
+□ Violates platform rules (specify)
+□ Other: [Text field]
+
+Admin Notes:
+[Text area]
+
+Actions:
+[Approve Listing] [Request Changes] [Reject Listing]
+
+================================================================================
+SECTION 9: DISPUTE RESOLUTION
+================================================================================
+
+Dispute Dashboard:
+--------------------------------------------------------------------------------
+Summary:
+- Active Disputes: 8
+- Pending Admin Review: 3
+- Resolved This Month: 15
+
+Filters:
+- Status: All / Open / Under Review / Resolved / Escalated
+- Type: All / Payment / Delivery / Vehicle Condition / Other
+- Severity: All / Low / Medium / High
+- Date Range: Last 7 days / Last 30 days / Custom
+
+Display Columns:
+- Dispute ID
+- Transaction ID
+- Buyer (Name + ID)
+- Seller (Name + ID)
+- Type
+- Severity
+- Status
+- Filed Date
+- Assigned To
+- Actions: [Review]
+
+Dispute Detail Page:
+--------------------------------------------------------------------------------
+Dispute Information:
+- Dispute ID: dispute_123
+- Transaction ID: trans_456
+- Auction: 2020 Toyota Camry (auct_789)
+- Filed By: Maria Santos (Buyer, user_456)
+- Against: Juan Dela Cruz (Seller, user_123)
+- Type: Vehicle Condition
+- Severity: High
+- Filed Date: 2025-12-07 10:00:00
+
+Dispute Description (by buyer):
+"The car I received has significant undisclosed damage to the rear bumper. The auction photos did not show this damage, and the seller did not mention it in the description. I feel misled."
+
+Attachments:
+- photo_damage1.jpg
+- photo_damage2.jpg
+
+Seller Response:
+"I was not aware of this damage. The car was in perfect condition when I listed it. The damage may have occurred during delivery. I am willing to work with the buyer to resolve this."
+
+Evidence Review:
+- Auction Photos: [View Gallery]
+- Delivery Photos: [View] (if available)
+- Buyer Inspection Report: [View PDF]
+- Seller Documents: [View]
+
+Chat Log (between buyer and seller):
+```
+[2025-12-05 14:00] Buyer: "Hi, I noticed some damage when the car arrived."
+[2025-12-05 14:30] Seller: "I'm sorry to hear that. Can you send me photos?"
+[2025-12-05 15:00] Buyer: "Here are the photos [attached]"
+[2025-12-05 16:00] Seller: "I don't recall this damage. Let me check with the delivery company."
+...
+```
+
+Admin Review Form:
+Findings:
+[Text area - Admin's assessment of the situation]
+
+Decision:
+○ Favor Buyer - Full refund + seller penalty
+○ Favor Seller - No refund, dispute closed
+○ Partial Resolution - Partial refund or compensation
+○ Escalate - Requires legal team review
+
+If Partial Resolution:
+- Refund Amount: ₱[Input] (partial refund)
+- Compensation: [Text] (e.g., "Seller pays for repair")
+
+Actions:
+- [Issue Full Refund to Buyer]
+- [Issue Partial Refund]
+- [Close Dispute (No Action)]
+- [Escalate to Legal Team]
+
+Post-Resolution:
+- Notify buyer via email
+- Notify seller via email
+- Update transaction status
+- Log resolution in audit trail
+
+Dispute Analytics:
+- Total Disputes This Month: 15
+- Resolution Rate: 87%
+- Average Resolution Time: 3.5 days
+- Most Common Type: Vehicle Condition (45%)
+
+================================================================================
+SECTION 10: SYSTEM SETTINGS & CONFIGURATION
+================================================================================
+
+System Settings (Super Admin Only):
+--------------------------------------------------------------------------------
+
+1. Platform Configuration
+   - Platform Name: "AutoBid Philippines"
+   - Platform Commission Rate: 12% (editable)
+   - Currency: PHP (₱)
+   - Timezone: Asia/Manila
+   - Language: English / Filipino
+
+2. Auction Settings
+   - Default Auction Duration: 7 days
+   - Maximum Auction Duration: 30 days
+   - Minimum Bid Increment: ₱10,000 (editable per auction)
+   - Snipe Guard Default: 30 seconds
+   - Auto-Bid Enabled: Yes
+   - Private Auctions Enabled: Yes
+   - Rebid Option Enabled: Yes
+
+3. Payment Settings
+   - Accepted Payment Methods:
+     ✓ GCash
+     ✓ PayMaya
+     ✓ Bank Transfer
+     ✓ Credit/Debit Card
+   - Payment Verification Required: Yes
+   - Auto-Verify Threshold: ₱0 (all require manual verification)
+   - Refund Processing SLA: 3 business days
+
+4. Token Settings
+   - Base Token Price: ₱1.50
+   - Listing Token Cost: 5 tokens
+   - Bid Token Cost: 1 token per bid
+   - Auto-Deduct Tokens: Yes
+
+5. KYC Settings
+   - KYC Required for Bidding: Yes
+   - KYC Required for Listing: Yes
+   - Auto-Approve KYC: No
+   - ID Photo Max Size: 5 MB
+   - Document Retention Period: 5 years
+
+6. Notification Settings
+   - Email Notifications: Enabled
+   - SMS Notifications: Enabled
+   - Push Notifications: Enabled
+   - Admin Alerts (Final 2 Min): Enabled
+
+7. Storage Settings
+   - Max Photo Size: 10 MB
+   - Max Document Size: 5 MB
+   - Max Photos per Listing: 12
+   - Storage Provider: Supabase Storage
+
+8. Security Settings
+   - Session Timeout: 30 minutes
+   - Password Min Length: 8 characters
+   - Require 2FA for Admins: Yes
+   - Encryption Enabled: Yes
+
+9. Email Templates
+   - KYC Approval Email
+   - KYC Rejection Email
+   - Auction Win Notification
+   - Payment Confirmation
+   - Refund Processed
+   [Edit Templates]
+
+10. Maintenance Mode
+    - Enable Maintenance Mode: [Toggle]
+    - Maintenance Message: [Text area]
+    - Scheduled Maintenance: [Date/Time picker]
+
+================================================================================
+SECTION 11: AUDIT LOG & ACTIVITY TRACKING
+================================================================================
+
+Audit Log Dashboard (Super Admin Only):
+--------------------------------------------------------------------------------
+Purpose: Track ALL admin actions for compliance and security
+
+Filters:
+- Admin: All / Specific Admin
+- Action Type: All / KYC Review / User Edit / Payment Verification / Auction Action / System Config / Login/Logout
+- Date Range: Today / Last 7 days / Last 30 days / Custom
+- IP Address: [Search]
+- Resource Type: User / Auction / Payment / Transaction / System
+- Result: All / Success / Failed
+
+Display Columns:
+- Timestamp
+- Admin (Name + ID)
+- Action (e.g., "Approved KYC for user_123")
+- Resource Type (User / Auction / Payment)
+- Resource ID
+- IP Address
+- User Agent (browser/device)
+- Result (Success / Failed)
+- Details (expandable)
+
+Audit Log Detail:
+```
+Timestamp: 2025-12-07 14:30:00
+Admin: admin_456 (Maria Santos)
+Action: Approved KYC
+Resource: User (user_123 - Juan Dela Cruz)
+IP Address: 192.168.1.100
+User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0
+Result: Success
+
+Details:
+- Previous Status: Pending
+- New Status: Approved
+- Review Notes: "All documents verified, face match confirmed."
+- Documents Viewed: National ID, Secondary ID, Proof of Address, Selfie
+```
+
+Admin Activity Report:
+- Most Active Admin: [Name] (250 actions this month)
+- Most Common Action: Payment Verification (45%)
+- Failed Login Attempts: 3 (last 30 days)
+- Suspicious Activity: 0 flagged
+
+Export Audit Log:
+- [Export to CSV] (for compliance audits)
+- [Export to PDF] (formatted report)
+
+Retention:
+- Audit logs retained for 7 years (compliance requirement)
+
+================================================================================
+SECTION 12: ADMIN NOTIFICATIONS & ALERTS
+================================================================================
+
+Admin Notification Center:
+--------------------------------------------------------------------------------
+Notification Types:
+
+1. Real-Time Alerts (Push + In-App)
+   🔴 Auction ending in 2 minutes: auct_456
+   🟠 Pending KYC > 50 submissions
+   🟠 Payment verification pending > 24 hours: pay_123
+   🔴 Dispute filed: dispute_789
+   🟡 Support ticket unresolved > 48 hours: ticket_456
+
+2. Daily Digest (Email at 8 AM)
+   - New user registrations: 15
+   - Pending KYC reviews: 23
+   - New support tickets: 8
+   - Revenue yesterday: ₱45,200
+   - Active auctions: 34
+
+3. Weekly Summary (Email every Monday)
+   - User growth: +120 new users
+   - Auctions completed: 45
+   - Total revenue: ₱850,000
+   - KYC approval rate: 87%
+   - Support ticket resolution rate: 92%
+
+Notification Preferences (Per Admin):
+- Email Notifications: [Toggle]
+- SMS Notifications: [Toggle]
+- Push Notifications: [Toggle]
+- Daily Digest: [Toggle]
+- Weekly Summary: [Toggle]
+
+Alert Thresholds (Customizable):
+- Pending KYC Alert Threshold: 50 (editable)
+- Payment Verification Alert: 24 hours (editable)
+- Support Ticket Alert: 48 hours (editable)
+
+================================================================================
+END OF ADMIN SYSTEM REQUIREMENTS
+================================================================================
+
+NEXT STEPS FOR IMPLEMENTATION:
+1. Update database schema with admin tables (roles, permissions, audit log)
+2. Create admin authentication & role-based access control (RBAC)
+3. Build admin dashboard UI (Flutter web or separate admin portal)
+4. Implement real-time monitoring with Supabase Realtime
+5. Integrate payment gateway APIs for verification
+6. Set up notification system (email, SMS, push)
+7. Create reporting engine for financial & operational reports
+8. Implement audit logging for all admin actions
