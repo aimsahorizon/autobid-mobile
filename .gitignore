@@ -49,5 +49,6 @@ app.*.map.json
 
 # Others
 z_ignore_dumps/
+z_docs_files/
 
 node_modules/
