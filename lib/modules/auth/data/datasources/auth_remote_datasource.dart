@@ -66,46 +66,30 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // Step 1: Look up user by username and check account status
       final userRecord = await _supabase
           .from('users')
-          .select('email, phone_number, status, account_status, display_name')
+          .select('email, phone_number, is_active, is_verified, display_name')
           .eq('username', username)
           .maybeSingle();
 
       // Check if user exists
       if (userRecord == null) {
-        throw AuthException('Invalid username or passwords');
-      }
-
-      // Check if account is approved
-      final status = userRecord['status'] as String?;
-      if (status != 'approved') {
-        if (status == 'pending') {
-          throw AuthException(
-            'Your account is pending approval. Please wait for admin verification.',
-          );
-        } else if (status == 'rejected') {
-          throw AuthException(
-            'Your account has been rejected. Please contact support.',
-          );
-        } else {
-          throw AuthException('Your account is not approved yet.');
-        }
-      }
-
-      // Check if account is active
-      final accountStatus = userRecord['account_status'] as String?;
-      if (accountStatus == 'suspended') {
-        throw AuthException(
-          'Your account has been suspended. Please contact support.',
-        );
-      } else if (accountStatus == 'banned') {
-        throw AuthException(
-          'Your account has been banned. Please contact support.',
-        );
+        throw AuthException('Invalid username or password');
       }
 
       final emailToUse = userRecord['email'] as String;
       final phoneNumber = userRecord['phone_number'] as String?;
       final displayName = userRecord['display_name'] as String?;
+      final isActive = userRecord['is_active'] as bool? ?? true;
+
+      // Check if account is active (not suspended/banned)
+      if (!isActive) {
+        throw AuthException(
+          'Your account has been suspended or deactivated. Please contact support.',
+        );
+      }
+
+      // Note: is_verified is checked separately if needed for feature gating
+      // Users can login even if KYC not approved (is_verified = false)
+      // but may have limited features until KYC is approved
 
       // Step 2: Authenticate with Supabase Auth using email and password
       final response = await _supabase.auth.signInWithPassword(
@@ -410,9 +394,42 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw Exception('User not authenticated. Please verify OTP first.');
       }
 
-      // Insert KYC registration data into users table
-      // kyc_status will default to 'pending' and await admin approval
-      await _supabase.from('users').insert(kycData.toJson());
+      // Use RPC function to atomically insert across users, user_addresses, and kyc_documents tables
+      // This handles normalized 3-table structure properly
+      final result = await _supabase.rpc('register_user_with_kyc', params: {
+        'p_user_id': kycData.id,
+        'p_email': kycData.email,
+        'p_username': kycData.username,
+        'p_phone_number': kycData.phoneNumber,
+        'p_first_name': kycData.firstName,
+        'p_last_name': kycData.lastName,
+        'p_middle_name': kycData.middleName ?? '', // Handle null middle name
+        'p_date_of_birth': kycData.dateOfBirth.toIso8601String().split('T')[0],
+        'p_sex': kycData.sex.toLowerCase(), // Convert 'M'/'F' to 'male'/'female'
+        'p_region': kycData.region,
+        'p_province': kycData.province,
+        'p_city': kycData.city,
+        'p_barangay': kycData.barangay,
+        'p_street_address': kycData.streetAddress,
+        'p_zipcode': kycData.zipcode,
+        'p_national_id_number': kycData.nationalIdNumber,
+        'p_national_id_front_url': kycData.nationalIdFrontUrl,
+        'p_national_id_back_url': kycData.nationalIdBackUrl,
+        'p_secondary_gov_id_type': kycData.secondaryGovIdType.toLowerCase().replaceAll(' ', '_'), // Normalize format
+        'p_secondary_gov_id_number': kycData.secondaryGovIdNumber,
+        'p_secondary_gov_id_front_url': kycData.secondaryGovIdFrontUrl,
+        'p_secondary_gov_id_back_url': kycData.secondaryGovIdBackUrl,
+        'p_proof_of_address_type': kycData.proofOfAddressType.toLowerCase().replaceAll(' ', '_'), // Normalize format
+        'p_proof_of_address_url': kycData.proofOfAddressUrl,
+        'p_selfie_with_id_url': kycData.selfieWithIdUrl,
+        'p_accepted_terms_at': kycData.acceptedTermsAt.toIso8601String(),
+        'p_accepted_privacy_at': kycData.acceptedPrivacyAt.toIso8601String(),
+      });
+
+      // Check if registration was successful
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to submit KYC registration');
+      }
     } on PostgrestException catch (e) {
       // Handle database errors (e.g., duplicate username, constraint violations)
       throw Exception('Failed to submit KYC registration: ${e.message}');
