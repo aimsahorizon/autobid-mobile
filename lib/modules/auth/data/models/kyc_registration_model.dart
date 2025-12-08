@@ -107,7 +107,9 @@ class KycRegistrationModel extends KycRegistrationEntity {
       'first_name': firstName,
       'last_name': lastName,
       'middle_name': middleName,
-      'date_of_birth': dateOfBirth.toIso8601String().split('T')[0], // YYYY-MM-DD format
+      'date_of_birth': dateOfBirth.toIso8601String().split(
+        'T',
+      )[0], // YYYY-MM-DD format
       'sex': sex,
       'region': region,
       'province': province,
@@ -132,7 +134,6 @@ class KycRegistrationModel extends KycRegistrationEntity {
       'reviewed_by': reviewedBy,
       'reviewed_at': reviewedAt?.toIso8601String(),
       'rejection_reason': rejectionReason,
-      'admin_notes': adminNotes,
       'submitted_at': submittedAt?.toIso8601String(),
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -198,8 +199,10 @@ class KycRegistrationModel extends KycRegistrationEntity {
       nationalIdBackUrl: nationalIdBackUrl ?? this.nationalIdBackUrl,
       secondaryGovIdType: secondaryGovIdType ?? this.secondaryGovIdType,
       secondaryGovIdNumber: secondaryGovIdNumber ?? this.secondaryGovIdNumber,
-      secondaryGovIdFrontUrl: secondaryGovIdFrontUrl ?? this.secondaryGovIdFrontUrl,
-      secondaryGovIdBackUrl: secondaryGovIdBackUrl ?? this.secondaryGovIdBackUrl,
+      secondaryGovIdFrontUrl:
+          secondaryGovIdFrontUrl ?? this.secondaryGovIdFrontUrl,
+      secondaryGovIdBackUrl:
+          secondaryGovIdBackUrl ?? this.secondaryGovIdBackUrl,
       proofOfAddressType: proofOfAddressType ?? this.proofOfAddressType,
       proofOfAddressUrl: proofOfAddressUrl ?? this.proofOfAddressUrl,
       selfieWithIdUrl: selfieWithIdUrl ?? this.selfieWithIdUrl,
