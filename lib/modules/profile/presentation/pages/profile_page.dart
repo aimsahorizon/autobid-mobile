@@ -5,7 +5,7 @@ import '../../../../app/core/controllers/theme_controller.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../../../../app/core/utils/dev_admin_auth.dart';
 import '../../../admin/admin_module.dart';
-import '../../../admin/presentation/pages/admin_dashboard_page.dart';
+import '../../../admin/presentation/pages/admin_main_page.dart';
 import '../controllers/pricing_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../widgets/pricing_section.dart';
@@ -222,7 +222,7 @@ class _ProfilePageState extends State<ProfilePage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => AdminDashboardPage(
+          builder: (context) => AdminMainPage(
             controller: AdminModule.instance.controller,
           ),
         ),

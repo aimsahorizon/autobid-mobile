@@ -61,22 +61,29 @@ class AdminSupabaseDataSource {
   /// Get all pending listings for review
   Future<List<AdminListingEntity>> getPendingListings() async {
     try {
+      // First get the pending_approval status ID
+      final pendingStatusId = await _getStatusId('pending_approval');
+
+      // Query with status_id directly instead of JOIN filter
       final response = await _supabase
           .from('auctions')
           .select('''
             *,
-            auction_statuses!inner(status_name),
+            auction_statuses(status_name),
             auction_vehicles(*),
             auction_photos(photo_url, is_primary),
             users!auctions_seller_id_fkey(full_name, email)
           ''')
-          .eq('auction_statuses.status_name', 'pending_approval')
+          .eq('status_id', pendingStatusId)
           .order('created_at', ascending: true);
+
+      print('DEBUG: Pending listings response: ${(response as List).length} items');
 
       return (response as List)
           .map((json) => _parseAdminListing(json))
           .toList();
     } catch (e) {
+      print('DEBUG: Failed to fetch pending listings: $e');
       throw Exception('Failed to fetch pending listings: $e');
     }
   }
@@ -169,6 +176,20 @@ class AdminSupabaseDataSource {
         .single();
 
     return response['id'] as String;
+  }
+
+  /// Get all users
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('*')
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      throw Exception('Failed to fetch users: $e');
+    }
   }
 
   /// Helper: Parse admin listing from JSON

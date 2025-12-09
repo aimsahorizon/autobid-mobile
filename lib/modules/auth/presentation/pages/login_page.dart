@@ -5,7 +5,7 @@ import '../../../../app/core/utils/dev_admin_auth.dart';
 import '../../auth_module.dart';
 import '../../auth_routes.dart';
 import '../../../admin/admin_module.dart';
-import '../../../admin/presentation/pages/admin_dashboard_page.dart';
+import '../../../admin/presentation/pages/admin_main_page.dart';
 import '../../../guest/guest_routes.dart';
 import '../controllers/login_controller.dart';
 import '../controllers/login_otp_controller.dart';
@@ -305,7 +305,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => AdminDashboardPage(
+          builder: (context) => AdminMainPage(
             controller: AdminModule.instance.controller,
           ),
         ),

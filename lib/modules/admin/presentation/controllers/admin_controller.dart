@@ -9,6 +9,7 @@ class AdminController extends ChangeNotifier {
   AdminStatsEntity? _stats;
   List<AdminListingEntity> _pendingListings = [];
   List<AdminListingEntity> _allListings = [];
+  List<Map<String, dynamic>> _users = [];
   bool _isLoading = false;
   String? _error;
   String _selectedStatus = 'pending_approval';
@@ -19,6 +20,7 @@ class AdminController extends ChangeNotifier {
   AdminStatsEntity? get stats => _stats;
   List<AdminListingEntity> get pendingListings => _pendingListings;
   List<AdminListingEntity> get allListings => _allListings;
+  List<Map<String, dynamic>> get users => _users;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get selectedStatus => _selectedStatus;
@@ -105,6 +107,23 @@ class AdminController extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Load all users
+  Future<void> loadUsers() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _users = await _dataSource.getAllUsers();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

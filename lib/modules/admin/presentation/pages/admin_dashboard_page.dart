@@ -25,25 +25,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.admin_panel_settings, size: 24),
-            SizedBox(width: 8),
-            Text('Admin Dashboard'),
-          ],
-        ),
-        backgroundColor: ColorConstants.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => widget.controller.refresh(),
-          ),
-        ],
-      ),
-      body: ListenableBuilder(
+    return ListenableBuilder(
         listenable: widget.controller,
         builder: (context, _) {
           if (widget.controller.isLoading && widget.controller.stats == null) {
@@ -143,8 +125,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             ),
           );
         },
-      ),
-    );
+      );
   }
 
   Widget _buildStatsGrid(dynamic stats) {
@@ -152,9 +133,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       crossAxisCount: 2,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.5,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 1.6,
       children: [
         _buildStatCard(
           'Pending Review',
@@ -187,21 +168,24 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
+            Icon(icon, size: 28, color: color),
+            const SizedBox(height: 6),
             Text(
               value,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(fontSize: 12, color: ColorConstants.textSecondaryLight),
+              style: TextStyle(fontSize: 11, color: ColorConstants.textSecondaryLight),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
