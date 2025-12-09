@@ -340,17 +340,19 @@ class ListingModel {
   static ListingStatus _parseListingStatus(String status) {
     switch (status.toLowerCase()) {
       case 'active':
+      case 'live':
         return ListingStatus.active;
       case 'pending':
+      case 'pending_approval':
         return ListingStatus.pending;
       case 'approved':
+      case 'scheduled':
         return ListingStatus.approved;
       case 'ended':
-        return ListingStatus.inTransaction;
-      case 'sold':
-        return ListingStatus.sold;
+        return ListingStatus.ended;
       case 'cancelled':
         return ListingStatus.cancelled;
+      case 'draft':
       default:
         return ListingStatus.draft;
     }

@@ -3,6 +3,8 @@ import '../../../modules/browse/browse_module.dart';
 import '../../../modules/browse/presentation/pages/browse_page.dart';
 import '../../../modules/bids/bids_module.dart';
 import '../../../modules/bids/presentation/pages/bids_page.dart';
+import '../../../modules/transactions/transactions_module.dart';
+import '../../../modules/transactions/presentation/pages/transactions_status_page.dart';
 import '../../../modules/lists/lists_module.dart';
 import '../../../modules/lists/presentation/pages/lists_page.dart';
 import '../../../modules/notifications/notifications_module.dart';
@@ -42,6 +44,9 @@ class _HomePageState extends State<HomePage> {
       ),
       BidsPage(
         controller: BidsModule.instance.createBidsController(),
+      ),
+      TransactionsStatusPage(
+        controller: TransactionsModule.instance.createTransactionsStatusController(),
       ),
       ListsPage(controller: ListsModule.controller),
       ProfilePage(

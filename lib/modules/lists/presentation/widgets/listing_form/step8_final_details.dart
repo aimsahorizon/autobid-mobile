@@ -108,8 +108,16 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
         knownIssues: _issuesController.text.isEmpty ? null : _issuesController.text,
         features: _features.isEmpty ? null : _features,
-        startingPrice: _startingPriceController.text.isEmpty ? null : double.tryParse(_startingPriceController.text),
-        reservePrice: _reservePriceController.text.isEmpty ? null : double.tryParse(_reservePriceController.text),
+        startingPrice: () {
+          if (_startingPriceController.text.isEmpty) return null;
+          final parsed = double.tryParse(_startingPriceController.text);
+          return (parsed != null && parsed > 0) ? parsed : null;
+        }(),
+        reservePrice: () {
+          if (_reservePriceController.text.isEmpty) return null;
+          final parsed = double.tryParse(_reservePriceController.text);
+          return (parsed != null && parsed > 0) ? parsed : null;
+        }(),
         auctionEndDate: _auctionEndDate,
       ),
     );
@@ -270,7 +278,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
               lastDate: DateTime.now().add(const Duration(days: 90)),
             );
             if (picked != null) {
-              setState(() => _auctionEndDate = picked);
+              // Set time to end of day (23:59:59) to ensure it's always in the future
+              final endOfDay = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
+              setState(() => _auctionEndDate = endOfDay);
               _updateDraft();
             }
           },

@@ -3,41 +3,34 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/listing_draft_entity.dart';
 import '../../data/datasources/listing_draft_mock_datasource.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
-import '../../../profile/domain/usecases/consume_listing_token_usecase.dart';
 
 /// Controller for managing listing draft creation and editing
 /// Handles 9-step form flow with auto-save and validation
 class ListingDraftController extends ChangeNotifier {
   final ListingDraftMockDataSource? _mockDataSource;
   final ListingSupabaseDataSource? _supabaseDataSource;
-  final ConsumeListingTokenUsecase? _consumeListingTokenUsecase;
   final bool _useMockData;
 
   /// Create controller with mock datasource
   ListingDraftController.mock(
-    ListingDraftMockDataSource dataSource, {
-    ConsumeListingTokenUsecase? consumeListingTokenUsecase,
-  })  : _mockDataSource = dataSource,
+    ListingDraftMockDataSource dataSource,
+  )   : _mockDataSource = dataSource,
         _supabaseDataSource = null,
-        _consumeListingTokenUsecase = consumeListingTokenUsecase,
         _useMockData = true;
 
   /// Create controller with Supabase datasource
+  /// Note: Token consumption now handled atomically inside RPC function
   ListingDraftController.supabase(
-    ListingSupabaseDataSource dataSource, {
-    required ConsumeListingTokenUsecase consumeListingTokenUsecase,
-  })  : _mockDataSource = null,
+    ListingSupabaseDataSource dataSource,
+  )   : _mockDataSource = null,
         _supabaseDataSource = dataSource,
-        _consumeListingTokenUsecase = consumeListingTokenUsecase,
         _useMockData = false;
 
   /// Legacy constructor for backward compatibility
   ListingDraftController(
-    ListingDraftMockDataSource dataSource, {
-    ConsumeListingTokenUsecase? consumeListingTokenUsecase,
-  })  : _mockDataSource = dataSource,
+    ListingDraftMockDataSource dataSource,
+  )   : _mockDataSource = dataSource,
         _supabaseDataSource = null,
-        _consumeListingTokenUsecase = consumeListingTokenUsecase,
         _useMockData = true;
 
   // State
@@ -472,20 +465,20 @@ class ListingDraftController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Consume listing token if usecase is available (Supabase mode)
-      if (_consumeListingTokenUsecase != null && !_useMockData) {
-        final hasToken = await _consumeListingTokenUsecase.call(
-          userId: userId,
-          referenceId: _currentDraft!.id,
-        );
-
-        if (!hasToken) {
-          _errorMessage = 'Insufficient listing tokens. Please purchase more tokens or upgrade your subscription.';
-          return false;
-        }
+      // Save draft one final time before submission to ensure all data is persisted
+      if (!_useMockData && _supabaseDataSource != null) {
+        await _supabaseDataSource.saveDraft(_currentDraft!);
       }
 
-      // Submit the listing
+      // Mark draft as complete before submission (update database directly)
+      if (!_useMockData && _supabaseDataSource != null) {
+        await _supabaseDataSource.markDraftComplete(_currentDraft!.id);
+      }
+
+      // NOTE: Token consumption happens INSIDE the RPC function atomically
+      // This prevents token loss if submission fails after consumption
+
+      // Submit the listing (RPC consumes token atomically)
       if (_useMockData) {
         final success = await _mockDataSource!.submitListing(_currentDraft!.id);
         if (success) {

@@ -94,16 +94,13 @@ enum ListingStatus {
   /// Listing approved by admin, waiting for seller to make live
   approved,
 
-  /// Auction ended, in discussion with winner
-  inTransaction,
+  /// Auction ended, awaiting seller decision (proceed or cancel)
+  ended,
 
   /// Listing saved but not submitted
   draft,
 
-  /// Transaction completed successfully
-  sold,
-
-  /// Listing was cancelled by seller or admin
+  /// Listing was cancelled by seller or admin (pre-auction or post-auction)
   cancelled,
 }
 
@@ -118,12 +115,10 @@ extension ListingStatusExtension on ListingStatus {
         return 'Pending';
       case ListingStatus.approved:
         return 'Approved';
-      case ListingStatus.inTransaction:
-        return 'In Transaction';
+      case ListingStatus.ended:
+        return 'Ended';
       case ListingStatus.draft:
         return 'Draft';
-      case ListingStatus.sold:
-        return 'Sold';
       case ListingStatus.cancelled:
         return 'Cancelled';
     }
@@ -138,12 +133,10 @@ extension ListingStatusExtension on ListingStatus {
         return 'Pending';
       case ListingStatus.approved:
         return 'Approved';
-      case ListingStatus.inTransaction:
-        return 'In Trans.';
+      case ListingStatus.ended:
+        return 'Ended';
       case ListingStatus.draft:
         return 'Drafts';
-      case ListingStatus.sold:
-        return 'Sold';
       case ListingStatus.cancelled:
         return 'Cancelled';
     }

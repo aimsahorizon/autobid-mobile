@@ -1,7 +1,4 @@
 import '../../app/core/config/supabase_config.dart';
-import '../profile/data/datasources/pricing_supabase_datasource.dart';
-import '../profile/data/repositories/pricing_repository_impl.dart';
-import '../profile/domain/usecases/consume_listing_token_usecase.dart';
 import 'presentation/controllers/lists_controller.dart';
 import 'presentation/controllers/listing_draft_controller.dart';
 import 'data/datasources/listing_draft_mock_datasource.dart';
@@ -50,17 +47,9 @@ class ListsModule {
     return TimelineSupabaseDataSource(SupabaseConfig.client);
   }
 
-  /// Create pricing datasource for token consumption
-  static PricingSupabaseDatasource _createPricingSupabaseDataSource() {
-    return PricingSupabaseDatasource(supabase: SupabaseConfig.client);
-  }
-
-  /// Create consume listing token use case
-  static ConsumeListingTokenUsecase _createConsumeListingTokenUsecase() {
-    final datasource = _createPricingSupabaseDataSource();
-    final repository = PricingRepositoryImpl(datasource: datasource);
-    return ConsumeListingTokenUsecase(repository: repository);
-  }
+  // Note: Token consumption moved to RPC function for atomicity
+  // Removed _createConsumeListingTokenUsecase() and _createPricingSupabaseDataSource()
+  // Token is now consumed inside submit_listing_from_draft() RPC atomically
 
   /// Get or create the lists controller (based on useMockData flag)
   static ListsController get controller {
@@ -98,7 +87,6 @@ class ListsModule {
       _listingSupabaseDataSource ??= _createListingSupabaseDataSource();
       return ListingDraftController.supabase(
         _listingSupabaseDataSource!,
-        consumeListingTokenUsecase: _createConsumeListingTokenUsecase(),
       );
     }
   }

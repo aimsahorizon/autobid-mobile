@@ -253,12 +253,10 @@ class _StatusBadge extends StatelessWidget {
         return ColorConstants.warning;
       case ListingStatus.approved:
         return ColorConstants.info;
-      case ListingStatus.inTransaction:
+      case ListingStatus.ended:
         return ColorConstants.primary;
       case ListingStatus.draft:
         return ColorConstants.textSecondaryLight;
-      case ListingStatus.sold:
-        return ColorConstants.info;
       case ListingStatus.cancelled:
         return ColorConstants.error;
     }
@@ -277,11 +275,8 @@ class _PriceInfo extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final hasCurrentBid = listing.currentBid != null;
-    final displayPrice =
-        listing.soldPrice ?? listing.currentBid ?? listing.startingPrice;
-    final priceLabel = listing.status == ListingStatus.sold
-        ? 'Sold'
-        : (hasCurrentBid ? 'Current' : 'Starting');
+    final displayPrice = listing.currentBid ?? listing.startingPrice;
+    final priceLabel = hasCurrentBid ? 'Current' : 'Starting';
 
     return Row(
       children: [
@@ -298,9 +293,7 @@ class _PriceInfo extends StatelessWidget {
           '₱${_formatAmount(displayPrice)}',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.bold,
-            color: listing.status == ListingStatus.sold
-                ? ColorConstants.success
-                : ColorConstants.primary,
+            color: ColorConstants.primary,
             fontSize: compact ? 13 : 14,
           ),
         ),
@@ -405,10 +398,10 @@ class _StatusInfo extends StatelessWidget {
           label: 'Ready to Publish',
           color: ColorConstants.info,
         );
-      case ListingStatus.inTransaction:
+      case ListingStatus.ended:
         return _InfoChip(
-          icon: Icons.handshake_outlined,
-          label: 'With ${listing.winnerName ?? "Buyer"}',
+          icon: Icons.flag_outlined,
+          label: 'Awaiting Decision',
           color: ColorConstants.primary,
         );
       case ListingStatus.draft:
@@ -416,12 +409,6 @@ class _StatusInfo extends StatelessWidget {
           icon: Icons.edit_outlined,
           label: 'Incomplete',
           color: ColorConstants.textSecondaryLight,
-        );
-      case ListingStatus.sold:
-        return _InfoChip(
-          icon: Icons.check_circle,
-          label: 'To ${listing.winnerName ?? "Buyer"}',
-          color: ColorConstants.info,
         );
       case ListingStatus.cancelled:
         return _InfoChip(

@@ -28,9 +28,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
     ListingStatus.active,
     ListingStatus.pending,
     ListingStatus.approved,
-    ListingStatus.inTransaction,
+    ListingStatus.ended,
     ListingStatus.draft,
-    ListingStatus.sold,
     ListingStatus.cancelled,
   ];
 
@@ -68,8 +67,13 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
           sellerId: userId,
         ),
       ),
-    ).then((_) {
+    ).then((result) {
       _controller.loadListings();
+
+      // Navigate to Pending tab if submission was successful
+      if (result is Map && result['success'] == true && result['navigateTo'] == 'pending') {
+        _tabController.animateTo(1); // Index 1 is Pending tab
+      }
     });
   }
 
@@ -265,7 +269,7 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
             controller: _tabController,
             children: _tabs.map((status) {
               final needsController = status == ListingStatus.draft || status == ListingStatus.cancelled;
-              final needsSellerId = needsController || status == ListingStatus.inTransaction;
+              final needsSellerId = needsController;
               final userId = SupabaseConfig.client.auth.currentUser?.id;
 
               return ListingsGrid(
@@ -302,12 +306,10 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return ColorConstants.warning;
       case ListingStatus.approved:
         return ColorConstants.info;
-      case ListingStatus.inTransaction:
+      case ListingStatus.ended:
         return ColorConstants.primary;
       case ListingStatus.draft:
         return ColorConstants.textSecondaryLight;
-      case ListingStatus.sold:
-        return ColorConstants.info;
       case ListingStatus.cancelled:
         return ColorConstants.error;
     }
@@ -321,12 +323,10 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return 'No pending listings';
       case ListingStatus.approved:
         return 'No approved listings';
-      case ListingStatus.inTransaction:
-        return 'No transactions';
+      case ListingStatus.ended:
+        return 'No ended auctions';
       case ListingStatus.draft:
         return 'No drafts';
-      case ListingStatus.sold:
-        return 'No sold listings';
       case ListingStatus.cancelled:
         return 'No cancelled listings';
     }
@@ -335,17 +335,15 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
   String _getEmptySubtitle(ListingStatus status) {
     switch (status) {
       case ListingStatus.active:
-        return 'Your approved listings will appear here';
+        return 'Your live auctions will appear here';
       case ListingStatus.pending:
         return 'Listings awaiting review will appear here';
       case ListingStatus.approved:
         return 'Approved listings ready to publish will appear here';
-      case ListingStatus.inTransaction:
-        return 'Listings in buyer discussion will appear here';
+      case ListingStatus.ended:
+        return 'Auctions awaiting your decision will appear here';
       case ListingStatus.draft:
         return 'Your saved drafts will appear here';
-      case ListingStatus.sold:
-        return 'Successfully sold listings will appear here';
       case ListingStatus.cancelled:
         return 'Cancelled listings will appear here';
     }
@@ -359,12 +357,10 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return Icons.hourglass_empty;
       case ListingStatus.approved:
         return Icons.check_circle_outline;
-      case ListingStatus.inTransaction:
-        return Icons.handshake_outlined;
+      case ListingStatus.ended:
+        return Icons.flag_outlined;
       case ListingStatus.draft:
         return Icons.edit_note;
-      case ListingStatus.sold:
-        return Icons.sell_outlined;
       case ListingStatus.cancelled:
         return Icons.cancel_outlined;
     }

@@ -126,26 +126,15 @@ class ListsController extends ChangeNotifier {
       result[ListingStatus.active] = [];
     }
 
-    // Fetch ended listings (in transaction)
+    // Fetch ended listings (awaiting seller decision)
     try {
       final ended = await _supabaseDataSource!.getEndedListings(sellerId);
-      result[ListingStatus.inTransaction] = ended
+      result[ListingStatus.ended] = ended
           .map((listing) => listing.toSellerListingEntity())
           .toList();
     } catch (e) {
       print('[ListsController] Error loading ended: $e');
-      result[ListingStatus.inTransaction] = [];
-    }
-
-    // Fetch sold listings
-    try {
-      final sold = await _supabaseDataSource!.getSoldListings(sellerId);
-      result[ListingStatus.sold] = sold
-          .map((listing) => listing.toSellerListingEntity())
-          .toList();
-    } catch (e) {
-      print('[ListsController] Error loading sold: $e');
-      result[ListingStatus.sold] = [];
+      result[ListingStatus.ended] = [];
     }
 
     // Fetch cancelled/rejected listings

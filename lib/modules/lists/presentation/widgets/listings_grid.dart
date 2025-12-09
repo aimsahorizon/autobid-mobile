@@ -8,11 +8,8 @@ import '../pages/active_listing_detail_page.dart';
 import '../pages/pending_listing_detail_page.dart';
 import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
-import '../pages/sold_listing_detail_page.dart';
+import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
-import '../../../transactions/presentation/pages/pre_transaction_page.dart';
-import '../../../transactions/presentation/controllers/transaction_controller.dart';
-import '../../../transactions/data/datasources/transaction_mock_datasource.dart';
 
 class ListingsGrid extends StatelessWidget {
   final List<SellerListingEntity> listings;
@@ -80,8 +77,8 @@ class ListingsGrid extends StatelessWidget {
           sellerId: sellerId!,
         );
         break;
-      case ListingStatus.sold:
-        detailPage = SoldListingDetailPage(listing: detailEntity);
+      case ListingStatus.ended:
+        detailPage = EndedListingDetailPage(listing: detailEntity);
         break;
       case ListingStatus.cancelled:
         if (draftController == null || sellerId == null) return;
@@ -89,19 +86,6 @@ class ListingsGrid extends StatelessWidget {
           listing: detailEntity,
           controller: draftController!,
           sellerId: sellerId!,
-        );
-        break;
-      case ListingStatus.inTransaction:
-        if (sellerId == null) return;
-        // Create transaction controller for pre-transaction page
-        final transactionController = TransactionController(
-          TransactionMockDataSource(),
-        );
-        detailPage = PreTransactionPage(
-          controller: transactionController,
-          transactionId: listing.id,
-          userId: sellerId!,
-          userName: 'Seller', // TODO: Get actual user name from auth
         );
         break;
     }

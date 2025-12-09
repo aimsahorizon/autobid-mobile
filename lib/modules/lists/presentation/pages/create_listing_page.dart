@@ -94,7 +94,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
         },
         onViewListing: () {
           Navigator.pop(context); // Close modal
-          Navigator.pop(context, true); // Return true to indicate submission success
+          // Return with 'pending' to navigate to Pending tab
+          Navigator.pop(context, {'success': true, 'navigateTo': 'pending'});
         },
       ),
     );

@@ -1,9 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/datasources/transaction_mock_datasource.dart';
+import 'data/datasources/transaction_supabase_datasource.dart';
 import 'data/datasources/seller_transaction_supabase_datasource.dart';
 import 'data/datasources/chat_supabase_datasource.dart';
 import 'data/datasources/timeline_supabase_datasource.dart';
 import 'presentation/controllers/transaction_controller.dart';
+import 'presentation/controllers/transactions_status_controller.dart';
 import 'presentation/controllers/seller_transaction_demo_controller.dart';
 
 /// Transactions Module - Manages buyer-seller transactions
@@ -20,6 +22,7 @@ class TransactionsModule {
 
   // Datasources
   late final TransactionMockDataSource _mockDataSource;
+  late final TransactionSupabaseDataSource _transactionSupabaseDataSource;
   late final SellerTransactionSupabaseDataSource _sellerTransactionDataSource;
   late final ChatSupabaseDataSource _chatDataSource;
   late final TimelineSupabaseDataSource _timelineDataSource;
@@ -27,6 +30,7 @@ class TransactionsModule {
   /// Initialize module and datasources
   void initialize() {
     _mockDataSource = TransactionMockDataSource();
+    _transactionSupabaseDataSource = TransactionSupabaseDataSource(_supabase);
     _sellerTransactionDataSource = SellerTransactionSupabaseDataSource(_supabase);
     _chatDataSource = ChatSupabaseDataSource(_supabase);
     _timelineDataSource = TimelineSupabaseDataSource(_supabase);
@@ -56,6 +60,16 @@ class TransactionsModule {
       sellerId,
       sellerName,
     );
+  }
+
+  /// Create transactions status controller for status-based transactions
+  /// (in_transaction, sold, deal_failed)
+  TransactionsStatusController createTransactionsStatusController() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      throw Exception('User must be logged in to view transactions');
+    }
+    return TransactionsStatusController(_transactionSupabaseDataSource, userId);
   }
 
   /// Clean up resources
