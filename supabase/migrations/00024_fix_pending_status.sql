@@ -1,12 +1,11 @@
 -- ============================================================================
--- AutoBid Mobile - Migration 00022: Update submit_listing_from_draft RPC
--- Now transfers ALL vehicle details and photos to auction_vehicles and auction_photos
+-- AutoBid Mobile - Migration 00024: Fix Pending Status for New Submissions
+-- Updates RPC to use 'pending_approval' status instead of non-existent 'active'
 -- ============================================================================
 
--- Drop existing function
+-- Drop and recreate the RPC function with correct status
 DROP FUNCTION IF EXISTS submit_listing_from_draft(UUID);
 
--- Recreate with full data transfer
 CREATE OR REPLACE FUNCTION submit_listing_from_draft(draft_id UUID)
 RETURNS JSON AS $$
 DECLARE
@@ -71,7 +70,7 @@ BEGIN
   END IF;
 
   -- ========================================================================
-  -- STEP 1: Insert into auctions table
+  -- STEP 1: Insert into auctions table with 'pending_approval' status
   -- ========================================================================
   INSERT INTO auctions (
     seller_id,
@@ -93,8 +92,8 @@ BEGIN
     COALESCE(v_draft.description, 'No description provided'),
     v_draft.starting_price,
     v_draft.reserve_price,
-    GREATEST(v_draft.starting_price * 0.05, 1000), -- 5% or min 1000
-    GREATEST(v_draft.starting_price * 0.10, 5000), -- 10% or min 5000
+    GREATEST(v_draft.starting_price * 0.05, 1000),
+    GREATEST(v_draft.starting_price * 0.10, 5000),
     NOW(),
     COALESCE(v_draft.auction_end_date, NOW() + INTERVAL '7 days')
   )
@@ -105,51 +104,35 @@ BEGIN
   -- ========================================================================
   INSERT INTO auction_vehicles (
     auction_id,
-    -- Step 1: Basic Info
     brand, model, variant, year,
-    -- Step 2: Mechanical
     engine_type, engine_displacement, cylinder_count, horsepower, torque,
     transmission, fuel_type, drive_type,
-    -- Step 3: Dimensions
     length, width, height, wheelbase, ground_clearance,
     seating_capacity, door_count, fuel_tank_capacity, curb_weight, gross_weight,
-    -- Step 4: Exterior
     exterior_color, paint_type, rim_type, rim_size, tire_size, tire_brand,
-    -- Step 5: Condition
     condition, mileage, previous_owners, has_modifications, modifications_details,
     has_warranty, warranty_details, usage_type,
-    -- Step 6: Documentation
     plate_number, orcr_status, registration_status, registration_expiry,
     province, city_municipality,
-    -- Step 8: Details
     known_issues, features,
-    -- AI Fields
     ai_detected_brand, ai_detected_model, ai_detected_year, ai_detected_color,
     ai_detected_damage, ai_generated_tags, ai_suggested_price_min, ai_suggested_price_max,
     ai_price_confidence, ai_price_factors
   ) VALUES (
     v_auction_id,
-    -- Step 1
     v_draft.brand, v_draft.model, v_draft.variant, v_draft.year,
-    -- Step 2
     v_draft.engine_type, v_draft.engine_displacement, v_draft.cylinder_count,
     v_draft.horsepower, v_draft.torque, v_draft.transmission, v_draft.fuel_type, v_draft.drive_type,
-    -- Step 3
     v_draft.length, v_draft.width, v_draft.height, v_draft.wheelbase, v_draft.ground_clearance,
     v_draft.seating_capacity, v_draft.door_count, v_draft.fuel_tank_capacity,
     v_draft.curb_weight, v_draft.gross_weight,
-    -- Step 4
     v_draft.exterior_color, v_draft.paint_type, v_draft.rim_type, v_draft.rim_size,
     v_draft.tire_size, v_draft.tire_brand,
-    -- Step 5
     v_draft.condition, v_draft.mileage, v_draft.previous_owners, v_draft.has_modifications,
     v_draft.modifications_details, v_draft.has_warranty, v_draft.warranty_details, v_draft.usage_type,
-    -- Step 6
     v_draft.plate_number, v_draft.orcr_status, v_draft.registration_status,
     v_draft.registration_expiry, v_draft.province, v_draft.city_municipality,
-    -- Step 8
     v_draft.known_issues, v_draft.features,
-    -- AI Fields
     v_draft.ai_detected_brand, v_draft.ai_detected_model, v_draft.ai_detected_year,
     v_draft.ai_detected_color, v_draft.ai_detected_damage, v_draft.ai_generated_tags,
     v_draft.ai_suggested_price_min, v_draft.ai_suggested_price_max,
@@ -159,15 +142,11 @@ BEGIN
   -- ========================================================================
   -- STEP 3: Transfer photos from JSONB to auction_photos table
   -- ========================================================================
-  -- photo_urls JSONB format: {"exterior": ["url1", "url2"], "interior": ["url3"]}
   IF v_draft.photo_urls IS NOT NULL THEN
-    -- Loop through each category in the JSONB object
     FOR v_photo_category IN
       SELECT jsonb_object_keys(v_draft.photo_urls)
     LOOP
       v_display_order := 0;
-
-      -- Loop through each URL in the category array
       FOR v_photo_url IN
         SELECT jsonb_array_elements_text(v_draft.photo_urls -> v_photo_category)
       LOOP
@@ -182,28 +161,27 @@ BEGIN
           v_photo_url,
           v_photo_category,
           v_display_order,
-          (v_photo_category = 'exterior' AND v_display_order = 0) -- First exterior photo is primary
+          (v_photo_category = 'exterior' AND v_display_order = 0)
         );
-
         v_display_order := v_display_order + 1;
       END LOOP;
     END LOOP;
   END IF;
 
   -- ========================================================================
-  -- STEP 4: Soft delete the draft (keep for audit trail)
+  -- STEP 4: Soft delete the draft
   -- ========================================================================
   UPDATE listing_drafts
   SET deleted_at = NOW()
   WHERE id = draft_id;
 
   -- ========================================================================
-  -- STEP 5: Return success with auction ID
+  -- STEP 5: Return success
   -- ========================================================================
   RETURN json_build_object(
     'success', TRUE,
     'auction_id', v_auction_id,
-    'message', 'Listing submitted successfully with all vehicle details and photos'
+    'message', 'Listing submitted successfully and is pending admin approval'
   );
 
 EXCEPTION
@@ -225,23 +203,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Grant execute permission
 GRANT EXECUTE ON FUNCTION submit_listing_from_draft TO authenticated;
-
--- ============================================================================
--- Verification Query
--- ============================================================================
-
--- After running, test with:
--- SELECT submit_listing_from_draft('your-draft-id');
-
--- Verify data transfer:
--- SELECT a.title, av.brand, av.model, av.year, av.mileage,
---        COUNT(ap.id) as photo_count
--- FROM auctions a
--- JOIN auction_vehicles av ON a.id = av.auction_id
--- LEFT JOIN auction_photos ap ON a.id = ap.auction_id
--- GROUP BY a.id, a.title, av.brand, av.model, av.year, av.mileage;
 
 -- ============================================================================
 -- END OF MIGRATION
