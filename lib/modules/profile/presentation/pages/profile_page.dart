@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../app/core/config/supabase_config.dart';
 import '../../../../app/core/controllers/theme_controller.dart';
+import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/utils/dev_admin_auth.dart';
+import '../../../admin/admin_module.dart';
+import '../../../admin/presentation/pages/admin_dashboard_page.dart';
 import '../controllers/pricing_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../widgets/pricing_section.dart';
@@ -195,6 +199,44 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _navigateToAdminDashboard() async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Quick admin login
+    final success = await DevAdminAuth.quickAdminLogin();
+
+    if (!mounted) return;
+
+    Navigator.pop(context); // Close loading
+
+    if (success) {
+      // Initialize admin module
+      AdminModule.instance.initialize();
+
+      // Navigate to admin dashboard
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AdminDashboardPage(
+            controller: AdminModule.instance.controller,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to access admin dashboard'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
+  }
+
   void _navigateToSubscription() {
     final userId = SupabaseConfig.client.auth.currentUser?.id;
     if (userId == null) return;
@@ -309,6 +351,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     onPrivacyPolicy: _navigateToPrivacy,
                   ),
                   const SizedBox(height: 16),
+                  // DEV ONLY: Admin Quick Access
+                  _buildAdminQuickAccess(),
+                  const SizedBox(height: 16),
                   SettingsSection(
                     themeController: widget.themeController,
                     onSignOut: _handleSignOut,
@@ -319,6 +364,49 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// DEV ONLY: Admin quick access button
+  Widget _buildAdminQuickAccess() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: ColorConstants.warning.withValues(alpha: 0.1),
+        border: Border.all(color: ColorConstants.warning, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: ColorConstants.warning,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.admin_panel_settings,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        subtitle: Text(
+          'DEV ONLY: Quick Access',
+          style: TextStyle(
+            color: ColorConstants.warning,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: _navigateToAdminDashboard,
       ),
     );
   }

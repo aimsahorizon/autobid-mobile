@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../../../../app/core/controllers/theme_controller.dart';
+import '../../../../app/core/utils/dev_admin_auth.dart';
 import '../../auth_module.dart';
 import '../../auth_routes.dart';
+import '../../../admin/admin_module.dart';
+import '../../../admin/presentation/pages/admin_dashboard_page.dart';
 import '../../../guest/guest_routes.dart';
 import '../controllers/login_controller.dart';
 import '../controllers/login_otp_controller.dart';
@@ -99,6 +102,8 @@ class _LoginPageState extends State<LoginPage> {
                 _buildLoginButton(),
                 const SizedBox(height: 32),
                 _buildGuestModeLink(theme, isDark),
+                const SizedBox(height: 24),
+                _buildAdminQuickAccess(),
                 const SizedBox(height: 24),
                 _buildSignUpPrompt(theme),
               ],
@@ -273,6 +278,86 @@ class _LoginPageState extends State<LoginPage> {
           child: const Text('Sign Up'),
         ),
       ],
+    );
+  }
+
+  /// DEV ONLY: Admin quick access
+  void _navigateToAdminDashboard() async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Quick admin login
+    final success = await DevAdminAuth.quickAdminLogin();
+
+    if (!mounted) return;
+
+    Navigator.pop(context); // Close loading
+
+    if (success) {
+      // Initialize admin module
+      AdminModule.instance.initialize();
+
+      // Navigate to admin dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AdminDashboardPage(
+            controller: AdminModule.instance.controller,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to access admin dashboard'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
+  }
+
+  Widget _buildAdminQuickAccess() {
+    return Container(
+      decoration: BoxDecoration(
+        color: ColorConstants.warning.withValues(alpha: 0.1),
+        border: Border.all(color: ColorConstants.warning, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: ColorConstants.warning,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.admin_panel_settings,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+        subtitle: Text(
+          'DEV ONLY: Quick Access',
+          style: TextStyle(
+            color: ColorConstants.warning,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+        onTap: _navigateToAdminDashboard,
+      ),
     );
   }
 }
