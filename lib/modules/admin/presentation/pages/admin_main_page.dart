@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../controllers/admin_controller.dart';
 import 'admin_dashboard_page.dart';
@@ -33,10 +34,28 @@ class _AdminMainPageState extends State<AdminMainPage> with SingleTickerProvider
     super.dispose();
   }
 
+  void _handleBackNavigation() {
+    final supabase = Supabase.instance.client;
+    final isAuthenticated = supabase.auth.currentUser != null;
+
+    if (isAuthenticated) {
+      // User is authenticated, navigate back to home/main screen
+      Navigator.pop(context);
+    } else {
+      // User is not authenticated, navigate to login
+      Navigator.popUntil(context, (route) => route.isFirst);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _handleBackNavigation,
+          tooltip: 'Exit Admin Panel',
+        ),
         title: const Row(
           children: [
             Icon(Icons.admin_panel_settings, size: 24),
