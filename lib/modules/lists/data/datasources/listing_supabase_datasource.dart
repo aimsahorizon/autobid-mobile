@@ -182,8 +182,10 @@ class ListingSupabaseDataSource {
   /// Submit draft as listing (calls database function)
   Future<String> submitListing(String draftId) async {
     try {
-      final response = await _supabase
-          .rpc('submit_listing_from_draft', params: {'draft_id': draftId});
+      final response = await _supabase.rpc(
+        'submit_listing_from_draft',
+        params: {'draft_id': draftId},
+      );
 
       // RPC returns JSON: {success: bool, auction_id: string, message: string, error?: string}
       final result = response as Map<String, dynamic>;
@@ -307,23 +309,41 @@ class ListingSupabaseDataSource {
   /// Get approved listings (waiting for seller to make live)
   Future<List<ListingModel>> getApprovedListings(String sellerId) async {
     try {
+      // Get approved status ID first
+      final approvedStatusId = await _getStatusId('approved');
+
+      // Query with status_id directly
       final response = await _supabase
-          .from('listings')
-          .select()
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary)
+          ''')
           .eq('seller_id', sellerId)
-          .eq('status', 'approved')
-          .eq('admin_status', 'approved')
-          .isFilter('deleted_at', null)
+          .eq('status_id', approvedStatusId)
           .order('reviewed_at', ascending: false);
 
       return (response as List)
-          .map((json) => ListingModel.fromJson(json))
+          .map((json) => _mergeAuctionWithVehicleData(json))
           .toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch approved listings: ${e.message}');
     } catch (e) {
       throw Exception('Failed to fetch approved listings: $e');
     }
+  }
+
+  /// Helper: Get status ID from status name
+  Future<String> _getStatusId(String statusName) async {
+    final response = await _supabase
+        .from('auction_statuses')
+        .select('id')
+        .eq('status_name', statusName)
+        .single();
+
+    return response['id'] as String;
   }
 
   /// Get active listings (live auctions)
@@ -353,7 +373,10 @@ class ListingSupabaseDataSource {
   /// Make approved listing live (seller action)
   Future<void> makeListingLive(String listingId) async {
     try {
-      await _supabase.rpc('make_listing_live', params: {'listing_id': listingId});
+      await _supabase.rpc(
+        'make_listing_live',
+        params: {'listing_id': listingId},
+      );
     } on PostgrestException catch (e) {
       throw Exception('Failed to make listing live: ${e.message}');
     } catch (e) {
@@ -364,10 +387,10 @@ class ListingSupabaseDataSource {
   /// Complete sale (mark as sold)
   Future<void> completeSale(String listingId, double finalPrice) async {
     try {
-      await _supabase.rpc('complete_sale', params: {
-        'listing_id': listingId,
-        'final_price': finalPrice,
-      });
+      await _supabase.rpc(
+        'complete_sale',
+        params: {'listing_id': listingId, 'final_price': finalPrice},
+      );
     } on PostgrestException catch (e) {
       throw Exception('Failed to complete sale: ${e.message}');
     } catch (e) {
@@ -378,10 +401,10 @@ class ListingSupabaseDataSource {
   /// Seller decides whether to proceed or cancel after auction ends
   Future<void> sellerDecideAfterAuction(String auctionId, bool proceed) async {
     try {
-      final response = await _supabase.rpc('seller_decide_after_auction', params: {
-        'p_auction_id': auctionId,
-        'p_proceed': proceed,
-      });
+      final response = await _supabase.rpc(
+        'seller_decide_after_auction',
+        params: {'p_auction_id': auctionId, 'p_proceed': proceed},
+      );
 
       // Check if RPC returned error
       if (response is Map && response['success'] == false) {
@@ -429,7 +452,9 @@ class ListingSupabaseDataSource {
       // Note: listing_id first for RLS policy compatibility
       final path = '$listingId/$category/$filename';
 
-      await _supabase.storage.from('auction-images').upload(
+      await _supabase.storage
+          .from('auction-images')
+          .upload(
             path,
             imageFile,
             fileOptions: const FileOptions(upsert: true),
@@ -498,12 +523,17 @@ class ListingSupabaseDataSource {
     } else {
       // Fallback: Try to parse from auction title
       final title = mergedJson['title'] as String?;
-      if (title != null && title.isNotEmpty && !title.startsWith('Vehicle Auction #')) {
+      if (title != null &&
+          title.isNotEmpty &&
+          !title.startsWith('Vehicle Auction #')) {
         // Title format is "2018 Toyota Camry LE"
         final parts = title.split(' ');
         if (parts.isNotEmpty) {
           // Try to extract year (first 4 digits)
-          final yearStr = parts.firstWhere((p) => p.length == 4 && int.tryParse(p) != null, orElse: () => '0');
+          final yearStr = parts.firstWhere(
+            (p) => p.length == 4 && int.tryParse(p) != null,
+            orElse: () => '0',
+          );
           mergedJson['year'] = int.tryParse(yearStr) ?? 0;
 
           // Try to extract brand (usually after year)
@@ -542,14 +572,17 @@ class ListingSupabaseDataSource {
     if (photosList != null && photosList.isNotEmpty) {
       // Find primary photo for cover
       try {
-        final primaryPhoto = photosList.firstWhere(
-          (photo) => photo['is_primary'] == true,
-          orElse: () => photosList!.first,
-        ) as Map<String, dynamic>;
+        final primaryPhoto =
+            photosList.firstWhere(
+                  (photo) => photo['is_primary'] == true,
+                  orElse: () => photosList!.first,
+                )
+                as Map<String, dynamic>;
         mergedJson['cover_photo_url'] = primaryPhoto['photo_url'];
       } catch (e) {
         // Fallback to first photo if any error
-        mergedJson['cover_photo_url'] = (photosList.first as Map<String, dynamic>)['photo_url'];
+        mergedJson['cover_photo_url'] =
+            (photosList.first as Map<String, dynamic>)['photo_url'];
       }
 
       // Build photo_urls map grouped by category
@@ -581,7 +614,8 @@ class ListingSupabaseDataSource {
     // Ensure numeric fields have defaults
     mergedJson['total_bids'] = mergedJson['total_bids'] ?? 0;
     mergedJson['view_count'] = mergedJson['view_count'] ?? 0;
-    mergedJson['watchers_count'] = 0; // Auctions table doesn't have watchers yet
+    mergedJson['watchers_count'] =
+        0; // Auctions table doesn't have watchers yet
     mergedJson['views_count'] = mergedJson['view_count'] ?? 0;
 
     // Ensure required string fields have defaults
