@@ -80,6 +80,8 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
           ),
         );
         _checkEmailVerified();
+        // Reset OTP state after successful verification
+        widget.otpController.reset();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -112,6 +114,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             widget.loginController.reset();
+            widget.otpController.reset();
             Navigator.pop(context);
           },
         ),
