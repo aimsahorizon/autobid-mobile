@@ -48,30 +48,106 @@ class _GuestPageState extends State<GuestPage> with SingleTickerProviderStateMix
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0A0E27) : const Color(0xFFF8F9FE),
       appBar: AppBar(
-        title: const Text('Guest Mode'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF1A1F3A), const Color(0xFF0F1729)]
+                  : [Colors.white, const Color(0xFFF5F7FA)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    ColorConstants.primary,
+                    ColorConstants.primary.withValues(alpha: 0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: ColorConstants.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.remove_red_eye_outlined, size: 20, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Guest Mode', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('Explore AutoBid', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400)),
+              ],
+            ),
+          ],
+        ),
         actions: [
           _buildDataSourceMenu(),
           _buildThemeToggle(),
           const SizedBox(width: 8),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.grid_view_rounded),
-              text: 'Browse',
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.grey.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
             ),
-            Tab(
-              icon: Icon(Icons.verified_user_outlined),
-              text: 'Account Status',
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    ColorConstants.primary,
+                    ColorConstants.primary.withValues(alpha: 0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: ColorConstants.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.grid_view_rounded, size: 20),
+                  text: 'Browse',
+                  height: 48,
+                ),
+                Tab(
+                  icon: Icon(Icons.verified_user_outlined, size: 20),
+                  text: 'Account Status',
+                  height: 48,
+                ),
+              ],
             ),
-          ],
-          indicatorColor: theme.colorScheme.primary,
-          labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: isDark
-              ? ColorConstants.textSecondaryDark
-              : ColorConstants.textSecondaryLight,
+          ),
         ),
       ),
       body: TabBarView(
@@ -81,7 +157,7 @@ class _GuestPageState extends State<GuestPage> with SingleTickerProviderStateMix
           AccountStatusTab(controller: widget.controller),
         ],
       ),
-      floatingActionButton: _buildLoginFab(theme),
+      floatingActionButton: _buildLoginFab(theme, isDark),
     );
   }
 
@@ -174,14 +250,33 @@ class _GuestPageState extends State<GuestPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildLoginFab(ThemeData theme) {
-    return FloatingActionButton.extended(
-      onPressed: () {
-        Navigator.of(context).pop();
-      },
-      icon: const Icon(Icons.login_rounded),
-      label: const Text('Sign In'),
-      backgroundColor: theme.colorScheme.primary,
+  Widget _buildLoginFab(ThemeData theme, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        gradient: LinearGradient(
+          colors: [
+            ColorConstants.primary,
+            ColorConstants.primary.withValues(alpha: 0.8),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ColorConstants.primary.withValues(alpha: 0.4),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).pop();
+        },
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        icon: const Icon(Icons.login_rounded, color: Colors.white),
+        label: const Text('Sign In', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+      ),
     );
   }
 }

@@ -54,20 +54,38 @@ class GuestBrowseTab extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.inventory_2_outlined,
-            size: 64,
-            color: isDark
-                ? ColorConstants.textSecondaryDark
-                : ColorConstants.textSecondaryLight,
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [
+                        ColorConstants.textSecondaryDark.withValues(alpha: 0.1),
+                        ColorConstants.textSecondaryDark.withValues(alpha: 0.05),
+                      ]
+                    : [
+                        ColorConstants.textSecondaryLight.withValues(alpha: 0.1),
+                        ColorConstants.textSecondaryLight.withValues(alpha: 0.05),
+                      ],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Text(
             'No Auctions Available',
             style: theme.textTheme.titleLarge?.copyWith(
               color: isDark
                   ? ColorConstants.textSecondaryDark
                   : ColorConstants.textSecondaryLight,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
@@ -75,8 +93,8 @@ class GuestBrowseTab extends StatelessWidget {
             'Check back later for new listings',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isDark
-                  ? ColorConstants.textSecondaryDark
-                  : ColorConstants.textSecondaryLight,
+                  ? ColorConstants.textSecondaryDark.withValues(alpha: 0.7)
+                  : ColorConstants.textSecondaryLight.withValues(alpha: 0.7),
             ),
           ),
         ],
