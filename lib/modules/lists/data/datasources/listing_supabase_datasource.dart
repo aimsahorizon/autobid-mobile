@@ -397,20 +397,6 @@ class ListingSupabaseDataSource {
   // LISTING ACTIONS
   // ============================================================================
 
-  /// Make approved listing live (seller action)
-  Future<void> makeListingLive(String listingId) async {
-    try {
-      await _supabase.rpc(
-        'make_listing_live',
-        params: {'listing_id': listingId},
-      );
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to make listing live: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to make listing live: $e');
-    }
-  }
-
   /// Complete sale (mark as sold)
   Future<void> completeSale(String listingId, double finalPrice) async {
     try {
@@ -630,8 +616,38 @@ class ListingSupabaseDataSource {
     }
 
     // Map auction table fields to expected listing model fields
-    mergedJson['status'] = 'pending'; // Status from auction_statuses
-    mergedJson['admin_status'] = 'pending'; // Admin approval status
+    // Determine status from joined `auction_statuses` (may be Map or List)
+    String resolvedStatus = 'pending';
+    final auctionStatuses = json['auction_statuses'];
+    if (auctionStatuses != null) {
+      if (auctionStatuses is Map<String, dynamic>) {
+        resolvedStatus =
+            (auctionStatuses['status_name'] as String?) ?? resolvedStatus;
+      } else if (auctionStatuses is List && auctionStatuses.isNotEmpty) {
+        final first = auctionStatuses[0];
+        if (first is Map<String, dynamic>) {
+          resolvedStatus = (first['status_name'] as String?) ?? resolvedStatus;
+        } else if (first is String) {
+          resolvedStatus = first;
+        }
+      } else if (auctionStatuses is String) {
+        resolvedStatus = auctionStatuses;
+      }
+    } else if (mergedJson['status'] != null && mergedJson['status'] is String) {
+      resolvedStatus = mergedJson['status'] as String;
+    }
+
+    mergedJson['status'] = resolvedStatus.toLowerCase();
+
+    // Admin status may be stored separately; preserve if present otherwise default
+    if (json.containsKey('admin_status') && json['admin_status'] is String) {
+      mergedJson['admin_status'] = json['admin_status'] as String;
+    } else if (json.containsKey('reviewed_by') ||
+        json.containsKey('reviewed_at')) {
+      mergedJson['admin_status'] = 'approved';
+    } else {
+      mergedJson['admin_status'] = mergedJson['admin_status'] ?? 'pending';
+    }
 
     // Convert auction timestamps to expected field names
     mergedJson['auction_start_time'] = mergedJson['start_time'];

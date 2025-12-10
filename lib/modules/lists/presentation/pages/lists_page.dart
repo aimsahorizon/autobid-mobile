@@ -12,16 +12,14 @@ import 'create_listing_page.dart';
 class ListsPage extends StatefulWidget {
   final ListsController? controller;
 
-  const ListsPage({
-    super.key,
-    this.controller,
-  });
+  const ListsPage({super.key, this.controller});
 
   @override
   State<ListsPage> createState() => _ListsPageState();
 }
 
-class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMixin {
+class _ListsPageState extends State<ListsPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   static const _tabs = [
@@ -63,16 +61,16 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CreateListingPage(
-          controller: controller,
-          sellerId: userId,
-        ),
+        builder: (context) =>
+            CreateListingPage(controller: controller, sellerId: userId),
       ),
     ).then((result) {
       _controller.loadListings();
 
       // Navigate to Pending tab if submission was successful
-      if (result is Map && result['success'] == true && result['navigateTo'] == 'pending') {
+      if (result is Map &&
+          result['success'] == true &&
+          result['navigateTo'] == 'pending') {
         _tabController.animateTo(1); // Index 1 is Pending tab
       }
     });
@@ -129,6 +127,18 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    // Ensure the TabController matches the number of tabs (helps after hot reload)
+    if (_tabController.length != _tabs.length) {
+      var newIndex = _tabController.index;
+      if (newIndex >= _tabs.length) newIndex = _tabs.length - 1;
+      _tabController.dispose();
+      _tabController = TabController(
+        length: _tabs.length,
+        vsync: this,
+        initialIndex: newIndex,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -138,7 +148,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
           ListenableBuilder(
             listenable: NotificationsModule.instance.controller,
             builder: (context, _) {
-              final notificationController = NotificationsModule.instance.controller;
+              final notificationController =
+                  NotificationsModule.instance.controller;
               final unreadCount = notificationController.unreadCount;
 
               return Stack(
@@ -250,11 +261,15 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
-              tabs: _tabs.map((status) => _TabWithBadge(
-                label: status.tabLabel,
-                count: _controller.getCountByStatus(status),
-                color: _getStatusColor(status),
-              )).toList(),
+              tabs: _tabs
+                  .map(
+                    (status) => _TabWithBadge(
+                      label: status.tabLabel,
+                      count: _controller.getCountByStatus(status),
+                      color: _getStatusColor(status),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
         ),
@@ -269,7 +284,9 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
           return TabBarView(
             controller: _tabController,
             children: _tabs.map((status) {
-              final needsController = status == ListingStatus.draft || status == ListingStatus.cancelled;
+              final needsController =
+                  status == ListingStatus.draft ||
+                  status == ListingStatus.cancelled;
               final needsSellerId = needsController;
               final userId = SupabaseConfig.client.auth.currentUser?.id;
 
@@ -281,7 +298,9 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
                 emptySubtitle: _getEmptySubtitle(status),
                 emptyIcon: _getEmptyIcon(status),
                 enableNavigation: true,
-                draftController: needsController ? ListsModule.createListingDraftController() : null,
+                draftController: needsController
+                    ? ListsModule.createListingDraftController()
+                    : null,
                 sellerId: needsSellerId ? userId : null,
                 onListingUpdated: () => _controller.loadListings(),
               );

@@ -50,10 +50,13 @@ class ApprovedListingDetailPage extends StatelessWidget {
       final liveStatusId = statusResponse['id'] as String;
 
       // Update auction to live
-      await SupabaseConfig.client.from('auctions').update({
-        'status_id': liveStatusId,
-        'start_time': DateTime.now().toIso8601String(),
-      }).eq('id', listing.id);
+      await SupabaseConfig.client
+          .from('auctions')
+          .update({
+            'status_id': liveStatusId,
+            'start_time': DateTime.now().toIso8601String(),
+          })
+          .eq('id', listing.id);
 
       if (!context.mounted) return;
       Navigator.pop(context);
@@ -118,9 +121,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
       final scheduledStatusId = statusResponse['id'] as String;
 
       // Update auction to scheduled
-      await SupabaseConfig.client.from('auctions').update({
-        'status_id': scheduledStatusId,
-      }).eq('id', listing.id);
+      await SupabaseConfig.client
+          .from('auctions')
+          .update({'status_id': scheduledStatusId})
+          .eq('id', listing.id);
 
       if (!context.mounted) return;
       Navigator.pop(context);
@@ -151,10 +155,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Approved Listing'),
-      ),
-      backgroundColor: isDark ? ColorConstants.backgroundDark : ColorConstants.backgroundLight,
+      appBar: AppBar(title: const Text('Approved Listing')),
+      backgroundColor: isDark
+          ? ColorConstants.backgroundDark
+          : ColorConstants.backgroundLight,
       body: ListView(
         children: [
           ListingCoverSection(listing: listing),
@@ -181,7 +185,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ColorConstants.success.withValues(alpha: 0.4), width: 2),
+        border: Border.all(
+          color: ColorConstants.success.withValues(alpha: 0.4),
+          width: 2,
+        ),
       ),
       child: Column(
         children: [
@@ -200,10 +207,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'Listing Approved!',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -227,11 +231,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
                   isDark: isDark,
                 ),
               ),
-              Container(
-                height: 2,
-                width: 32,
-                color: ColorConstants.success,
-              ),
+              Container(height: 2, width: 32, color: ColorConstants.success),
               Expanded(
                 child: _StatusStep(
                   icon: Icons.check_circle,
@@ -243,7 +243,9 @@ class ApprovedListingDetailPage extends StatelessWidget {
               Container(
                 height: 2,
                 width: 32,
-                color: isDark ? ColorConstants.surfaceLight : Colors.grey.shade300,
+                color: isDark
+                    ? ColorConstants.surfaceLight
+                    : Colors.grey.shade300,
               ),
               Expanded(
                 child: _StatusStep(
@@ -290,7 +292,9 @@ class ApprovedListingDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -309,15 +313,15 @@ class ApprovedListingDetailPage extends StatelessWidget {
                   onPressed: () => _scheduleListingLater(context),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: ColorConstants.info,
-                    side: const BorderSide(color: ColorConstants.info, width: 2),
+                    side: const BorderSide(
+                      color: ColorConstants.info,
+                      width: 2,
+                    ),
                   ),
                   icon: const Icon(Icons.schedule),
                   label: const Text(
                     'Schedule',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -335,10 +339,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
                   icon: const Icon(Icons.rocket_launch),
                   label: const Text(
                     'Go Live',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -373,8 +374,8 @@ class _StatusStep extends StatelessWidget {
             color: isCompleted
                 ? ColorConstants.success.withValues(alpha: 0.2)
                 : (isDark
-                    ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
-                    : Colors.grey.shade100),
+                      ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
+                      : Colors.grey.shade100),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -383,8 +384,8 @@ class _StatusStep extends StatelessWidget {
             color: isCompleted
                 ? ColorConstants.success
                 : (isDark
-                    ? ColorConstants.textSecondaryDark
-                    : ColorConstants.textSecondaryLight),
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight),
           ),
         ),
         const SizedBox(height: 8),
@@ -397,8 +398,8 @@ class _StatusStep extends StatelessWidget {
             color: isCompleted
                 ? ColorConstants.success
                 : (isDark
-                    ? ColorConstants.textSecondaryDark
-                    : ColorConstants.textSecondaryLight),
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight),
           ),
         ),
       ],
