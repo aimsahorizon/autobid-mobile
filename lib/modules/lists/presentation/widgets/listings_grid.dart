@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import 'listing_card.dart';
 import '../../data/datasources/listing_detail_mock_datasource.dart';
@@ -10,6 +11,9 @@ import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
 import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
+import '../../../transactions/presentation/pages/pre_transaction_page.dart';
+import '../../../transactions/presentation/controllers/transaction_controller.dart';
+import '../../../transactions/transactions_module.dart';
 
 class ListingsGrid extends StatelessWidget {
   final List<SellerListingEntity> listings;
@@ -90,6 +94,25 @@ class ListingsGrid extends StatelessWidget {
           listing: detailEntity,
           controller: draftController!,
           sellerId: sellerId!,
+        );
+        break;
+      case ListingStatus.inTransaction:
+      case ListingStatus.sold:
+      case ListingStatus.dealFailed:
+        // Transaction statuses open pre-transaction page
+        final transactionController = TransactionsModule.instance
+            .createTransactionController(useMockData: false);
+        detailPage = PreTransactionPage(
+          controller: transactionController,
+          transactionId: listing.id,
+          userId: SupabaseConfig.client.auth.currentUser?.id ?? '',
+          userName:
+              SupabaseConfig
+                  .client
+                  .auth
+                  .currentUser
+                  ?.userMetadata?['full_name'] ??
+              'Seller',
         );
         break;
     }

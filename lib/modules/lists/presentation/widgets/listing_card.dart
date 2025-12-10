@@ -261,6 +261,12 @@ class _StatusBadge extends StatelessWidget {
         return ColorConstants.textSecondaryLight;
       case ListingStatus.cancelled:
         return ColorConstants.error;
+      case ListingStatus.inTransaction:
+        return ColorConstants.info;
+      case ListingStatus.sold:
+        return ColorConstants.success;
+      case ListingStatus.dealFailed:
+        return ColorConstants.error;
     }
   }
 }
@@ -422,6 +428,24 @@ class _StatusInfo extends StatelessWidget {
         return _InfoChip(
           icon: Icons.cancel_outlined,
           label: 'Cancelled',
+          color: ColorConstants.error,
+        );
+      case ListingStatus.inTransaction:
+        return _InfoChip(
+          icon: Icons.handshake_outlined,
+          label: 'In Transaction',
+          color: ColorConstants.info,
+        );
+      case ListingStatus.sold:
+        return _InfoChip(
+          icon: Icons.check_circle_outlined,
+          label: 'Sold',
+          color: ColorConstants.success,
+        );
+      case ListingStatus.dealFailed:
+        return _InfoChip(
+          icon: Icons.cancel_outlined,
+          label: 'Deal Failed',
           color: ColorConstants.error,
         );
     }

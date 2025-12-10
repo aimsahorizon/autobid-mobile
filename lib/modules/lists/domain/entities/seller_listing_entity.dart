@@ -73,7 +73,9 @@ class SellerListingEntity {
 
   /// Check if reserve price has been met
   bool get isReserveMet =>
-      reservePrice != null && currentBid != null && currentBid! >= reservePrice!;
+      reservePrice != null &&
+      currentBid != null &&
+      currentBid! >= reservePrice!;
 
   /// Get time remaining (for active listings)
   Duration? get timeRemaining =>
@@ -105,6 +107,15 @@ enum ListingStatus {
 
   /// Listing was cancelled by seller or admin (pre-auction or post-auction)
   cancelled,
+
+  /// Auction in active transaction phase (seller negotiating with buyer)
+  inTransaction,
+
+  /// Auction sold and completed
+  sold,
+
+  /// Transaction failed after auction ended
+  dealFailed,
 }
 
 /// Extension to get display properties for each status
@@ -126,6 +137,12 @@ extension ListingStatusExtension on ListingStatus {
         return 'Draft';
       case ListingStatus.cancelled:
         return 'Cancelled';
+      case ListingStatus.inTransaction:
+        return 'In Transaction';
+      case ListingStatus.sold:
+        return 'Sold';
+      case ListingStatus.dealFailed:
+        return 'Deal Failed';
     }
   }
 
@@ -146,6 +163,12 @@ extension ListingStatusExtension on ListingStatus {
         return 'Drafts';
       case ListingStatus.cancelled:
         return 'Cancelled';
+      case ListingStatus.inTransaction:
+        return 'In Transaction';
+      case ListingStatus.sold:
+        return 'Sold';
+      case ListingStatus.dealFailed:
+        return 'Failed';
     }
   }
 }

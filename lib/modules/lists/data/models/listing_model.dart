@@ -353,6 +353,12 @@ class ListingModel {
         return ListingStatus.ended;
       case 'cancelled':
         return ListingStatus.cancelled;
+      case 'in_transaction':
+        return ListingStatus.inTransaction;
+      case 'sold':
+        return ListingStatus.sold;
+      case 'deal_failed':
+        return ListingStatus.dealFailed;
       case 'draft':
       default:
         return ListingStatus.draft;

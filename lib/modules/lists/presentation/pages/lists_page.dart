@@ -334,6 +334,12 @@ class _ListsPageState extends State<ListsPage>
         return ColorConstants.textSecondaryLight;
       case ListingStatus.cancelled:
         return ColorConstants.error;
+      case ListingStatus.inTransaction:
+        return ColorConstants.info;
+      case ListingStatus.sold:
+        return ColorConstants.success;
+      case ListingStatus.dealFailed:
+        return ColorConstants.error;
     }
   }
 
@@ -353,6 +359,12 @@ class _ListsPageState extends State<ListsPage>
         return 'No drafts';
       case ListingStatus.cancelled:
         return 'No cancelled listings';
+      case ListingStatus.inTransaction:
+        return 'No active transactions';
+      case ListingStatus.sold:
+        return 'No sold listings';
+      case ListingStatus.dealFailed:
+        return 'No failed transactions';
     }
   }
 
@@ -372,6 +384,12 @@ class _ListsPageState extends State<ListsPage>
         return 'Your saved drafts will appear here';
       case ListingStatus.cancelled:
         return 'Cancelled listings will appear here';
+      case ListingStatus.inTransaction:
+        return 'Active negotiations will appear here';
+      case ListingStatus.sold:
+        return 'Successfully sold listings will appear here';
+      case ListingStatus.dealFailed:
+        return 'Cancelled transactions will appear here';
     }
   }
 
@@ -390,6 +408,12 @@ class _ListsPageState extends State<ListsPage>
       case ListingStatus.draft:
         return Icons.edit_note;
       case ListingStatus.cancelled:
+        return Icons.cancel_outlined;
+      case ListingStatus.inTransaction:
+        return Icons.handshake_outlined;
+      case ListingStatus.sold:
+        return Icons.check_circle_outline;
+      case ListingStatus.dealFailed:
         return Icons.cancel_outlined;
     }
   }
