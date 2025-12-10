@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../app/core/config/supabase_config.dart';
@@ -111,22 +112,69 @@ class _ProfilePageState extends State<ProfilePage> {
         imageQuality: 85,
       );
 
-      if (image != null && mounted) {
-        // TODO: Upload to Supabase Storage:
-        // final bytes = await image.readAsBytes();
-        // final path = '${userId}/${isCover ? 'cover' : 'profile'}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        // await supabase.storage.from('profiles').uploadBinary(path, bytes);
-        // final url = supabase.storage.from('profiles').getPublicUrl(path);
-        // await widget.controller.updatePhoto(url, isCover);
+      if (image == null) return;
+      if (!mounted) return;
+
+      // Show uploading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text('Uploading ${isCover ? 'cover' : 'profile'} photo...'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      try {
+        final imageFile = File(image.path);
+
+        // Upload and update
+        if (isCover) {
+          await widget.controller.updateCoverPhoto(imageFile);
+        } else {
+          await widget.controller.updateProfilePhoto(imageFile);
+        }
+
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${isCover ? 'Cover' : 'Profile'} photo selected: ${image.name}')),
+          SnackBar(
+            content: Text('${isCover ? 'Cover' : 'Profile'} photo updated successfully'),
+            backgroundColor: ColorConstants.success,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to pick image')),
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
         );
       }
     }

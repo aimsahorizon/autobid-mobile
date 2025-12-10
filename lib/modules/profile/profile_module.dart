@@ -55,7 +55,7 @@ class ProfileModule {
 
   /// Create profile controller
   ProfileController createProfileController() {
-    return ProfileController(_createRepository());
+    return ProfileController(_createRepository(), _createSupabaseDataSource());
   }
 
   /// Create support data source
