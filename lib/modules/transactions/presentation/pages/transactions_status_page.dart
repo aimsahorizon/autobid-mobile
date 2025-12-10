@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/transaction_status_entity.dart';
 import '../controllers/transactions_status_controller.dart';
+import '../pages/pre_transaction_page.dart';
 import '../../../lists/presentation/widgets/listings_grid.dart';
+import '../../../lists/domain/entities/seller_listing_entity.dart';
+import '../../transactions_module.dart';
 
 /// Page for status-based transactions (in_transaction, sold, deal_failed)
 /// Displays in the Transactions bottom nav tab
 class TransactionsStatusPage extends StatefulWidget {
   final TransactionsStatusController controller;
 
-  const TransactionsStatusPage({
-    super.key,
-    required this.controller,
-  });
+  const TransactionsStatusPage({super.key, required this.controller});
 
   @override
   State<TransactionsStatusPage> createState() => _TransactionsStatusPageState();
@@ -92,9 +93,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                   const SizedBox(height: 8),
                   Text(
                     widget.controller.error!,
-                    style: TextStyle(
-                      color: ColorConstants.textSecondaryLight,
-                    ),
+                    style: TextStyle(color: ColorConstants.textSecondaryLight),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -111,7 +110,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           return TabBarView(
             controller: _tabController,
             children: _tabs.map((status) {
-              final transactions = widget.controller.getTransactionsByStatus(status);
+              final transactions = widget.controller.getTransactionsByStatus(
+                status,
+              );
 
               if (transactions.isEmpty) {
                 return Center(
@@ -154,6 +155,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                   emptySubtitle: _getEmptySubtitle(status),
                   emptyIcon: _getEmptyIcon(status),
                   onListingUpdated: () => widget.controller.refresh(),
+                  onTransactionCardTap: _handleTransactionCardTap,
                 ),
               );
             }).toList(),
@@ -205,6 +207,37 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       case TransactionStatus.dealFailed:
         return 'Cancelled transactions will appear here';
     }
+  }
+
+  /// Handle transaction card tap - opens PreTransactionPage with proper controller
+  Future<void> _handleTransactionCardTap(
+    BuildContext context,
+    SellerListingEntity listing,
+  ) async {
+    // Create transaction controller for this specific auction
+    final transactionController = TransactionsModule.instance
+        .createTransactionController(useMockData: false);
+
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+    final userName =
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
+        'Seller';
+
+    // Open PreTransactionPage with 4 subtabs (Chat, My Form, Buyer Form, Progress)
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PreTransactionPage(
+          controller: transactionController,
+          transactionId: listing.id, // Pass auction ID as transaction ID
+          userId: userId,
+          userName: userName,
+        ),
+      ),
+    );
+
+    // Refresh transactions after returning
+    await widget.controller.refresh();
   }
 }
 

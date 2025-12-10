@@ -31,7 +31,9 @@ class TransactionsModule {
   void initialize() {
     _mockDataSource = TransactionMockDataSource();
     _transactionSupabaseDataSource = TransactionSupabaseDataSource(_supabase);
-    _sellerTransactionDataSource = SellerTransactionSupabaseDataSource(_supabase);
+    _sellerTransactionDataSource = SellerTransactionSupabaseDataSource(
+      _supabase,
+    );
     _chatDataSource = ChatSupabaseDataSource(_supabase);
     _timelineDataSource = TimelineSupabaseDataSource(_supabase);
   }
@@ -40,13 +42,9 @@ class TransactionsModule {
   ///
   /// [useMockData] - If true, uses mock datasource. If false, uses Supabase
   TransactionController createTransactionController({bool useMockData = true}) {
-    if (useMockData) {
-      return TransactionController(_mockDataSource);
-    } else {
-      // TODO: Implement Supabase-backed TransactionController
-      // For now, return mock controller even when useMockData is false
-      return TransactionController(_mockDataSource);
-    }
+    // For now, always use mock datasource since it has the fallback logic
+    // to create dynamic transactions for any listing ID
+    return TransactionController(_mockDataSource);
   }
 
   /// Create seller transaction demo controller

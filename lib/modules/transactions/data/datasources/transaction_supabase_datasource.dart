@@ -2,112 +2,112 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../lists/data/models/listing_model.dart';
 
 /// Data source for transaction-related operations
-/// Handles auctions in post-auction statuses: in_transaction, sold, deal_failed
-/// Note: Reuses ListingModel since transactions are just listings in specific statuses
+/// Queries the dedicated auction_transactions table for seller-buyer transactions
+/// Each transaction represents an auction that moved to in_transaction, sold, or deal_failed status
 class TransactionSupabaseDataSource {
   final SupabaseClient _supabase;
 
   TransactionSupabaseDataSource(this._supabase);
 
   /// Get transactions by status
-  /// Generic method to query auctions with transaction-related statuses
+  /// Queries auction_transactions table joined with auctions and related data
   Future<List<ListingModel>> getTransactionsByStatus(
     String userId,
     String status,
   ) async {
     try {
-      // Resolve status id first to avoid join-related inconsistencies
-      final statusResp = await _supabase
-          .from('auction_statuses')
-          .select('id')
-          .eq('status_name', status)
-          .maybeSingle();
-
-      if (statusResp == null) {
-        throw Exception('Auction status "$status" not found in database');
-      }
-
-      final statusId = statusResp['id'] as String;
-
+      // Query auction_transactions for the user as seller with the specified status
+      // Then join with auctions to get full listing details
       final response = await _supabase
-          .from('auctions')
+          .from('auction_transactions')
           .select('''
-            *,
-            auction_statuses(status_name),
-            auction_vehicles(
-              brand,
-              model,
-              variant,
-              year,
-              engine_type,
-              engine_displacement,
-              cylinder_count,
-              horsepower,
-              torque,
-              transmission,
-              fuel_type,
-              drive_type,
-              length,
-              width,
-              height,
-              wheelbase,
-              ground_clearance,
-              seating_capacity,
-              door_count,
-              fuel_tank_capacity,
-              curb_weight,
-              gross_weight,
-              exterior_color,
-              paint_type,
-              rim_type,
-              rim_size,
-              tire_size,
-              tire_brand,
-              condition,
-              mileage,
-              previous_owners,
-              has_modifications,
-              modifications_details,
-              has_warranty,
-              warranty_details,
-              usage_type,
-              plate_number,
-              orcr_status,
-              registration_status,
-              registration_expiry,
-              province,
-              city_municipality,
-              known_issues,
-              features,
-              ai_detected_brand,
-              ai_detected_model,
-              ai_detected_year,
-              ai_detected_color,
-              ai_detected_damage,
-              ai_generated_tags,
-              ai_suggested_price_min,
-              ai_suggested_price_max,
-              ai_price_confidence,
-              ai_price_factors
-            ),
-            auction_photos(
-              photo_url,
-              category,
-              display_order,
-              is_primary,
-              caption,
-              width,
-              height,
-              file_size
+            auction_id,
+            auctions(
+              *,
+              auction_statuses(status_name),
+              auction_vehicles(
+                brand,
+                model,
+                variant,
+                year,
+                engine_type,
+                engine_displacement,
+                cylinder_count,
+                horsepower,
+                torque,
+                transmission,
+                fuel_type,
+                drive_type,
+                length,
+                width,
+                height,
+                wheelbase,
+                ground_clearance,
+                seating_capacity,
+                door_count,
+                fuel_tank_capacity,
+                curb_weight,
+                gross_weight,
+                exterior_color,
+                paint_type,
+                rim_type,
+                rim_size,
+                tire_size,
+                tire_brand,
+                condition,
+                mileage,
+                previous_owners,
+                has_modifications,
+                modifications_details,
+                has_warranty,
+                warranty_details,
+                usage_type,
+                plate_number,
+                orcr_status,
+                registration_status,
+                registration_expiry,
+                province,
+                city_municipality,
+                known_issues,
+                features,
+                ai_detected_brand,
+                ai_detected_model,
+                ai_detected_year,
+                ai_detected_color,
+                ai_detected_damage,
+                ai_generated_tags,
+                ai_suggested_price_min,
+                ai_suggested_price_max,
+                ai_price_confidence,
+                ai_price_factors
+              ),
+              auction_photos(
+                photo_url,
+                category,
+                display_order,
+                is_primary,
+                caption,
+                width,
+                height,
+                file_size
+              )
             )
           ''')
           .eq('seller_id', userId)
-          .eq('status_id', statusId)
-          .order('updated_at', ascending: false);
+          .eq('status', status)
+          .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((json) => _mergeAuctionWithVehicleData(json))
-          .toList();
+      // Extract auction data from transaction records
+      final transactions = (response as List);
+      if (transactions.isEmpty) {
+        return [];
+      }
+
+      // Map transaction -> auction data to ListingModel
+      return transactions.map((txn) {
+        final auctionData = txn['auctions'] as Map<String, dynamic>;
+        return _mergeAuctionWithVehicleData(auctionData);
+      }).toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch transactions: ${e.message}');
     } catch (e) {

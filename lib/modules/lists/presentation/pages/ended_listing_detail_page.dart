@@ -181,6 +181,15 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
         'in_transaction',
       );
 
+      // Ensure transaction record is created in auction_transactions table
+      final currentUserId = SupabaseConfig.client.auth.currentUser?.id;
+      if (currentUserId != null) {
+        await _datasource.ensureTransactionCreated(
+          widget.listing.id,
+          currentUserId,
+        );
+      }
+
       if (!mounted) return;
 
       // Show success message

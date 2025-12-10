@@ -12,7 +12,6 @@ import '../pages/draft_listing_detail_page.dart';
 import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
 import '../../../transactions/presentation/pages/pre_transaction_page.dart';
-import '../../../transactions/presentation/controllers/transaction_controller.dart';
 import '../../../transactions/transactions_module.dart';
 
 class ListingsGrid extends StatelessWidget {
@@ -26,6 +25,8 @@ class ListingsGrid extends StatelessWidget {
   final ListingDraftController? draftController;
   final String? sellerId;
   final VoidCallback? onListingUpdated;
+  final Future<void> Function(BuildContext, SellerListingEntity)?
+  onTransactionCardTap;
 
   const ListingsGrid({
     super.key,
@@ -39,6 +40,7 @@ class ListingsGrid extends StatelessWidget {
     this.draftController,
     this.sellerId,
     this.onListingUpdated,
+    this.onTransactionCardTap,
   });
 
   void _navigateToDetail(
@@ -99,22 +101,39 @@ class ListingsGrid extends StatelessWidget {
       case ListingStatus.inTransaction:
       case ListingStatus.sold:
       case ListingStatus.dealFailed:
-        // Transaction statuses open pre-transaction page
+        // Transaction statuses MUST use callback or open pre-transaction page
+        // Never navigate to a listings detail page for transactions
+        if (onTransactionCardTap != null) {
+          await onTransactionCardTap!(context, listing);
+          return;
+        }
+
+        // Fallback: open pre-transaction page directly
+        if (!context.mounted) return;
         final transactionController = TransactionsModule.instance
             .createTransactionController(useMockData: false);
-        detailPage = PreTransactionPage(
-          controller: transactionController,
-          transactionId: listing.id,
-          userId: SupabaseConfig.client.auth.currentUser?.id ?? '',
-          userName:
-              SupabaseConfig
-                  .client
-                  .auth
-                  .currentUser
-                  ?.userMetadata?['full_name'] ??
-              'Seller',
+
+        final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+        final userName =
+            SupabaseConfig
+                .client
+                .auth
+                .currentUser
+                ?.userMetadata?['full_name'] ??
+            'Seller';
+
+        await Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PreTransactionPage(
+              controller: transactionController,
+              transactionId: listing.id,
+              userId: userId,
+              userName: userName,
+            ),
+          ),
         );
-        break;
+        return;
     }
 
     final result = await Navigator.push(

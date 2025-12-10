@@ -603,6 +603,65 @@ class ListingSupabaseDataSource {
     }
   }
 
+  /// Trigger transaction creation when auction moves to in_transaction status
+  /// This ensures a record exists in the auction_transactions table
+  /// The trigger should handle this automatically, but this method provides explicit creation
+  Future<bool> ensureTransactionCreated(
+    String auctionId,
+    String sellerId,
+  ) async {
+    try {
+      print(
+        '[ListingSupabaseDataSource] Ensuring transaction record for auction: $auctionId',
+      );
+
+      // Get the highest bidder
+      final highestBid = await _supabase
+          .from('bids')
+          .select('user_id, bid_amount')
+          .eq('auction_id', auctionId)
+          .order('bid_amount', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (highestBid == null) {
+        print(
+          '[ListingSupabaseDataSource] No bids found for auction: $auctionId',
+        );
+        return false;
+      }
+
+      final buyerId = highestBid['user_id'] as String;
+      final agreedPrice = highestBid['bid_amount'] as num;
+
+      // Create or update transaction record
+      await _supabase.from('auction_transactions').upsert({
+        'auction_id': auctionId,
+        'seller_id': sellerId,
+        'buyer_id': buyerId,
+        'agreed_price': agreedPrice,
+        'status': 'in_transaction',
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'auction_id');
+
+      print(
+        '[ListingSupabaseDataSource] ✅ Transaction record created/updated for auction: $auctionId',
+      );
+      return true;
+    } on PostgrestException catch (e) {
+      print(
+        '[ListingSupabaseDataSource] Error creating transaction: ${e.message}',
+      );
+      // Don't fail the entire flow if transaction creation fails
+      // The trigger should have created it automatically
+      return false;
+    } catch (e) {
+      print('[ListingSupabaseDataSource] Error ensuring transaction: $e');
+      return false;
+    }
+  }
+
   /// End active auction (move to ended status)
   Future<bool> endAuction(String auctionId) async {
     try {
