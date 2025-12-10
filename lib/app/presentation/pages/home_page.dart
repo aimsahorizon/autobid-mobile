@@ -50,7 +50,7 @@ class _HomePageState extends State<HomePage> {
       ),
       ListsPage(controller: ListsModule.controller),
       ProfilePage(
-        controller: ProfileModule.instance.createProfileController(),
+        controller: ProfileModule.instance.controller,
         pricingController: ProfileModule.instance.createPricingController(),
         themeController: widget.themeController,
       ),
