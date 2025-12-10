@@ -212,16 +212,22 @@ class ListingSupabaseDataSource {
     String status,
   ) async {
     try {
+      // Query auctions table and filter by joined auction_statuses.status_name
       final response = await _supabase
-          .from('listings')
-          .select()
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary)
+          ''')
           .eq('seller_id', sellerId)
-          .eq('status', status)
+          .eq('auction_statuses.status_name', status)
           .isFilter('deleted_at', null)
           .order('created_at', ascending: false);
 
       return (response as List)
-          .map((json) => ListingModel.fromJson(json))
+          .map((json) => _mergeAuctionWithVehicleData(json))
           .toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch listings: ${e.message}');
@@ -337,18 +343,47 @@ class ListingSupabaseDataSource {
 
   /// Helper: Get status ID from status name
   Future<String> _getStatusId(String statusName) async {
+    // Use maybeSingle to avoid PostgrestException when the status does not exist.
     final response = await _supabase
         .from('auction_statuses')
         .select('id')
         .eq('status_name', statusName)
-        .single();
+        .maybeSingle();
+
+    if (response == null) {
+      throw Exception(
+        'Auction status "$statusName" not found in database. Ensure migrations/seeds have been applied to add this status.',
+      );
+    }
 
     return response['id'] as String;
   }
 
   /// Get active listings (live auctions)
   Future<List<ListingModel>> getActiveListings(String sellerId) async {
-    return getSellerListingsByStatus(sellerId, 'active');
+    try {
+      final liveStatusId = await _getStatusId('live');
+
+      final response = await _supabase
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary)
+          ''')
+          .eq('seller_id', sellerId)
+          .eq('status_id', liveStatusId)
+          .order('start_time', ascending: false);
+
+      return (response as List)
+          .map((json) => _mergeAuctionWithVehicleData(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch active listings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to fetch active listings: $e');
+    }
   }
 
   /// Get scheduled listings
@@ -378,24 +413,235 @@ class ListingSupabaseDataSource {
     }
   }
 
-  /// Get ended listings (in transaction)
+  /// Get ended listings (awaiting seller decision: reauction or cancel)
   Future<List<ListingModel>> getEndedListings(String sellerId) async {
-    return getSellerListingsByStatus(sellerId, 'ended');
+    try {
+      final endedStatusId = await _getStatusId('ended');
+
+      final response = await _supabase
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary)
+          ''')
+          .eq('seller_id', sellerId)
+          .eq('status_id', endedStatusId)
+          .order('end_time', ascending: false);
+
+      return (response as List)
+          .map((json) => _mergeAuctionWithVehicleData(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch ended listings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to fetch ended listings: $e');
+    }
   }
 
   /// Get sold listings
   Future<List<ListingModel>> getSoldListings(String sellerId) async {
-    return getSellerListingsByStatus(sellerId, 'sold');
+    try {
+      final soldStatusId = await _getStatusId('sold');
+
+      final response = await _supabase
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary)
+          ''')
+          .eq('seller_id', sellerId)
+          .eq('status_id', soldStatusId)
+          .order('end_time', ascending: false);
+
+      return (response as List)
+          .map((json) => _mergeAuctionWithVehicleData(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch sold listings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to fetch sold listings: $e');
+    }
   }
 
   /// Get cancelled/rejected listings
   Future<List<ListingModel>> getCancelledListings(String sellerId) async {
-    return getSellerListingsByStatus(sellerId, 'cancelled');
+    try {
+      final cancelledStatusId = await _getStatusId('cancelled');
+
+      final response = await _supabase
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary)
+          ''')
+          .eq('seller_id', sellerId)
+          .eq('status_id', cancelledStatusId)
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((json) => _mergeAuctionWithVehicleData(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch cancelled listings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to fetch cancelled listings: $e');
+    }
   }
 
   // ============================================================================
   // LISTING ACTIONS
   // ============================================================================
+
+  /// Update listing status by name (e.g., 'live', 'scheduled', 'ended')
+  /// Performs the update and verifies success without complex select queries
+  Future<bool> updateListingStatusByName(
+    String auctionId,
+    String statusName, {
+    Map<String, dynamic>? additionalData,
+  }) async {
+    try {
+      // Validate input
+      if (auctionId.isEmpty || statusName.isEmpty) {
+        throw Exception('Invalid auctionId or statusName');
+      }
+
+      print(
+        '[ListingSupabaseDataSource] Starting status update: '
+        'auctionId=$auctionId, statusName=$statusName',
+      );
+
+      // Get status ID from status name
+      final statusId = await _getStatusId(statusName);
+      print(
+        '[ListingSupabaseDataSource] Resolved status $statusName to ID: $statusId',
+      );
+
+      // Prepare update data
+      final updateData = {
+        'status_id': statusId,
+        'updated_at': DateTime.now().toIso8601String(),
+        if (additionalData != null) ...additionalData,
+      };
+
+      print('[ListingSupabaseDataSource] Update data: $updateData');
+
+      // First, verify the auction exists before updating
+      final existingAuction = await _supabase
+          .from('auctions')
+          .select('id, status_id, seller_id')
+          .eq('id', auctionId)
+          .maybeSingle();
+
+      if (existingAuction == null) {
+        throw Exception('Auction not found with ID: $auctionId');
+      }
+
+      print(
+        '[ListingSupabaseDataSource] Found auction: '
+        'seller_id=${existingAuction['seller_id']}, '
+        'current_status_id=${existingAuction['status_id']}',
+      );
+
+      // Perform the update - capture any errors
+      print('[ListingSupabaseDataSource] Executing update query...');
+      await _supabase.from('auctions').update(updateData).eq('id', auctionId);
+
+      print('[ListingSupabaseDataSource] Update query completed');
+
+      // Wait a moment for DB replication
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Verify the update by fetching the auction back
+      final verification = await _supabase
+          .from('auctions')
+          .select('id, status_id, updated_at')
+          .eq('id', auctionId)
+          .maybeSingle();
+
+      if (verification == null) {
+        throw Exception('Auction disappeared after update (ID: $auctionId)');
+      }
+
+      final updatedStatusId = verification['status_id'] as String?;
+      print(
+        '[ListingSupabaseDataSource] After update: status_id=$updatedStatusId, '
+        'updated_at=${verification['updated_at']}',
+      );
+
+      if (updatedStatusId != statusId) {
+        print(
+          '[ListingSupabaseDataSource] WARNING: Status not persisted! '
+          'Expected $statusId but got $updatedStatusId. '
+          'This suggests RLS policy issue or permission problem.',
+        );
+        throw Exception(
+          'Status update failed to persist: expected $statusId, got $updatedStatusId. '
+          'Check RLS policies and user permissions.',
+        );
+      }
+
+      print(
+        '[ListingSupabaseDataSource] Successfully updated auction $auctionId '
+        'from status ${existingAuction['status_id']} to $statusId ($statusName)',
+      );
+      return true;
+    } on PostgrestException catch (e) {
+      print(
+        '[ListingSupabaseDataSource] PostgreSQL error updating status: '
+        'code=${e.code}, message=${e.message}, details=${e.details}',
+      );
+      throw Exception('Database error: ${e.message}');
+    } catch (e) {
+      print('[ListingSupabaseDataSource] Error updating listing status: $e');
+      rethrow;
+    }
+  }
+
+  /// End active auction (move to ended status)
+  Future<bool> endAuction(String auctionId) async {
+    try {
+      print('[ListingSupabaseDataSource] Ending auction: $auctionId');
+
+      return await updateListingStatusByName(
+        auctionId,
+        'ended',
+        additionalData: {'end_time': DateTime.now().toIso8601String()},
+      );
+    } catch (e) {
+      print('[ListingSupabaseDataSource] Error ending auction: $e');
+      rethrow;
+    }
+  }
+
+  /// Reauction ended listing (move back to pending for admin review)
+  Future<bool> reauctiongListing(String auctionId) async {
+    try {
+      print('[ListingSupabaseDataSource] Reauction listing: $auctionId');
+
+      return await updateListingStatusByName(auctionId, 'pending_approval');
+    } catch (e) {
+      print('[ListingSupabaseDataSource] Error reauction listing: $e');
+      rethrow;
+    }
+  }
+
+  /// Cancel ended auction (move to cancelled status)
+  Future<bool> cancelEndedAuction(String auctionId) async {
+    try {
+      print('[ListingSupabaseDataSource] Cancelling ended auction: $auctionId');
+
+      return await updateListingStatusByName(auctionId, 'cancelled');
+    } catch (e) {
+      print('[ListingSupabaseDataSource] Error cancelling auction: $e');
+      rethrow;
+    }
+  }
 
   /// Complete sale (mark as sold)
   Future<void> completeSale(String listingId, double finalPrice) async {
