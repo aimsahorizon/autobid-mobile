@@ -4,11 +4,15 @@ import '../../domain/entities/listing_detail_entity.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import '../../../../app/core/config/supabase_config.dart';
+import '../../data/datasources/listing_supabase_datasource.dart';
 
 class ApprovedListingDetailPage extends StatelessWidget {
   final ListingDetailEntity listing;
+  late final ListingSupabaseDataSource _datasource = ListingSupabaseDataSource(
+    SupabaseConfig.client,
+  );
 
-  const ApprovedListingDetailPage({super.key, required this.listing});
+  ApprovedListingDetailPage({super.key, required this.listing});
 
   Future<void> _makeListingLive(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -41,41 +45,36 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
 
     try {
-      // Get live status ID
-      final statusResponse = await SupabaseConfig.client
-          .from('auction_statuses')
-          .select('id')
-          .eq('status_name', 'live')
-          .single();
-      final liveStatusId = statusResponse['id'] as String;
-
-      // Update auction to live
-      await SupabaseConfig.client
-          .from('auctions')
-          .update({
-            'status_id': liveStatusId,
-            'start_time': DateTime.now().toIso8601String(),
-          })
-          .eq('id', listing.id);
+      // Update listing status to live
+      await _datasource.updateListingStatusByName(
+        listing.id,
+        'live',
+        additionalData: {'start_time': DateTime.now().toIso8601String()},
+      );
 
       if (!context.mounted) return;
-      Navigator.pop(context);
-      Navigator.pop(context, true);
+      Navigator.pop(context); // Close loading dialog
+      Navigator.pop(
+        context,
+        true,
+      ); // Return true to trigger reload in ListingsGrid
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Auction is now live!'),
           backgroundColor: ColorConstants.success,
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context); // Close loading dialog
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to go live: $e'),
           backgroundColor: ColorConstants.error,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -112,38 +111,32 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
 
     try {
-      // Get scheduled status ID
-      final statusResponse = await SupabaseConfig.client
-          .from('auction_statuses')
-          .select('id')
-          .eq('status_name', 'scheduled')
-          .single();
-      final scheduledStatusId = statusResponse['id'] as String;
-
-      // Update auction to scheduled
-      await SupabaseConfig.client
-          .from('auctions')
-          .update({'status_id': scheduledStatusId})
-          .eq('id', listing.id);
+      // Update listing status to scheduled
+      await _datasource.updateListingStatusByName(listing.id, 'scheduled');
 
       if (!context.mounted) return;
-      Navigator.pop(context);
-      Navigator.pop(context, true);
+      Navigator.pop(context); // Close loading dialog
+      Navigator.pop(
+        context,
+        true,
+      ); // Return true to trigger reload in ListingsGrid
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Auction scheduled successfully!'),
           backgroundColor: ColorConstants.info,
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context); // Close loading dialog
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to schedule: $e'),
           backgroundColor: ColorConstants.error,
+          duration: const Duration(seconds: 3),
         ),
       );
     }

@@ -346,8 +346,9 @@ class ListingModel {
       case 'pending_approval':
         return ListingStatus.pending;
       case 'approved':
-      case 'scheduled':
         return ListingStatus.approved;
+      case 'scheduled':
+        return ListingStatus.scheduled;
       case 'ended':
         return ListingStatus.ended;
       case 'cancelled':
