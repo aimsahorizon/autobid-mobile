@@ -8,16 +8,14 @@ import 'admin_listing_review_page.dart';
 class AdminListingsPage extends StatefulWidget {
   final AdminController controller;
 
-  const AdminListingsPage({
-    super.key,
-    required this.controller,
-  });
+  const AdminListingsPage({super.key, required this.controller});
 
   @override
   State<AdminListingsPage> createState() => _AdminListingsPageState();
 }
 
-class _AdminListingsPageState extends State<AdminListingsPage> with AutomaticKeepAliveClientMixin {
+class _AdminListingsPageState extends State<AdminListingsPage>
+    with AutomaticKeepAliveClientMixin {
   final List<String> _statusFilters = [
     'all',
     'pending_approval',
@@ -57,7 +55,8 @@ class _AdminListingsPageState extends State<AdminListingsPage> with AutomaticKee
               builder: (context, _) {
                 return Row(
                   children: _statusFilters.map((status) {
-                    final isSelected = widget.controller.selectedStatus == status;
+                    final isSelected =
+                        widget.controller.selectedStatus == status;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: FilterChip(
@@ -69,11 +68,17 @@ class _AdminListingsPageState extends State<AdminListingsPage> with AutomaticKee
                           }
                         },
                         backgroundColor: Colors.white,
-                        selectedColor: ColorConstants.primary.withValues(alpha: 0.2),
+                        selectedColor: ColorConstants.primary.withValues(
+                          alpha: 0.2,
+                        ),
                         checkmarkColor: ColorConstants.primary,
                         labelStyle: TextStyle(
-                          color: isSelected ? ColorConstants.primary : ColorConstants.textPrimaryLight,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          color: isSelected
+                              ? ColorConstants.primary
+                              : ColorConstants.textPrimaryLight,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     );
@@ -89,7 +94,8 @@ class _AdminListingsPageState extends State<AdminListingsPage> with AutomaticKee
           child: ListenableBuilder(
             listenable: widget.controller,
             builder: (context, _) {
-              if (widget.controller.isLoading && widget.controller.allListings.isEmpty) {
+              if (widget.controller.isLoading &&
+                  widget.controller.allListings.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
               }
 
@@ -98,11 +104,18 @@ class _AdminListingsPageState extends State<AdminListingsPage> with AutomaticKee
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 64, color: ColorConstants.error),
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: ColorConstants.error,
+                      ),
                       const SizedBox(height: 16),
                       const Text(
                         'Error loading listings',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(widget.controller.error!),
@@ -132,12 +145,17 @@ class _AdminListingsPageState extends State<AdminListingsPage> with AutomaticKee
                       const SizedBox(height: 16),
                       const Text(
                         'No listings found',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'No listings with status: ${_formatStatusName(widget.controller.selectedStatus)}',
-                        style: TextStyle(color: ColorConstants.textSecondaryLight),
+                        style: TextStyle(
+                          color: ColorConstants.textSecondaryLight,
+                        ),
                       ),
                     ],
                   ),

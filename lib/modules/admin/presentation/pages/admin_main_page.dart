@@ -10,16 +10,14 @@ import 'admin_users_page.dart';
 class AdminMainPage extends StatefulWidget {
   final AdminController controller;
 
-  const AdminMainPage({
-    super.key,
-    required this.controller,
-  });
+  const AdminMainPage({super.key, required this.controller});
 
   @override
   State<AdminMainPage> createState() => _AdminMainPageState();
 }
 
-class _AdminMainPageState extends State<AdminMainPage> with SingleTickerProviderStateMixin {
+class _AdminMainPageState extends State<AdminMainPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -47,15 +45,75 @@ class _AdminMainPageState extends State<AdminMainPage> with SingleTickerProvider
     }
   }
 
+  void _handleLogout() async {
+    try {
+      // Show confirmation dialog
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Logout'),
+          content: const Text(
+            'Are you sure you want to logout from admin panel?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Logout'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
+      // Show loading
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Sign out from Supabase
+      final supabase = Supabase.instance.client;
+      await supabase.auth.signOut();
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Navigate to login page - clear all routes
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+
+      // Close loading if open
+      Navigator.pop(context);
+
+      // Show error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Logout failed: $e'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _handleBackNavigation,
-          tooltip: 'Exit Admin Panel',
-        ),
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back),
+        //   onPressed: _handleBackNavigation,
+        //   tooltip: 'Exit Admin Panel',
+        // ),
         title: const Row(
           children: [
             Icon(Icons.admin_panel_settings, size: 24),
@@ -69,6 +127,12 @@ class _AdminMainPageState extends State<AdminMainPage> with SingleTickerProvider
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => widget.controller.refresh(),
+            tooltip: 'Refresh',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _handleLogout,
+            tooltip: 'Logout',
           ),
         ],
         bottom: TabBar(
@@ -114,10 +178,7 @@ class _AdminMainPageState extends State<AdminMainPage> with SingleTickerProvider
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(

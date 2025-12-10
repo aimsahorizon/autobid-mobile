@@ -13,25 +13,39 @@ class AdminModule {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // Datasources
-  late final AdminSupabaseDataSource _dataSource;
+  AdminSupabaseDataSource? _dataSource;
 
   // Controller
   AdminController? _controller;
 
+  // Initialization flag
+  bool _isInitialized = false;
+
   /// Initialize module and datasources
   void initialize() {
+    if (_isInitialized) {
+      // Already initialized, skip
+      return;
+    }
     _dataSource = AdminSupabaseDataSource(_supabase);
+    _isInitialized = true;
   }
 
   /// Get or create admin controller
   AdminController get controller {
-    _controller ??= AdminController(_dataSource);
+    if (_dataSource == null) {
+      throw StateError('AdminModule not initialized. Call initialize() first.');
+    }
+    _controller ??= AdminController(_dataSource!);
     return _controller!;
   }
 
   /// Create a new admin controller instance
   AdminController createController() {
-    return AdminController(_dataSource);
+    if (_dataSource == null) {
+      throw StateError('AdminModule not initialized. Call initialize() first.');
+    }
+    return AdminController(_dataSource!);
   }
 
   /// Clean up resources

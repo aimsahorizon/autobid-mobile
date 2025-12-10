@@ -228,12 +228,13 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
                         child: Image.network(
                           widget.listing.coverPhotoUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            color: ColorConstants.surfaceVariantLight,
-                            child: const Center(
-                              child: Icon(Icons.directions_car, size: 64),
-                            ),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                color: ColorConstants.surfaceVariantLight,
+                                child: const Center(
+                                  child: Icon(Icons.directions_car, size: 64),
+                                ),
+                              ),
                         ),
                       ),
                     ),
@@ -297,11 +298,23 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          _buildInfoRow('Condition', widget.listing.condition.toUpperCase()),
-                          _buildInfoRow('Mileage', '${widget.listing.mileage.toStringAsFixed(0)} km'),
-                          _buildInfoRow('Starting Price', '₱${widget.listing.startingPrice.toStringAsFixed(2)}'),
+                          _buildInfoRow(
+                            'Condition',
+                            widget.listing.condition.toUpperCase(),
+                          ),
+                          _buildInfoRow(
+                            'Mileage',
+                            '${widget.listing.mileage.toStringAsFixed(0)} km',
+                          ),
+                          _buildInfoRow(
+                            'Starting Price',
+                            '₱${widget.listing.startingPrice.toStringAsFixed(2)}',
+                          ),
                           if (widget.listing.reservePrice != null)
-                            _buildInfoRow('Reserve Price', '₱${widget.listing.reservePrice!.toStringAsFixed(2)}'),
+                            _buildInfoRow(
+                              'Reserve Price',
+                              '₱${widget.listing.reservePrice!.toStringAsFixed(2)}',
+                            ),
                         ],
                       ),
                     ),
@@ -379,10 +392,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
           const SizedBox(width: 8),
           Text(
             widget.listing.status.replaceAll('_', ' ').toUpperCase(),
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
           ),
         ],
       ),
