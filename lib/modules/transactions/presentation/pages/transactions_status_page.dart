@@ -45,6 +45,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Transactions'),
         bottom: TabBar(
           controller: _tabController,

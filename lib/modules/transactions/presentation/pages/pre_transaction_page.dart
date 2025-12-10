@@ -52,6 +52,7 @@ class _PreTransactionPageState extends State<PreTransactionPage> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: ListenableBuilder(
           listenable: widget.controller,
           builder: (context, _) {
