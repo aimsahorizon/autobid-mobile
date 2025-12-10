@@ -59,7 +59,7 @@ class ForgotPasswordController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to send reset code. Please try again.';
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
     }
   }
@@ -140,7 +140,7 @@ class ForgotPasswordController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to resend code. Please try again.';
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
     }
   }

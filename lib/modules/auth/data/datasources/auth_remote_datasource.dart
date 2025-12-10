@@ -63,6 +63,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> signInWithUsername(String username, String password) async {
     try {
+      print('[AUTH] Attempting login for username: "$username"');
+      print('[AUTH] Username length: ${username.length}');
+      print('[AUTH] Username trimmed: "${username.trim()}"');
+
       // Step 1: Look up user by username and check account status
       final userRecord = await _supabase
           .from('users')
@@ -70,8 +74,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           .eq('username', username)
           .maybeSingle();
 
+      print('[AUTH] Query result: ${userRecord != null ? "Found" : "Not found"}');
+
       // Check if user exists
       if (userRecord == null) {
+        print('[AUTH] Username not found: "$username"');
+        print('[AUTH] Trying case-insensitive search...');
+
+        // Try case-insensitive search to help debug
+        final debugRecord = await _supabase
+            .from('users')
+            .select('username, email')
+            .ilike('username', username)
+            .maybeSingle();
+
+        if (debugRecord != null) {
+          print('[AUTH] Found similar username: "${debugRecord['username']}" (case mismatch!)');
+          throw AuthException('Invalid username or password. Note: Username is case-sensitive.');
+        }
+
         throw AuthException('Invalid username or password');
       }
 
@@ -80,8 +101,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final displayName = userRecord['display_name'] as String?;
       final isActive = userRecord['is_active'] as bool? ?? true;
 
+      print('[AUTH] Found user record - email: $emailToUse, active: $isActive');
+
       // Check if account is active (not suspended/banned)
       if (!isActive) {
+        print('[AUTH] Account is not active');
         throw AuthException(
           'Your account has been suspended or deactivated. Please contact support.',
         );
@@ -92,24 +116,37 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // but may have limited features until KYC is approved
 
       // Step 2: Authenticate with Supabase Auth using email and password
-      final response = await _supabase.auth.signInWithPassword(
-        email: emailToUse,
-        password: password,
-      );
+      try {
+        final response = await _supabase.auth.signInWithPassword(
+          email: emailToUse,
+          password: password,
+        );
 
-      if (response.user == null) {
-        throw AuthException('Invalid usernames or password');
+        if (response.user == null) {
+          throw AuthException('Invalid username or password');
+        }
+
+        // Convert to UserModel with phone number from users table
+        return UserModel(
+          id: response.user!.id,
+          email: response.user!.email ?? '',
+          username: username,
+          displayName: displayName ?? response.user!.userMetadata?['display_name'] as String?,
+          photoUrl: response.user!.userMetadata?['avatar_url'] as String?,
+          phoneNumber: phoneNumber,
+        );
+      } on AuthException catch (authError) {
+        // Provide more specific error messages for auth failures
+        if (authError.message.contains('Invalid login credentials')) {
+          throw AuthException(
+            'Invalid username or password. If you registered via OTP, please use "Forgot Password" to set a password first.',
+          );
+        } else if (authError.message.contains('Email not confirmed')) {
+          throw AuthException('Email not verified. Please verify your email first.');
+        } else {
+          throw authError;
+        }
       }
-
-      // Convert to UserModel with phone number from users table
-      return UserModel(
-        id: response.user!.id,
-        email: response.user!.email ?? '',
-        username: username,
-        displayName: displayName ?? response.user!.userMetadata?['display_name'] as String?,
-        photoUrl: response.user!.userMetadata?['avatar_url'] as String?,
-        phoneNumber: phoneNumber,
-      );
     } on AuthException catch (e) {
       // Re-throw AuthException with proper message
       throw Exception(e.message);
@@ -177,30 +214,70 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> sendPasswordResetRequest(String username) async {
     try {
+      print('[AUTH] Looking up user with username: "$username"');
+      print('[AUTH] Username length: ${username.length}');
+      print('[AUTH] Username trimmed: "${username.trim()}"');
+
       // Look up the actual email associated with the username from users table
       final userRecord = await _supabase
           .from('users')
-          .select('email')
+          .select('email, id, full_name')
           .eq('username', username)
           .maybeSingle();
 
+      print('[AUTH] Password reset query result: ${userRecord != null ? "Found" : "Not found"}');
+
       // Check if user exists
       if (userRecord == null) {
-        throw Exception('Username not found');
+        print('[AUTH] Username not found: "$username"');
+
+        // Try case-insensitive search to help debug
+        final debugRecord = await _supabase
+            .from('users')
+            .select('username, email')
+            .ilike('username', username)
+            .maybeSingle();
+
+        if (debugRecord != null) {
+          print('[AUTH] Found similar username: "${debugRecord['username']}" (case mismatch!)');
+          throw Exception('Username "${debugRecord['username']}" found but with different case. Usernames are case-sensitive. Please use: "${debugRecord['username']}"');
+        }
+
+        throw Exception('Username "$username" not found. Please check your username and try again.');
       }
 
       final email = userRecord['email'] as String;
+      print('[AUTH] Found email for username: $email');
 
       // Send password reset email via Supabase to the actual email
-      await _supabase.auth.resetPasswordForEmail(
-        email,
-        redirectTo: 'io.supabase.autobid://reset-password',
-      );
+      try {
+        await _supabase.auth.resetPasswordForEmail(
+          email,
+          redirectTo: 'io.supabase.autobid://reset-password',
+        );
+        print('[AUTH] Password reset email sent successfully to: $email');
+      } on AuthException catch (authError) {
+        print('[AUTH] Supabase Auth error: ${authError.message}');
+        // Check if email sending is configured
+        if (authError.message.contains('Email') || authError.message.contains('SMTP')) {
+          throw Exception(
+            'Email service not configured. Please contact support or use OTP verification instead.',
+          );
+        } else {
+          throw Exception('Failed to send reset email: ${authError.message}');
+        }
+      }
     } on PostgrestException catch (e) {
-      throw Exception('Failed to find user: ${e.message}');
+      print('[AUTH] Database error: ${e.message}');
+      throw Exception('Database error: ${e.message}');
     } on AuthException catch (e) {
-      throw Exception('Password reset failed: ${e.message}');
+      print('[AUTH] Auth error: ${e.message}');
+      throw Exception('Authentication error: ${e.message}');
     } catch (e) {
+      print('[AUTH] Unexpected error: $e');
+      if (e.toString().contains('Exception:')) {
+        rethrow;
+      }
       throw Exception('Password reset failed: $e');
     }
   }
