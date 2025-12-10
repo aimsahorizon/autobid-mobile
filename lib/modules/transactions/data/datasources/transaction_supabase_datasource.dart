@@ -16,11 +16,24 @@ class TransactionSupabaseDataSource {
     String status,
   ) async {
     try {
+      // Resolve status id first to avoid join-related inconsistencies
+      final statusResp = await _supabase
+          .from('auction_statuses')
+          .select('id')
+          .eq('status_name', status)
+          .maybeSingle();
+
+      if (statusResp == null) {
+        throw Exception('Auction status "$status" not found in database');
+      }
+
+      final statusId = statusResp['id'] as String;
+
       final response = await _supabase
           .from('auctions')
           .select('''
             *,
-            auction_statuses!inner(status_name),
+            auction_statuses(status_name),
             auction_vehicles(
               brand,
               model,
@@ -89,7 +102,7 @@ class TransactionSupabaseDataSource {
             )
           ''')
           .eq('seller_id', userId)
-          .eq('auction_statuses.status_name', status)
+          .eq('status_id', statusId)
           .order('updated_at', ascending: false);
 
       return (response as List)
