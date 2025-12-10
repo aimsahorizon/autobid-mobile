@@ -34,28 +34,44 @@ class ProfileModule {
   /// Toggle this to switch between mock and real data
   static const bool useMockData = false;
 
+  /// Singleton instances
+  ProfileSupabaseDataSource? _dataSourceInstance;
+  ProfileRepository? _repositoryInstance;
+  ProfileController? _controllerInstance;
+
   /// Create mock data source
   ProfileMockDataSource _createMockDataSource() {
     return ProfileMockDataSource();
   }
 
   /// Create Supabase data source
-  ProfileSupabaseDataSource _createSupabaseDataSource() {
-    return ProfileSupabaseDataSource(SupabaseConfig.client);
+  ProfileSupabaseDataSource _getOrCreateDataSource() {
+    _dataSourceInstance ??= ProfileSupabaseDataSource(SupabaseConfig.client);
+    return _dataSourceInstance!;
   }
 
   /// Create profile repository
-  ProfileRepository _createRepository() {
+  ProfileRepository _getOrCreateRepository() {
+    if (_repositoryInstance != null) return _repositoryInstance!;
+
     if (useMockData) {
-      return ProfileRepositoryMockImpl(_createMockDataSource());
+      _repositoryInstance = ProfileRepositoryMockImpl(_createMockDataSource());
     } else {
-      return ProfileRepositorySupabaseImpl(_createSupabaseDataSource());
+      _repositoryInstance = ProfileRepositorySupabaseImpl(_getOrCreateDataSource());
     }
+    return _repositoryInstance!;
   }
 
-  /// Create profile controller
+  /// Get or create profile controller (singleton)
+  ProfileController get controller {
+    _controllerInstance ??= ProfileController(_getOrCreateRepository(), _getOrCreateDataSource());
+    return _controllerInstance!;
+  }
+
+  /// Create profile controller (deprecated - use controller getter instead)
+  @Deprecated('Use ProfileModule.instance.controller instead')
   ProfileController createProfileController() {
-    return ProfileController(_createRepository(), _createSupabaseDataSource());
+    return controller;
   }
 
   /// Create support data source

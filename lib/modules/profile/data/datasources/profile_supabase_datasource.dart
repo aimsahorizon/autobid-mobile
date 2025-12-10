@@ -123,7 +123,7 @@ class ProfileSupabaseDataSource {
     }
   }
 
-  /// Upload profile photo to Supabase Storage (user-avatars bucket)
+  /// Upload profile photo to Supabase Storage (avatars bucket)
   /// Returns public URL of uploaded image
   Future<String> uploadProfilePhoto(String userId, File imageFile) async {
     try {
@@ -133,9 +133,9 @@ class ProfileSupabaseDataSource {
       final filename = 'profile_$timestamp.$extension';
       final filepath = '$userId/$filename';
 
-      // Upload to user-avatars bucket
+      // Upload to avatars bucket
       await _supabase.storage
-          .from('user-avatars')
+          .from('avatars')
           .upload(
             filepath,
             imageFile,
@@ -144,7 +144,7 @@ class ProfileSupabaseDataSource {
 
       // Get public URL
       final publicUrl = _supabase.storage
-          .from('user-avatars')
+          .from('avatars')
           .getPublicUrl(filepath);
 
       return publicUrl;
@@ -155,7 +155,7 @@ class ProfileSupabaseDataSource {
     }
   }
 
-  /// Upload cover photo to Supabase Storage (user-covers bucket)
+  /// Upload cover photo to Supabase Storage (avatars bucket with cover prefix)
   /// Returns public URL of uploaded image
   Future<String> uploadCoverPhoto(String userId, File imageFile) async {
     try {
@@ -165,9 +165,9 @@ class ProfileSupabaseDataSource {
       final filename = 'cover_$timestamp.$extension';
       final filepath = '$userId/$filename';
 
-      // Upload to user-covers bucket
+      // Upload to avatars bucket
       await _supabase.storage
-          .from('user-covers')
+          .from('avatars')
           .upload(
             filepath,
             imageFile,
@@ -176,7 +176,7 @@ class ProfileSupabaseDataSource {
 
       // Get public URL
       final publicUrl = _supabase.storage
-          .from('user-covers')
+          .from('avatars')
           .getPublicUrl(filepath);
 
       return publicUrl;
