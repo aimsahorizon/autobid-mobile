@@ -69,6 +69,10 @@ class ListingsGrid extends StatelessWidget {
       case ListingStatus.approved:
         detailPage = ApprovedListingDetailPage(listing: detailEntity);
         break;
+      case ListingStatus.scheduled:
+        // Scheduled listings are treated like approved listings for details
+        detailPage = ApprovedListingDetailPage(listing: detailEntity);
+        break;
       case ListingStatus.draft:
         if (draftController == null || sellerId == null) return;
         detailPage = DraftListingDetailPage(

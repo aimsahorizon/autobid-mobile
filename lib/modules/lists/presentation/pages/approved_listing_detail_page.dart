@@ -3,7 +3,6 @@ import '../../../../app/core/constants/color_constants.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
-import '../../data/datasources/listing_supabase_datasource.dart';
 import '../../../../app/core/config/supabase_config.dart';
 
 class ApprovedListingDetailPage extends StatelessWidget {
@@ -12,13 +11,12 @@ class ApprovedListingDetailPage extends StatelessWidget {
   const ApprovedListingDetailPage({super.key, required this.listing});
 
   Future<void> _makeListingLive(BuildContext context) async {
-    // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Publish Auction'),
+        title: const Text('Go Live Now'),
         content: const Text(
-          'Are you ready to make this listing live? Once published, the auction will start immediately.',
+          'Start the auction immediately? Bidders can place bids right away.',
         ),
         actions: [
           TextButton(
@@ -27,7 +25,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Publish'),
+            child: const Text('Go Live'),
           ),
         ],
       ),
@@ -36,7 +34,6 @@ class ApprovedListingDetailPage extends StatelessWidget {
     if (confirmed != true) return;
     if (!context.mounted) return;
 
-    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -44,26 +41,104 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
 
     try {
-      final datasource = ListingSupabaseDataSource(SupabaseConfig.client);
-      await datasource.makeListingLive(listing.id);
+      // Get live status ID
+      final statusResponse = await SupabaseConfig.client
+          .from('auction_statuses')
+          .select('id')
+          .eq('status_name', 'live')
+          .single();
+      final liveStatusId = statusResponse['id'] as String;
+
+      // Update auction to live
+      await SupabaseConfig.client.from('auctions').update({
+        'status_id': liveStatusId,
+        'start_time': DateTime.now().toIso8601String(),
+      }).eq('id', listing.id);
 
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading
-      Navigator.pop(context, true); // Return to listings page with refresh flag
+      Navigator.pop(context);
+      Navigator.pop(context, true);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Auction published successfully!'),
+          content: Text('Auction is now live!'),
           backgroundColor: ColorConstants.success,
         ),
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading
+      Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to publish auction: $e'),
+          content: Text('Failed to go live: $e'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _scheduleListingLater(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Schedule for Later'),
+        content: const Text(
+          'Schedule this auction to go live later? You can set the start time in the scheduled listings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Schedule'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Get scheduled status ID
+      final statusResponse = await SupabaseConfig.client
+          .from('auction_statuses')
+          .select('id')
+          .eq('status_name', 'scheduled')
+          .single();
+      final scheduledStatusId = statusResponse['id'] as String;
+
+      // Update auction to scheduled
+      await SupabaseConfig.client.from('auctions').update({
+        'status_id': scheduledStatusId,
+      }).eq('id', listing.id);
+
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      Navigator.pop(context, true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Auction scheduled successfully!'),
+          backgroundColor: ColorConstants.info,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to schedule: $e'),
           backgroundColor: ColorConstants.error,
         ),
       );
@@ -132,7 +207,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Your listing has been approved by our admin team. You can now publish it to start the auction.',
+            'Your listing has been approved! Choose to go live now or schedule for later.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -195,7 +270,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Ready to publish? Click the "Make Live" button below to start your auction immediately.',
+                  'Go Live: Start auction now  •  Schedule: Set start time for later',
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark
@@ -225,24 +300,50 @@ class ApprovedListingDetailPage extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: FilledButton.icon(
-            onPressed: () => _makeListingLive(context),
-            style: FilledButton.styleFrom(
-              backgroundColor: ColorConstants.primary,
-              foregroundColor: Colors.white,
-            ),
-            icon: const Icon(Icons.rocket_launch),
-            label: const Text(
-              'Make Live',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () => _scheduleListingLater(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ColorConstants.info,
+                    side: const BorderSide(color: ColorConstants.info, width: 2),
+                  ),
+                  icon: const Icon(Icons.schedule),
+                  label: const Text(
+                    'Schedule',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: () => _makeListingLive(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: ColorConstants.success,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.rocket_launch),
+                  label: const Text(
+                    'Go Live',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

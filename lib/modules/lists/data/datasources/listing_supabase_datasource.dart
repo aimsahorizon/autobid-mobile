@@ -351,6 +351,33 @@ class ListingSupabaseDataSource {
     return getSellerListingsByStatus(sellerId, 'active');
   }
 
+  /// Get scheduled listings
+  Future<List<ListingModel>> getScheduledListings(String sellerId) async {
+    try {
+      final scheduledStatusId = await _getStatusId('scheduled');
+
+      final response = await _supabase
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary)
+          ''')
+          .eq('seller_id', sellerId)
+          .eq('status_id', scheduledStatusId)
+          .order('start_time', ascending: true);
+
+      return (response as List)
+          .map((json) => _mergeAuctionWithVehicleData(json))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch scheduled listings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to fetch scheduled listings: $e');
+    }
+  }
+
   /// Get ended listings (in transaction)
   Future<List<ListingModel>> getEndedListings(String sellerId) async {
     return getSellerListingsByStatus(sellerId, 'ended');

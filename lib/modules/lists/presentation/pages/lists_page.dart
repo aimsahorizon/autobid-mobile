@@ -28,6 +28,7 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
     ListingStatus.active,
     ListingStatus.pending,
     ListingStatus.approved,
+    ListingStatus.scheduled,
     ListingStatus.ended,
     ListingStatus.draft,
     ListingStatus.cancelled,
@@ -306,6 +307,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return ColorConstants.warning;
       case ListingStatus.approved:
         return ColorConstants.info;
+      case ListingStatus.scheduled:
+        return Colors.purple;
       case ListingStatus.ended:
         return ColorConstants.primary;
       case ListingStatus.draft:
@@ -323,6 +326,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return 'No pending listings';
       case ListingStatus.approved:
         return 'No approved listings';
+      case ListingStatus.scheduled:
+        return 'No scheduled listings';
       case ListingStatus.ended:
         return 'No ended auctions';
       case ListingStatus.draft:
@@ -340,6 +345,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return 'Listings awaiting review will appear here';
       case ListingStatus.approved:
         return 'Approved listings ready to publish will appear here';
+      case ListingStatus.scheduled:
+        return 'Scheduled auctions will appear here';
       case ListingStatus.ended:
         return 'Auctions awaiting your decision will appear here';
       case ListingStatus.draft:
@@ -357,6 +364,8 @@ class _ListsPageState extends State<ListsPage> with SingleTickerProviderStateMix
         return Icons.hourglass_empty;
       case ListingStatus.approved:
         return Icons.check_circle_outline;
+      case ListingStatus.scheduled:
+        return Icons.schedule;
       case ListingStatus.ended:
         return Icons.flag_outlined;
       case ListingStatus.draft:

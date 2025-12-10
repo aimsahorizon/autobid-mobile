@@ -94,6 +94,9 @@ enum ListingStatus {
   /// Listing approved by admin, waiting for seller to make live
   approved,
 
+  /// Listing scheduled to go live at a specific time
+  scheduled,
+
   /// Auction ended, awaiting seller decision (proceed or cancel)
   ended,
 
@@ -115,6 +118,8 @@ extension ListingStatusExtension on ListingStatus {
         return 'Pending';
       case ListingStatus.approved:
         return 'Approved';
+      case ListingStatus.scheduled:
+        return 'Scheduled';
       case ListingStatus.ended:
         return 'Ended';
       case ListingStatus.draft:
@@ -133,6 +138,8 @@ extension ListingStatusExtension on ListingStatus {
         return 'Pending';
       case ListingStatus.approved:
         return 'Approved';
+      case ListingStatus.scheduled:
+        return 'Scheduled';
       case ListingStatus.ended:
         return 'Ended';
       case ListingStatus.draft:

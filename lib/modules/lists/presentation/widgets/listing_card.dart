@@ -253,6 +253,8 @@ class _StatusBadge extends StatelessWidget {
         return ColorConstants.warning;
       case ListingStatus.approved:
         return ColorConstants.info;
+      case ListingStatus.scheduled:
+        return ColorConstants.info;
       case ListingStatus.ended:
         return ColorConstants.primary;
       case ListingStatus.draft:
@@ -396,6 +398,12 @@ class _StatusInfo extends StatelessWidget {
         return _InfoChip(
           icon: Icons.rocket_launch_outlined,
           label: 'Ready to Publish',
+          color: ColorConstants.info,
+        );
+      case ListingStatus.scheduled:
+        return _InfoChip(
+          icon: Icons.schedule,
+          label: 'Scheduled',
           color: ColorConstants.info,
         );
       case ListingStatus.ended:
