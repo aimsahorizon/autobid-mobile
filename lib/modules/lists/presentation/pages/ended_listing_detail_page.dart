@@ -9,10 +9,7 @@ import '../../data/datasources/listing_supabase_datasource.dart';
 class EndedListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
 
-  const EndedListingDetailPage({
-    super.key,
-    required this.listing,
-  });
+  const EndedListingDetailPage({super.key, required this.listing});
 
   @override
   State<EndedListingDetailPage> createState() => _EndedListingDetailPageState();
@@ -20,29 +17,34 @@ class EndedListingDetailPage extends StatefulWidget {
 
 class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   bool _isProcessing = false;
+  late final ListingSupabaseDataSource _datasource;
 
-  Future<void> _handleDecision(bool proceed) async {
+  @override
+  void initState() {
+    super.initState();
+    _datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+  }
+
+  Future<void> _reauction() async {
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(proceed ? 'Proceed to Transaction?' : 'Cancel Auction?'),
-        content: Text(
-          proceed
-              ? 'Are you sure you want to proceed with this transaction? The winning bidder will be notified.'
-              : 'Are you sure you want to cancel this auction? This action cannot be undone.',
+        title: const Text('Reauction this Listing?'),
+        content: const Text(
+          'Are you sure you want to reauction this listing? It will be moved back to pending approval status.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('No'),
+            child: const Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(
-              backgroundColor: proceed ? ColorConstants.primary : ColorConstants.error,
+              backgroundColor: ColorConstants.primary,
             ),
-            child: const Text('Yes'),
+            child: const Text('Reauction'),
           ),
         ],
       ),
@@ -53,23 +55,141 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     setState(() => _isProcessing = true);
 
     try {
-      final dataSource = ListingSupabaseDataSource(SupabaseConfig.client);
-      await dataSource.sellerDecideAfterAuction(
+      await _datasource.reauctiongListing(widget.listing.id);
+
+      if (!mounted) return;
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Listing reauctions. Check the Pending tab.'),
+          backgroundColor: ColorConstants.success,
+        ),
+      );
+
+      // Navigate back and trigger reload
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  Future<void> _cancelEnded() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel this Auction?'),
+        content: const Text(
+          'Are you sure you want to cancel this auction? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep it'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.error,
+            ),
+            child: const Text('Cancel Auction'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isProcessing = true);
+
+    try {
+      await _datasource.cancelEndedAuction(widget.listing.id);
+
+      if (!mounted) return;
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Auction cancelled successfully.'),
+          backgroundColor: ColorConstants.warning,
+        ),
+      );
+
+      // Navigate back and trigger reload
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  Future<void> _proceedToTransaction() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Proceed to Transaction'),
+        content: const Text(
+          'You will move this auction to the transactions tab where you can communicate with the winning bidder and complete the sale.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.success,
+            ),
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isProcessing = true);
+
+    try {
+      // Update auction status to 'in_transaction'
+      await _datasource.updateListingStatusByName(
         widget.listing.id,
-        proceed,
+        'in_transaction',
       );
 
       if (!mounted) return;
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            proceed
-                ? 'Auction moved to transaction. Check the Transactions tab.'
-                : 'Auction cancelled successfully.',
+            'Moved to Transactions tab. Go there to communicate with the winner.',
           ),
-          backgroundColor: proceed ? ColorConstants.success : ColorConstants.warning,
+          backgroundColor: ColorConstants.success,
         ),
       );
 
@@ -94,14 +214,13 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   @override
   Widget build(BuildContext context) {
     final hasReservePrice = widget.listing.reservePrice != null;
-    final isReserveMet = hasReservePrice &&
+    final isReserveMet =
+        hasReservePrice &&
         widget.listing.currentBid != null &&
         widget.listing.currentBid! >= widget.listing.reservePrice!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Auction Ended'),
-      ),
+      appBar: AppBar(title: const Text('Auction Ended')),
       body: _isProcessing
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -121,11 +240,13 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
-                            color: Theme.of(context).colorScheme.surfaceVariant,
-                            child: const Center(
-                              child: Icon(Icons.directions_car, size: 64),
-                            ),
-                          ),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceVariant,
+                                child: const Center(
+                                  child: Icon(Icons.directions_car, size: 64),
+                                ),
+                              ),
                         ),
                       ),
                     ),
@@ -185,7 +306,9 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
               children: [
                 Icon(
                   isReserveMet ? Icons.check_circle : Icons.info,
-                  color: isReserveMet ? ColorConstants.success : ColorConstants.warning,
+                  color: isReserveMet
+                      ? ColorConstants.success
+                      : ColorConstants.warning,
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -193,7 +316,9 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isReserveMet ? ColorConstants.success : ColorConstants.warning,
+                    color: isReserveMet
+                        ? ColorConstants.success
+                        : ColorConstants.warning,
                   ),
                 ),
               ],
@@ -216,7 +341,11 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     );
   }
 
-  Widget _buildPriceRow(String label, double price, {bool isHighlight = false}) {
+  Widget _buildPriceRow(
+    String label,
+    double price, {
+    bool isHighlight = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -241,38 +370,87 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
 
   Widget _buildGuidanceCard(bool isReserveMet) {
     return Card(
+      color: isReserveMet
+          ? ColorConstants.success.withOpacity(0.1)
+          : ColorConstants.warning.withOpacity(0.1),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'What happens next?',
+            Row(
+              children: [
+                Icon(
+                  isReserveMet ? Icons.check_circle : Icons.info,
+                  color: isReserveMet
+                      ? ColorConstants.success
+                      : ColorConstants.warning,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isReserveMet
+                        ? 'Auction Successful - Winner Selected'
+                        : 'Reserve Price Not Met - Highest Bidder Selected',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isReserveMet
+                          ? ColorConstants.success
+                          : ColorConstants.warning,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isReserveMet
+                  ? 'The highest bidder has automatically won this auction. Proceed to the transactions tab to communicate with them and complete the sale.'
+                  : 'The reserve price was not met. However, you can still proceed to sell to the highest bidder in the transactions tab, or choose to reauction.',
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: ColorConstants.textSecondaryLight,
               ),
             ),
             const SizedBox(height: 12),
-            if (isReserveMet) ...[
-              _buildGuidancePoint(
-                Icons.handshake,
-                'Proceed to Transaction',
-                'Accept the highest bid and move to transaction phase. The winning bidder will be notified.',
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                ),
               ),
-              const SizedBox(height: 12),
-              _buildGuidancePoint(
-                Icons.cancel,
-                'Cancel Auction',
-                'Decline the current bid and cancel the auction. This listing will be moved to cancelled.',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'What happens next?',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildGuidancePoint(
+                    Icons.handshake,
+                    'Proceed to Transaction',
+                    'Move this auction to the Transactions tab where you can chat with the winning bidder and complete the sale.',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildGuidancePoint(
+                    Icons.refresh,
+                    'Reauction',
+                    'Not satisfied with the bid? Reauction the item to restart the bidding process.',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildGuidancePoint(
+                    Icons.cancel,
+                    'Cancel',
+                    'Permanently cancel the auction. Use only if you no longer want to sell.',
+                  ),
+                ],
               ),
-            ] else ...[
-              _buildGuidancePoint(
-                Icons.info_outline,
-                'Reserve Not Met',
-                'The highest bid did not reach your reserve price. You can still proceed if you\'re willing to accept the current bid, or cancel the auction.',
-              ),
-            ],
+            ),
           ],
         ),
       ),
@@ -289,12 +467,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
               Text(
                 description,
@@ -319,10 +492,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
           children: [
             const Text(
               'Auction Statistics',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
@@ -363,10 +533,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 4),
         Text(
@@ -383,11 +550,12 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   Widget _buildActionButtons() {
     return Column(
       children: [
+        // Primary action: Proceed to Transaction
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: () => _handleDecision(true),
-            icon: const Icon(Icons.handshake),
+            onPressed: () => _proceedToTransaction(),
+            icon: const Icon(Icons.arrow_forward),
             label: const Text('Proceed to Transaction'),
             style: FilledButton.styleFrom(
               backgroundColor: ColorConstants.success,
@@ -396,10 +564,28 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
           ),
         ),
         const SizedBox(height: 12),
+
+        // Secondary action: Reauction if not satisfied with winner
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () => _handleDecision(false),
+            onPressed: () => _reauction(),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reauction'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: ColorConstants.primary,
+              side: BorderSide(color: ColorConstants.primary),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Tertiary action: Cancel auction
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => _cancelEnded(),
             icon: const Icon(Icons.cancel),
             label: const Text('Cancel Auction'),
             style: OutlinedButton.styleFrom(
