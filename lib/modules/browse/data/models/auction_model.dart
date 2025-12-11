@@ -18,13 +18,27 @@ class AuctionModel extends AuctionEntity {
 
   /// Create model from JSON (Supabase response)
   factory AuctionModel.fromJson(Map<String, dynamic> json) {
+    final make = (json['make'] as String?) ?? '';
+    final model = (json['model'] as String?) ?? '';
+    final title = (json['title'] as String?) ?? '';
+
+    // Fallback: if make/model missing, use title so UI shows a meaningful name
+    final resolvedMake = make.isNotEmpty ? make : title;
+    final resolvedModel = model.isNotEmpty
+        ? model
+        : (resolvedMake.isNotEmpty ? resolvedMake : '');
+
+    final currentBidNum =
+        (json['current_bid'] ?? json['starting_price'] ?? 0) as num;
+    final yearValue = json['year'] as int? ?? 0;
+
     return AuctionModel(
       id: json['id'] as String,
       carImageUrl: json['car_image_url'] as String? ?? '',
-      year: json['year'] as int,
-      make: json['make'] as String,
-      model: json['model'] as String,
-      currentBid: (json['current_bid'] as num).toDouble(),
+      year: yearValue,
+      make: resolvedMake,
+      model: resolvedModel,
+      currentBid: currentBidNum.toDouble(),
       watchersCount: json['watchers_count'] as int? ?? 0,
       biddersCount: json['bidders_count'] as int? ?? 0,
       endTime: DateTime.parse(json['end_time'] as String),

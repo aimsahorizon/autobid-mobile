@@ -36,6 +36,20 @@ class AuctionEntity {
     return DateTime.now().isAfter(endTime);
   }
 
-  /// Get formatted car name (Year Make Model)
-  String get carName => '$year $make $model';
+  /// Get formatted car name with graceful fallbacks
+  String get carName {
+    final hasYear = year > 0;
+    final hasMake = make.isNotEmpty;
+    final hasModel = model.isNotEmpty;
+
+    if (hasYear && (hasMake || hasModel)) {
+      return '$year $make $model'.trim();
+    }
+
+    if (hasMake || hasModel) {
+      return '$make $model'.trim();
+    }
+
+    return 'Vehicle listing';
+  }
 }

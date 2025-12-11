@@ -94,6 +94,7 @@ class AuctionSupabaseDataSource {
         'year': json['vehicle_year'] ?? 0,
         'make': json['vehicle_make'] ?? '',
         'model': json['vehicle_model'] ?? '',
+        'title': json['title'] ?? '',
         'current_bid': json['current_price'] ?? json['starting_price'],
         'watchers_count': json['watchers_count'] ?? 0,
         'bidders_count': json['total_bids'] ?? 0,
@@ -150,8 +151,10 @@ class AuctionSupabaseDataSource {
         'id': json['id'],
         'car_image_url': '',
         'year': 0,
-        'make': '',
+        // Fall back to title so cards show a meaningful name if vehicle metadata is missing
+        'make': (json['title'] as String?) ?? '',
         'model': '',
+        'title': json['title'] ?? '',
         'current_bid': json['current_price'] ?? json['starting_price'],
         'watchers_count': 0,
         'bidders_count': json['total_bids'] ?? 0,
@@ -176,6 +179,29 @@ class AuctionSupabaseDataSource {
           )
           .eq('id', auctionId)
           .single();
+
+      // Fetch the associated vehicle specs similar to the Lists module implementation
+      final vehicleResponse = await _supabase
+          .from('auction_vehicles')
+          .select('''
+            brand, model, variant, year,
+            engine_type, engine_displacement, cylinder_count, horsepower, torque,
+            transmission, fuel_type, drive_type,
+            length, width, height, wheelbase, ground_clearance,
+            seating_capacity, door_count, fuel_tank_capacity, curb_weight, gross_weight,
+            exterior_color, paint_type, rim_type, rim_size, tire_size, tire_brand,
+            condition, mileage, previous_owners, has_modifications, modifications_details,
+            has_warranty, warranty_details, usage_type,
+            plate_number, orcr_status, registration_status, registration_expiry,
+            province, city_municipality,
+            known_issues, features
+            ''')
+          .eq('auction_id', auctionId)
+          .maybeSingle();
+
+      final vehicleData = vehicleResponse == null
+          ? null
+          : Map<String, dynamic>.from(vehicleResponse as Map);
 
       // Get all photos for the auction
       final photosResponse = await _supabase
@@ -204,10 +230,53 @@ class AuctionSupabaseDataSource {
       return AuctionDetailModel.fromJson({
         ...auctionResponse,
         'car_image_url': auctionResponse['primary_image_url'] ?? '',
-        'make': auctionResponse['vehicle_make'] ?? '',
-        'model': auctionResponse['vehicle_model'] ?? '',
-        'year': auctionResponse['vehicle_year'] ?? 0,
-        'variant': auctionResponse['vehicle_variant'],
+        'brand': vehicleData?['brand'] ?? auctionResponse['vehicle_make'] ?? '',
+        'make': vehicleData?['brand'] ?? auctionResponse['vehicle_make'] ?? '',
+        'model':
+            vehicleData?['model'] ?? auctionResponse['vehicle_model'] ?? '',
+        'year': vehicleData?['year'] ?? auctionResponse['vehicle_year'] ?? 0,
+        'variant':
+            vehicleData?['variant'] ?? auctionResponse['vehicle_variant'],
+        'engine_type': vehicleData?['engine_type'],
+        'engine_displacement': vehicleData?['engine_displacement'],
+        'cylinder_count': vehicleData?['cylinder_count'],
+        'horsepower': vehicleData?['horsepower'],
+        'torque': vehicleData?['torque'],
+        'transmission': vehicleData?['transmission'],
+        'fuel_type': vehicleData?['fuel_type'],
+        'drive_type': vehicleData?['drive_type'],
+        'length': vehicleData?['length'],
+        'width': vehicleData?['width'],
+        'height': vehicleData?['height'],
+        'wheelbase': vehicleData?['wheelbase'],
+        'ground_clearance': vehicleData?['ground_clearance'],
+        'seating_capacity': vehicleData?['seating_capacity'],
+        'door_count': vehicleData?['door_count'],
+        'fuel_tank_capacity': vehicleData?['fuel_tank_capacity'],
+        'curb_weight': vehicleData?['curb_weight'],
+        'gross_weight': vehicleData?['gross_weight'],
+        'exterior_color': vehicleData?['exterior_color'],
+        'paint_type': vehicleData?['paint_type'],
+        'rim_type': vehicleData?['rim_type'],
+        'rim_size': vehicleData?['rim_size'],
+        'tire_size': vehicleData?['tire_size'],
+        'tire_brand': vehicleData?['tire_brand'],
+        'condition': vehicleData?['condition'],
+        'mileage': vehicleData?['mileage'],
+        'previous_owners': vehicleData?['previous_owners'],
+        'has_modifications': vehicleData?['has_modifications'],
+        'modifications_details': vehicleData?['modifications_details'],
+        'has_warranty': vehicleData?['has_warranty'],
+        'warranty_details': vehicleData?['warranty_details'],
+        'usage_type': vehicleData?['usage_type'],
+        'plate_number': vehicleData?['plate_number'],
+        'orcr_status': vehicleData?['orcr_status'],
+        'registration_status': vehicleData?['registration_status'],
+        'registration_expiry': vehicleData?['registration_expiry'],
+        'province': vehicleData?['province'],
+        'city_municipality': vehicleData?['city_municipality'],
+        'known_issues': vehicleData?['known_issues'],
+        'features': vehicleData?['features'],
         'minimum_bid': auctionResponse['starting_price'],
         'end_time': auctionResponse['end_time'],
         'is_reserve_met':

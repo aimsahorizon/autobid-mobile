@@ -66,11 +66,26 @@ class AuctionDetailModel extends AuctionDetailEntity {
 
   /// Create model from JSON (Supabase response)
   factory AuctionDetailModel.fromJson(Map<String, dynamic> json) {
+    num _numOrZero(dynamic value, [num fallback = 0]) {
+      if (value == null) return fallback;
+      return (value as num);
+    }
+
+    final currentBidValue = _numOrZero(
+      json['current_bid'],
+      _numOrZero(json['starting_price'], 0),
+    );
+
+    final minimumBidValue = _numOrZero(
+      json['minimum_bid'],
+      _numOrZero(json['starting_price'], 0),
+    );
+
     return AuctionDetailModel(
       id: json['id'] as String,
       carImageUrl: json['car_image_url'] as String? ?? '',
-      currentBid: (json['current_bid'] as num).toDouble(),
-      minimumBid: (json['minimum_bid'] as num).toDouble(),
+      currentBid: currentBidValue.toDouble(),
+      minimumBid: minimumBidValue.toDouble(),
       reservePrice: json['reserve_price'] != null
           ? (json['reserve_price'] as num).toDouble()
           : null,
@@ -81,12 +96,14 @@ class AuctionDetailModel extends AuctionDetailEntity {
       totalBids: json['total_bids'] as int? ?? 0,
       endTime: DateTime.parse(json['end_time'] as String),
       status: json['status'] as String? ?? 'active',
-      photos: CarPhotosModel.fromJson(json['photos'] as Map<String, dynamic>? ?? {}),
+      photos: CarPhotosModel.fromJson(
+        json['photos'] as Map<String, dynamic>? ?? {},
+      ),
       hasUserDeposited: json['has_user_deposited'] as bool? ?? false,
-      brand: json['brand'] as String? ?? json['make'] as String,
-      model: json['model'] as String,
+      brand: (json['brand'] as String?) ?? (json['make'] as String?) ?? '',
+      model: (json['model'] as String?) ?? '',
       variant: json['variant'] as String?,
-      year: json['year'] as int,
+      year: json['year'] as int? ?? 0,
       engineType: json['engine_type'] as String?,
       engineDisplacement: json['engine_displacement'] != null
           ? (json['engine_displacement'] as num).toDouble()
@@ -97,10 +114,16 @@ class AuctionDetailModel extends AuctionDetailEntity {
       transmission: json['transmission'] as String?,
       fuelType: json['fuel_type'] as String?,
       driveType: json['drive_type'] as String?,
-      length: json['length'] != null ? (json['length'] as num).toDouble() : null,
+      length: json['length'] != null
+          ? (json['length'] as num).toDouble()
+          : null,
       width: json['width'] != null ? (json['width'] as num).toDouble() : null,
-      height: json['height'] != null ? (json['height'] as num).toDouble() : null,
-      wheelbase: json['wheelbase'] != null ? (json['wheelbase'] as num).toDouble() : null,
+      height: json['height'] != null
+          ? (json['height'] as num).toDouble()
+          : null,
+      wheelbase: json['wheelbase'] != null
+          ? (json['wheelbase'] as num).toDouble()
+          : null,
       groundClearance: json['ground_clearance'] != null
           ? (json['ground_clearance'] as num).toDouble()
           : null,
@@ -122,7 +145,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       tireSize: json['tire_size'] as String?,
       tireBrand: json['tire_brand'] as String?,
       condition: json['condition'] as String?,
-      mileage: json['mileage'] as int?,
+      mileage: json['mileage'] as int? ?? json['vehicle_mileage'] as int?,
       previousOwners: json['previous_owners'] as int?,
       hasModifications: json['has_modifications'] as bool?,
       modificationsDetails: json['modifications_details'] as String?,
