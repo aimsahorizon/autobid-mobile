@@ -66,8 +66,9 @@ class AdminController extends ChangeNotifier {
     try {
       await _dataSource.approveListing(auctionId, notes: notes);
 
-      // Reload data
+      // Reload dashboard and current listings view
       await loadDashboard();
+      await loadListingsByStatus(_selectedStatus);
       return true;
     } catch (e) {
       _error = e.toString();
@@ -81,8 +82,9 @@ class AdminController extends ChangeNotifier {
     try {
       await _dataSource.rejectListing(auctionId, reason);
 
-      // Reload data
+      // Reload dashboard and current listings view
       await loadDashboard();
+      await loadListingsByStatus(_selectedStatus);
       return true;
     } catch (e) {
       _error = e.toString();

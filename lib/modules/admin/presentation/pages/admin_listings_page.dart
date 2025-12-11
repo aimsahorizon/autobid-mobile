@@ -19,6 +19,7 @@ class _AdminListingsPageState extends State<AdminListingsPage>
   final List<String> _statusFilters = [
     'all',
     'pending_approval',
+    'approved',
     'scheduled',
     'live',
     'ended',

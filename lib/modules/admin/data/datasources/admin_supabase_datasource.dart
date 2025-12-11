@@ -141,7 +141,9 @@ class AdminSupabaseDataSource {
           .limit(100);
 
       print('[ADMIN] Raw response type: ${response.runtimeType}');
-      print('[ADMIN] Fetched ${(response as List).length} listings with status: $status');
+      print(
+        '[ADMIN] Fetched ${(response as List).length} listings with status: $status',
+      );
 
       if ((response as List).isNotEmpty) {
         print('[ADMIN] First item: ${(response as List).first}');
@@ -160,10 +162,9 @@ class AdminSupabaseDataSource {
     }
   }
 
-  /// Approve a listing (change status to approved)
+  /// Approve a listing (move to approved; seller schedules later)
   Future<void> approveListing(String auctionId, {String? notes}) async {
     try {
-      final approvedStatusId = await _getStatusId('approved');
       final currentUserId = _supabase.auth.currentUser?.id;
 
       if (currentUserId == null) {
@@ -178,11 +179,13 @@ class AdminSupabaseDataSource {
           .single();
 
       final adminUserId = adminUserResponse['id'] as String;
+      // Approval should keep listing in 'approved' status; seller will schedule/go live later
+      final statusId = await _getStatusId('approved');
 
       await _supabase
           .from('auctions')
           .update({
-            'status_id': approvedStatusId,
+            'status_id': statusId,
             'reviewed_at': DateTime.now().toIso8601String(),
             'reviewed_by': adminUserId,
             'review_notes': notes,
@@ -190,7 +193,9 @@ class AdminSupabaseDataSource {
           })
           .eq('id', auctionId);
 
-      print('[ADMIN] Approved listing $auctionId by admin_user $adminUserId (user: $currentUserId)');
+      print(
+        '[ADMIN] Approved listing $auctionId -> status: approved by admin_user $adminUserId (user: $currentUserId)',
+      );
     } catch (e) {
       throw Exception('Failed to approve listing: $e');
     }
