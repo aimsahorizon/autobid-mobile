@@ -42,7 +42,9 @@ class KycSupabaseDataSource {
           statusName = statusData['status_name'] as String? ?? 'pending';
         } else if (statusData is List && statusData.isNotEmpty) {
           statusName =
-              (statusData[0] as Map<String, dynamic>)['status_name'] as String? ?? 'pending';
+              (statusData[0] as Map<String, dynamic>)['status_name']
+                  as String? ??
+              'pending';
         }
 
         // Count by status
@@ -138,10 +140,9 @@ class KycSupabaseDataSource {
             created_at,
             updated_at,
             kyc_statuses(status_name),
-            users(first_name, last_name, middle_name, email, phone_number, date_of_birth, sex),
-            user_addresses(region, province, city, barangay, street_address, zipcode),
+            user:users!kyc_documents_user_id_fkey(first_name, last_name, middle_name, email, phone_number, date_of_birth, sex),
             kyc_review_queue(id, assigned_to, priority, sla_deadline),
-            reviewed_by_admin:admin_users!kyc_documents_reviewed_by_fkey(users(first_name, last_name))
+            reviewed_by_admin:admin_users!kyc_documents_reviewed_by_fkey(user:users!admin_users_user_id_fkey(first_name, last_name))
           ''');
 
       // Filter by status if provided
@@ -153,9 +154,37 @@ class KycSupabaseDataSource {
       // Order by priority and submission time
       final response = await query.order('submitted_at', ascending: true);
 
-      return (response as List)
-          .map((json) => _parseKycDocument(json))
+      final kycDocs = (response as List).cast<Map<String, dynamic>>();
+
+      // Fetch addresses for all users
+      final userIds = kycDocs
+          .map((doc) => doc['user_id'] as String)
+          .toSet()
           .toList();
+      final addressesResponse = await _supabase
+          .from('user_addresses')
+          .select(
+            'user_id, region, province, city, barangay, street_address, zipcode',
+          )
+          .inFilter('user_id', userIds)
+          .eq('is_default', true);
+
+      // Create a map of user_id to address
+      final addressMap = <String, Map<String, dynamic>>{};
+      for (final addr
+          in (addressesResponse as List).cast<Map<String, dynamic>>()) {
+        addressMap[addr['user_id'] as String] = addr;
+      }
+
+      // Merge address data into KYC documents
+      for (final doc in kycDocs) {
+        final userId = doc['user_id'] as String;
+        if (addressMap.containsKey(userId)) {
+          doc['address'] = addressMap[userId];
+        }
+      }
+
+      return kycDocs.map((json) => _parseKycDocument(json)).toList();
     } catch (e) {
       throw Exception('Failed to fetch KYC submissions: $e');
     }
@@ -167,7 +196,9 @@ class KycSupabaseDataSource {
       final pendingStatusId = await _getKycStatusId('pending');
       final underReviewStatusId = await _getKycStatusId('under_review');
 
-      final response = await _supabase.from('kyc_documents').select('''
+      final response = await _supabase
+          .from('kyc_documents')
+          .select('''
             id,
             user_id,
             status_id,
@@ -191,17 +222,45 @@ class KycSupabaseDataSource {
             created_at,
             updated_at,
             kyc_statuses(status_name),
-            users(first_name, last_name, middle_name, email, phone_number, date_of_birth, sex),
-            user_addresses(region, province, city, barangay, street_address, zipcode),
+            user:users!kyc_documents_user_id_fkey(first_name, last_name, middle_name, email, phone_number, date_of_birth, sex),
             kyc_review_queue(id, assigned_to, priority, sla_deadline)
-          ''').inFilter('status_id', [pendingStatusId, underReviewStatusId]).order(
-        'submitted_at',
-        ascending: true,
-      );
+          ''')
+          .inFilter('status_id', [pendingStatusId, underReviewStatusId])
+          .order('submitted_at', ascending: true);
 
-      return (response as List)
-          .map((json) => _parseKycDocument(json))
+      final kycDocs = (response as List).cast<Map<String, dynamic>>();
+
+      // Fetch addresses for all users
+      final userIds = kycDocs
+          .map((doc) => doc['user_id'] as String)
+          .toSet()
           .toList();
+      if (userIds.isNotEmpty) {
+        final addressesResponse = await _supabase
+            .from('user_addresses')
+            .select(
+              'user_id, region, province, city, barangay, street_address, zipcode',
+            )
+            .inFilter('user_id', userIds)
+            .eq('is_default', true);
+
+        // Create a map of user_id to address
+        final addressMap = <String, Map<String, dynamic>>{};
+        for (final addr
+            in (addressesResponse as List).cast<Map<String, dynamic>>()) {
+          addressMap[addr['user_id'] as String] = addr;
+        }
+
+        // Merge address data into KYC documents
+        for (final doc in kycDocs) {
+          final userId = doc['user_id'] as String;
+          if (addressMap.containsKey(userId)) {
+            doc['address'] = addressMap[userId];
+          }
+        }
+      }
+
+      return kycDocs.map((json) => _parseKycDocument(json)).toList();
     } catch (e) {
       throw Exception('Failed to fetch pending KYC submissions: $e');
     }
@@ -210,7 +269,9 @@ class KycSupabaseDataSource {
   /// Get a single KYC document by ID
   Future<KycDocumentModel> getKycDocument(String kycDocumentId) async {
     try {
-      final response = await _supabase.from('kyc_documents').select('''
+      final response = await _supabase
+          .from('kyc_documents')
+          .select('''
             id,
             user_id,
             status_id,
@@ -234,13 +295,31 @@ class KycSupabaseDataSource {
             created_at,
             updated_at,
             kyc_statuses(status_name),
-            users(first_name, last_name, middle_name, email, phone_number, date_of_birth, sex),
-            user_addresses(region, province, city, barangay, street_address, zipcode),
+            user:users!kyc_documents_user_id_fkey(first_name, last_name, middle_name, email, phone_number, date_of_birth, sex),
             kyc_review_queue(id, assigned_to, priority, sla_deadline),
-            reviewed_by_admin:admin_users!kyc_documents_reviewed_by_fkey(users(first_name, last_name))
-          ''').eq('id', kycDocumentId).single();
+            reviewed_by_admin:admin_users!kyc_documents_reviewed_by_fkey(user:users!admin_users_user_id_fkey(first_name, last_name))
+          ''')
+          .eq('id', kycDocumentId)
+          .single();
 
-      return _parseKycDocument(response);
+      final kycDoc = response;
+
+      // Fetch address for this user
+      final userId = kycDoc['user_id'] as String;
+      final addressResponse = await _supabase
+          .from('user_addresses')
+          .select(
+            'user_id, region, province, city, barangay, street_address, zipcode',
+          )
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .maybeSingle();
+
+      if (addressResponse != null) {
+        kycDoc['address'] = addressResponse;
+      }
+
+      return _parseKycDocument(kycDoc);
     } catch (e) {
       throw Exception('Failed to fetch KYC document: $e');
     }
@@ -264,10 +343,10 @@ class KycSupabaseDataSource {
       final adminUserId = adminUserResponse['id'] as String;
 
       // Call the approve_kyc RPC function
-      final result = await _supabase.rpc('approve_kyc', params: {
-        'p_kyc_document_id': kycDocumentId,
-        'p_admin_id': adminUserId,
-      });
+      final result = await _supabase.rpc(
+        'approve_kyc',
+        params: {'p_kyc_document_id': kycDocumentId, 'p_admin_id': adminUserId},
+      );
 
       if (result != null && result['success'] == false) {
         throw Exception(result['message'] ?? 'Failed to approve KYC');
@@ -277,7 +356,8 @@ class KycSupabaseDataSource {
       if (notes != null && notes.isNotEmpty) {
         await _supabase
             .from('kyc_documents')
-            .update({'admin_notes': notes}).eq('id', kycDocumentId);
+            .update({'admin_notes': notes})
+            .eq('id', kycDocumentId);
       }
     } catch (e) {
       throw Exception('Failed to approve KYC: $e');
@@ -306,11 +386,14 @@ class KycSupabaseDataSource {
       final adminUserId = adminUserResponse['id'] as String;
 
       // Call the reject_kyc RPC function
-      final result = await _supabase.rpc('reject_kyc', params: {
-        'p_kyc_document_id': kycDocumentId,
-        'p_admin_id': adminUserId,
-        'p_reason': reason,
-      });
+      final result = await _supabase.rpc(
+        'reject_kyc',
+        params: {
+          'p_kyc_document_id': kycDocumentId,
+          'p_admin_id': adminUserId,
+          'p_reason': reason,
+        },
+      );
 
       if (result != null && result['success'] == false) {
         throw Exception(result['message'] ?? 'Failed to reject KYC');
@@ -320,7 +403,8 @@ class KycSupabaseDataSource {
       if (notes != null && notes.isNotEmpty) {
         await _supabase
             .from('kyc_documents')
-            .update({'admin_notes': notes}).eq('id', kycDocumentId);
+            .update({'admin_notes': notes})
+            .eq('id', kycDocumentId);
       }
     } catch (e) {
       throw Exception('Failed to reject KYC: $e');
@@ -332,14 +416,18 @@ class KycSupabaseDataSource {
     try {
       await _supabase
           .from('kyc_review_queue')
-          .update({'assigned_to': adminId}).eq('kyc_document_id', kycDocumentId);
+          .update({'assigned_to': adminId})
+          .eq('kyc_document_id', kycDocumentId);
 
       // Update status to under_review
       final underReviewStatusId = await _getKycStatusId('under_review');
-      await _supabase.from('kyc_documents').update({
-        'status_id': underReviewStatusId,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', kycDocumentId);
+      await _supabase
+          .from('kyc_documents')
+          .update({
+            'status_id': underReviewStatusId,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', kycDocumentId);
     } catch (e) {
       throw Exception('Failed to assign KYC to admin: $e');
     }
@@ -379,11 +467,12 @@ class KycSupabaseDataSource {
         statusName = statusData['status_name'] as String? ?? 'pending';
       } else if (statusData is List && statusData.isNotEmpty) {
         statusName =
-            (statusData[0] as Map<String, dynamic>)['status_name'] as String? ?? 'pending';
+            (statusData[0] as Map<String, dynamic>)['status_name'] as String? ??
+            'pending';
       }
 
-      // Extract user data
-      final userData = json['users'];
+      // Extract user data (using 'user' alias from query)
+      final userData = json['user'];
       String firstName = 'Unknown';
       String lastName = 'User';
       String? middleName;
@@ -402,21 +491,10 @@ class KycSupabaseDataSource {
             ? DateTime.parse(userData['date_of_birth'] as String)
             : null;
         sex = userData['sex'] as String?;
-      } else if (userData is List && userData.isNotEmpty) {
-        final user = userData[0] as Map<String, dynamic>;
-        firstName = user['first_name'] as String? ?? 'Unknown';
-        lastName = user['last_name'] as String? ?? 'User';
-        middleName = user['middle_name'] as String?;
-        email = user['email'] as String? ?? '';
-        phoneNumber = user['phone_number'] as String?;
-        dateOfBirth = user['date_of_birth'] != null
-            ? DateTime.parse(user['date_of_birth'] as String)
-            : null;
-        sex = user['sex'] as String?;
       }
 
-      // Extract address data
-      final addressData = json['user_addresses'];
+      // Extract address data from the separate 'address' key we added
+      final addressData = json['address'];
       String? region;
       String? province;
       String? city;
@@ -431,14 +509,6 @@ class KycSupabaseDataSource {
         barangay = addressData['barangay'] as String?;
         streetAddress = addressData['street_address'] as String?;
         zipcode = addressData['zipcode'] as String?;
-      } else if (addressData is List && addressData.isNotEmpty) {
-        final address = addressData[0] as Map<String, dynamic>;
-        region = address['region'] as String?;
-        province = address['province'] as String?;
-        city = address['city'] as String?;
-        barangay = address['barangay'] as String?;
-        streetAddress = address['street_address'] as String?;
-        zipcode = address['zipcode'] as String?;
       }
 
       // Extract queue data
@@ -470,11 +540,12 @@ class KycSupabaseDataSource {
       String? reviewedByName;
 
       if (reviewerData is Map<String, dynamic>) {
-        final reviewerUserData = reviewerData['users'];
+        final reviewerUserData = reviewerData['user'];
         if (reviewerUserData is Map<String, dynamic>) {
           final reviewerFirstName =
               reviewerUserData['first_name'] as String? ?? '';
-          final reviewerLastName = reviewerUserData['last_name'] as String? ?? '';
+          final reviewerLastName =
+              reviewerUserData['last_name'] as String? ?? '';
           reviewedByName = '$reviewerFirstName $reviewerLastName'.trim();
         }
       }
