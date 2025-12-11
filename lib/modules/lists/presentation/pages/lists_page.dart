@@ -281,9 +281,11 @@ class _ListsPageState extends State<ListsPage>
             return const Center(child: CircularProgressIndicator());
           }
 
-          return TabBarView(
-            controller: _tabController,
-            children: _tabs.map((status) {
+          return RefreshIndicator(
+            onRefresh: () => _controller.loadListings(),
+            child: TabBarView(
+              controller: _tabController,
+              children: _tabs.map((status) {
               final needsController =
                   status == ListingStatus.draft ||
                   status == ListingStatus.cancelled;
@@ -305,6 +307,7 @@ class _ListsPageState extends State<ListsPage>
                 onListingUpdated: () => _controller.loadListings(),
               );
             }).toList(),
+            ),
           );
         },
       ),
