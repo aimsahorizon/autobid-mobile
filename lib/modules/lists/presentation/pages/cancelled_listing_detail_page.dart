@@ -73,11 +73,19 @@ class _CancelledListingDetailPageState
         widget.sellerId,
       );
 
+      // Remove the old cancelled listing so it disappears from the tab
+      try {
+        await _datasource.deleteListing(widget.listing.id, widget.sellerId);
+      } catch (e) {
+        // Non-fatal: continue even if delete fails
+        debugPrint('Warning: failed to delete cancelled listing after copy: $e');
+      }
+
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
 
       // Navigate to create listing page with the copied draft
-      Navigator.pushReplacement(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => CreateListingPage(
@@ -88,6 +96,8 @@ class _CancelledListingDetailPageState
         ),
       );
 
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -96,6 +106,9 @@ class _CancelledListingDetailPageState
           backgroundColor: ColorConstants.success,
         ),
       );
+
+      // Inform parent to refresh lists and remove the cancelled card
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog

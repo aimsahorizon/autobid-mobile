@@ -218,6 +218,20 @@ class ListingSupabaseDataSource {
   /// Submit draft as listing (calls database function)
   Future<String> submitListing(String draftId) async {
     try {
+      // Pre-check: prevent duplicate car (by plate_number) across statuses
+      final draftRow = await _supabase
+          .from('listing_drafts')
+          .select('seller_id, plate_number')
+          .eq('id', draftId)
+          .single();
+
+      final sellerId = draftRow['seller_id'] as String?;
+      final plateNumber = draftRow['plate_number'] as String?;
+
+      if (sellerId != null && plateNumber != null && plateNumber.isNotEmpty) {
+        await _ensureUniquePlate(sellerId, plateNumber);
+      }
+
       final response = await _supabase.rpc(
         'submit_listing_from_draft',
         params: {'draft_id': draftId},
@@ -771,16 +785,62 @@ class ListingSupabaseDataSource {
     }
   }
 
-  /// Cancel listing (seller cancels before/during auction)
-  Future<void> cancelListing(String listingId) async {
+  /// Cancel listing (seller cancels from pending, approved, or any status)
+  /// Moves listing to cancelled status
+  Future<void> cancelListing(String auctionId) async {
     try {
-      await _supabase
-          .from('listings')
-          .update({'status': 'cancelled'})
-          .eq('id', listingId);
+      print('[ListingSupabaseDataSource] Cancelling listing: $auctionId');
+
+      // Verify auction exists and get current status before update
+      final beforeUpdate = await _supabase
+          .from('auctions')
+          .select('id, status_id, seller_id, deleted_at')
+          .eq('id', auctionId)
+          .maybeSingle();
+
+      if (beforeUpdate == null) {
+        throw Exception('Auction not found with ID: $auctionId');
+      }
+
+      print(
+        '[ListingSupabaseDataSource] Before cancel - status_id: ${beforeUpdate['status_id']}, deleted_at: ${beforeUpdate['deleted_at']}',
+      );
+
+      // Perform the status update
+      await updateListingStatusByName(auctionId, 'cancelled');
+
+      // Verify the update persisted
+      final afterUpdate = await _supabase
+          .from('auctions')
+          .select('id, status_id, deleted_at, auction_statuses(status_name)')
+          .eq('id', auctionId)
+          .maybeSingle();
+
+      if (afterUpdate == null) {
+        throw Exception(
+          'Listing disappeared after cancel attempt - may have been deleted by trigger',
+        );
+      }
+
+      final newStatusId = afterUpdate['status_id'];
+      final statusInfo = afterUpdate['auction_statuses'];
+      final statusName = statusInfo is Map
+          ? statusInfo['status_name']
+          : 'unknown';
+
+      print(
+        '[ListingSupabaseDataSource] After cancel - status_id: $newStatusId, status_name: $statusName, deleted_at: ${afterUpdate['deleted_at']}',
+      );
+      print(
+        '[ListingSupabaseDataSource] Successfully cancelled listing: $auctionId',
+      );
     } on PostgrestException catch (e) {
+      print(
+        '[ListingSupabaseDataSource] PostgrestException cancelling: code=${e.code}, message=${e.message}, details=${e.details}',
+      );
       throw Exception('Failed to cancel listing: ${e.message}');
     } catch (e) {
+      print('[ListingSupabaseDataSource] Exception cancelling listing: $e');
       throw Exception('Failed to cancel listing: $e');
     }
   }
@@ -890,7 +950,6 @@ class ListingSupabaseDataSource {
               'features': vehicleInfo['features'],
             },
             // Copy auction details (only columns that exist in listing_drafts)
-            'title': auctionResponse['title'],
             'description': auctionResponse['description'],
             'starting_price': auctionResponse['starting_price'],
             'reserve_price': auctionResponse['reserve_price'],
@@ -922,6 +981,22 @@ class ListingSupabaseDataSource {
       print(
         '[ListingSupabaseDataSource] Creating new auction from cancelled: $auctionId',
       );
+
+      // Guard against duplicate plate numbers across statuses
+      final cancelledVehicle = await _supabase
+          .from('auction_vehicles')
+          .select('plate_number')
+          .eq('auction_id', auctionId)
+          .maybeSingle();
+
+      final plateNumber = cancelledVehicle?['plate_number'] as String?;
+      if (plateNumber != null && plateNumber.isNotEmpty) {
+        await _ensureUniquePlate(
+          sellerId,
+          plateNumber,
+          excludeAuctionId: auctionId,
+        );
+      }
 
       // Fetch the cancelled auction with all its details
       final auctionResponse = await _supabase
@@ -1040,27 +1115,26 @@ class ListingSupabaseDataSource {
         throw Exception('Unauthorized: You do not own this listing');
       }
 
-      // Delete related data in order of dependencies
-      // 1. Delete bids (if any)
-      await _supabase.from('auction_bids').delete().eq('auction_id', auctionId);
+      // Delete related data in order of dependencies (ignore missing relations)
+      Future<void> _safeDelete(String table) async {
+        try {
+          await _supabase.from(table).delete().eq('auction_id', auctionId);
+        } on PostgrestException catch (e) {
+          if (e.message.contains('relation') ||
+              e.message.contains('does not exist')) {
+            return; // table not present; ignore
+          }
+          rethrow;
+        }
+      }
 
-      // 2. Delete watchers
-      await _supabase
-          .from('auction_watchers')
-          .delete()
-          .eq('auction_id', auctionId);
-
-      // 3. Delete photos
-      await _supabase
-          .from('auction_photos')
-          .delete()
-          .eq('auction_id', auctionId);
-
-      // 4. Delete transactions
-      await _supabase
-          .from('auction_transactions')
-          .delete()
-          .eq('auction_id', auctionId);
+      await _safeDelete('bids');
+      await _safeDelete('auction_watchers');
+      await _safeDelete('auction_photos');
+      await _safeDelete('transactions');
+      await _safeDelete('deposits');
+      await _safeDelete('payments');
+      await _safeDelete('seller_payouts');
 
       // 5. Delete the auction itself
       await _supabase.from('auctions').delete().eq('id', auctionId);
@@ -1310,5 +1384,42 @@ class ListingSupabaseDataSource {
     mergedJson['has_warranty'] = mergedJson['has_warranty'] ?? false;
 
     return ListingModel.fromJson(mergedJson);
+  }
+
+  /// Ensure a plate number is unique for a seller across all listing states
+  /// Optionally skip a specific auction (e.g., when relisting the same cancelled auction)
+  Future<void> _ensureUniquePlate(
+    String sellerId,
+    String plateNumber, {
+    String? excludeAuctionId,
+  }) async {
+    final dupes = await _supabase
+        .from('auctions')
+        .select(
+          '''id, auction_statuses(status_name), auction_vehicles!inner(plate_number)''',
+        )
+        .eq('seller_id', sellerId)
+        .eq('auction_vehicles.plate_number', plateNumber)
+        .inFilter('auction_statuses.status_name', [
+          'pending_approval',
+          'approved',
+          'scheduled',
+          'live',
+          'active',
+          'ended',
+          'cancelled',
+          'in_transaction',
+          'sold',
+        ]);
+
+    final conflict = (dupes is List)
+        ? dupes.any((row) => (row['id'] as String?) != excludeAuctionId)
+        : false;
+
+    if (conflict) {
+      throw Exception(
+        'A listing for plate $plateNumber already exists in your account. Please delete or finish it before submitting a new one.',
+      );
+    }
   }
 }

@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../data/datasources/listing_supabase_datasource.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 
-class PendingListingDetailPage extends StatelessWidget {
+class PendingListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
 
   const PendingListingDetailPage({super.key, required this.listing});
+
+  @override
+  State<PendingListingDetailPage> createState() =>
+      _PendingListingDetailPageState();
+}
+
+class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -15,21 +25,119 @@ class PendingListingDetailPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pending Review'),
-      ),
-      backgroundColor: isDark ? ColorConstants.backgroundDark : ColorConstants.backgroundLight,
-      body: ListView(
+      appBar: AppBar(title: const Text('Pending Review')),
+      backgroundColor: isDark
+          ? ColorConstants.backgroundDark
+          : ColorConstants.backgroundLight,
+      body: Stack(
         children: [
-          ListingCoverSection(listing: listing),
-          const SizedBox(height: 16),
-          _buildStatusCard(context, isDark),
-          const SizedBox(height: 16),
-          ListingInfoSection(listing: listing),
-          const SizedBox(height: 16),
+          ListView(
+            children: [
+              ListingCoverSection(listing: widget.listing),
+              const SizedBox(height: 16),
+              _buildStatusCard(context, isDark),
+              const SizedBox(height: 16),
+              ListingInfoSection(listing: widget.listing),
+              const SizedBox(height: 20),
+              _buildActionButtons(context, isDark),
+              const SizedBox(height: 16),
+            ],
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withValues(alpha: 0.3),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
         ],
       ),
     );
+  }
+
+  Widget _buildActionButtons(BuildContext context, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : () => _cancelListing(context),
+              icon: const Icon(Icons.close),
+              label: const Text('Cancel Listing'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cancelListing(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Listing'),
+        content: const Text(
+          'Are you sure you want to cancel this listing? It will be moved to your cancelled listings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep It'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Cancel Listing'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final datasource = ListingSupabaseDataSource(Supabase.instance.client);
+      print(
+        '[PendingListingDetailPage] Calling cancelListing for ${widget.listing.id}',
+      );
+      await datasource.cancelListing(widget.listing.id);
+      print('[PendingListingDetailPage] cancelListing completed successfully');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Listing cancelled successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            Navigator.pop(context, true); // Return true to trigger list refresh
+          }
+        });
+      }
+    } catch (e) {
+      print('[PendingListingDetailPage] Error cancelling listing: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Widget _buildStatusCard(BuildContext context, bool isDark) {
@@ -44,7 +152,10 @@ class PendingListingDetailPage extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.4), width: 2),
+        border: Border.all(
+          color: Colors.orange.withValues(alpha: 0.4),
+          width: 2,
+        ),
       ),
       child: Column(
         children: [
@@ -63,10 +174,7 @@ class PendingListingDetailPage extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'Awaiting Admin Approval',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -90,11 +198,7 @@ class PendingListingDetailPage extends StatelessWidget {
                   isDark: isDark,
                 ),
               ),
-              Container(
-                height: 2,
-                width: 32,
-                color: Colors.orange,
-              ),
+              Container(height: 2, width: 32, color: Colors.orange),
               Expanded(
                 child: _StatusStep(
                   icon: Icons.pending,
@@ -106,7 +210,9 @@ class PendingListingDetailPage extends StatelessWidget {
               Container(
                 height: 2,
                 width: 32,
-                color: isDark ? ColorConstants.surfaceLight : Colors.grey.shade300,
+                color: isDark
+                    ? ColorConstants.surfaceLight
+                    : Colors.grey.shade300,
               ),
               Expanded(
                 child: _StatusStep(
@@ -173,8 +279,8 @@ class _StatusStep extends StatelessWidget {
             color: isCompleted
                 ? Colors.orange.withValues(alpha: 0.2)
                 : (isDark
-                    ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
-                    : Colors.grey.shade100),
+                      ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
+                      : Colors.grey.shade100),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -183,8 +289,8 @@ class _StatusStep extends StatelessWidget {
             color: isCompleted
                 ? Colors.orange
                 : (isDark
-                    ? ColorConstants.textSecondaryDark
-                    : ColorConstants.textSecondaryLight),
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight),
           ),
         ),
         const SizedBox(height: 8),
@@ -197,8 +303,8 @@ class _StatusStep extends StatelessWidget {
             color: isCompleted
                 ? Colors.orange
                 : (isDark
-                    ? ColorConstants.textSecondaryDark
-                    : ColorConstants.textSecondaryLight),
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight),
           ),
         ),
       ],
