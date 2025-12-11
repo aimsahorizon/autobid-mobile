@@ -63,6 +63,7 @@ class ListingDraftEntity {
 
   // Step 7: Photos (56 categories)
   final Map<String, List<String>>? photoUrls; // category -> list of URLs
+  final List<String>? tags; // AI-generated tags for search/filter
 
   // Step 8: Final Details, Pricing & Bidding Configuration
   final String? description;
@@ -127,6 +128,7 @@ class ListingDraftEntity {
     this.province,
     this.cityMunicipality,
     this.photoUrls,
+    this.tags,
     this.description,
     this.knownIssues,
     this.features,
@@ -151,27 +153,35 @@ class ListingDraftEntity {
     return parts.isEmpty ? 'Untitled Listing' : parts.join(' ');
   }
 
-  /// Check if step is completed
+  /// Check if step is completed (NEW ORDER)
   bool isStepComplete(int step) {
     switch (step) {
       case 1:
+        // Step 1: Photos (at least 1 photo required to proceed)
+        return photoUrls != null && photoUrls!.isNotEmpty;
+      case 2:
+        // Step 2: Basic Info (AI-prefilled from photos)
         return brand != null &&
             model != null &&
             variant != null &&
             year != null;
-      case 2:
-        return engineType != null && transmission != null && fuelType != null;
       case 3:
-        return length != null && width != null && height != null;
+        // Step 3: Mechanical Specification
+        return engineType != null && transmission != null && fuelType != null;
       case 4:
-        return exteriorColor != null && paintType != null;
+        // Step 4: Dimensions & Capacity
+        return length != null && width != null && height != null;
       case 5:
-        return condition != null && mileage != null && previousOwners != null;
+        // Step 5: Exterior Details
+        return exteriorColor != null && paintType != null;
       case 6:
-        return plateNumber != null && orcrStatus != null && province != null;
+        // Step 6: Condition & History
+        return condition != null && mileage != null && previousOwners != null;
       case 7:
-        return photoUrls != null && photoUrls!.isNotEmpty;
+        // Step 7: Documentation & Location
+        return plateNumber != null && orcrStatus != null && province != null;
       case 8:
+        // Step 8: Final Details, Pricing & Bidding
         return description != null &&
             description!.length >= 50 &&
             startingPrice != null &&
@@ -180,7 +190,8 @@ class ListingDraftEntity {
             depositAmount != null &&
             biddingType != null;
       case 9:
-        return true; // Summary step - always complete if reached
+        // Step 9: Summary - always complete if reached
+        return true;
       default:
         return false;
     }

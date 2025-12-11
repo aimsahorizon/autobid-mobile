@@ -276,19 +276,21 @@ class _CreateListingPageState extends State<CreateListingPage> {
   Widget _buildStepContent() {
     switch (widget.controller.currentStep) {
       case 1:
-        return Step1BasicInfo(controller: widget.controller);
-      case 2:
-        return Step2MechanicalSpec(controller: widget.controller);
-      case 3:
-        return Step3Dimensions(controller: widget.controller);
-      case 4:
-        return Step4Exterior(controller: widget.controller);
-      case 5:
-        return Step5Condition(controller: widget.controller);
-      case 6:
-        return Step6Documentation(controller: widget.controller);
-      case 7:
+        // NEW ORDER: Photos first with AI detection
         return Step7Photos(controller: widget.controller);
+      case 2:
+        // AI-prefilled from photos
+        return Step1BasicInfo(controller: widget.controller);
+      case 3:
+        return Step2MechanicalSpec(controller: widget.controller);
+      case 4:
+        return Step3Dimensions(controller: widget.controller);
+      case 5:
+        return Step4Exterior(controller: widget.controller);
+      case 6:
+        return Step5Condition(controller: widget.controller);
+      case 7:
+        return Step6Documentation(controller: widget.controller);
       case 8:
         return Step8FinalDetails(controller: widget.controller);
       case 9:

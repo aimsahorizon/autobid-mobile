@@ -1,16 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../../app/core/constants/color_constants.dart';
+import '../../../../../app/core/services/car_detection_service.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import '../../../data/datasources/demo_listing_data.dart';
 import '../../../data/datasources/sample_photo_guide_datasource.dart';
 import 'demo_autofill_button.dart';
 
-class Step7Photos extends StatelessWidget {
+class Step7Photos extends StatefulWidget {
   final ListingDraftController controller;
 
   const Step7Photos({super.key, required this.controller});
+
+  @override
+  State<Step7Photos> createState() => _Step7PhotosState();
+}
+
+class _Step7PhotosState extends State<Step7Photos> {
+  final _carDetectionService = CarDetectionService();
+  bool _useAIDetection = true; // Toggle for AI vs Mock
 
   Future<void> _pickImage(BuildContext context, String category) async {
     print('DEBUG [Step7Photos]: ========================================');
@@ -81,7 +90,7 @@ class Step7Photos extends StatelessWidget {
       print('DEBUG [Step7Photos]: Image size: ${await pickedFile.length()} bytes');
       print('DEBUG [Step7Photos]: Uploading to controller...');
 
-      final success = await controller.uploadPhoto(category, pickedFile.path);
+      final success = await widget.controller.uploadPhoto(category, pickedFile.path);
 
       print('DEBUG [Step7Photos]: Upload result: $success');
 
@@ -120,7 +129,7 @@ class Step7Photos extends StatelessWidget {
   }
 
   Future<void> _autofillDemoPhotos(BuildContext context) async {
-    final currentDraft = controller.currentDraft;
+    final currentDraft = widget.controller.currentDraft;
     if (currentDraft == null) return;
 
     final demoData = DemoListingData.getDemoDataForStep(7);
@@ -184,13 +193,261 @@ class Step7Photos extends StatelessWidget {
       auctionEndDate: currentDraft.auctionEndDate,
     );
 
-    controller.updateDraft(updatedDraft);
+    widget.controller.updateDraft(updatedDraft);
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('All demo photos added!')),
       );
     }
+  }
+
+  /// AI Detection: Auto-fill car details from uploaded photo
+  Future<void> _detectCarAndAutoFill(BuildContext context) async {
+    final photoUrls = widget.controller.currentDraft?.photoUrls;
+    if (photoUrls == null || photoUrls.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please upload at least one photo first')),
+        );
+      }
+      return;
+    }
+
+    // Get first uploaded photo for detection
+    final firstPhoto = photoUrls.values.first.first;
+
+    // Show confirmation dialog
+    final shouldProceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              _useAIDetection ? Icons.psychology : Icons.auto_awesome,
+              color: ColorConstants.primary,
+            ),
+            const SizedBox(width: 12),
+            Text(_useAIDetection ? 'AI Detection' : 'Mock AI Detection'),
+          ],
+        ),
+        content: Text(
+          _useAIDetection
+              ? 'Use AI to analyze your car photo and auto-fill basic details?\n\nNote: Real AI is not yet implemented. Using Mock AI for demo.'
+              : 'Use Mock AI to generate randomized car details for demo purposes?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ColorConstants.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Detect & Auto-Fill'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldProceed != true || !context.mounted) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Detecting car details...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Call AI detection service (Mock for now)
+      final detectedData = await _carDetectionService.detectCarFromImage(firstPhoto);
+
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close loading
+
+      // Update draft with detected data
+      final currentDraft = widget.controller.currentDraft!;
+      final updatedDraft = ListingDraftEntity(
+        id: currentDraft.id,
+        sellerId: currentDraft.sellerId,
+        currentStep: currentDraft.currentStep,
+        lastSaved: DateTime.now(),
+        isComplete: currentDraft.isComplete,
+        // AI-detected fields
+        brand: detectedData['brand'] as String?,
+        model: detectedData['model'] as String?,
+        variant: '${detectedData['bodyType']} ${detectedData['transmission']}',
+        year: detectedData['year'] as int?,
+        transmission: detectedData['transmission'] as String?,
+        exteriorColor: detectedData['color'] as String?,
+        tags: (detectedData['tags'] as List<dynamic>?)?.cast<String>(),
+        // Preserve existing data
+        engineType: currentDraft.engineType,
+        engineDisplacement: currentDraft.engineDisplacement,
+        cylinderCount: currentDraft.cylinderCount,
+        horsepower: currentDraft.horsepower,
+        torque: currentDraft.torque,
+        fuelType: currentDraft.fuelType,
+        driveType: currentDraft.driveType,
+        length: currentDraft.length,
+        width: currentDraft.width,
+        height: currentDraft.height,
+        wheelbase: currentDraft.wheelbase,
+        groundClearance: currentDraft.groundClearance,
+        seatingCapacity: currentDraft.seatingCapacity,
+        doorCount: currentDraft.doorCount,
+        fuelTankCapacity: currentDraft.fuelTankCapacity,
+        curbWeight: currentDraft.curbWeight,
+        grossWeight: currentDraft.grossWeight,
+        paintType: currentDraft.paintType,
+        rimType: currentDraft.rimType,
+        rimSize: currentDraft.rimSize,
+        tireSize: currentDraft.tireSize,
+        tireBrand: currentDraft.tireBrand,
+        condition: currentDraft.condition,
+        mileage: currentDraft.mileage,
+        previousOwners: currentDraft.previousOwners,
+        hasModifications: currentDraft.hasModifications,
+        modificationsDetails: currentDraft.modificationsDetails,
+        hasWarranty: currentDraft.hasWarranty,
+        warrantyDetails: currentDraft.warrantyDetails,
+        usageType: currentDraft.usageType,
+        plateNumber: currentDraft.plateNumber,
+        orcrStatus: currentDraft.orcrStatus,
+        registrationStatus: currentDraft.registrationStatus,
+        registrationExpiry: currentDraft.registrationExpiry,
+        province: currentDraft.province,
+        cityMunicipality: currentDraft.cityMunicipality,
+        photoUrls: currentDraft.photoUrls,
+        description: currentDraft.description,
+        knownIssues: currentDraft.knownIssues,
+        features: currentDraft.features,
+        startingPrice: currentDraft.startingPrice,
+        reservePrice: currentDraft.reservePrice,
+        auctionEndDate: currentDraft.auctionEndDate,
+        biddingType: currentDraft.biddingType,
+        bidIncrement: currentDraft.bidIncrement,
+        minBidIncrement: currentDraft.minBidIncrement,
+        depositAmount: currentDraft.depositAmount,
+        enableIncrementalBidding: currentDraft.enableIncrementalBidding,
+      );
+
+      widget.controller.updateDraft(updatedDraft);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to detect car: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildAIToggleSection(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? ColorConstants.surfaceLight.withValues(alpha: 0.3)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: ColorConstants.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _useAIDetection ? Icons.psychology : Icons.auto_awesome,
+                color: ColorConstants.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'AI Car Detection',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              Switch(
+                value: _useAIDetection,
+                onChanged: (value) {
+                  setState(() {
+                    _useAIDetection = value;
+                  });
+                },
+                activeTrackColor: ColorConstants.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _useAIDetection
+                ? 'Real AI (Not yet implemented - uses Mock AI)'
+                : 'Mock AI (Generates random demo data)',
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _detectCarAndAutoFill(context),
+              icon: const Icon(Icons.auto_fix_high, size: 18),
+              label: const Text('Detect Car & Auto-Fill'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorConstants.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showSamplePhoto(BuildContext context, String category) async {
@@ -280,9 +537,9 @@ class Step7Photos extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return ListenableBuilder(
-      listenable: controller,
+      listenable: widget.controller,
       builder: (context, _) {
-        final photoUrls = controller.currentDraft?.photoUrls ?? {};
+        final photoUrls = widget.controller.currentDraft?.photoUrls ?? {};
         final uploadedCount = photoUrls.values.fold<int>(
           0,
           (sum, urls) => sum + urls.length,
@@ -304,12 +561,12 @@ class Step7Photos extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Step 7: Photos',
+                              'Step 1: Upload Photos',
                               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Upload photos for all 56 required categories',
+                              'Upload car photos - AI will auto-detect details',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: isDark
@@ -342,6 +599,8 @@ class Step7Photos extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   DemoAutofillButton(onPressed: () => _autofillDemoPhotos(context)),
+                  const SizedBox(height: 12),
+                  _buildAIToggleSection(isDark),
                 ],
               ),
             ),
