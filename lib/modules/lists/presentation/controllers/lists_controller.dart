@@ -115,6 +115,18 @@ class ListsController extends ChangeNotifier {
       result[ListingStatus.approved] = [];
     }
 
+    // Fetch scheduled listings (approved but with a future start time)
+    try {
+      final scheduled =
+          await _supabaseDataSource!.getScheduledListings(sellerId);
+      result[ListingStatus.scheduled] = scheduled
+          .map((listing) => listing.toSellerListingEntity())
+          .toList();
+    } catch (e) {
+      print('[ListsController] Error loading scheduled: $e');
+      result[ListingStatus.scheduled] = [];
+    }
+
     // Fetch active listings (live auctions)
     try {
       final active = await _supabaseDataSource!.getActiveListings(sellerId);

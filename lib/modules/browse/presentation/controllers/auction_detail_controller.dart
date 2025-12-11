@@ -31,15 +31,15 @@ class AuctionDetailController extends ChangeNotifier {
   AuctionDetailController.mock(
     AuctionDetailMockDataSource dataSource, {
     ConsumeBiddingTokenUsecase? consumeBiddingTokenUsecase,
-  })  : _mockDataSource = dataSource,
-        _supabaseDataSource = null,
-        _mockBidHistoryDataSource = BidHistoryMockDataSource(),
-        _supabaseBidHistoryDataSource = null,
-        _mockQADataSource = QAMockDataSource(),
-        _supabaseQADataSource = null,
-        _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
-        _useMockData = true,
-        _userId = null;
+  }) : _mockDataSource = dataSource,
+       _supabaseDataSource = null,
+       _mockBidHistoryDataSource = BidHistoryMockDataSource(),
+       _supabaseBidHistoryDataSource = null,
+       _mockQADataSource = QAMockDataSource(),
+       _supabaseQADataSource = null,
+       _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
+       _useMockData = true,
+       _userId = null;
 
   /// Create controller with Supabase datasources
   AuctionDetailController.supabase({
@@ -48,29 +48,29 @@ class AuctionDetailController extends ChangeNotifier {
     required QASupabaseDataSource qaDataSource,
     required ConsumeBiddingTokenUsecase consumeBiddingTokenUsecase,
     String? userId,
-  })  : _mockDataSource = null,
-        _supabaseDataSource = auctionDataSource,
-        _mockBidHistoryDataSource = null,
-        _supabaseBidHistoryDataSource = bidDataSource,
-        _mockQADataSource = null,
-        _supabaseQADataSource = qaDataSource,
-        _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
-        _useMockData = false,
-        _userId = userId;
+  }) : _mockDataSource = null,
+       _supabaseDataSource = auctionDataSource,
+       _mockBidHistoryDataSource = null,
+       _supabaseBidHistoryDataSource = bidDataSource,
+       _mockQADataSource = null,
+       _supabaseQADataSource = qaDataSource,
+       _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
+       _useMockData = false,
+       _userId = userId;
 
   /// Legacy constructor for backward compatibility
   AuctionDetailController(
     AuctionDetailMockDataSource dataSource, {
     ConsumeBiddingTokenUsecase? consumeBiddingTokenUsecase,
-  })  : _mockDataSource = dataSource,
-        _supabaseDataSource = null,
-        _mockBidHistoryDataSource = BidHistoryMockDataSource(),
-        _supabaseBidHistoryDataSource = null,
-        _mockQADataSource = QAMockDataSource(),
-        _supabaseQADataSource = null,
-        _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
-        _useMockData = true,
-        _userId = null;
+  }) : _mockDataSource = dataSource,
+       _supabaseDataSource = null,
+       _mockBidHistoryDataSource = BidHistoryMockDataSource(),
+       _supabaseBidHistoryDataSource = null,
+       _mockQADataSource = QAMockDataSource(),
+       _supabaseQADataSource = null,
+       _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
+       _useMockData = true,
+       _userId = null;
 
   // State properties
   AuctionDetailEntity? _auction;
@@ -113,22 +113,25 @@ class AuctionDetailController extends ChangeNotifier {
       if (_useMockData) {
         _auction = await _mockDataSource!.getAuctionDetail(id);
       } else {
-        final auctionDetailModel = await _supabaseDataSource!.getAuctionDetail(id, _userId);
-        _auction = auctionDetailModel; // AuctionDetailModel extends AuctionDetailEntity
+        final auctionDetailModel = await _supabaseDataSource!.getAuctionDetail(
+          id,
+          _userId,
+        );
+        _auction =
+            auctionDetailModel; // AuctionDetailModel extends AuctionDetailEntity
       }
 
       // Load bid history and Q&A in parallel
-      await Future.wait([
-        _loadBidHistory(id),
-        _loadQuestions(id),
-      ]);
+      await Future.wait([_loadBidHistory(id), _loadQuestions(id)]);
 
       // Check if we've been outbid and auto-bid is active
       if (previousBid != null &&
           _auction != null &&
           _auction!.currentBid > previousBid &&
           _isAutoBidActive) {
-        print('DEBUG: Detected outbid - previous: $previousBid, current: ${_auction!.currentBid}');
+        print(
+          'DEBUG: Detected outbid - previous: $previousBid, current: ${_auction!.currentBid}',
+        );
         // We've been outbid, trigger auto-bid check
         await _checkAndPlaceAutoBid();
       }
@@ -152,26 +155,33 @@ class AuctionDetailController extends ChangeNotifier {
         print('DEBUG: Loading bid history for auction: $auctionId');
 
         // Get bid history from Supabase
-        final bidsData = await _supabaseBidHistoryDataSource!.getBidHistory(auctionId);
+        final bidsData = await _supabaseBidHistoryDataSource!.getBidHistory(
+          auctionId,
+        );
         print('DEBUG: Received ${bidsData.length} bids from Supabase');
         print('DEBUG: Raw bids data: $bidsData');
 
         // Convert to BidHistoryEntity
         _bidHistory = bidsData.map((bidData) {
-          print('DEBUG: Processing bid - ID: ${bidData['id']}, Amount: ${bidData['amount']}');
+          print(
+            'DEBUG: Processing bid - ID: ${bidData['id']}, Amount: ${bidData['amount']}',
+          );
 
           return BidHistoryEntity(
             id: bidData['id'] as String,
             auctionId: auctionId,
             amount: (bidData['amount'] as num).toDouble(),
-            bidderName: 'Bidder ${bidData['bidder_id'].toString().substring(0, 8)}', // Show partial ID
+            bidderName:
+                'Bidder ${bidData['bidder_id'].toString().substring(0, 8)}', // Show partial ID
             timestamp: DateTime.parse(bidData['created_at'] as String),
             isCurrentUser: _userId != null && bidData['bidder_id'] == _userId,
             isWinning: false, // Will be set based on current auction state
           );
         }).toList();
 
-        print('DEBUG: Converted to ${_bidHistory.length} BidHistoryEntity objects');
+        print(
+          'DEBUG: Converted to ${_bidHistory.length} BidHistoryEntity objects',
+        );
       }
     } catch (e, stackTrace) {
       // Log the error instead of silent fail
@@ -194,41 +204,32 @@ class AuctionDetailController extends ChangeNotifier {
         print('DEBUG [Controller]: ========================================');
         print('DEBUG [Controller]: Starting Q&A load for auction: $auctionId');
         print('DEBUG [Controller]: User ID: $_userId');
-        print('DEBUG [Controller]: QA DataSource exists: ${_supabaseQADataSource != null}');
+        print(
+          'DEBUG [Controller]: QA DataSource exists: ${_supabaseQADataSource != null}',
+        );
 
-        final questionsData = await _supabaseQADataSource!.getQuestions(auctionId, userId: _userId);
+        _questions = await _supabaseQADataSource!.getQuestions(
+          auctionId,
+          currentUserId: _userId,
+        );
 
         print('DEBUG [Controller]: ========================================');
         print('DEBUG [Controller]: Received response from datasource');
-        print('DEBUG [Controller]: Questions count: ${questionsData.length}');
-        print('DEBUG [Controller]: Raw Q&A data: $questionsData');
+        print('DEBUG [Controller]: Questions count: ${_questions.length}');
 
-        if (questionsData.isEmpty) {
+        if (_questions.isEmpty) {
           print('DEBUG [Controller]: ⚠️ NO QUESTIONS FOUND IN DATABASE');
           print('DEBUG [Controller]: This means:');
-          print('DEBUG [Controller]:   1. Q&A schema might not be run (sql/11_qa_schema.sql)');
-          print('DEBUG [Controller]:   2. No questions have been asked yet for this listing');
-          print('DEBUG [Controller]:   3. RLS policies might be blocking access');
-        }
-
-        _questions = questionsData.map((qData) {
-          print('DEBUG [Controller]: Processing question - ID: ${qData['id']}, Question: ${qData['question']}');
-          return QAEntity(
-            id: qData['id'] as String,
-            auctionId: auctionId,
-            category: qData['category'] as String? ?? 'general',
-            question: qData['question'] as String,
-            askedBy: 'User ${qData['asker_id'].toString().substring(0, 8)}',
-            askedAt: DateTime.parse(qData['created_at'] as String),
-            answer: qData['answer'] as String?,
-            answeredAt: qData['answered_at'] != null
-                ? DateTime.parse(qData['answered_at'] as String)
-                : null,
-            likesCount: qData['likes_count'] as int? ?? 0,
-            isLikedByUser: qData['user_has_liked'] as bool? ?? false,
+          print(
+            'DEBUG [Controller]:   1. Q&A schema might not be run (migration 00045)',
           );
-        }).toList();
-        print('DEBUG [Controller]: Converted to ${_questions.length} QAEntity objects');
+          print(
+            'DEBUG [Controller]:   2. No questions have been asked yet for this listing',
+          );
+          print(
+            'DEBUG [Controller]:   3. RLS policies might be blocking access',
+          );
+        }
         print('DEBUG [Controller]: ========================================');
       }
     } catch (e, stackTrace) {
@@ -264,22 +265,27 @@ class AuctionDetailController extends ChangeNotifier {
       } else {
         // Post question to Supabase
         if (_userId == null) {
-          print('ERROR [Controller]: ❌ User not authenticated, cannot ask question');
+          print(
+            'ERROR [Controller]: ❌ User not authenticated, cannot ask question',
+          );
           return;
         }
 
-        print('DEBUG [Controller]: Calling datasource.askQuestion()...');
-        success = await _supabaseQADataSource!.askQuestion(
-          listingId: _auction!.id,
-          askerId: _userId!,
+        print('DEBUG [Controller]: Calling datasource.postQuestion()...');
+        final qa = await _supabaseQADataSource!.postQuestion(
+          auctionId: _auction!.id,
+          userId: _userId!,
           category: category,
           question: question,
         );
-        print('DEBUG [Controller]: Question posted, success: $success');
+        print('DEBUG [Controller]: Question posted successfully: ${qa.id}');
+        success = true;
       }
 
       if (success) {
-        print('DEBUG [Controller]: ✅ Question posted successfully, reloading Q&A...');
+        print(
+          'DEBUG [Controller]: ✅ Question posted successfully, reloading Q&A...',
+        );
         await _loadQuestions(_auction!.id);
         notifyListeners();
       } else {
@@ -304,10 +310,18 @@ class AuctionDetailController extends ChangeNotifier {
           return;
         }
 
-        await _supabaseQADataSource!.toggleQuestionLike(
-          questionId: questionId,
-          userId: _userId!,
-        );
+        final q = _questions.firstWhere((q) => q.id == questionId);
+        if (q.isLikedByUser) {
+          await _supabaseQADataSource!.unlikeQuestion(
+            questionId: questionId,
+            userId: _userId!,
+          );
+        } else {
+          await _supabaseQADataSource!.likeQuestion(
+            questionId: questionId,
+            userId: _userId!,
+          );
+        }
       }
 
       // Optimistically update UI
@@ -379,14 +393,17 @@ class AuctionDetailController extends ChangeNotifier {
       }
 
       // Consume bidding token if usecase is available (Supabase mode)
-      if (_consumeBiddingTokenUsecase != null && !_useMockData && effectiveUserId != null) {
+      if (_consumeBiddingTokenUsecase != null &&
+          !_useMockData &&
+          effectiveUserId != null) {
         final hasToken = await _consumeBiddingTokenUsecase.call(
           userId: effectiveUserId,
           referenceId: _auction!.id,
         );
 
         if (!hasToken) {
-          _errorMessage = 'Insufficient bidding tokens. Please purchase more tokens or upgrade your subscription.';
+          _errorMessage =
+              'Insufficient bidding tokens. Please purchase more tokens or upgrade your subscription.';
           return false;
         }
       }
@@ -448,7 +465,9 @@ class AuctionDetailController extends ChangeNotifier {
   /// Internal method to check if auto-bid should trigger and place bid
   Future<void> _checkAndPlaceAutoBid() async {
     if (!_isAutoBidActive || _maxAutoBid == null || _auction == null) {
-      print('DEBUG: Auto-bid check skipped - active: $_isAutoBidActive, maxBid: $_maxAutoBid, auction: ${_auction != null}');
+      print(
+        'DEBUG: Auto-bid check skipped - active: $_isAutoBidActive, maxBid: $_maxAutoBid, auction: ${_auction != null}',
+      );
       return;
     }
 
@@ -461,14 +480,19 @@ class AuctionDetailController extends ChangeNotifier {
     final currentBid = _auction!.currentBid;
     final nextBidAmount = currentBid + _bidIncrement;
 
-    print('DEBUG: Auto-bid check - currentBid: $currentBid, nextBid: $nextBidAmount, maxBid: $_maxAutoBid');
+    print(
+      'DEBUG: Auto-bid check - currentBid: $currentBid, nextBid: $nextBidAmount, maxBid: $_maxAutoBid',
+    );
 
     // Check if next bid is within our max limit
     if (nextBidAmount > _maxAutoBid!) {
-      print('DEBUG: Auto-bid limit reached - deactivating (nextBid $nextBidAmount > maxBid $_maxAutoBid)');
+      print(
+        'DEBUG: Auto-bid limit reached - deactivating (nextBid $nextBidAmount > maxBid $_maxAutoBid)',
+      );
       _isAutoBidActive = false;
       _stopPolling();
-      _errorMessage = 'Auto-bid limit reached. Maximum bid: ₱${_maxAutoBid!.toStringAsFixed(0)}';
+      _errorMessage =
+          'Auto-bid limit reached. Maximum bid: ₱${_maxAutoBid!.toStringAsFixed(0)}';
       notifyListeners();
       return;
     }

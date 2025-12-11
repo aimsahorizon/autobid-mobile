@@ -248,6 +248,7 @@ class ListingModel {
       model: model,
       status: _parseListingStatus(status),
       startingPrice: startingPrice,
+      startTime: auctionStartTime,
       currentBid: currentBid > 0 ? currentBid : null,
       reservePrice: reservePrice,
       totalBids: totalBids,

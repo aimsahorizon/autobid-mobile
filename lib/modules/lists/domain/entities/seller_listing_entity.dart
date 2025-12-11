@@ -22,6 +22,9 @@ class SellerListingEntity {
   /// Starting price set by seller
   final double startingPrice;
 
+  /// Scheduled start time (for scheduled listings)
+  final DateTime? startTime;
+
   /// Current highest bid (null if no bids yet)
   final double? currentBid;
 
@@ -57,6 +60,7 @@ class SellerListingEntity {
     required this.model,
     required this.status,
     required this.startingPrice,
+    this.startTime,
     this.currentBid,
     this.reservePrice,
     this.totalBids = 0,
@@ -80,6 +84,10 @@ class SellerListingEntity {
   /// Get time remaining (for active listings)
   Duration? get timeRemaining =>
       endTime != null ? endTime!.difference(DateTime.now()) : null;
+
+    /// Time until auction starts (for scheduled listings)
+    Duration? get timeUntilStart =>
+      startTime != null ? startTime!.difference(DateTime.now()) : null;
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);
