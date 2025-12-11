@@ -401,6 +401,24 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           children: [
             Expanded(
               child: SegmentedButton<String>(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.resolveWith<Color>(
+                    (Set<WidgetState> states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Theme.of(context).colorScheme.primary;
+                      }
+                      return Colors.transparent;
+                    },
+                  ),
+                  foregroundColor: WidgetStateProperty.resolveWith<Color>(
+                    (Set<WidgetState> states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.white;
+                      }
+                      return Theme.of(context).colorScheme.onSurface;
+                    },
+                  ),
+                ),
                 segments: const <ButtonSegment<String>>[
                   ButtonSegment<String>(
                     value: 'public',
