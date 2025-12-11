@@ -2,7 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/auction_model.dart';
 import '../models/auction_detail_model.dart';
 import '../../domain/entities/auction_filter.dart';
-import 'deposit_supabase_datasource.dart';
+import 'deposit_supabase_datasource.dart' show DepositSupabaseDatasource;
 
 /// Supabase datasource for auction operations
 /// Handles fetching, filtering, and managing auctions from vehicles table
@@ -14,137 +14,182 @@ class AuctionSupabaseDataSource {
     _depositDatasource = DepositSupabaseDatasource(supabase: _supabase);
   }
 
-  /// Get all active auctions with comprehensive filtering
-  /// Uses listings table with full-text search across multiple fields
-  Future<List<AuctionModel>> getActiveAuctions({
-    AuctionFilter? filter,
-  }) async {
+  /// Get all live auctions with comprehensive filtering
+  /// Tries full browse view first, falls back to simple view, then direct auctions table
+  Future<List<AuctionModel>> getActiveAuctions({AuctionFilter? filter}) async {
     try {
-      // Build base query - query listings table directly for access to all fields
-      var queryBuilder = _supabase
-          .from('listings')
-          .select('id, cover_photo_url, year, brand, model, current_bid, watchers_count, total_bids, auction_end_time, seller_id, created_at')
-          .eq('status', 'active')
-          .gt('auction_end_time', DateTime.now().toIso8601String())
-          .isFilter('deleted_at', null);
+      print(
+        '[AuctionSupabaseDataSource] Loading auctions with filter: $filter',
+      );
 
-      // Apply search query (comprehensive search across multiple text fields)
-      if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
-        final query = filter.searchQuery!.toLowerCase();
-        // Search in: brand, model, variant, description, exterior_color, condition, transmission, fuel_type, drive_type, location
-        queryBuilder = queryBuilder.or(
-          'brand.ilike.%$query%,'
-          'model.ilike.%$query%,'
-          'variant.ilike.%$query%,'
-          'description.ilike.%$query%,'
-          'exterior_color.ilike.%$query%,'
-          'condition.ilike.%$query%,'
-          'transmission.ilike.%$query%,'
-          'fuel_type.ilike.%$query%,'
-          'drive_type.ilike.%$query%,'
-          'province.ilike.%$query%,'
-          'city_municipality.ilike.%$query%'
-        );
-      }
-
-      // Apply specific filters
-      if (filter?.make != null) {
-        queryBuilder = queryBuilder.eq('brand', filter!.make!);
-      }
-      if (filter?.model != null) {
-        queryBuilder = queryBuilder.eq('model', filter!.model!);
-      }
-      if (filter?.yearFrom != null) {
-        queryBuilder = queryBuilder.gte('year', filter!.yearFrom!);
-      }
-      if (filter?.yearTo != null) {
-        queryBuilder = queryBuilder.lte('year', filter!.yearTo!);
-      }
-      if (filter?.priceMin != null) {
-        queryBuilder = queryBuilder.gte('current_bid', filter!.priceMin!);
-      }
-      if (filter?.priceMax != null) {
-        queryBuilder = queryBuilder.lte('current_bid', filter!.priceMax!);
-      }
-      if (filter?.transmission != null) {
-        queryBuilder = queryBuilder.eq('transmission', filter!.transmission!);
-      }
-      if (filter?.fuelType != null) {
-        queryBuilder = queryBuilder.eq('fuel_type', filter!.fuelType!);
-      }
-      if (filter?.driveType != null) {
-        queryBuilder = queryBuilder.eq('drive_type', filter!.driveType!);
-      }
-      if (filter?.condition != null) {
-        queryBuilder = queryBuilder.eq('condition', filter!.condition!);
-      }
-      if (filter?.maxMileage != null) {
-        queryBuilder = queryBuilder.lte('mileage', filter!.maxMileage!);
-      }
-      if (filter?.exteriorColor != null) {
-        queryBuilder = queryBuilder.eq('exterior_color', filter!.exteriorColor!);
-      }
-      if (filter?.province != null) {
-        queryBuilder = queryBuilder.eq('province', filter!.province!);
-      }
-      if (filter?.city != null) {
-        queryBuilder = queryBuilder.eq('city_municipality', filter!.city!);
-      }
-
-      // Apply ending soon filter (within 24 hours)
-      if (filter?.endingSoon == true) {
-        final twentyFourHoursLater = DateTime.now().add(const Duration(hours: 24));
-        queryBuilder = queryBuilder.lte('auction_end_time', twentyFourHoursLater.toIso8601String());
-      }
-
-      // Order by ending soonest first
-      final response = await queryBuilder.order('auction_end_time');
-
-      // Convert to AuctionModel list
-      return (response as List).map((json) {
-        // Map database columns to model fields
-        return AuctionModel.fromJson({
-          'id': json['id'],
-          'car_image_url': json['cover_photo_url'] ?? '',
-          'year': json['year'],
-          'make': json['brand'],
-          'model': json['model'],
-          'current_bid': json['current_bid'],
-          'watchers_count': json['watchers_count'] ?? 0,
-          'bidders_count': json['total_bids'] ?? 0,
-          'end_time': json['auction_end_time'],
-          'seller_id': json['seller_id'],
-        });
-      }).toList();
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to get auctions: ${e.message}');
+      // Try the full auction_browse_listings view first
+      return await _fetchFromView('auction_browse_listings', filter);
     } catch (e) {
-      throw Exception('Failed to get auctions: $e');
+      print(
+        '[AuctionSupabaseDataSource] Full view failed: $e. Trying fallback view...',
+      );
+      try {
+        // Fallback to simpler view if full view fails
+        return await _fetchFromView('auction_browse_simple', filter);
+      } catch (e2) {
+        print(
+          '[AuctionSupabaseDataSource] Fallback view also failed: $e2. Trying direct auctions table...',
+        );
+        // Final fallback: query auctions table directly
+        return await _fetchFromAuctionsTable(filter);
+      }
     }
   }
 
-  /// Get auction details by ID with all related data
-  /// Includes listing photos from photo_urls JSONB field
-  Future<AuctionDetailModel> getAuctionDetail(String auctionId, String? userId) async {
+  /// Helper method to fetch from a specific view
+  Future<List<AuctionModel>> _fetchFromView(
+    String viewName,
+    AuctionFilter? filter,
+  ) async {
+    var queryBuilder = _supabase
+        .from(viewName)
+        .select(
+          'id, title, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, created_at',
+        );
+
+    // Apply search filter on title and description
+    if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
+      final query = filter.searchQuery!.toLowerCase();
+      queryBuilder = queryBuilder.or(
+        'title.ilike.%$query%,'
+        'description.ilike.%$query%',
+      );
+    }
+
+    // Price range filtering
+    if (filter?.priceMin != null) {
+      queryBuilder = queryBuilder.gte('current_price', filter!.priceMin!);
+    }
+    if (filter?.priceMax != null) {
+      queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
+    }
+
+    // Apply ending soon filter (within 24 hours)
+    if (filter?.endingSoon == true) {
+      final twentyFourHoursLater = DateTime.now().add(
+        const Duration(hours: 24),
+      );
+      queryBuilder = queryBuilder.lte(
+        'end_time',
+        twentyFourHoursLater.toIso8601String(),
+      );
+    }
+
+    // Order by ending soonest first
+    final response = await queryBuilder.order('end_time', ascending: true);
+    print(
+      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $viewName',
+    );
+
+    // Convert to AuctionModel list
+    return (response as List).map((json) {
+      return AuctionModel.fromJson({
+        'id': json['id'],
+        'car_image_url': json['primary_image_url'] ?? '',
+        'year': json['vehicle_year'] ?? 0,
+        'make': json['vehicle_make'] ?? '',
+        'model': json['vehicle_model'] ?? '',
+        'current_bid': json['current_price'] ?? json['starting_price'],
+        'watchers_count': json['watchers_count'] ?? 0,
+        'bidders_count': json['total_bids'] ?? 0,
+        'end_time': json['end_time'],
+        'seller_id': json['seller_id'],
+      });
+    }).toList();
+  }
+
+  /// Fallback: fetch directly from auctions table
+  Future<List<AuctionModel>> _fetchFromAuctionsTable(
+    AuctionFilter? filter,
+  ) async {
+    // Get live status ID
+    final statusResponse = await _supabase
+        .from('auction_statuses')
+        .select('id')
+        .eq('status_name', 'live')
+        .single();
+    final liveStatusId = statusResponse['id'] as String;
+
+    var queryBuilder = _supabase
+        .from('auctions')
+        .select(
+          'id, title, description, starting_price, current_price, reserve_price, end_time, total_bids, view_count, seller_id, created_at',
+        )
+        .eq('status_id', liveStatusId)
+        .gt('end_time', DateTime.now().toIso8601String());
+
+    // Apply search filter
+    if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
+      final query = filter.searchQuery!.toLowerCase();
+      queryBuilder = queryBuilder.or(
+        'title.ilike.%$query%,'
+        'description.ilike.%$query%',
+      );
+    }
+
+    // Price filtering
+    if (filter?.priceMin != null) {
+      queryBuilder = queryBuilder.gte('current_price', filter!.priceMin!);
+    }
+    if (filter?.priceMax != null) {
+      queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
+    }
+
+    final response = await queryBuilder.order('end_time', ascending: true);
+    print(
+      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from auctions table (fallback)',
+    );
+
+    return (response as List).map((json) {
+      return AuctionModel.fromJson({
+        'id': json['id'],
+        'car_image_url': '',
+        'year': 0,
+        'make': '',
+        'model': '',
+        'current_bid': json['current_price'] ?? json['starting_price'],
+        'watchers_count': 0,
+        'bidders_count': json['total_bids'] ?? 0,
+        'end_time': json['end_time'],
+        'seller_id': json['seller_id'],
+      });
+    }).toList();
+  }
+
+  /// Get auction details by ID for live auctions
+  /// Fetches from auction_browse_listings view with all related data
+  Future<AuctionDetailModel> getAuctionDetail(
+    String auctionId,
+    String? userId,
+  ) async {
     try {
-      // Get listing details
-      final listingResponse = await _supabase
-          .from('listings')
-          .select()
+      // Get auction details from view
+      final auctionResponse = await _supabase
+          .from('auction_browse_listings')
+          .select(
+            'id, title, description, starting_price, current_price, reserve_price, bid_increment, deposit_amount, end_time, total_bids, view_count, is_featured, seller_id, created_at, start_time, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
+          )
           .eq('id', auctionId)
-          .eq('status', 'active')
-          .isFilter('deleted_at', null)
           .single();
 
-      // Get photos from JSONB field
-      final photoUrls = listingResponse['photo_urls'] as Map<String, dynamic>? ?? {};
-      final Map<String, List<String>> photosByCategory = {};
+      // Get all photos for the auction
+      final photosResponse = await _supabase
+          .from('auction_images')
+          .select('image_url, display_order')
+          .eq('auction_id', auctionId)
+          .order('display_order', ascending: true);
 
-      photoUrls.forEach((category, urls) {
-        if (urls is List) {
-          photosByCategory[category] = List<String>.from(urls);
-        }
-      });
+      final photos = <String, List<String>>{};
+      if (photosResponse.isNotEmpty) {
+        photos['all'] = (photosResponse as List)
+            .map((p) => p['image_url'] as String)
+            .toList();
+      }
 
       // Check if user has deposited (if logged in)
       bool hasUserDeposited = false;
@@ -157,17 +202,22 @@ class AuctionSupabaseDataSource {
 
       // Build auction detail model
       return AuctionDetailModel.fromJson({
-        ...listingResponse,
-        'car_image_url': listingResponse['cover_photo_url'] ?? '',
-        'make': listingResponse['brand'],
-        'minimum_bid': listingResponse['starting_price'],
-        'end_time': listingResponse['auction_end_time'],
-        'is_reserve_met': listingResponse['reserve_price'] != null &&
-            listingResponse['current_bid'] >= listingResponse['reserve_price'],
+        ...auctionResponse,
+        'car_image_url': auctionResponse['primary_image_url'] ?? '',
+        'make': auctionResponse['vehicle_make'] ?? '',
+        'model': auctionResponse['vehicle_model'] ?? '',
+        'year': auctionResponse['vehicle_year'] ?? 0,
+        'variant': auctionResponse['vehicle_variant'],
+        'minimum_bid': auctionResponse['starting_price'],
+        'end_time': auctionResponse['end_time'],
+        'is_reserve_met':
+            auctionResponse['reserve_price'] != null &&
+            auctionResponse['current_price'] >=
+                auctionResponse['reserve_price'],
         'show_reserve_price': true,
-        'bidders_count': listingResponse['total_bids'] ?? 0,
+        'bidders_count': auctionResponse['total_bids'] ?? 0,
         'has_user_deposited': hasUserDeposited,
-        'photos': photosByCategory,
+        'photos': photos,
       });
     } on PostgrestException catch (e) {
       throw Exception('Failed to get auction details: ${e.message}');
@@ -181,9 +231,10 @@ class AuctionSupabaseDataSource {
   Future<void> watchAuction(String userId, String auctionId) async {
     try {
       // Increment watchers count
-      await _supabase.rpc('increment_watchers', params: {
-        'listing_id': auctionId,
-      });
+      await _supabase.rpc(
+        'increment_watchers',
+        params: {'listing_id': auctionId},
+      );
     } on PostgrestException catch (e) {
       throw Exception('Failed to watch auction: ${e.message}');
     } catch (e) {
@@ -196,9 +247,10 @@ class AuctionSupabaseDataSource {
   Future<void> unwatchAuction(String userId, String auctionId) async {
     try {
       // Decrement watchers count
-      await _supabase.rpc('decrement_watchers', params: {
-        'listing_id': auctionId,
-      });
+      await _supabase.rpc(
+        'decrement_watchers',
+        params: {'listing_id': auctionId},
+      );
     } on PostgrestException catch (e) {
       throw Exception('Failed to unwatch auction: ${e.message}');
     } catch (e) {
