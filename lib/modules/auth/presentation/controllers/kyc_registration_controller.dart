@@ -8,6 +8,7 @@ import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/models/kyc_registration_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../app/core/services/ai_id_extraction_service.dart';
+import '../../data/datasources/demo_data_generator.dart';
 
 enum KYCStep {
   accountInfo,        // Step 1: Username, email, phone, password, T&C
@@ -581,21 +582,60 @@ class KYCRegistrationController extends ChangeNotifier {
     return true;
   }
 
-  // AI Auto-fill functionality (mock)
+  // AI Auto-fill functionality with randomized demo data
   Future<void> performAIAutoFill() async {
     _isLoading = true;
     notifyListeners();
 
     await Future.delayed(const Duration(seconds: 2));
 
-    // Mock AI extracted data
-    _firstName = 'Juan';
-    _middleName = 'Santos';
-    _lastName = 'Dela Cruz';
-    _dateOfBirth = DateTime(1990, 5, 15);
-    _sex = 'Male';
+    // Generate randomized demo data
+    final demoData = DemoDataGenerator.generateCompleteData();
+
+    _firstName = demoData['firstName'];
+    _middleName = demoData['middleName'];
+    _lastName = demoData['lastName'];
+    _dateOfBirth = demoData['dateOfBirth'];
+    _sex = demoData['sex'];
+    _nationalIdNumber = demoData['nationalIdNumber'];
+    _region = demoData['region'];
+    _province = demoData['province'];
+    _city = demoData['city'];
+    _barangay = demoData['barangay'];
+    _street = demoData['street'];
+    _zipCode = demoData['zipCode'];
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Demo auto-fill for testing (excludes email, phone, and documents)
+  void autoFillDemoData() {
+    final demoData = DemoDataGenerator.generateCompleteData();
+
+    // Personal info
+    _firstName = demoData['firstName'];
+    _middleName = demoData['middleName'];
+    _lastName = demoData['lastName'];
+    _dateOfBirth = demoData['dateOfBirth'];
+    _sex = demoData['sex'];
+
+    // Generate username from name if not set
+    if (_username == null || _username!.isEmpty) {
+      _username = demoData['username'];
+    }
+
+    // National ID
+    _nationalIdNumber = demoData['nationalIdNumber'];
+
+    // Address
+    _region = demoData['region'];
+    _province = demoData['province'];
+    _city = demoData['city'];
+    _barangay = demoData['barangay'];
+    _street = demoData['street'];
+    _zipCode = demoData['zipCode'];
+
     notifyListeners();
   }
 
