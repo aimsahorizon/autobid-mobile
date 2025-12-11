@@ -175,20 +175,36 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     setState(() => _isProcessing = true);
 
     try {
-      // Update auction status to 'in_transaction'
-      await _datasource.updateListingStatusByName(
-        widget.listing.id,
-        'in_transaction',
-      );
-
-      // Ensure transaction record is created in auction_transactions table
+      // First, try to create a transaction record based on highest bid.
+      // If there are no bids, handle gracefully and do NOT proceed.
       final currentUserId = SupabaseConfig.client.auth.currentUser?.id;
+      bool transactionPrepared = false;
       if (currentUserId != null) {
-        await _datasource.ensureTransactionCreated(
+        transactionPrepared = await _datasource.ensureTransactionCreated(
           widget.listing.id,
           currentUserId,
         );
       }
+
+      if (!transactionPrepared) {
+        // No bids found or transaction couldn't be prepared.
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No winning bid found. You can Reauction or Cancel this listing.',
+            ),
+            backgroundColor: ColorConstants.warning,
+          ),
+        );
+        return;
+      }
+
+      // Update auction status to 'in_transaction' only after transaction is prepared
+      await _datasource.updateListingStatusByName(
+        widget.listing.id,
+        'in_transaction',
+      );
 
       if (!mounted) return;
 

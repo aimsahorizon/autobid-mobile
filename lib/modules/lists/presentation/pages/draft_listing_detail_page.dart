@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
+import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import 'create_listing_page.dart';
 import '../controllers/listing_draft_controller.dart';
 
-class DraftListingDetailPage extends StatelessWidget {
+class DraftListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
   final ListingDraftController controller;
   final String sellerId;
@@ -18,26 +20,39 @@ class DraftListingDetailPage extends StatelessWidget {
     required this.sellerId,
   });
 
+  @override
+  State<DraftListingDetailPage> createState() => _DraftListingDetailPageState();
+}
+
+class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
+  late final ListingSupabaseDataSource _datasource;
+
+  @override
+  void initState() {
+    super.initState();
+    _datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+  }
+
   void _continueDraft(BuildContext context) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => CreateListingPage(
-          controller: controller,
-          sellerId: sellerId,
-          draftId: listing.id,
+          controller: widget.controller,
+          sellerId: widget.sellerId,
+          draftId: widget.listing.id,
         ),
       ),
     );
 
     // If draft was submitted, go back to listings page with result
-    if (result == true && context.mounted) {
+    if (result == true && mounted) {
       Navigator.pop(context, true);
     }
   }
 
-  void _deleteDraft(BuildContext context) async {
-    showDialog(
+  Future<void> _deleteDraft(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Draft'),
@@ -46,38 +61,52 @@ class DraftListingDetailPage extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context); // Close dialog
-
-              // Show loading
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(child: CircularProgressIndicator()),
-              );
-
-              final success = await controller.deleteDraft(listing.id);
-
-              if (!context.mounted) return;
-              Navigator.pop(context); // Close loading
-              Navigator.pop(context, true); // Go back to list with result
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(success ? 'Draft deleted' : 'Failed to delete draft'),
-                ),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+
+    if (confirmed != true || !mounted) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Delete draft from database
+      await _datasource.deleteDraft(widget.listing.id);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+      Navigator.pop(context, true); // Go back to list with result
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Draft deleted successfully'),
+          backgroundColor: ColorConstants.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete draft: $e'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
   }
 
   @override
@@ -95,17 +124,19 @@ class DraftListingDetailPage extends StatelessWidget {
           ),
         ],
       ),
-      backgroundColor: isDark ? ColorConstants.backgroundDark : ColorConstants.backgroundLight,
+      backgroundColor: isDark
+          ? ColorConstants.backgroundDark
+          : ColorConstants.backgroundLight,
       body: Column(
         children: [
           Expanded(
             child: ListView(
               children: [
-                ListingCoverSection(listing: listing),
+                ListingCoverSection(listing: widget.listing),
                 const SizedBox(height: 16),
                 _buildDraftStatusCard(context, isDark),
                 const SizedBox(height: 16),
-                ListingInfoSection(listing: listing),
+                ListingInfoSection(listing: widget.listing),
                 const SizedBox(height: 16),
               ],
             ),
@@ -118,18 +149,27 @@ class DraftListingDetailPage extends StatelessWidget {
 
   Widget _buildDraftStatusCard(BuildContext context, bool isDark) {
     // Calculate completion percentage based on filled fields
+    // Count non-null fields to estimate completion
     int filledFields = 0;
-    int totalFields = 57; // Total fields in 9-step form
 
-    // This is a simplified calculation - in real implementation,
-    // use the completionPercentage from ListingDraftEntity
-    if (listing.brand != null) filledFields++;
-    if (listing.model != null) filledFields++;
-    if (listing.year != null) filledFields++;
-    if (listing.description != null) filledFields++;
-    // ... etc
+    if (widget.listing.brand != null) filledFields++;
+    if (widget.listing.model != null) filledFields++;
+    if (widget.listing.variant != null) filledFields++;
+    if (widget.listing.year != null) filledFields++;
+    if (widget.listing.engineType != null) filledFields++;
+    if (widget.listing.transmission != null) filledFields++;
+    if (widget.listing.fuelType != null) filledFields++;
+    if (widget.listing.exteriorColor != null) filledFields++;
+    if (widget.listing.condition != null) filledFields++;
+    if (widget.listing.description != null &&
+        widget.listing.description!.isNotEmpty)
+      filledFields++;
+    if (widget.listing.photoUrls != null &&
+        widget.listing.photoUrls!.isNotEmpty)
+      filledFields++;
 
-    final percentage = (filledFields / totalFields * 100).toInt();
+    // Estimate: 11 key fields, calculate percentage (max 100)
+    final percentage = ((filledFields / 11) * 100).clamp(0, 100).toInt();
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -142,7 +182,10 @@ class DraftListingDetailPage extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ColorConstants.primary.withValues(alpha: 0.3), width: 2),
+        border: Border.all(
+          color: ColorConstants.primary.withValues(alpha: 0.3),
+          width: 2,
+        ),
       ),
       child: Column(
         children: [
@@ -247,7 +290,7 @@ class DraftListingDetailPage extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Last saved: ${_formatDateTime(listing.createdAt)}',
+                'Last saved: ${_formatDateTime(widget.listing.createdAt)}',
                 style: TextStyle(
                   fontSize: 12,
                   color: isDark

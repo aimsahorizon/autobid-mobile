@@ -64,13 +64,19 @@ class ListingDraftEntity {
   // Step 7: Photos (56 categories)
   final Map<String, List<String>>? photoUrls; // category -> list of URLs
 
-  // Step 8: Final Details & Pricing
+  // Step 8: Final Details, Pricing & Bidding Configuration
   final String? description;
   final String? knownIssues;
   final List<String>? features;
   final double? startingPrice;
   final double? reservePrice;
   final DateTime? auctionEndDate;
+  // Bidding Configuration (Step 8)
+  final String? biddingType; // 'public' or 'private'
+  final double? bidIncrement; // Minimum increment for bids
+  final double? minBidIncrement; // Alias for bidIncrement for clarity
+  final double? depositAmount; // Required deposit to bid
+  final bool? enableIncrementalBidding; // Allow price-based increments
 
   const ListingDraftEntity({
     required this.id,
@@ -127,6 +133,11 @@ class ListingDraftEntity {
     this.startingPrice,
     this.reservePrice,
     this.auctionEndDate,
+    this.biddingType,
+    this.bidIncrement,
+    this.minBidIncrement,
+    this.depositAmount,
+    this.enableIncrementalBidding,
   });
 
   /// Get car name from basic info
@@ -144,7 +155,10 @@ class ListingDraftEntity {
   bool isStepComplete(int step) {
     switch (step) {
       case 1:
-        return brand != null && model != null && variant != null && year != null;
+        return brand != null &&
+            model != null &&
+            variant != null &&
+            year != null;
       case 2:
         return engineType != null && transmission != null && fuelType != null;
       case 3:
@@ -158,8 +172,13 @@ class ListingDraftEntity {
       case 7:
         return photoUrls != null && photoUrls!.isNotEmpty;
       case 8:
-        return description != null && description!.length >= 50 &&
-               startingPrice != null && auctionEndDate != null;
+        return description != null &&
+            description!.length >= 50 &&
+            startingPrice != null &&
+            auctionEndDate != null &&
+            bidIncrement != null &&
+            depositAmount != null &&
+            biddingType != null;
       case 9:
         return true; // Summary step - always complete if reached
       default:

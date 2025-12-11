@@ -58,6 +58,11 @@ class ListingDraftModel extends ListingDraftEntity {
     super.startingPrice,
     super.reservePrice,
     super.auctionEndDate,
+    super.biddingType,
+    super.bidIncrement,
+    super.minBidIncrement,
+    super.depositAmount,
+    super.enableIncrementalBidding,
   });
 
   /// Convert database row to model
@@ -133,6 +138,13 @@ class ListingDraftModel extends ListingDraftEntity {
       auctionEndDate: json['auction_end_date'] != null
           ? DateTime.parse(json['auction_end_date'] as String)
           : null,
+      // Step 8: Bidding Configuration
+      biddingType: json['bidding_type'] as String? ?? 'public',
+      bidIncrement: _toDouble(json['bid_increment']),
+      minBidIncrement: _toDouble(json['min_bid_increment']),
+      depositAmount: _toDouble(json['deposit_amount']),
+      enableIncrementalBidding:
+          json['enable_incremental_bidding'] as bool? ?? true,
     );
   }
 
@@ -198,9 +210,19 @@ class ListingDraftModel extends ListingDraftEntity {
       'description': description,
       'known_issues': knownIssues,
       'features': features,
-      'starting_price': (startingPrice != null && startingPrice! > 0) ? startingPrice : null,
-      'reserve_price': (reservePrice != null && reservePrice! > 0) ? reservePrice : null,
+      'starting_price': (startingPrice != null && startingPrice! > 0)
+          ? startingPrice
+          : null,
+      'reserve_price': (reservePrice != null && reservePrice! > 0)
+          ? reservePrice
+          : null,
       'auction_end_date': auctionEndDate?.toIso8601String(),
+      // Step 8: Bidding Configuration
+      'bidding_type': biddingType,
+      'bid_increment': bidIncrement,
+      'min_bid_increment': minBidIncrement,
+      'deposit_amount': depositAmount,
+      'enable_incremental_bidding': enableIncrementalBidding,
     };
   }
 

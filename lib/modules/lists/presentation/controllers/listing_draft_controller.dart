@@ -12,26 +12,23 @@ class ListingDraftController extends ChangeNotifier {
   final bool _useMockData;
 
   /// Create controller with mock datasource
-  ListingDraftController.mock(
-    ListingDraftMockDataSource dataSource,
-  )   : _mockDataSource = dataSource,
-        _supabaseDataSource = null,
-        _useMockData = true;
+  ListingDraftController.mock(ListingDraftMockDataSource dataSource)
+    : _mockDataSource = dataSource,
+      _supabaseDataSource = null,
+      _useMockData = true;
 
   /// Create controller with Supabase datasource
   /// Note: Token consumption now handled atomically inside RPC function
-  ListingDraftController.supabase(
-    ListingSupabaseDataSource dataSource,
-  )   : _mockDataSource = null,
-        _supabaseDataSource = dataSource,
-        _useMockData = false;
+  ListingDraftController.supabase(ListingSupabaseDataSource dataSource)
+    : _mockDataSource = null,
+      _supabaseDataSource = dataSource,
+      _useMockData = false;
 
   /// Legacy constructor for backward compatibility
-  ListingDraftController(
-    ListingDraftMockDataSource dataSource,
-  )   : _mockDataSource = dataSource,
-        _supabaseDataSource = null,
-        _useMockData = true;
+  ListingDraftController(ListingDraftMockDataSource dataSource)
+    : _mockDataSource = dataSource,
+      _supabaseDataSource = null,
+      _useMockData = true;
 
   // State
   ListingDraftEntity? _currentDraft;
@@ -188,6 +185,12 @@ class ListingDraftController extends ChangeNotifier {
       startingPrice: _currentDraft!.startingPrice,
       reservePrice: _currentDraft!.reservePrice,
       auctionEndDate: _currentDraft!.auctionEndDate,
+      // Bidding Configuration
+      biddingType: _currentDraft!.biddingType,
+      bidIncrement: _currentDraft!.bidIncrement,
+      minBidIncrement: _currentDraft!.minBidIncrement,
+      depositAmount: _currentDraft!.depositAmount,
+      enableIncrementalBidding: _currentDraft!.enableIncrementalBidding,
     );
     notifyListeners();
     _autoSave();
@@ -251,6 +254,12 @@ class ListingDraftController extends ChangeNotifier {
       startingPrice: _currentDraft!.startingPrice,
       reservePrice: _currentDraft!.reservePrice,
       auctionEndDate: _currentDraft!.auctionEndDate,
+      // Bidding Configuration
+      biddingType: _currentDraft!.biddingType,
+      bidIncrement: _currentDraft!.bidIncrement,
+      minBidIncrement: _currentDraft!.minBidIncrement,
+      depositAmount: _currentDraft!.depositAmount,
+      enableIncrementalBidding: _currentDraft!.enableIncrementalBidding,
     );
     notifyListeners();
   }
@@ -313,6 +322,12 @@ class ListingDraftController extends ChangeNotifier {
       startingPrice: _currentDraft!.startingPrice,
       reservePrice: _currentDraft!.reservePrice,
       auctionEndDate: _currentDraft!.auctionEndDate,
+      // Bidding Configuration
+      biddingType: _currentDraft!.biddingType,
+      bidIncrement: _currentDraft!.bidIncrement,
+      minBidIncrement: _currentDraft!.minBidIncrement,
+      depositAmount: _currentDraft!.depositAmount,
+      enableIncrementalBidding: _currentDraft!.enableIncrementalBidding,
     );
     notifyListeners();
   }

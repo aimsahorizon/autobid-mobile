@@ -134,6 +134,12 @@ class ListingSupabaseDataSource {
         startingPrice: draft.startingPrice,
         reservePrice: draft.reservePrice,
         auctionEndDate: draft.auctionEndDate,
+        // Bidding Configuration
+        biddingType: draft.biddingType,
+        bidIncrement: draft.bidIncrement,
+        minBidIncrement: draft.minBidIncrement,
+        depositAmount: draft.depositAmount,
+        enableIncrementalBidding: draft.enableIncrementalBidding,
       );
 
       await _supabase
@@ -148,15 +154,45 @@ class ListingSupabaseDataSource {
   }
 
   /// Delete draft (soft delete)
+  /// Sets deleted_at timestamp to soft-delete the draft
+  /// Requires proper authentication - the current user must be the draft owner
   Future<void> deleteDraft(String draftId) async {
     try {
-      await _supabase
+      // Ensure user is authenticated
+      final currentUser = _supabase.auth.currentUser;
+      if (currentUser == null) {
+        throw Exception('User must be authenticated to delete draft');
+      }
+
+      print(
+        '[ListingSupabaseDataSource] Deleting draft: $draftId for user: ${currentUser.id}',
+      );
+
+      // Soft delete: set deleted_at timestamp
+      final response = await _supabase
           .from('listing_drafts')
           .update({'deleted_at': DateTime.now().toIso8601String()})
-          .eq('id', draftId);
+          .eq('id', draftId)
+          .select(); // Returns updated rows if any
+
+      // Check if any rows were actually updated
+      if (response.isEmpty) {
+        throw Exception(
+          'Draft not found or access denied. Ensure you own this draft.',
+        );
+      }
+
+      print('[ListingSupabaseDataSource] Successfully deleted draft: $draftId');
     } on PostgrestException catch (e) {
+      print(
+        '[ListingSupabaseDataSource] PostgrestException deleting draft: ${e.message}',
+      );
+      if (e.message.contains('row level security')) {
+        throw Exception('Access denied: You can only delete your own drafts');
+      }
       throw Exception('Failed to delete draft: ${e.message}');
     } catch (e) {
+      print('[ListingSupabaseDataSource] Exception deleting draft: $e');
       throw Exception('Failed to delete draft: $e');
     }
   }
@@ -746,6 +782,296 @@ class ListingSupabaseDataSource {
       throw Exception('Failed to cancel listing: ${e.message}');
     } catch (e) {
       throw Exception('Failed to cancel listing: $e');
+    }
+  }
+
+  // ============================================================================
+  // CANCELLED LISTING ACTIONS
+  // ============================================================================
+
+  /// Copy cancelled listing to a new draft for editing and resubmission
+  /// Used when seller wants to edit and resubmit a cancelled listing
+  Future<String> copyListingToDraft(String auctionId, String sellerId) async {
+    try {
+      print(
+        '[ListingSupabaseDataSource] Copying cancelled listing to draft: $auctionId',
+      );
+
+      // Fetch the cancelled auction with all its details
+      final auctionResponse = await _supabase
+          .from('auctions')
+          .select('''
+            id, title, description, starting_price, reserve_price, 
+            bid_increment, deposit_amount, seller_id,
+            auction_vehicles(*),
+            auction_photos(*)
+            ''')
+          .eq('id', auctionId)
+          .eq('seller_id', sellerId)
+          .single();
+
+      // Extract vehicle data
+      final vehicleData = auctionResponse['auction_vehicles'];
+      Map<String, dynamic>? vehicleInfo;
+      if (vehicleData != null && vehicleData is Map<String, dynamic>) {
+        vehicleInfo = vehicleData;
+      } else if (vehicleData != null &&
+          vehicleData is List &&
+          vehicleData.isNotEmpty) {
+        vehicleInfo = vehicleData[0] as Map<String, dynamic>;
+      }
+
+      // Extract photos
+      final photosData = auctionResponse['auction_photos'] as List? ?? [];
+      final photoUrls = <String, List<String>>{};
+      for (final photo in photosData) {
+        if (photo is Map<String, dynamic>) {
+          final category = photo['category'] as String? ?? 'other';
+          final url = photo['photo_url'] as String?;
+          if (url != null) {
+            photoUrls.putIfAbsent(category, () => []).add(url);
+          }
+        }
+      }
+
+      // Create new draft with copied data
+      final draftResponse = await _supabase
+          .from('listing_drafts')
+          .insert({
+            'seller_id': sellerId,
+            'current_step': 1,
+            'is_complete': false,
+            'last_saved': DateTime.now().toIso8601String(),
+            // Copy vehicle details if available
+            if (vehicleInfo != null) ...{
+              'brand': vehicleInfo['brand'],
+              'model': vehicleInfo['model'],
+              'variant': vehicleInfo['variant'],
+              'year': vehicleInfo['year'],
+              'engine_type': vehicleInfo['engine_type'],
+              'engine_displacement': vehicleInfo['engine_displacement'],
+              'cylinder_count': vehicleInfo['cylinder_count'],
+              'horsepower': vehicleInfo['horsepower'],
+              'torque': vehicleInfo['torque'],
+              'transmission': vehicleInfo['transmission'],
+              'fuel_type': vehicleInfo['fuel_type'],
+              'drive_type': vehicleInfo['drive_type'],
+              'length': vehicleInfo['length'],
+              'width': vehicleInfo['width'],
+              'height': vehicleInfo['height'],
+              'wheelbase': vehicleInfo['wheelbase'],
+              'ground_clearance': vehicleInfo['ground_clearance'],
+              'seating_capacity': vehicleInfo['seating_capacity'],
+              'door_count': vehicleInfo['door_count'],
+              'fuel_tank_capacity': vehicleInfo['fuel_tank_capacity'],
+              'curb_weight': vehicleInfo['curb_weight'],
+              'gross_weight': vehicleInfo['gross_weight'],
+              'exterior_color': vehicleInfo['exterior_color'],
+              'paint_type': vehicleInfo['paint_type'],
+              'rim_type': vehicleInfo['rim_type'],
+              'rim_size': vehicleInfo['rim_size'],
+              'tire_size': vehicleInfo['tire_size'],
+              'tire_brand': vehicleInfo['tire_brand'],
+              'condition': vehicleInfo['condition'],
+              'mileage': vehicleInfo['mileage'],
+              'previous_owners': vehicleInfo['previous_owners'],
+              'has_modifications': vehicleInfo['has_modifications'],
+              'modifications_details': vehicleInfo['modifications_details'],
+              'has_warranty': vehicleInfo['has_warranty'],
+              'warranty_details': vehicleInfo['warranty_details'],
+              'usage_type': vehicleInfo['usage_type'],
+              'plate_number': vehicleInfo['plate_number'],
+              'orcr_status': vehicleInfo['orcr_status'],
+              'registration_status': vehicleInfo['registration_status'],
+              'registration_expiry': vehicleInfo['registration_expiry'],
+              'province': vehicleInfo['province'],
+              'city_municipality': vehicleInfo['city_municipality'],
+              'known_issues': vehicleInfo['known_issues'],
+              'features': vehicleInfo['features'],
+            },
+            // Copy auction details (only columns that exist in listing_drafts)
+            'title': auctionResponse['title'],
+            'description': auctionResponse['description'],
+            'starting_price': auctionResponse['starting_price'],
+            'reserve_price': auctionResponse['reserve_price'],
+            // Note: bid_increment and deposit_amount are auction-specific, not draft fields
+            'photo_urls': photoUrls,
+          })
+          .select()
+          .single();
+
+      final draftId = draftResponse['id'] as String;
+      print('[ListingSupabaseDataSource] Successfully created draft: $draftId');
+      return draftId;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to copy listing to draft: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to copy listing to draft: $e');
+    }
+  }
+
+  /// Create a new auction from a cancelled listing with same details
+  /// Allows seller to re-list the same vehicle with potentially different terms
+  Future<String> createAuctionFromCancelled(
+    String auctionId,
+    String sellerId,
+    double? newStartingPrice,
+    DateTime? newEndTime,
+  ) async {
+    try {
+      print(
+        '[ListingSupabaseDataSource] Creating new auction from cancelled: $auctionId',
+      );
+
+      // Fetch the cancelled auction with all its details
+      final auctionResponse = await _supabase
+          .from('auctions')
+          .select('''
+            id, title, description, category_id, starting_price, reserve_price, 
+            bid_increment, deposit_amount, seller_id,
+            auction_vehicles(*),
+            auction_photos(*)
+            ''')
+          .eq('id', auctionId)
+          .eq('seller_id', sellerId)
+          .single();
+
+      // Get the pending_approval status ID
+      final statusResponse = await _supabase
+          .from('auction_statuses')
+          .select('id')
+          .eq('status_name', 'pending_approval')
+          .single();
+      final statusId = statusResponse['id'] as String;
+
+      // Determine auction duration (default to 7 days if not provided)
+      final endTime = newEndTime ?? DateTime.now().add(const Duration(days: 7));
+
+      // Create new auction with same details (no vehicle_id - vehicle data goes to auction_vehicles table)
+      final newAuctionResponse = await _supabase
+          .from('auctions')
+          .insert({
+            'title': auctionResponse['title'],
+            'description': auctionResponse['description'],
+            'seller_id': sellerId,
+            'category_id': auctionResponse['category_id'],
+            'starting_price':
+                newStartingPrice ?? auctionResponse['starting_price'],
+            'reserve_price': auctionResponse['reserve_price'],
+            'current_price':
+                newStartingPrice ?? auctionResponse['starting_price'],
+            'bid_increment': auctionResponse['bid_increment'],
+            'deposit_amount': auctionResponse['deposit_amount'],
+            'status_id': statusId,
+            'end_time': endTime.toIso8601String(),
+            'start_time': DateTime.now().toIso8601String(),
+            'created_at': DateTime.now().toIso8601String(),
+          })
+          .select()
+          .single();
+
+      final newAuctionId = newAuctionResponse['id'] as String;
+
+      // Copy vehicle data from old auction to new auction
+      final vehicleData = auctionResponse['auction_vehicles'];
+      if (vehicleData != null) {
+        final vehicleMap = vehicleData is Map<String, dynamic>
+            ? vehicleData
+            : (vehicleData is List && vehicleData.isNotEmpty
+                  ? vehicleData[0] as Map<String, dynamic>
+                  : null);
+
+        if (vehicleMap != null) {
+          // Create new vehicle record for the new auction
+          final vehicleInsertData = Map<String, dynamic>.from(vehicleMap);
+          vehicleInsertData['auction_id'] = newAuctionId;
+          // Remove any id field if it exists
+          vehicleInsertData.remove('id');
+
+          await _supabase.from('auction_vehicles').insert(vehicleInsertData);
+        }
+      }
+
+      // Copy all photos from old auction to new auction
+      final photosData = auctionResponse['auction_photos'] as List? ?? [];
+      if (photosData.isNotEmpty) {
+        final photoInserts = <Map<String, dynamic>>[];
+        for (final photo in photosData) {
+          if (photo is Map<String, dynamic>) {
+            photoInserts.add({
+              'auction_id': newAuctionId,
+              'photo_url': photo['photo_url'],
+              'category': photo['category'],
+              'display_order': photo['display_order'],
+            });
+          }
+        }
+
+        if (photoInserts.isNotEmpty) {
+          await _supabase.from('auction_photos').insert(photoInserts);
+        }
+      }
+
+      print(
+        '[ListingSupabaseDataSource] Successfully created new auction: $newAuctionId',
+      );
+      return newAuctionId;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to create new auction: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to create new auction: $e');
+    }
+  }
+
+  /// Delete a listing permanently along with related data
+  /// Removes auction, photos, bids, watchers, and vehicle data
+  Future<void> deleteListing(String auctionId, String sellerId) async {
+    try {
+      print('[ListingSupabaseDataSource] Deleting listing: $auctionId');
+
+      // Verify seller ownership before deleting
+      final auctionResponse = await _supabase
+          .from('auctions')
+          .select('id, seller_id')
+          .eq('id', auctionId)
+          .single();
+
+      if (auctionResponse['seller_id'] != sellerId) {
+        throw Exception('Unauthorized: You do not own this listing');
+      }
+
+      // Delete related data in order of dependencies
+      // 1. Delete bids (if any)
+      await _supabase.from('auction_bids').delete().eq('auction_id', auctionId);
+
+      // 2. Delete watchers
+      await _supabase
+          .from('auction_watchers')
+          .delete()
+          .eq('auction_id', auctionId);
+
+      // 3. Delete photos
+      await _supabase
+          .from('auction_photos')
+          .delete()
+          .eq('auction_id', auctionId);
+
+      // 4. Delete transactions
+      await _supabase
+          .from('auction_transactions')
+          .delete()
+          .eq('auction_id', auctionId);
+
+      // 5. Delete the auction itself
+      await _supabase.from('auctions').delete().eq('id', auctionId);
+
+      print(
+        '[ListingSupabaseDataSource] Successfully deleted listing: $auctionId',
+      );
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to delete listing: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to delete listing: $e');
     }
   }
 
