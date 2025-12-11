@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../controllers/admin_controller.dart';
+import '../controllers/kyc_controller.dart';
 import 'admin_dashboard_page.dart';
 import 'admin_listings_page.dart';
 import 'admin_users_page.dart';
+import 'admin_kyc_page.dart';
 
 /// Main admin page with tabs for different admin functions
 class AdminMainPage extends StatefulWidget {
   final AdminController controller;
+  final KycController kycController;
 
-  const AdminMainPage({super.key, required this.controller});
+  const AdminMainPage({
+    super.key,
+    required this.controller,
+    required this.kycController,
+  });
 
   @override
   State<AdminMainPage> createState() => _AdminMainPageState();
@@ -157,7 +164,7 @@ class _AdminMainPageState extends State<AdminMainPage>
           AdminDashboardPage(controller: widget.controller),
           AdminListingsPage(controller: widget.controller),
           AdminUsersPage(controller: widget.controller),
-          _buildComingSoonTab('KYC Management'),
+          AdminKycPage(controller: widget.kycController),
           _buildComingSoonTab('Transactions'),
           _buildComingSoonTab('Reports & Analytics'),
         ],
