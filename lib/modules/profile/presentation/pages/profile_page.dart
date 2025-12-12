@@ -272,6 +272,7 @@ class _ProfilePageState extends State<ProfilePage> {
         MaterialPageRoute(
           builder: (context) => AdminMainPage(
             controller: AdminModule.instance.controller,
+            kycController: AdminModule.instance.kycController,
           ),
         ),
       );
