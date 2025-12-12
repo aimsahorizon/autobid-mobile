@@ -10,6 +10,8 @@ class AuctionSupabaseDataSource {
   final SupabaseClient _supabase;
   late final DepositSupabaseDatasource _depositDatasource;
 
+  SupabaseClient get client => _supabase;
+
   AuctionSupabaseDataSource(this._supabase) {
     _depositDatasource = DepositSupabaseDatasource(supabase: _supabase);
   }
@@ -46,8 +48,13 @@ class AuctionSupabaseDataSource {
     String viewName,
     AuctionFilter? filter,
   ) async {
+    // Use authorized_auctions when available to respect private auction visibility
+    final source = viewName == 'auction_browse_listings'
+        ? 'authorized_auctions'
+        : viewName;
+
     var queryBuilder = _supabase
-        .from(viewName)
+        .from(source)
         .select(
           'id, title, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, created_at',
         );
@@ -83,7 +90,7 @@ class AuctionSupabaseDataSource {
     // Order by ending soonest first
     final response = await queryBuilder.order('end_time', ascending: true);
     print(
-      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $viewName',
+      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $source',
     );
 
     // Convert to AuctionModel list
