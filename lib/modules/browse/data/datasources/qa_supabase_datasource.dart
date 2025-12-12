@@ -1,163 +1,193 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../domain/entities/qa_entity.dart';
 
-/// Supabase datasource for Q&A operations
-/// Handles questions and answers on auction listings
 class QASupabaseDataSource {
-  final SupabaseClient _supabase;
+  final SupabaseClient client;
 
-  QASupabaseDataSource(this._supabase);
+  QASupabaseDataSource(this.client);
 
-  /// Get Q&A for a listing/auction
-  /// Fetches public questions without user join to avoid FK issues
-  Future<List<Map<String, dynamic>>> getQuestions(String listingId, {String? userId}) async {
-    try {
-      print('DEBUG [QADataSource]: ========================================');
-      print('DEBUG [QADataSource]: Starting Q&A fetch');
-      print('DEBUG [QADataSource]: Listing ID: $listingId');
-      print('DEBUG [QADataSource]: User ID: $userId');
+  Future<List<QAEntity>> getQuestions(
+    String auctionId, {
+    String? currentUserId,
+  }) async {
+    final res = await client
+        .from('view_auction_qa')
+        .select('*')
+        .eq('auction_id', auctionId)
+        .order('asked_at', ascending: false);
 
-      final response = await _supabase
-          .from('listing_questions')
-          .select('id, question, category, answer, answered_at, likes_count, created_at, asker_id')
-          .eq('listing_id', listingId)
-          .eq('is_public', true)
-          .order('created_at', ascending: false);
-
-      print('DEBUG [QADataSource]: Query executed successfully');
-      print('DEBUG [QADataSource]: Raw response type: ${response.runtimeType}');
-      print('DEBUG [QADataSource]: Response length: ${response.length}');
-      print('DEBUG [QADataSource]: Raw response data: $response');
-
-      // If userId provided, check which questions user has liked
-      final questions = List<Map<String, dynamic>>.from(response);
-
-      if (userId != null) {
-        final likedQuestions = await _getUserLikedQuestions(userId, listingId);
-        for (var question in questions) {
-          question['user_has_liked'] = likedQuestions.contains(question['id']);
-        }
-      } else {
-        for (var question in questions) {
-          question['user_has_liked'] = false;
-        }
-      }
-
-      return questions;
-    } on PostgrestException catch (e) {
-      print('ERROR [QADataSource]: Failed to get questions - ${e.message}');
-      throw Exception('Failed to get Q&A: ${e.message}');
-    } catch (e) {
-      print('ERROR [QADataSource]: Exception - $e');
-      throw Exception('Failed to get Q&A: $e');
-    }
+    return (res as List<dynamic>)
+        .map((j) => _fromViewRow(j, currentUserId: currentUserId))
+        .toList();
   }
 
-  /// Get list of question IDs that user has liked
-  Future<Set<String>> _getUserLikedQuestions(String userId, String listingId) async {
-    try {
-      final response = await _supabase
-          .from('listing_question_likes')
-          .select('question_id')
-          .eq('user_id', userId);
-
-      return Set<String>.from(response.map((e) => e['question_id'] as String));
-    } catch (e) {
-      print('WARN [QADataSource]: Failed to get user likes - $e');
-      return {};
-    }
-  }
-
-  /// Ask a question on a listing
-  /// Inserts into listing_questions table
-  Future<bool> askQuestion({
-    required String listingId,
-    required String askerId,
+  Future<QAEntity> postQuestion({
+    required String auctionId,
+    required String userId,
     required String category,
     required String question,
   }) async {
-    try {
-      print('DEBUG [QADataSource]: Asking question on listing $listingId');
+    final inserted = await client
+        .from('auction_questions')
+        .insert({
+          'auction_id': auctionId,
+          'user_id': userId,
+          'category': category,
+          'question': question,
+        })
+        .select('id, auction_id, user_id, category, question, created_at')
+        .single();
 
-      await _supabase.from('listing_questions').insert({
-        'listing_id': listingId,
-        'asker_id': askerId,
-        'question': question,
-        'category': category,
-        'is_public': true,
-      });
-
-      print('DEBUG [QADataSource]: Question posted successfully');
-      return true;
-    } on PostgrestException catch (e) {
-      print('ERROR [QADataSource]: Failed to ask question - ${e.message}');
-      throw Exception('Failed to ask question: ${e.message}');
-    } catch (e) {
-      print('ERROR [QADataSource]: Exception - $e');
-      throw Exception('Failed to ask question: $e');
-    }
+    return QAEntity(
+      id: inserted['id'] as String,
+      auctionId: inserted['auction_id'] as String,
+      category: inserted['category'] as String,
+      question: inserted['question'] as String,
+      askedBy: 'You',
+      askedAt: DateTime.parse(inserted['created_at'] as String),
+      answer: null,
+      answeredAt: null,
+      likesCount: 0,
+      isLikedByUser: false,
+    );
   }
 
-  /// Toggle like on a question
-  /// Adds or removes like based on current state
-  Future<bool> toggleQuestionLike({
+  Future<void> postAnswer({
+    required String questionId,
+    required String sellerId,
+    required String answer,
+  }) async {
+    await client.from('auction_answers').insert({
+      'question_id': questionId,
+      'seller_id': sellerId,
+      'answer': answer,
+    });
+
+    // Update answered_at on question for convenience
+    await client
+        .from('auction_questions')
+        .update({'answered_at': DateTime.now().toIso8601String()})
+        .eq('id', questionId);
+  }
+
+  Future<void> likeQuestion({
     required String questionId,
     required String userId,
   }) async {
+    await client.from('auction_question_likes').insert({
+      'question_id': questionId,
+      'user_id': userId,
+    });
+  }
+
+  Future<void> unlikeQuestion({
+    required String questionId,
+    required String userId,
+  }) async {
+    await client
+        .from('auction_question_likes')
+        .delete()
+        .eq('question_id', questionId)
+        .eq('user_id', userId);
+  }
+
+  Stream<List<QAEntity>> subscribeToQA(
+    String auctionId, {
+    String? currentUserId,
+  }) {
+    final controller = StreamController<List<QAEntity>>();
+    final channel = client.channel('qa-auction-$auctionId');
+
+    // Subscribe to Postgres Changes for questions, answers, and likes
+    channel
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'auction_questions',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'auction_id',
+          value: auctionId,
+        ),
+        callback: (_) => _emitSnapshot(auctionId, currentUserId, controller),
+      )
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'auction_questions',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'auction_id',
+          value: auctionId,
+        ),
+        callback: (_) => _emitSnapshot(auctionId, currentUserId, controller),
+      )
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'auction_answers',
+        callback: (_) => _emitSnapshot(auctionId, currentUserId, controller),
+      )
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'auction_question_likes',
+        callback: (_) => _emitSnapshot(auctionId, currentUserId, controller),
+      )
+      ..subscribe();
+
+    // Initial load
+    _emitSnapshot(auctionId, currentUserId, controller);
+
+    controller.onCancel = () async {
+      await client.removeChannel(channel);
+    };
+
+    return controller.stream;
+  }
+
+  Future<void> _emitSnapshot(
+    String auctionId,
+    String? currentUserId,
+    StreamController<List<QAEntity>> controller,
+  ) async {
     try {
-      print('DEBUG [QADataSource]: Toggling like for question $questionId');
-
-      // Check if already liked
-      final existing = await _supabase
-          .from('listing_question_likes')
-          .select('id')
-          .eq('question_id', questionId)
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (existing != null) {
-        // Unlike - remove the like
-        await _supabase
-            .from('listing_question_likes')
-            .delete()
-            .eq('question_id', questionId)
-            .eq('user_id', userId);
-
-        print('DEBUG [QADataSource]: Question unliked');
-        return false; // Now unliked
-      } else {
-        // Like - add the like
-        await _supabase.from('listing_question_likes').insert({
-          'question_id': questionId,
-          'user_id': userId,
-        });
-
-        print('DEBUG [QADataSource]: Question liked');
-        return true; // Now liked
+      final items = await getQuestions(auctionId, currentUserId: currentUserId);
+      if (!controller.isClosed) {
+        controller.add(items);
       }
-    } on PostgrestException catch (e) {
-      print('ERROR [QADataSource]: Failed to toggle like - ${e.message}');
-      throw Exception('Failed to toggle like: ${e.message}');
     } catch (e) {
-      print('ERROR [QADataSource]: Exception - $e');
-      throw Exception('Failed to toggle like: $e');
+      // ignore errors but keep stream alive
     }
   }
 
-  /// Answer a question (seller only, enforced by RLS)
-  /// Updates listing_questions with answer and timestamp
-  Future<void> answerQuestion({
-    required String questionId,
-    required String answer,
-  }) async {
-    try {
-      await _supabase.from('listing_questions').update({
-        'answer': answer,
-        'answered_at': DateTime.now().toIso8601String(),
-      }).eq('id', questionId);
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to answer question: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to answer question: $e');
-    }
+  QAEntity _fromViewRow(dynamic j, {String? currentUserId}) {
+    final likes = (j['likes_count'] ?? 0) as int;
+    final profileData = j['profiles'] as Map<String, dynamic>?;
+    final displayName =
+        profileData?['display_name'] as String? ??
+        profileData?['full_name'] as String? ??
+        'User';
+
+    final likesData = j['auction_question_likes'] as List<dynamic>?;
+    final likedByUser = likesData != null && currentUserId != null
+        ? likesData.any((like) => like['user_id'] == currentUserId)
+        : false;
+
+    return QAEntity(
+      id: j['id'] as String,
+      auctionId: j['auction_id'] as String,
+      category: (j['category'] as String?) ?? 'general',
+      question: (j['question'] as String?) ?? '',
+      askedBy: displayName,
+      askedAt: DateTime.parse(j['asked_at'] as String),
+      answer: j['answer'] as String?,
+      answeredAt: j['answered_at'] != null
+          ? DateTime.parse(j['answered_at'] as String)
+          : null,
+      likesCount: likes,
+      isLikedByUser: likedByUser,
+    );
   }
 }

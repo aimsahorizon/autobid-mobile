@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../../../browse/domain/entities/qa_entity.dart';
+import '../../../../browse/presentation/controllers/qa_controller.dart';
+import '../../../../browse/data/datasources/qa_supabase_datasource.dart';
 
 class QASection extends StatefulWidget {
   final String listingId;
@@ -12,45 +15,17 @@ class QASection extends StatefulWidget {
 }
 
 class _QASectionState extends State<QASection> {
-  final List<QAEntity> _mockQuestions = [
-    QAEntity(
-      id: '1',
-      auctionId: '',
-      category: 'General',
-      question: 'Is the car still under factory warranty?',
-      askedBy: 'John Doe',
-      askedAt: DateTime.now().subtract(const Duration(hours: 5)),
-      answer: null,
-      answeredAt: null,
-    ),
-    QAEntity(
-      id: '2',
-      auctionId: '',
-      category: 'Mechanical',
-      question: 'Has the timing belt been replaced?',
-      askedBy: 'Jane Smith',
-      askedAt: DateTime.now().subtract(const Duration(days: 1)),
-      answer: 'Yes, timing belt was replaced at 80,000 km with complete service records.',
-      answeredAt: DateTime.now().subtract(const Duration(hours: 12)),
-    ),
-    QAEntity(
-      id: '3',
-      auctionId: '',
-      category: 'General',
-      question: 'Can I schedule a viewing in Quezon City?',
-      askedBy: 'Mike Johnson',
-      askedAt: DateTime.now().subtract(const Duration(days: 2)),
-      answer: null,
-      answeredAt: null,
-    ),
-  ];
-
   final TextEditingController _replyController = TextEditingController();
+  final TextEditingController _questionController = TextEditingController();
   String? _replyingToId;
+  String? _selectedCategory;
+  QAController? _controller;
 
   @override
   void dispose() {
+    _controller?.disposeStream();
     _replyController.dispose();
+    _questionController.dispose();
     super.dispose();
   }
 
@@ -61,31 +36,29 @@ class _QASectionState extends State<QASection> {
     });
   }
 
-  void _submitReply() {
-    if (_replyController.text.trim().isEmpty) return;
-
-    // TODO: Implement backend submission
+  Future<void> _submitReply() async {
+    if (_replyController.text.trim().isEmpty || _replyingToId == null) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You need to be signed in to reply')),
+      );
+      return;
+    }
+    await _controller?.postAnswer(
+      _replyingToId!,
+      user.id,
+      _replyController.text.trim(),
+    );
     setState(() {
-      final index = _mockQuestions.indexWhere((q) => q.id == _replyingToId);
-      if (index != -1) {
-        _mockQuestions[index] = QAEntity(
-          id: _mockQuestions[index].id,
-          auctionId: _mockQuestions[index].auctionId,
-          category: _mockQuestions[index].category,
-          askedBy: _mockQuestions[index].askedBy,
-          question: _mockQuestions[index].question,
-          askedAt: _mockQuestions[index].askedAt,
-          answer: _replyController.text.trim(),
-          answeredAt: DateTime.now(),
-        );
-      }
       _replyingToId = null;
       _replyController.clear();
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reply sent successfully')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Reply sent successfully')));
+    }
   }
 
   void _cancelReply() {
@@ -95,13 +68,71 @@ class _QASectionState extends State<QASection> {
     });
   }
 
+  Future<void> _submitQuestion() async {
+    if (_questionController.text.trim().isEmpty || _selectedCategory == null)
+      return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You need to be signed in to ask a question'),
+        ),
+      );
+      return;
+    }
+    await _controller?.postQuestion(
+      _selectedCategory!,
+      _questionController.text.trim(),
+      user.id,
+    );
+    setState(() {
+      _questionController.clear();
+      _selectedCategory = null;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Question posted successfully')),
+      );
+    }
+  }
+
+  Future<void> _toggleLike(String questionId) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You need to be signed in to like')),
+      );
+      return;
+    }
+    final qa = _controller?.items.firstWhere(
+      (q) => q.id == questionId,
+      orElse: () => throw Exception('Not found'),
+    );
+    try {
+      if (qa?.isLikedByUser ?? false) {
+        await _controller?.unlike(questionId, user.id);
+      } else {
+        await _controller?.like(questionId, user.id);
+      }
+    } catch (e) {
+      // Ignore if question not found
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    _controller ??= QAController(
+      datasource: QASupabaseDataSource(Supabase.instance.client),
+      auctionId: widget.listingId,
+      currentUserId: Supabase.instance.client.auth.currentUser?.id,
+    )..init();
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
-    final unanswered = _mockQuestions.where((q) => q.answer == null).toList();
-    final answered = _mockQuestions.where((q) => q.answer != null).toList();
+    final unanswered =
+        _controller?.items.where((q) => q.answer == null).toList() ?? [];
+    final answered =
+        _controller?.items.where((q) => q.answer != null).toList() ?? [];
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -128,7 +159,10 @@ class _QASectionState extends State<QASection> {
                 ),
                 if (unanswered.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(12),
@@ -146,7 +180,86 @@ class _QASectionState extends State<QASection> {
             ),
           ),
           const Divider(height: 1),
-          if (_mockQuestions.isEmpty)
+          // Question composer
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ask a Question',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  hint: const Text('Select category'),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                  items:
+                      [
+                            'general',
+                            'condition',
+                            'history',
+                            'features',
+                            'documents',
+                            'price',
+                          ]
+                          .map(
+                            (cat) => DropdownMenuItem(
+                              value: cat,
+                              child: Text(
+                                cat[0].toUpperCase() + cat.substring(1),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedCategory = value);
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _questionController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Type your question...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: _submitQuestion,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ColorConstants.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Post Question'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          if ((_controller?.items.isEmpty ?? true))
             const Padding(
               padding: EdgeInsets.all(32),
               child: Center(
@@ -171,7 +284,9 @@ class _QASectionState extends State<QASection> {
                   ),
                 ),
               ),
-              ...unanswered.map((qa) => _buildQuestionCard(qa, isDark, isUnanswered: true)),
+              ...unanswered.map(
+                (qa) => _buildQuestionCard(qa, isDark, isUnanswered: true),
+              ),
             ],
             if (answered.isNotEmpty) ...[
               Padding(
@@ -187,7 +302,9 @@ class _QASectionState extends State<QASection> {
                   ),
                 ),
               ),
-              ...answered.map((qa) => _buildQuestionCard(qa, isDark, isUnanswered: false)),
+              ...answered.map(
+                (qa) => _buildQuestionCard(qa, isDark, isUnanswered: false),
+              ),
             ],
           ],
         ],
@@ -195,7 +312,11 @@ class _QASectionState extends State<QASection> {
     );
   }
 
-  Widget _buildQuestionCard(QAEntity qa, bool isDark, {required bool isUnanswered}) {
+  Widget _buildQuestionCard(
+    QAEntity qa,
+    bool isDark, {
+    required bool isUnanswered,
+  }) {
     final isReplying = _replyingToId == qa.id;
 
     return Container(
@@ -205,8 +326,8 @@ class _QASectionState extends State<QASection> {
         color: isUnanswered
             ? Colors.orange.withValues(alpha: 0.05)
             : (isDark
-                ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
-                : Colors.grey.shade50),
+                  ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
+                  : Colors.grey.shade50),
         borderRadius: BorderRadius.circular(12),
         border: isUnanswered
             ? Border.all(color: Colors.orange.withValues(alpha: 0.3))
@@ -255,7 +376,10 @@ class _QASectionState extends State<QASection> {
               ),
               if (isUnanswered)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange,
                     borderRadius: BorderRadius.circular(4),
@@ -272,10 +396,7 @@ class _QASectionState extends State<QASection> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            qa.question,
-            style: const TextStyle(fontSize: 14),
-          ),
+          Text(qa.question, style: const TextStyle(fontSize: 14)),
           if (qa.answer != null) ...[
             const SizedBox(height: 12),
             Container(
@@ -299,7 +420,7 @@ class _QASectionState extends State<QASection> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Your answer • ${_formatTime(qa.answeredAt!)}',
+                        'Answer • ${_formatTime(qa.answeredAt!)}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: ColorConstants.primary,
@@ -309,10 +430,7 @@ class _QASectionState extends State<QASection> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    qa.answer!,
-                    style: const TextStyle(fontSize: 14),
-                  ),
+                  Text(qa.answer!, style: const TextStyle(fontSize: 14)),
                 ],
               ),
             ),
@@ -350,18 +468,49 @@ class _QASectionState extends State<QASection> {
                 ),
               ],
             ),
-          ] else if (isUnanswered) ...[
+          ] else ...[
             const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () => _startReply(qa.id),
-                icon: const Icon(Icons.reply, size: 18),
-                label: const Text('Reply'),
-                style: TextButton.styleFrom(
-                  foregroundColor: ColorConstants.primary,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        qa.isLikedByUser
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: qa.isLikedByUser
+                            ? Colors.red
+                            : Colors.grey.shade600,
+                        size: 20,
+                      ),
+                      onPressed: () => _toggleLike(qa.id),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${qa.likesCount}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? ColorConstants.textSecondaryDark
+                            : ColorConstants.textSecondaryLight,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+                if (isUnanswered)
+                  TextButton.icon(
+                    onPressed: () => _startReply(qa.id),
+                    icon: const Icon(Icons.reply, size: 18),
+                    label: const Text('Reply'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: ColorConstants.primary,
+                    ),
+                  ),
+              ],
             ),
           ],
         ],
