@@ -175,7 +175,7 @@ class AuctionSupabaseDataSource {
       final auctionResponse = await _supabase
           .from('auction_browse_listings')
           .select(
-            'id, title, description, starting_price, current_price, reserve_price, bid_increment, deposit_amount, end_time, total_bids, view_count, is_featured, seller_id, created_at, start_time, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
+            'id, title, description, starting_price, current_price, reserve_price, bid_increment, min_bid_increment, enable_incremental_bidding, deposit_amount, end_time, total_bids, view_count, is_featured, seller_id, created_at, start_time, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
           )
           .eq('id', auctionId)
           .single();

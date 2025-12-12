@@ -7,6 +7,8 @@ class AuctionDetailModel extends AuctionDetailEntity {
     required super.carImageUrl,
     required super.currentBid,
     required super.minimumBid,
+    required super.minBidIncrement,
+    required super.enableIncrementalBidding,
     super.reservePrice,
     required super.isReserveMet,
     required super.showReservePrice,
@@ -81,11 +83,21 @@ class AuctionDetailModel extends AuctionDetailEntity {
       _numOrZero(json['starting_price'], 0),
     );
 
+    final minBidIncrementValue = _numOrZero(
+      json['min_bid_increment'],
+      _numOrZero(json['bid_increment'], 1000),
+    );
+
+    final enableIncrementalBiddingValue =
+        (json['enable_incremental_bidding'] as bool?) ?? true;
+
     return AuctionDetailModel(
       id: json['id'] as String,
       carImageUrl: json['car_image_url'] as String? ?? '',
       currentBid: currentBidValue.toDouble(),
       minimumBid: minimumBidValue.toDouble(),
+      minBidIncrement: minBidIncrementValue.toDouble(),
+      enableIncrementalBidding: enableIncrementalBiddingValue,
       reservePrice: json['reserve_price'] != null
           ? (json['reserve_price'] as num).toDouble()
           : null,
@@ -175,6 +187,8 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'car_image_url': carImageUrl,
       'current_bid': currentBid,
       'minimum_bid': minimumBid,
+      'min_bid_increment': minBidIncrement,
+      'enable_incremental_bidding': enableIncrementalBidding,
       'reserve_price': reservePrice,
       'is_reserve_met': isReserveMet,
       'show_reserve_price': showReservePrice,

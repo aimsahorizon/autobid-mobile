@@ -9,6 +9,8 @@ class AuctionDetailEntity {
   final double? reservePrice;
   final bool isReserveMet;
   final bool showReservePrice;
+  final double minBidIncrement;
+  final bool enableIncrementalBidding;
   final int watchersCount;
   final int biddersCount;
   final int totalBids;
@@ -81,6 +83,8 @@ class AuctionDetailEntity {
     required this.carImageUrl,
     required this.currentBid,
     required this.minimumBid,
+    required this.minBidIncrement,
+    required this.enableIncrementalBidding,
     this.reservePrice,
     required this.isReserveMet,
     required this.showReservePrice,
@@ -149,12 +153,7 @@ class AuctionDetailEntity {
 
   /// Get full car name including variant
   String get fullCarName {
-    final parts = [
-      year.toString(),
-      brand,
-      model,
-      if (variant != null) variant,
-    ];
+    final parts = [year.toString(), brand, model, if (variant != null) variant];
     return parts.join(' ');
   }
 

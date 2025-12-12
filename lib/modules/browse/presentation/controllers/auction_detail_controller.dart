@@ -121,6 +121,8 @@ class AuctionDetailController extends ChangeNotifier {
         );
         _auction =
             auctionDetailModel; // AuctionDetailModel extends AuctionDetailEntity
+        // Sync bid increment with seller-configured minimum
+        _bidIncrement = auctionDetailModel.minBidIncrement;
       }
 
       // Load bid history and Q&A in parallel
@@ -455,9 +457,15 @@ class AuctionDetailController extends ChangeNotifier {
   /// Sets auto-bid configuration
   /// When active, system will automatically bid when outbid, up to maxBid amount
   void setAutoBid(bool isActive, double? maxBid, double increment) {
+    // Respect seller-configured minimum bid increment
+    final minIncrement = _auction?.minBidIncrement ?? increment;
+    final effectiveIncrement = increment < minIncrement
+        ? minIncrement
+        : increment;
+
     _isAutoBidActive = isActive;
     _maxAutoBid = maxBid;
-    _bidIncrement = increment;
+    _bidIncrement = effectiveIncrement;
     notifyListeners();
 
     // If auto-bid is active, start polling and place initial bid

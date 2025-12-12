@@ -11,17 +11,22 @@ class AuctionDetailMockDataSource {
   static final Map<String, AuctionDetailModel> _mockAuctionDetails = {
     '1': AuctionDetailModel(
       id: '1',
-      carImageUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200',
+      carImageUrl:
+          'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=1200',
       // Auction/Bidding Info
       currentBid: 485000,
       minimumBid: 400000,
+      minBidIncrement: 1000,
+      enableIncrementalBidding: true,
       reservePrice: 450000,
       isReserveMet: true,
       showReservePrice: false,
       watchersCount: 45,
       biddersCount: 12,
       totalBids: 28,
-      endTime: DateTime.now().add(const Duration(hours: 2, minutes: 30, seconds: 45)),
+      endTime: DateTime.now().add(
+        const Duration(hours: 2, minutes: 30, seconds: 45),
+      ),
       status: 'active',
       photos: const CarPhotosModel(
         exterior: [
@@ -93,7 +98,8 @@ class AuctionDetailMockDataSource {
       province: 'Metro Manila',
       cityMunicipality: 'Makati City',
       // Step 8: Final Details
-      description: 'Pristine 2023 Toyota Supra GR 3.0 Premium in stunning Nitro Yellow. '
+      description:
+          'Pristine 2023 Toyota Supra GR 3.0 Premium in stunning Nitro Yellow. '
           'Single owner, garage kept, full service history at Toyota authorized center. '
           'Low mileage of only 8,500 km. All original, no modifications. '
           'Comes with complete factory warranty until 2028. '
@@ -112,9 +118,12 @@ class AuctionDetailMockDataSource {
     ),
     '2': AuctionDetailModel(
       id: '2',
-      carImageUrl: 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=1200',
+      carImageUrl:
+          'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=1200',
       currentBid: 720000,
       minimumBid: 650000,
+      minBidIncrement: 5000,
+      enableIncrementalBidding: true,
       reservePrice: 700000,
       isReserveMet: true,
       showReservePrice: true,
@@ -180,7 +189,8 @@ class AuctionDetailMockDataSource {
       registrationExpiry: DateTime.now().add(const Duration(days: 180)),
       province: 'Metro Manila',
       cityMunicipality: 'Quezon City',
-      description: 'Well-maintained Honda Civic Type R. Performance enthusiast owned. '
+      description:
+          'Well-maintained Honda Civic Type R. Performance enthusiast owned. '
           'Documented service history. Minor tasteful modifications enhance the driving experience.',
       knownIssues: 'Minor paint chips on front bumper from normal wear',
       features: const [
@@ -193,9 +203,12 @@ class AuctionDetailMockDataSource {
     ),
     '3': AuctionDetailModel(
       id: '3',
-      carImageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=1200',
+      carImageUrl:
+          'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=1200',
       currentBid: 1850000,
       minimumBid: 1500000,
+      minBidIncrement: 10000,
+      enableIncrementalBidding: true,
       reservePrice: 2000000,
       isReserveMet: false,
       showReservePrice: false,
@@ -263,7 +276,8 @@ class AuctionDetailMockDataSource {
       registrationExpiry: DateTime.now().add(const Duration(days: 365)),
       province: 'Metro Manila',
       cityMunicipality: 'Taguig City',
-      description: 'Stunning 2021 Ford Mustang GT Premium in rare Grabber Blue. '
+      description:
+          'Stunning 2021 Ford Mustang GT Premium in rare Grabber Blue. '
           'Powerful 5.0L V8 engine with 460hp. Barely driven, garage kept, immaculate condition. '
           'Premium package includes upgraded interior and tech features.',
       knownIssues: null,
@@ -282,10 +296,12 @@ class AuctionDetailMockDataSource {
   static AuctionDetailModel _createDefaultMock(String id) {
     return AuctionDetailModel(
       id: id,
-      carImageUrl: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=1200',
+      carImageUrl:
+          'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=1200',
       currentBid: 500000,
       minimumBid: 450000,
-      reservePrice: 600000,
+      minBidIncrement: 1000,
+      enableIncrementalBidding: true,
       isReserveMet: false,
       showReservePrice: false,
       watchersCount: 10,
@@ -294,8 +310,12 @@ class AuctionDetailMockDataSource {
       endTime: DateTime.now().add(const Duration(hours: 3)),
       status: 'active',
       photos: const CarPhotosModel(
-        exterior: ['https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=800'],
-        interior: ['https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800'],
+        exterior: [
+          'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?w=800',
+        ],
+        interior: [
+          'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800',
+        ],
         engine: [],
         details: [],
         documents: [],
@@ -343,7 +363,8 @@ class AuctionDetailMockDataSource {
       registrationExpiry: DateTime.now().add(const Duration(days: 90)),
       province: 'Metro Manila',
       cityMunicipality: 'Manila',
-      description: 'Well-maintained Toyota Corolla Altis. Reliable daily driver.',
+      description:
+          'Well-maintained Toyota Corolla Altis. Reliable daily driver.',
       knownIssues: null,
       features: const ['Air Conditioning', 'Power Windows', 'Central Locking'],
     );

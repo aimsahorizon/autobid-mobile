@@ -77,7 +77,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
       // Deposit successful - show success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Deposit successful! You can now place bids on this auction.'),
+          content: Text(
+            'Deposit successful! You can now place bids on this auction.',
+          ),
           backgroundColor: ColorConstants.success,
         ),
       );
@@ -182,7 +184,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           ),
           backgroundColor: ColorConstants.success,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     } else if (widget.controller.errorMessage != null) {
@@ -192,7 +196,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           content: Text(widget.controller.errorMessage!),
           backgroundColor: ColorConstants.error,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       widget.controller.clearError();
@@ -213,7 +219,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           ),
           backgroundColor: ColorConstants.primary,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -267,6 +275,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                       hasDeposited: auction.hasUserDeposited,
                       minimumBid: auction.minimumBid,
                       currentBid: auction.currentBid,
+                      minBidIncrement: auction.minBidIncrement,
+                      enableIncrementalBidding:
+                          auction.enableIncrementalBidding,
                       onDeposit: _handleDeposit,
                       onPlaceBid: _handleBid,
                       onAutoBidToggle: _handleAutoBidToggle,
@@ -279,7 +290,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                       auction: widget.controller.auction!,
                       bidHistory: widget.controller.bidHistory,
                       questions: widget.controller.questions,
-                      isLoadingBidHistory: widget.controller.isLoadingBidHistory,
+                      isLoadingBidHistory:
+                          widget.controller.isLoadingBidHistory,
                       isLoadingQA: widget.controller.isLoadingQA,
                       onAskQuestion: widget.controller.askQuestion,
                       onToggleLike: widget.controller.toggleQuestionLike,
@@ -321,11 +333,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             const SizedBox(height: 24),
             Text(
               'Oops! Something went wrong',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              widget.controller.errorMessage ?? 'Unable to load auction details',
+              widget.controller.errorMessage ??
+                  'Unable to load auction details',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: isDark
@@ -335,7 +350,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: () => widget.controller.loadAuctionDetail(widget.auctionId),
+              onPressed: () =>
+                  widget.controller.loadAuctionDetail(widget.auctionId),
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
             ),
