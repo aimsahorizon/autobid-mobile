@@ -571,11 +571,12 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   }
 
   Widget _buildUnlockedBidding(ThemeData theme, bool isDark) {
+    // Show increment amounts (how much to add), not total amounts
     final defaultIncrements = [
-      _nextMinimumBid,
-      _nextMinimumBid + widget.minBidIncrement,
-      _nextMinimumBid + (widget.minBidIncrement * 2),
-      _nextMinimumBid + (widget.minBidIncrement * 3),
+      widget.minBidIncrement,
+      widget.minBidIncrement * 2,
+      widget.minBidIncrement * 3,
+      widget.minBidIncrement * 4,
     ];
 
     return Column(
@@ -705,11 +706,12 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 runSpacing: 8,
                 children: [
                   ...defaultIncrements.map(
-                    (amount) => _buildAmountChip(amount, theme, isDark),
+                    (increment) =>
+                        _buildIncrementChip(increment, theme, isDark),
                   ),
                   ..._customIncrements.map(
-                    (amount) => _buildAmountChip(
-                      _nextMinimumBid + amount,
+                    (increment) => _buildIncrementChip(
+                      increment,
                       theme,
                       isDark,
                       isCustom: true,
@@ -855,13 +857,16 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                       : () {
                           final amount =
                               double.tryParse(_bidController.text) ?? 0;
-                          if (amount >= _nextMinimumBid) {
+                          final increment = amount - widget.currentBid;
+                          final meetsMinIncrement =
+                              increment >= widget.minBidIncrement;
+                          if (amount >= _nextMinimumBid && meetsMinIncrement) {
                             widget.onPlaceBid(amount);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Minimum bid is ₱${_formatNumber(_nextMinimumBid)}',
+                                  'Bid must be at least ₱${_formatNumber(_nextMinimumBid)} and increase by ≥ ₱${_formatNumber(widget.minBidIncrement)}',
                                 ),
                                 backgroundColor: ColorConstants.error,
                               ),
@@ -926,16 +931,17 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
     );
   }
 
-  Widget _buildAmountChip(
-    double amount,
+  Widget _buildIncrementChip(
+    double increment,
     ThemeData theme,
     bool isDark, {
     bool isCustom = false,
   }) {
-    final isSelected = _bidController.text == amount.toStringAsFixed(0);
+    final totalAmount = widget.currentBid + increment;
+    final isSelected = _bidController.text == totalAmount.toStringAsFixed(0);
 
     return GestureDetector(
-      onTap: () => _selectBidAmount(amount),
+      onTap: () => _selectBidAmount(totalAmount),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
@@ -956,7 +962,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
           ),
         ),
         child: Text(
-          '₱${_formatNumber(amount)}',
+          '+₱${_formatNumber(increment)}',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: isSelected

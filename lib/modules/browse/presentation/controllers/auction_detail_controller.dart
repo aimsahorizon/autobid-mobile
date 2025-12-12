@@ -5,6 +5,7 @@ import '../../domain/entities/bid_history_entity.dart';
 import '../../domain/entities/qa_entity.dart';
 import '../../data/datasources/auction_detail_mock_datasource.dart';
 import '../../data/datasources/auction_supabase_datasource.dart';
+import '../../data/datasources/user_preferences_supabase_datasource.dart';
 import '../../data/datasources/bid_history_mock_datasource.dart';
 import '../../data/datasources/bid_supabase_datasource.dart';
 import '../../data/datasources/qa_mock_datasource.dart';
@@ -26,6 +27,7 @@ class AuctionDetailController extends ChangeNotifier {
   final ConsumeBiddingTokenUsecase? _consumeBiddingTokenUsecase;
   final bool _useMockData;
   final String? _userId;
+  UserPreferencesSupabaseDatasource? _userPrefs;
 
   /// Create controller with mock datasources
   AuctionDetailController.mock(
@@ -56,7 +58,12 @@ class AuctionDetailController extends ChangeNotifier {
        _supabaseQADataSource = qaDataSource,
        _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
        _useMockData = false,
-       _userId = userId;
+       _userId = userId {
+    // Initialize user preferences datasource
+    _userPrefs = UserPreferencesSupabaseDatasource(
+      supabase: auctionDataSource.client,
+    );
+  }
 
   /// Legacy constructor for backward compatibility
   AuctionDetailController(
@@ -123,6 +130,17 @@ class AuctionDetailController extends ChangeNotifier {
             auctionDetailModel; // AuctionDetailModel extends AuctionDetailEntity
         // Sync bid increment with seller-configured minimum
         _bidIncrement = auctionDetailModel.minBidIncrement;
+
+        // Load any saved user preference (persisted increment) if available
+        if (_userId != null) {
+          final saved = await _userPrefs?.getBidIncrement(
+            auctionId: id,
+            userId: _userId!,
+          );
+          if (saved != null && saved >= _bidIncrement) {
+            _bidIncrement = saved;
+          }
+        }
       }
 
       // Load bid history and Q&A in parallel
@@ -417,6 +435,15 @@ class AuctionDetailController extends ChangeNotifier {
         }
       }
 
+      // Enforce server-side: amount must be at least currentBid + minBidIncrement
+      final current = _auction!.currentBid;
+      final minInc = _auction!.minBidIncrement;
+      if (amount < current + minInc) {
+        _errorMessage =
+            'Bid too low. Minimum increase is ₱${minInc.toStringAsFixed(0)}';
+        return false;
+      }
+
       bool success = true;
       if (_useMockData) {
         success = await _mockDataSource!.placeBid(_auction!.id, amount);
@@ -466,6 +493,14 @@ class AuctionDetailController extends ChangeNotifier {
     _isAutoBidActive = isActive;
     _maxAutoBid = maxBid;
     _bidIncrement = effectiveIncrement;
+    // Persist user preference for this auction (increment)
+    if (_userId != null && !_useMockData) {
+      _userPrefs?.upsertBidIncrement(
+        auctionId: _auction!.id,
+        userId: _userId!,
+        increment: _bidIncrement,
+      );
+    }
     notifyListeners();
 
     // If auto-bid is active, start polling and place initial bid
