@@ -22,6 +22,7 @@ import 'update_phone_page.dart';
 import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
+import 'notifications_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ProfileController controller;
@@ -76,7 +77,9 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Text(
                 isCover ? 'Update Cover Photo' : 'Update Profile Photo',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
               ListTile(
@@ -153,7 +156,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${isCover ? 'Cover' : 'Profile'} photo updated successfully'),
+            content: Text(
+              '${isCover ? 'Cover' : 'Profile'} photo updated successfully',
+            ),
             backgroundColor: ColorConstants.success,
           ),
         );
@@ -211,7 +216,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _navigateToCustomerSupport() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerSupportPage()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CustomerSupportPage()),
+    );
   }
 
   void _navigateToFAQ() {
@@ -221,14 +229,20 @@ class _ProfilePageState extends State<ProfilePage> {
   void _navigateToTerms() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const LegalPage(title: 'Terms & Conditions', type: 'terms')),
+      MaterialPageRoute(
+        builder: (_) =>
+            const LegalPage(title: 'Terms & Conditions', type: 'terms'),
+      ),
     );
   }
 
   void _navigateToPrivacy() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const LegalPage(title: 'Privacy Policy', type: 'privacy')),
+      MaterialPageRoute(
+        builder: (_) =>
+            const LegalPage(title: 'Privacy Policy', type: 'privacy'),
+      ),
     );
   }
 
@@ -301,6 +315,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _navigateToNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationsPage()),
+    );
+  }
+
   Future<void> _handleSignOut() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -324,7 +345,9 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirm == true && mounted) {
       await widget.controller.signOut();
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     }
   }
@@ -332,10 +355,23 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: _navigateToNotifications,
+            tooltip: 'Notifications',
+          ),
+        ],
+      ),
+      extendBodyBehindAppBar: true,
       body: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, _) {
-          if (widget.controller.isLoading && widget.controller.profile == null) {
+          if (widget.controller.isLoading &&
+              widget.controller.profile == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -346,7 +382,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   const Icon(Icons.error_outline, size: 64),
                   const SizedBox(height: 16),
-                  Text(widget.controller.errorMessage ?? 'Error loading profile'),
+                  Text(
+                    widget.controller.errorMessage ?? 'Error loading profile',
+                  ),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: widget.controller.loadProfile,
@@ -441,10 +479,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         title: const Text(
           'Admin Dashboard',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         subtitle: Text(
           'DEV ONLY: Quick Access',
