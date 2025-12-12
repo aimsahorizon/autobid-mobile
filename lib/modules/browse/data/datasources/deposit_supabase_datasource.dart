@@ -14,6 +14,10 @@ class DepositSupabaseDatasource {
     required String paymentIntentId,
   }) async {
     try {
+      print(
+        '[DepositSupabaseDatasource] Creating deposit for auction: $auctionId, user: $userId, amount: $amount',
+      );
+
       final response = await supabase.rpc(
         'create_deposit',
         params: {
@@ -24,8 +28,44 @@ class DepositSupabaseDatasource {
         },
       );
 
-      return response as String?;
+      print('[DepositSupabaseDatasource] Response: $response');
+
+      // Handle response - could be a single row or a table
+      if (response is List && response.isNotEmpty) {
+        final result = response[0] as Map<String, dynamic>;
+        final success = result['success'] as bool? ?? false;
+        final message = result['message'] as String?;
+        final depositId = result['deposit_id'] as String?;
+
+        if (!success) {
+          throw Exception('Failed to create deposit: $message');
+        }
+
+        print(
+          '[DepositSupabaseDatasource] Deposit created successfully: $depositId',
+        );
+        return depositId;
+      } else if (response is Map<String, dynamic>) {
+        final success = response['success'] as bool? ?? false;
+        final message = response['message'] as String?;
+        final depositId = response['deposit_id'] as String?;
+
+        if (!success) {
+          throw Exception('Failed to create deposit: $message');
+        }
+
+        print(
+          '[DepositSupabaseDatasource] Deposit created successfully: $depositId',
+        );
+        return depositId;
+      } else {
+        print(
+          '[DepositSupabaseDatasource] Unexpected response type: ${response.runtimeType}',
+        );
+        throw Exception('Unexpected response from server');
+      }
     } catch (e) {
+      print('[DepositSupabaseDatasource] Error creating deposit: $e');
       throw Exception('Failed to create deposit: $e');
     }
   }
@@ -38,10 +78,7 @@ class DepositSupabaseDatasource {
     try {
       final response = await supabase.rpc(
         'has_user_deposited',
-        params: {
-          'p_auction_id': auctionId,
-          'p_user_id': userId,
-        },
+        params: {'p_auction_id': auctionId, 'p_user_id': userId},
       );
 
       return response as bool;
@@ -58,10 +95,7 @@ class DepositSupabaseDatasource {
     try {
       final response = await supabase.rpc(
         'get_user_deposit',
-        params: {
-          'p_auction_id': auctionId,
-          'p_user_id': userId,
-        },
+        params: {'p_auction_id': auctionId, 'p_user_id': userId},
       );
 
       if (response is List && response.isNotEmpty) {
@@ -81,10 +115,7 @@ class DepositSupabaseDatasource {
     try {
       final response = await supabase.rpc(
         'refund_deposit',
-        params: {
-          'p_auction_id': auctionId,
-          'p_user_id': userId,
-        },
+        params: {'p_auction_id': auctionId, 'p_user_id': userId},
       );
 
       return response as bool;
@@ -101,10 +132,7 @@ class DepositSupabaseDatasource {
     try {
       final response = await supabase.rpc(
         'forfeit_deposit',
-        params: {
-          'p_auction_id': auctionId,
-          'p_user_id': userId,
-        },
+        params: {'p_auction_id': auctionId, 'p_user_id': userId},
       );
 
       return response as bool;

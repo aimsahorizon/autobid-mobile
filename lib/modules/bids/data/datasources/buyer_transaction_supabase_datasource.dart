@@ -9,7 +9,9 @@ class BuyerTransactionSupabaseDataSource {
 
   /// Get all transactions for buyer
   /// Joins with vehicles and seller profiles
-  Future<List<Map<String, dynamic>>> getBuyerTransactions(String buyerId) async {
+  Future<List<Map<String, dynamic>>> getBuyerTransactions(
+    String buyerId,
+  ) async {
     try {
       final response = await _supabase
           .from('transactions')
@@ -33,7 +35,9 @@ class BuyerTransactionSupabaseDataSource {
 
   /// Get single transaction detail
   /// Includes all related data
-  Future<Map<String, dynamic>> getTransactionDetail(String transactionId) async {
+  Future<Map<String, dynamic>> getTransactionDetail(
+    String transactionId,
+  ) async {
     try {
       final response = await _supabase
           .from('transactions')
@@ -188,7 +192,9 @@ class BuyerTransactionSupabaseDataSource {
     try {
       final response = await _supabase
           .from('bids')
-          .select('id, amount, created_at, vehicles!vehicle_id(id, brand, model, year, main_image_url, status, end_time, current_bid)')
+          .select(
+            'id, bid_amount, created_at, vehicles!vehicle_id(id, brand, model, year, main_image_url, status, end_time, current_bid)',
+          )
           .eq('bidder_id', userId)
           .eq('status', 'won')
           .order('created_at', ascending: false);
@@ -207,7 +213,9 @@ class BuyerTransactionSupabaseDataSource {
     try {
       final response = await _supabase
           .from('bids')
-          .select('id, amount, created_at, is_auto_bid, max_auto_bid, status, vehicles!vehicle_id(id, brand, model, year, main_image_url, status, end_time, current_bid)')
+          .select(
+            'id, bid_amount, created_at, is_auto_bid, status, vehicles!vehicle_id(id, brand, model, year, main_image_url, status, end_time, current_bid)',
+          )
           .eq('bidder_id', userId)
           .eq('status', 'active')
           .order('created_at', ascending: false);
@@ -226,7 +234,9 @@ class BuyerTransactionSupabaseDataSource {
     try {
       final response = await _supabase
           .from('bids')
-          .select('id, amount, created_at, status, vehicles!vehicle_id(id, brand, model, year, main_image_url, status, end_time, current_bid)')
+          .select(
+            'id, bid_amount, created_at, status, vehicles!vehicle_id(id, brand, model, year, main_image_url, status, end_time, current_bid)',
+          )
           .eq('bidder_id', userId)
           .or('status.eq.outbid,status.eq.lost')
           .order('created_at', ascending: false)
@@ -256,7 +266,8 @@ class BuyerTransactionSupabaseDataSource {
       await _supabase.from('transaction_timeline').insert({
         'transaction_id': transactionId,
         'title': 'Transaction Cancelled',
-        'description': 'Transaction was cancelled by buyer. ${reason.isNotEmpty ? "Reason: $reason" : ""}',
+        'description':
+            'Transaction was cancelled by buyer. ${reason.isNotEmpty ? "Reason: $reason" : ""}',
         'event_type': 'cancelled',
         'actor_name': 'Buyer',
       });

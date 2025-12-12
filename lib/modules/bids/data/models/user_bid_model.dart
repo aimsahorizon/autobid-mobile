@@ -28,9 +28,9 @@ class UserBidModel extends UserBidEntity {
     // Determine status based on auction end time and bid position
     final endTime = DateTime.parse(
       listing?['auction_end_time'] ??
-      listing?['end_time'] ??
-      json['auction_end_time'] ??
-      json['end_time'] as String
+          listing?['end_time'] ??
+          json['auction_end_time'] ??
+          json['end_time'] as String,
     );
     final isWinning = json['is_winning'] as bool? ?? false;
     final hasEnded = DateTime.now().isAfter(endTime);
@@ -47,12 +47,14 @@ class UserBidModel extends UserBidEntity {
     return UserBidModel(
       id: json['bid_id'] as String? ?? json['id'] as String,
       auctionId: json['listing_id'] as String? ?? json['auction_id'] as String,
-      carImageUrl: listing?['cover_photo_url'] as String? ??
-                   listing?['car_image_url'] as String? ?? '',
+      carImageUrl:
+          listing?['cover_photo_url'] as String? ??
+          listing?['car_image_url'] as String? ??
+          '',
       year: listing?['year'] as int? ?? 0,
       make: listing?['brand'] as String? ?? listing?['make'] as String? ?? '',
       model: listing?['model'] as String? ?? '',
-      userBidAmount: (json['amount'] as num).toDouble(),
+      userBidAmount: (json['bid_amount'] as num).toDouble(),
       currentHighestBid: (listing?['current_bid'] as num?)?.toDouble() ?? 0.0,
       endTime: endTime,
       status: status,
@@ -67,7 +69,7 @@ class UserBidModel extends UserBidEntity {
     return {
       'id': id,
       'auction_id': auctionId,
-      'amount': userBidAmount,
+      'bid_amount': userBidAmount,
       'created_at': DateTime.now().toIso8601String(),
     };
   }

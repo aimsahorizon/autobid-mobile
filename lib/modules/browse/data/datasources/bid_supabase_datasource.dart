@@ -19,15 +19,33 @@ class BidSupabaseDataSource {
     double? autoBidIncrement,
   }) async {
     try {
-      // Insert new bid - trigger will update listing automatically
+      // Get status ID for 'active' bid status
+      final statusResponse = await _supabase
+          .from('bid_statuses')
+          .select('id')
+          .eq('status_name', 'active')
+          .single();
+
+      final statusId = statusResponse['id'] as String;
+
+      // Insert new bid
       await _supabase.from('bids').insert({
-        'listing_id': auctionId, // listings table
+        'auction_id': auctionId,
         'bidder_id': bidderId,
-        'amount': amount,
+        'status_id': statusId,
+        'bid_amount': amount,
         'is_auto_bid': isAutoBid,
-        'max_auto_bid': maxAutoBid,
-        'auto_bid_increment': autoBidIncrement,
       });
+
+      // If auto-bid is enabled, create/update auto_bid_settings
+      if (isAutoBid && maxAutoBid != null) {
+        await _supabase.from('auto_bid_settings').upsert({
+          'auction_id': auctionId,
+          'user_id': bidderId,
+          'max_bid_amount': maxAutoBid,
+          'is_active': true,
+        });
+      }
     } on PostgrestException catch (e) {
       throw Exception('Failed to place bid: ${e.message}');
     } catch (e) {
@@ -39,16 +57,20 @@ class BidSupabaseDataSource {
   /// Joins with users table to get bidder info (LEFT JOIN to handle missing users)
   Future<List<Map<String, dynamic>>> getBidHistory(String auctionId) async {
     try {
-      print('DEBUG [BidDataSource]: Fetching bid history for listing_id: $auctionId');
+      print(
+        'DEBUG [BidDataSource]: Fetching bid history for auction_id: $auctionId',
+      );
 
       // Query bids without users join (simpler, avoids FK issues)
       final response = await _supabase
           .from('bids')
-          .select('id, amount, is_auto_bid, created_at, bidder_id')
-          .eq('listing_id', auctionId)
-          .order('amount', ascending: false);
+          .select('id, bid_amount, is_auto_bid, created_at, bidder_id')
+          .eq('auction_id', auctionId)
+          .order('bid_amount', ascending: false);
 
-      print('DEBUG [BidDataSource]: Query response type: ${response.runtimeType}');
+      print(
+        'DEBUG [BidDataSource]: Query response type: ${response.runtimeType}',
+      );
       print('DEBUG [BidDataSource]: Response data: $response');
 
       final result = List<Map<String, dynamic>>.from(response);
@@ -70,9 +92,10 @@ class BidSupabaseDataSource {
   /// Uses PostgreSQL function to get latest bid per listing
   Future<List<Map<String, dynamic>>> getUserActiveBids(String userId) async {
     try {
-      final response = await _supabase.rpc('get_user_active_bids', params: {
-        'user_id': userId,
-      });
+      final response = await _supabase.rpc(
+        'get_user_active_bids',
+        params: {'user_id': userId},
+      );
 
       return List<Map<String, dynamic>>.from(response);
     } on PostgrestException catch (e) {
@@ -89,7 +112,7 @@ class BidSupabaseDataSource {
       final response = await _supabase
           .from('bids')
           .select('id')
-          .eq('listing_id', auctionId)
+          .eq('auction_id', auctionId)
           .eq('bidder_id', userId)
           .limit(1);
 
@@ -107,14 +130,14 @@ class BidSupabaseDataSource {
     try {
       final response = await _supabase
           .from('bids')
-          .select('amount')
-          .eq('listing_id', auctionId)
-          .order('amount', ascending: false)
+          .select('bid_amount')
+          .eq('auction_id', auctionId)
+          .order('bid_amount', ascending: false)
           .limit(1)
           .maybeSingle();
 
       if (response == null) return null;
-      return (response['amount'] as num).toDouble();
+      return (response['bid_amount'] as num).toDouble();
     } on PostgrestException catch (e) {
       throw Exception('Failed to get highest bid: ${e.message}');
     } catch (e) {
@@ -171,7 +194,10 @@ class BidSupabaseDataSource {
 
   /// Get user's deposit for an auction
   /// Returns deposit details or null if not found
-  Future<Map<String, dynamic>?> getDeposit(String userId, String vehicleId) async {
+  Future<Map<String, dynamic>?> getDeposit(
+    String userId,
+    String vehicleId,
+  ) async {
     try {
       final response = await _supabase
           .from('deposits')

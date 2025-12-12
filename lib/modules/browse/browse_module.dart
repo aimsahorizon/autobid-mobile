@@ -74,9 +74,7 @@ class BrowseModule {
 
   /// Get or create browse controller (based on useMockData flag)
   BrowseController get controller {
-    if (_browseController == null) {
-      _browseController = BrowseController(_createRepository());
-    }
+    _browseController ??= BrowseController(_createRepository());
     return _browseController!;
   }
 
