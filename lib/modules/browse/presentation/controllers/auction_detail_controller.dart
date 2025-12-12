@@ -102,10 +102,12 @@ class AuctionDetailController extends ChangeNotifier {
   double? get maxAutoBid => _maxAutoBid;
 
   /// Loads auction details and related data (bid history, Q&A)
-  Future<void> loadAuctionDetail(String id) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  Future<void> loadAuctionDetail(String id, {bool isBackground = false}) async {
+    if (!isBackground) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
       final previousBid = _auction?.currentBid;
@@ -138,8 +140,13 @@ class AuctionDetailController extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Failed to load auction details';
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!isBackground) {
+        _isLoading = false;
+        notifyListeners();
+      } else {
+        // Background refresh: update UI without flashing loading states
+        notifyListeners();
+      }
     }
   }
 
@@ -164,13 +171,13 @@ class AuctionDetailController extends ChangeNotifier {
         // Convert to BidHistoryEntity
         _bidHistory = bidsData.map((bidData) {
           print(
-            'DEBUG: Processing bid - ID: ${bidData['id']}, Amount: ${bidData['amount']}',
+            'DEBUG: Processing bid - ID: ${bidData['id']}, Amount: ${bidData['bid_amount']}',
           );
 
           return BidHistoryEntity(
             id: bidData['id'] as String,
             auctionId: auctionId,
-            amount: (bidData['amount'] as num).toDouble(),
+            amount: (bidData['bid_amount'] as num).toDouble(),
             bidderName:
                 'Bidder ${bidData['bidder_id'].toString().substring(0, 8)}', // Show partial ID
             timestamp: DateTime.parse(bidData['created_at'] as String),
@@ -530,7 +537,7 @@ class AuctionDetailController extends ChangeNotifier {
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (_auction != null && _isAutoBidActive) {
         print('DEBUG: Polling for auction updates...');
-        loadAuctionDetail(_auction!.id);
+        loadAuctionDetail(_auction!.id, isBackground: true);
       }
     });
   }
