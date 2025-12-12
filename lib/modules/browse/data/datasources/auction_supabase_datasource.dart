@@ -261,6 +261,10 @@ class AuctionSupabaseDataSource {
       return AuctionDetailModel.fromJson({
         ...auctionResponse,
         'car_image_url': auctionResponse['primary_image_url'] ?? '',
+        // Map database current_price to model's current_bid
+        'current_bid':
+            auctionResponse['current_price'] ??
+            auctionResponse['starting_price'],
         // Ensure required fields exist for model parsing
         'min_bid_increment': numBidIncrement,
         'enable_incremental_bidding': enableIncremental,
