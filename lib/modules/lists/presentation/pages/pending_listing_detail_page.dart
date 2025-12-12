@@ -5,6 +5,7 @@ import '../../data/datasources/listing_supabase_datasource.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
+import '../widgets/invite_user_dialog.dart';
 
 class PendingListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
@@ -56,22 +57,57 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
   Widget _buildActionButtons(BuildContext context, bool isDark) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _isLoading ? null : () => _cancelListing(context),
-              icon: const Icon(Icons.close),
-              label: const Text('Cancel Listing'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade600,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          // Invite Users button for private auctions (if visibility field available)
+          // Note: ListingDetailEntity needs visibility field to show this conditionally
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => InviteUserDialog(
+                              auctionId: widget.listing.id,
+                              auctionTitle:
+                                  '${widget.listing.year} ${widget.listing.brand} ${widget.listing.model}',
+                            ),
+                          );
+                        },
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Invite Users'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : () => _cancelListing(context),
+                  icon: const Icon(Icons.close),
+                  label: const Text('Cancel Listing'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
