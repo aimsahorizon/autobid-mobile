@@ -172,13 +172,29 @@ class AuctionSupabaseDataSource {
   ) async {
     try {
       // Get auction details from view
-      final auctionResponse = await _supabase
-          .from('auction_browse_listings')
-          .select(
-            'id, title, description, starting_price, current_price, reserve_price, bid_increment, min_bid_increment, enable_incremental_bidding, deposit_amount, end_time, total_bids, view_count, is_featured, seller_id, created_at, start_time, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
-          )
-          .eq('id', auctionId)
-          .single();
+      Map<String, dynamic> auctionResponse;
+      try {
+        // Try selecting with new fields (min_bid_increment, enable_incremental_bidding)
+        auctionResponse = await _supabase
+            .from('auction_browse_listings')
+            .select(
+              'id, title, description, starting_price, current_price, reserve_price, bid_increment, min_bid_increment, enable_incremental_bidding, deposit_amount, end_time, total_bids, view_count, is_featured, seller_id, created_at, start_time, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
+            )
+            .eq('id', auctionId)
+            .single();
+      } on PostgrestException catch (e) {
+        // Fallback: older view may not have new columns; re-query without them
+        print(
+          '[AuctionSupabaseDataSource] Fallback select without min/enable columns due to: ${e.message}',
+        );
+        auctionResponse = await _supabase
+            .from('auction_browse_listings')
+            .select(
+              'id, title, description, starting_price, current_price, reserve_price, bid_increment, deposit_amount, end_time, total_bids, view_count, is_featured, seller_id, created_at, start_time, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
+            )
+            .eq('id', auctionId)
+            .single();
+      }
 
       // Fetch the associated vehicle specs similar to the Lists module implementation
       final vehicleResponse = await _supabase
@@ -226,10 +242,21 @@ class AuctionSupabaseDataSource {
         );
       }
 
+      // Compute safe defaults for new fields if missing
+      final numBidIncrement =
+          (auctionResponse['min_bid_increment'] as num?) ??
+          (auctionResponse['bid_increment'] as num?) ??
+          1000;
+      final enableIncremental =
+          (auctionResponse['enable_incremental_bidding'] as bool?) ?? true;
+
       // Build auction detail model
       return AuctionDetailModel.fromJson({
         ...auctionResponse,
         'car_image_url': auctionResponse['primary_image_url'] ?? '',
+        // Ensure required fields exist for model parsing
+        'min_bid_increment': numBidIncrement,
+        'enable_incremental_bidding': enableIncremental,
         'brand': vehicleData?['brand'] ?? auctionResponse['vehicle_make'] ?? '',
         'make': vehicleData?['brand'] ?? auctionResponse['vehicle_make'] ?? '',
         'model':
