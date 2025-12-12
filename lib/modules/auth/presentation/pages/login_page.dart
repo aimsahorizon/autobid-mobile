@@ -307,6 +307,7 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(
           builder: (context) => AdminMainPage(
             controller: AdminModule.instance.controller,
+            kycController: AdminModule.instance.kycController,
           ),
         ),
       );
