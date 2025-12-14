@@ -256,6 +256,17 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                     status: auction.status,
                   ),
                 ),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: widget.controller.isLoading
+                        ? null
+                        : () => widget.controller.loadAuctionDetail(
+                            widget.auctionId,
+                          ),
+                    tooltip: 'Refresh auction details',
+                  ),
+                ],
               ),
               SliverToBoxAdapter(
                 child: Column(

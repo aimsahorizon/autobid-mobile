@@ -194,12 +194,25 @@ class AuctionDetailController extends ChangeNotifier {
             'DEBUG: Processing bid - ID: ${bidData['id']}, Amount: ${bidData['bid_amount']}',
           );
 
+          // Extract bidder username from nested users data
+          String bidderName = 'Bidder';
+          final bidderData = bidData['bidder'] as Map<String, dynamic>?;
+          if (bidderData != null) {
+            final displayName = bidderData['display_name'] as String?;
+            final username = bidderData['username'] as String?;
+            // Prefer display_name if available, fallback to username
+            if (displayName != null && displayName.isNotEmpty) {
+              bidderName = displayName;
+            } else if (username != null && username.isNotEmpty) {
+              bidderName = username;
+            }
+          }
+
           return BidHistoryEntity(
             id: bidData['id'] as String,
             auctionId: auctionId,
             amount: (bidData['bid_amount'] as num).toDouble(),
-            bidderName:
-                'Bidder ${bidData['bidder_id'].toString().substring(0, 8)}', // Show partial ID
+            bidderName: bidderName,
             timestamp: DateTime.parse(bidData['created_at'] as String),
             isCurrentUser: _userId != null && bidData['bidder_id'] == _userId,
             isWinning: false, // Will be set based on current auction state
@@ -361,8 +374,7 @@ class AuctionDetailController extends ChangeNotifier {
             question: q.question,
             askedBy: q.askedBy,
             askedAt: q.askedAt,
-            answer: q.answer,
-            answeredAt: q.answeredAt,
+            answers: q.answers,
             likesCount: q.isLikedByUser ? q.likesCount - 1 : q.likesCount + 1,
             isLikedByUser: !q.isLikedByUser,
           );
