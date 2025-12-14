@@ -1,6 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/datasources/admin_supabase_datasource.dart';
 import 'data/datasources/kyc_supabase_datasource.dart';
+import 'data/datasources/auction_monitor_supabase_datasource.dart';
+import 'data/datasources/admin_transaction_datasource.dart';
 import 'data/repositories/kyc_repository_impl.dart';
 import 'domain/repositories/kyc_repository.dart';
 import 'domain/usecases/get_kyc_stats_usecase.dart';
@@ -11,6 +13,8 @@ import 'domain/usecases/reject_kyc_usecase.dart';
 import 'domain/usecases/get_document_url_usecase.dart';
 import 'presentation/controllers/admin_controller.dart';
 import 'presentation/controllers/kyc_controller.dart';
+import 'presentation/controllers/auction_monitor_controller.dart';
+import 'presentation/controllers/admin_transaction_controller.dart';
 
 /// Admin Module - Manages admin dashboard and listing reviews
 /// DEV ONLY: For testing and simulating admin functionalities
@@ -25,6 +29,8 @@ class AdminModule {
   // Datasources
   AdminSupabaseDataSource? _dataSource;
   KycSupabaseDataSource? _kycDataSource;
+  AuctionMonitorSupabaseDataSource? _monitorDataSource;
+  AdminTransactionDataSource? _transactionDataSource;
 
   // Repositories
   KycRepository? _kycRepository;
@@ -40,13 +46,16 @@ class AdminModule {
   // Controllers
   AdminController? _controller;
   KycController? _kycController;
+  AuctionMonitorController? _monitorController;
+  AdminTransactionController? _transactionController;
 
   // Initialization flag
   bool _isInitialized = false;
 
   /// Initialize module and datasources
   void initialize() {
-    if (_isInitialized) {
+    // Check if already fully initialized (datasources exist)
+    if (_isInitialized && _transactionDataSource != null) {
       // Already initialized, skip
       return;
     }
@@ -54,6 +63,8 @@ class AdminModule {
     // Initialize datasources
     _dataSource = AdminSupabaseDataSource(_supabase);
     _kycDataSource = KycSupabaseDataSource(_supabase);
+    _monitorDataSource = AuctionMonitorSupabaseDataSource(_supabase);
+    _transactionDataSource = AdminTransactionDataSource(_supabase);
 
     // Initialize repositories
     _kycRepository = KycRepositoryImpl(_kycDataSource!);
@@ -102,6 +113,26 @@ class AdminModule {
     return _kycController!;
   }
 
+  /// Get or create auction monitor controller
+  AuctionMonitorController get monitorController {
+    if (_monitorDataSource == null) {
+      throw StateError('AdminModule not initialized. Call initialize() first.');
+    }
+    _monitorController ??= AuctionMonitorController(_monitorDataSource!);
+    return _monitorController!;
+  }
+
+  /// Get or create transaction controller
+  AdminTransactionController get transactionController {
+    if (_transactionDataSource == null) {
+      throw StateError('AdminModule not initialized. Call initialize() first.');
+    }
+    _transactionController ??= AdminTransactionController(
+      _transactionDataSource!,
+    );
+    return _transactionController!;
+  }
+
   /// Create a new KYC controller instance
   KycController createKycController() {
     if (!_isInitialized) {
@@ -117,11 +148,23 @@ class AdminModule {
     );
   }
 
+  /// Create a new transaction controller instance
+  AdminTransactionController createTransactionController() {
+    if (_transactionDataSource == null) {
+      throw StateError('AdminModule not initialized. Call initialize() first.');
+    }
+    return AdminTransactionController(_transactionDataSource!);
+  }
+
   /// Clean up resources
   void dispose() {
     _controller?.dispose();
     _controller = null;
     _kycController?.dispose();
     _kycController = null;
+    _monitorController?.dispose();
+    _monitorController = null;
+    _transactionController?.dispose();
+    _transactionController = null;
   }
 }

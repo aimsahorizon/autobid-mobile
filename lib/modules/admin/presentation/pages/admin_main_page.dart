@@ -3,10 +3,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../controllers/admin_controller.dart';
 import '../controllers/kyc_controller.dart';
+import '../controllers/admin_transaction_controller.dart';
+import '../../admin_module.dart';
 import 'admin_dashboard_page.dart';
 import 'admin_listings_page.dart';
 import 'admin_users_page.dart';
 import 'admin_kyc_page.dart';
+import 'admin_auction_monitor_page.dart';
+import 'admin_transactions_page.dart';
 
 /// Main admin page with tabs for different admin functions
 class AdminMainPage extends StatefulWidget {
@@ -26,11 +30,38 @@ class AdminMainPage extends StatefulWidget {
 class _AdminMainPageState extends State<AdminMainPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  AdminTransactionController? _transactionController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
+    _initTransactionController();
+  }
+
+  void _initTransactionController() {
+    try {
+      // Ensure module is initialized
+      AdminModule.instance.initialize();
+      _transactionController = AdminModule.instance.transactionController;
+      print('[AdminMainPage] Transaction controller initialized successfully');
+    } catch (e) {
+      print('[AdminMainPage] Error initializing transaction controller: $e');
+      // Try again with setState to trigger rebuild
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            try {
+              AdminModule.instance.initialize();
+              _transactionController =
+                  AdminModule.instance.transactionController;
+            } catch (e2) {
+              print('[AdminMainPage] Retry failed: $e2');
+            }
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -153,6 +184,7 @@ class _AdminMainPageState extends State<AdminMainPage>
             Tab(icon: Icon(Icons.list_alt), text: 'Listings'),
             Tab(icon: Icon(Icons.people), text: 'Users'),
             Tab(icon: Icon(Icons.verified_user), text: 'KYC'),
+            Tab(icon: Icon(Icons.gavel), text: 'Bid Monitor'),
             Tab(icon: Icon(Icons.receipt_long), text: 'Transactions'),
             Tab(icon: Icon(Icons.analytics), text: 'Reports'),
           ],
@@ -165,7 +197,12 @@ class _AdminMainPageState extends State<AdminMainPage>
           AdminListingsPage(controller: widget.controller),
           AdminUsersPage(controller: widget.controller),
           AdminKycPage(controller: widget.kycController),
-          _buildComingSoonTab('Transactions'),
+          AuctionMonitorPage(
+            controller: AdminModule.instance.monitorController,
+          ),
+          _transactionController != null
+              ? AdminTransactionsPage(controller: _transactionController!)
+              : _buildTransactionErrorTab(),
           _buildComingSoonTab('Reports & Analytics'),
         ],
       ),
@@ -194,6 +231,40 @@ class _AdminMainPageState extends State<AdminMainPage>
               fontSize: 16,
               color: ColorConstants.textSecondaryLight,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionErrorTab() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: ColorConstants.error),
+          const SizedBox(height: 16),
+          const Text(
+            'Transaction Module',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Failed to initialize. Tap to retry.',
+            style: TextStyle(
+              fontSize: 16,
+              color: ColorConstants.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () {
+              setState(() {
+                _initTransactionController();
+              });
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
           ),
         ],
       ),
