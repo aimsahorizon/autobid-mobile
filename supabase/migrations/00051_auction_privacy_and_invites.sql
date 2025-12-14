@@ -64,7 +64,7 @@ CREATE POLICY "invitee update status"
     invitee_user_id = auth.uid()
   );
 
--- 3) Notification table (minimal)
+-- 3) Add auction notification types and helper for inserting notifications
 CREATE TABLE IF NOT EXISTS public.notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
