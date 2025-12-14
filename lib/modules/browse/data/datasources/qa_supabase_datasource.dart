@@ -17,8 +17,41 @@ class QASupabaseDataSource {
         .eq('auction_id', auctionId)
         .order('asked_at', ascending: false);
 
-    return (res as List<dynamic>)
-        .map((j) => _fromViewRow(j, currentUserId: currentUserId))
+    final rows = (res as List<dynamic>);
+    final questionIds = rows.map((row) => row['id'] as String).toSet().toList();
+
+    final Map<String, List<QAAnswerEntity>> answersByQuestion = {};
+    if (questionIds.isNotEmpty) {
+      final formattedIds = '(${questionIds.map((id) => '"$id"').join(',')})';
+      final answersRes = await client
+          .from('auction_answers')
+          .select('id, question_id, seller_id, answer, created_at')
+          .filter('question_id', 'in', formattedIds)
+          .order('created_at');
+
+      for (final answerRow in (answersRes as List<dynamic>)) {
+        final questionId = answerRow['question_id'] as String;
+        answersByQuestion
+            .putIfAbsent(questionId, () => [])
+            .add(
+              QAAnswerEntity(
+                id: answerRow['id'] as String,
+                sellerId: answerRow['seller_id'] as String,
+                answer: answerRow['answer'] as String,
+                createdAt: DateTime.parse(answerRow['created_at'] as String),
+              ),
+            );
+      }
+    }
+
+    return rows
+        .map(
+          (j) => _fromViewRow(
+            j,
+            currentUserId: currentUserId,
+            answers: answersByQuestion[j['id']] ?? const [],
+          ),
+        )
         .toList();
   }
 
@@ -46,8 +79,7 @@ class QASupabaseDataSource {
       question: inserted['question'] as String,
       askedBy: 'You',
       askedAt: DateTime.parse(inserted['created_at'] as String),
-      answer: null,
-      answeredAt: null,
+      answers: const [],
       likesCount: 0,
       isLikedByUser: false,
     );
@@ -130,7 +162,19 @@ class QASupabaseDataSource {
         callback: (_) => _emitSnapshot(auctionId, currentUserId, controller),
       )
       ..onPostgresChanges(
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'auction_answers',
+        callback: (_) => _emitSnapshot(auctionId, currentUserId, controller),
+      )
+      ..onPostgresChanges(
         event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'auction_question_likes',
+        callback: (_) => _emitSnapshot(auctionId, currentUserId, controller),
+      )
+      ..onPostgresChanges(
+        event: PostgresChangeEvent.delete,
         schema: 'public',
         table: 'auction_question_likes',
         callback: (_) => _emitSnapshot(auctionId, currentUserId, controller),
@@ -141,7 +185,11 @@ class QASupabaseDataSource {
     _emitSnapshot(auctionId, currentUserId, controller);
 
     controller.onCancel = () async {
-      await client.removeChannel(channel);
+      try {
+        await client.removeChannel(channel);
+      } catch (e) {
+        // Ignore errors on channel removal
+      }
     };
 
     return controller.stream;
@@ -162,14 +210,15 @@ class QASupabaseDataSource {
     }
   }
 
-  QAEntity _fromViewRow(dynamic j, {String? currentUserId}) {
+  QAEntity _fromViewRow(
+    dynamic j, {
+    String? currentUserId,
+    List<QAAnswerEntity> answers = const [],
+  }) {
     final likes = (j['likes_count'] ?? 0) as int;
-    final profileData = j['profiles'] as Map<String, dynamic>?;
+    // View returns display_name and full_name directly (not nested under profiles)
     final displayName =
-        profileData?['display_name'] as String? ??
-        profileData?['full_name'] as String? ??
-        'User';
-
+        (j['display_name'] as String?) ?? (j['full_name'] as String?) ?? 'User';
     final likesData = j['auction_question_likes'] as List<dynamic>?;
     final likedByUser = likesData != null && currentUserId != null
         ? likesData.any((like) => like['user_id'] == currentUserId)
@@ -182,10 +231,7 @@ class QASupabaseDataSource {
       question: (j['question'] as String?) ?? '',
       askedBy: displayName,
       askedAt: DateTime.parse(j['asked_at'] as String),
-      answer: j['answer'] as String?,
-      answeredAt: j['answered_at'] != null
-          ? DateTime.parse(j['answered_at'] as String)
-          : null,
+      answers: answers,
       likesCount: likes,
       isLikedByUser: likedByUser,
     );

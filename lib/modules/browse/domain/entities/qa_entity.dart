@@ -1,3 +1,18 @@
+/// Represents an individual seller answer attached to a Q&A entry.
+class QAAnswerEntity {
+  final String id;
+  final String sellerId;
+  final String answer;
+  final DateTime createdAt;
+
+  const QAAnswerEntity({
+    required this.id,
+    required this.sellerId,
+    required this.answer,
+    required this.createdAt,
+  });
+}
+
 /// Represents a Q&A question in auction detail
 /// Users can ask questions, sellers respond, others can like
 class QAEntity {
@@ -19,11 +34,8 @@ class QAEntity {
   /// When the question was asked
   final DateTime askedAt;
 
-  /// Seller's response (null if not answered yet)
-  final String? answer;
-
-  /// When the seller responded (null if not answered)
-  final DateTime? answeredAt;
+  /// All seller responses, sorted by creation time ascending
+  final List<QAAnswerEntity> answers;
 
   /// Number of likes on this question
   final int likesCount;
@@ -38,14 +50,22 @@ class QAEntity {
     required this.question,
     required this.askedBy,
     required this.askedAt,
-    this.answer,
-    this.answeredAt,
+    this.answers = const [],
     this.likesCount = 0,
     this.isLikedByUser = false,
   });
 
+  /// Latest reply if available
+  QAAnswerEntity? get latestAnswer => answers.isNotEmpty ? answers.last : null;
+
+  /// Convenience getter for the most recent answer text
+  String? get answer => latestAnswer?.answer;
+
+  /// Convenience getter for when the latest answer was created
+  DateTime? get answeredAt => latestAnswer?.createdAt;
+
   /// Check if question has been answered
-  bool get isAnswered => answer != null;
+  bool get isAnswered => latestAnswer != null;
 
   /// Response status text for UI display
   String get statusText => isAnswered ? 'Answered' : 'Pending';
@@ -64,14 +84,14 @@ class QACategory {
 
   /// Get all available categories for UI
   static List<String> get categories => [
-        all,
-        general,
-        condition,
-        history,
-        features,
-        documents,
-        price,
-      ];
+    all,
+    general,
+    condition,
+    history,
+    features,
+    documents,
+    price,
+  ];
 
   /// Format category for display (capitalize first letter)
   static String formatForDisplay(String category) {
@@ -83,29 +103,29 @@ class QACategory {
 /// Common suggested questions users can quickly select
 class SuggestedQuestions {
   static List<Map<String, String>> get questions => [
-        {
-          'category': QACategory.condition,
-          'question': 'What is the current mileage?'
-        },
-        {
-          'category': QACategory.history,
-          'question': 'Has the car been in any accidents?'
-        },
-        {
-          'category': QACategory.condition,
-          'question': 'When was the last service performed?'
-        },
-        {
-          'category': QACategory.features,
-          'question': 'Does it have a spare tire and tools?'
-        },
-        {
-          'category': QACategory.documents,
-          'question': 'Are all registration papers available?'
-        },
-        {
-          'category': QACategory.price,
-          'question': 'Is the reserve price negotiable?'
-        },
-      ];
+    {
+      'category': QACategory.condition,
+      'question': 'What is the current mileage?',
+    },
+    {
+      'category': QACategory.history,
+      'question': 'Has the car been in any accidents?',
+    },
+    {
+      'category': QACategory.condition,
+      'question': 'When was the last service performed?',
+    },
+    {
+      'category': QACategory.features,
+      'question': 'Does it have a spare tire and tools?',
+    },
+    {
+      'category': QACategory.documents,
+      'question': 'Are all registration papers available?',
+    },
+    {
+      'category': QACategory.price,
+      'question': 'Is the reserve price negotiable?',
+    },
+  ];
 }

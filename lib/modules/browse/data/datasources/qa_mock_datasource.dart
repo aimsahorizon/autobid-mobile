@@ -19,9 +19,15 @@ class QAMockDataSource {
         question: 'What is the current mileage of the vehicle?',
         askedBy: 'John D.',
         askedAt: now.subtract(const Duration(days: 1)),
-        answer:
-            'The current mileage is 45,000 kilometers. Regular maintenance records are available.',
-        answeredAt: now.subtract(const Duration(hours: 20)),
+        answers: [
+          QAAnswerEntity(
+            id: 'ans_001_1',
+            sellerId: 'seller_mock',
+            answer:
+                'The current mileage is 45,000 kilometers. Regular maintenance records are available.',
+            createdAt: now.subtract(const Duration(hours: 20)),
+          ),
+        ],
         likesCount: 12,
         isLikedByUser: true,
       ),
@@ -32,8 +38,14 @@ class QAMockDataSource {
         question: 'Has the car been in any accidents?',
         askedBy: 'Maria S.',
         askedAt: now.subtract(const Duration(days: 2)),
-        answer: 'No, the car has a clean title with no accident history.',
-        answeredAt: now.subtract(const Duration(days: 1, hours: 5)),
+        answers: [
+          QAAnswerEntity(
+            id: 'ans_002_1',
+            sellerId: 'seller_mock',
+            answer: 'No, the car has a clean title with no accident history.',
+            createdAt: now.subtract(const Duration(days: 1, hours: 5)),
+          ),
+        ],
         likesCount: 8,
       ),
       QAEntity(
@@ -53,9 +65,15 @@ class QAMockDataSource {
         question: 'Does it have a spare tire and jack?',
         askedBy: 'Ana L.',
         askedAt: now.subtract(const Duration(days: 3)),
-        answer:
-            'Yes, it comes with a full-size spare tire, jack, and all necessary tools.',
-        answeredAt: now.subtract(const Duration(days: 2)),
+        answers: [
+          QAAnswerEntity(
+            id: 'ans_004_1',
+            sellerId: 'seller_mock',
+            answer:
+                'Yes, it comes with a full-size spare tire, jack, and all necessary tools.',
+            createdAt: now.subtract(const Duration(days: 2)),
+          ),
+        ],
         likesCount: 5,
       ),
       QAEntity(
@@ -65,9 +83,15 @@ class QAMockDataSource {
         question: 'What is the reserve price?',
         askedBy: 'Carlos M.',
         askedAt: now.subtract(const Duration(hours: 12)),
-        answer:
-            'The reserve price is confidential, but it\'s set at a fair market value.',
-        answeredAt: now.subtract(const Duration(hours: 10)),
+        answers: [
+          QAAnswerEntity(
+            id: 'ans_005_1',
+            sellerId: 'seller_mock',
+            answer:
+                'The reserve price is confidential, but it\'s set at a fair market value.',
+            createdAt: now.subtract(const Duration(hours: 10)),
+          ),
+        ],
         likesCount: 15,
       ),
       QAEntity(

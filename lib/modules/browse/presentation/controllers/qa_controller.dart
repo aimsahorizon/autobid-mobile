@@ -17,11 +17,16 @@ class QAController extends ChangeNotifier {
   List<QAEntity> _items = [];
   bool _loading = false;
   StreamSubscription<List<QAEntity>>? _sub;
+  bool _isDisposed = false;
+  bool _isInitialized = false;
 
   List<QAEntity> get items => _items;
   bool get loading => _loading;
+  bool get isInitialized => _isInitialized;
 
   Future<void> init() async {
+    if (_isDisposed || _isInitialized) return;
+    _isInitialized = true;
     _loading = true;
     notifyListeners();
     try {
@@ -29,21 +34,46 @@ class QAController extends ChangeNotifier {
         auctionId,
         currentUserId: currentUserId,
       );
-      _sub = datasource
-          .subscribeToQA(auctionId, currentUserId: currentUserId)
-          .listen((data) {
-            _items = data;
-            notifyListeners();
-          });
+      if (!_isDisposed) {
+        _sub = datasource
+            .subscribeToQA(auctionId, currentUserId: currentUserId)
+            .listen(
+              (data) {
+                if (!_isDisposed) {
+                  _items = data;
+                  notifyListeners();
+                }
+              },
+              onError: (error) {
+                if (!_isDisposed) {
+                  print('QA subscription error: $error');
+                }
+              },
+            );
+      }
+    } catch (e) {
+      if (!_isDisposed) {
+        print('QA init error: $e');
+      }
     } finally {
-      _loading = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        _loading = false;
+        notifyListeners();
+      }
     }
   }
 
   Future<void> disposeStream() async {
+    _isDisposed = true;
     await _sub?.cancel();
     _sub = null;
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _sub?.cancel();
+    super.dispose();
   }
 
   Future<void> postAnswer(
