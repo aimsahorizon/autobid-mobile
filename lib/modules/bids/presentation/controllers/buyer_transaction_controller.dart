@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/buyer_transaction_entity.dart';
-import '../../data/datasources/buyer_transaction_mock_datasource.dart';
+import '../../data/datasources/buyer_transaction_supabase_datasource.dart';
 
 /// Controller for buyer's transaction in won auctions
 /// Manages transaction state, chat, forms, and timeline
+/// Uses real Supabase data
 class BuyerTransactionController extends ChangeNotifier {
-  final BuyerTransactionMockDataSource _dataSource;
+  final BuyerTransactionSupabaseDataSource _dataSource;
 
   BuyerTransactionController(this._dataSource);
 
@@ -63,11 +64,17 @@ class BuyerTransactionController extends ChangeNotifier {
   }
 
   Future<void> _loadMyForm(String transactionId) async {
-    _myForm = await _dataSource.getTransactionForm(transactionId, FormRole.buyer);
+    _myForm = await _dataSource.getTransactionForm(
+      transactionId,
+      FormRole.buyer,
+    );
   }
 
   Future<void> _loadSellerForm(String transactionId) async {
-    _sellerForm = await _dataSource.getTransactionForm(transactionId, FormRole.seller);
+    _sellerForm = await _dataSource.getTransactionForm(
+      transactionId,
+      FormRole.seller,
+    );
   }
 
   Future<void> _loadTimeline(String transactionId) async {
@@ -75,7 +82,11 @@ class BuyerTransactionController extends ChangeNotifier {
   }
 
   /// Send chat message
-  Future<void> sendMessage(String senderId, String senderName, String message) async {
+  Future<void> sendMessage(
+    String senderId,
+    String senderName,
+    String message,
+  ) async {
     if (_transaction == null || message.trim().isEmpty) return;
 
     _isProcessing = true;
@@ -115,6 +126,71 @@ class BuyerTransactionController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to submit form';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Accept vehicle after delivery
+  /// Called when buyer accepts the delivered vehicle
+  Future<bool> acceptVehicle(String buyerId) async {
+    if (_transaction == null) return false;
+
+    _isProcessing = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.acceptVehicle(
+        _transaction!.id,
+        buyerId,
+      );
+
+      if (success) {
+        // Reload transaction to get updated status
+        await loadTransaction(_transaction!.id, buyerId);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to accept vehicle: $e';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Reject vehicle after delivery
+  /// Called when buyer rejects the delivered vehicle with a reason
+  Future<bool> rejectVehicle(String buyerId, String reason) async {
+    if (_transaction == null) return false;
+    if (reason.trim().length < 20) {
+      _errorMessage =
+          'Please provide a detailed reason (minimum 20 characters)';
+      notifyListeners();
+      return false;
+    }
+
+    _isProcessing = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.rejectVehicle(
+        _transaction!.id,
+        buyerId,
+        reason,
+      );
+
+      if (success) {
+        // Reload transaction to get updated status
+        await loadTransaction(_transaction!.id, buyerId);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to reject vehicle: $e';
       return false;
     } finally {
       _isProcessing = false;
