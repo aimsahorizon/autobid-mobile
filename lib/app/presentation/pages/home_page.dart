@@ -17,10 +17,7 @@ import '../../core/widgets/main_navigation.dart';
 class HomePage extends StatefulWidget {
   final ThemeController themeController;
 
-  const HomePage({
-    super.key,
-    required this.themeController,
-  });
+  const HomePage({super.key, required this.themeController});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -39,15 +36,9 @@ class _HomePageState extends State<HomePage> {
     _initializeNotifications();
 
     _pages = [
-      BrowsePage(
-        controller: BrowseModule.instance.createBrowseController(),
-      ),
-      BidsPage(
-        controller: BidsModule.instance.createBidsController(),
-      ),
-      TransactionsStatusPage(
-        controller: TransactionsModule.instance.createTransactionsStatusController(),
-      ),
+      BrowsePage(controller: BrowseModule.instance.createBrowseController()),
+      BidsPage(controller: BidsModule.instance.createBidsController()),
+      const TransactionsStatusPage(),
       ListsPage(controller: ListsModule.controller),
       ProfilePage(
         controller: ProfileModule.instance.controller,
@@ -76,10 +67,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: MainNavigation(
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
