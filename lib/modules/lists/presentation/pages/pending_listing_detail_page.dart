@@ -55,41 +55,48 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
   }
 
   Widget _buildActionButtons(BuildContext context, bool isDark) {
+    // Determine if seller can invite users
+    // Invites allowed: pending_approval (after admin approval), scheduled, or live
+    final canInvite =
+        widget.listing.status == 'pending_approval' ||
+        widget.listing.status == 'scheduled' ||
+        widget.listing.status == 'live';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          // Invite Users button for private auctions (if visibility field available)
-          // Note: ListingDetailEntity needs visibility field to show this conditionally
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => InviteUserDialog(
-                              auctionId: widget.listing.id,
-                              auctionTitle:
-                                  '${widget.listing.year} ${widget.listing.brand} ${widget.listing.model}',
-                            ),
-                          );
-                        },
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Invite Users'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+          // Invite Users button - only show during pending_approval, scheduled, or live
+          if (canInvite)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => InviteUserDialog(
+                                auctionId: widget.listing.id,
+                                auctionTitle:
+                                    '${widget.listing.year} ${widget.listing.brand} ${widget.listing.model}',
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Invite Users'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
+              ],
+            ),
+          if (canInvite) const SizedBox(height: 12),
           Row(
             children: [
               Expanded(

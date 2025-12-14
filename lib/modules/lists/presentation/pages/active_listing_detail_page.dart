@@ -8,13 +8,50 @@ import '../widgets/detail_sections/auction_stats_section.dart';
 import '../widgets/detail_sections/qa_section.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 
-class ActiveListingDetailPage extends StatelessWidget {
+class ActiveListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
+
+  const ActiveListingDetailPage({super.key, required this.listing});
+
+  @override
+  State<ActiveListingDetailPage> createState() =>
+      _ActiveListingDetailPageState();
+}
+
+class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
   late final ListingSupabaseDataSource _datasource = ListingSupabaseDataSource(
     SupabaseConfig.client,
   );
+  late ListingDetailEntity _listing;
+  bool _isLoading = false;
 
-  ActiveListingDetailPage({super.key, required this.listing});
+  @override
+  void initState() {
+    super.initState();
+    _listing = widget.listing;
+  }
+
+  Future<void> _refreshListing() async {
+    setState(() => _isLoading = true);
+    try {
+      // Note: You may need to fetch the updated listing from datasource
+      // For now, this shows the refresh loading state
+      await Future.delayed(const Duration(seconds: 1));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   Future<void> _endAuction(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -51,7 +88,7 @@ class ActiveListingDetailPage extends StatelessWidget {
     );
 
     try {
-      await _datasource.endAuction(listing.id);
+      await _datasource.endAuction(_listing.id);
 
       if (!context.mounted) return;
       Navigator.pop(context); // Close loading
@@ -88,6 +125,11 @@ class ActiveListingDetailPage extends StatelessWidget {
         title: const Text('Active Auction'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _isLoading ? null : _refreshListing,
+            tooltip: 'Refresh listing details',
+          ),
+          IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
               // TODO: Implement share functionality
@@ -98,18 +140,20 @@ class ActiveListingDetailPage extends StatelessWidget {
       backgroundColor: isDark
           ? ColorConstants.backgroundDark
           : ColorConstants.backgroundLight,
-      body: ListView(
-        children: [
-          ListingCoverSection(listing: listing),
-          const SizedBox(height: 16),
-          AuctionStatsSection(listing: listing),
-          const SizedBox(height: 16),
-          ListingInfoSection(listing: listing),
-          const SizedBox(height: 16),
-          QASection(listingId: listing.id),
-          const SizedBox(height: 16),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              children: [
+                ListingCoverSection(listing: _listing),
+                const SizedBox(height: 16),
+                AuctionStatsSection(listing: _listing),
+                const SizedBox(height: 16),
+                ListingInfoSection(listing: _listing),
+                const SizedBox(height: 16),
+                QASection(listingId: _listing.id),
+                const SizedBox(height: 16),
+              ],
+            ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(

@@ -665,24 +665,120 @@ class ListingSupabaseDataSource {
         '[ListingSupabaseDataSource] Ensuring transaction record for auction: $auctionId',
       );
 
-      // Get the highest bidder
-      final highestBid = await _supabase
-          .from('bids')
-          .select('user_id, bid_amount')
-          .eq('auction_id', auctionId)
-          .order('bid_amount', ascending: false)
-          .limit(1)
+      // First, verify auction exists and get its current_price
+      final auctionData = await _supabase
+          .from('auctions')
+          .select('current_price, total_bids')
+          .eq('id', auctionId)
           .maybeSingle();
+
+      if (auctionData == null) {
+        print('[ListingSupabaseDataSource] ❌ Auction not found: $auctionId');
+        return false;
+      }
+
+      final currentPrice = auctionData['current_price'] as num?;
+      final totalBids = auctionData['total_bids'] as int?;
+
+      print(
+        '[ListingSupabaseDataSource] Auction current_price: $currentPrice, total_bids: $totalBids',
+      );
+
+      // Get the highest bidder - try multiple approaches
+      Map<String, dynamic>? highestBid;
+
+      // Approach 1: Get by max bid_amount
+      try {
+        final bids = await _supabase
+            .from('bids')
+            .select('bidder_id, bid_amount, id')
+            .eq('auction_id', auctionId)
+            .order('bid_amount', ascending: false)
+            .limit(1);
+
+        if ((bids as List).isNotEmpty) {
+          highestBid = bids[0] as Map<String, dynamic>;
+          print(
+            '[ListingSupabaseDataSource] Found highest bid via query: ${highestBid['bid_amount']}',
+          );
+        }
+      } catch (e) {
+        print('[ListingSupabaseDataSource] Error querying bids directly: $e');
+      }
+
+      // Approach 2: If no bid found via direct query, use RPC or aggregation
+      if (highestBid == null) {
+        try {
+          final rpcResult = await _supabase.rpc(
+            'get_highest_bid',
+            params: {'auction_id_param': auctionId},
+          );
+
+          if (rpcResult != null) {
+            // RPC returns a list, get first element
+            if (rpcResult is List && rpcResult.isNotEmpty) {
+              highestBid = rpcResult[0] as Map<String, dynamic>;
+            } else if (rpcResult is Map) {
+              highestBid = rpcResult as Map<String, dynamic>;
+            }
+
+            if (highestBid != null) {
+              print(
+                '[ListingSupabaseDataSource] Found highest bid via RPC: ${highestBid['bid_amount']}',
+              );
+            }
+          }
+        } catch (e) {
+          print(
+            '[ListingSupabaseDataSource] RPC approach failed: $e - continuing with fallback',
+          );
+        }
+      }
+
+      // Approach 3: Use auction's current_price as fallback (it should be synced by trigger)
+      if (highestBid == null && currentPrice != null && currentPrice > 0) {
+        print(
+          '[ListingSupabaseDataSource] Using auction current_price ($currentPrice) as bid amount',
+        );
+
+        // Get any bidder for this price
+        try {
+          final bidderSearch = await _supabase
+              .from('bids')
+              .select('bidder_id')
+              .eq('auction_id', auctionId)
+              .eq('bid_amount', currentPrice)
+              .order('created_at', ascending: false)
+              .limit(1)
+              .maybeSingle();
+
+          if (bidderSearch != null) {
+            highestBid = {
+              'bidder_id': bidderSearch['bidder_id'],
+              'bid_amount': currentPrice,
+            };
+            print(
+              '[ListingSupabaseDataSource] Found bidder with current_price',
+            );
+          }
+        } catch (e) {
+          print('[ListingSupabaseDataSource] Bidder search failed: $e');
+        }
+      }
 
       if (highestBid == null) {
         print(
-          '[ListingSupabaseDataSource] No bids found for auction: $auctionId',
+          '[ListingSupabaseDataSource] ❌ No winning bid found for auction: $auctionId. Current price: $currentPrice, Total bids: $totalBids',
         );
         return false;
       }
 
-      final buyerId = highestBid['user_id'] as String;
-      final agreedPrice = highestBid['bid_amount'] as num;
+      final buyerId = highestBid['bidder_id'] as String;
+      final agreedPrice = (highestBid['bid_amount'] as num).toDouble();
+
+      print(
+        '[ListingSupabaseDataSource] Creating transaction - Buyer: $buyerId, Price: $agreedPrice',
+      );
 
       // Create or update transaction record
       await _supabase.from('auction_transactions').upsert({
@@ -701,13 +797,14 @@ class ListingSupabaseDataSource {
       return true;
     } on PostgrestException catch (e) {
       print(
-        '[ListingSupabaseDataSource] Error creating transaction: ${e.message}',
+        '[ListingSupabaseDataSource] Postgrest error creating transaction: ${e.message} (Code: ${e.code})',
       );
-      // Don't fail the entire flow if transaction creation fails
-      // The trigger should have created it automatically
+      print('[ListingSupabaseDataSource] Details: ${e.details}');
       return false;
     } catch (e) {
-      print('[ListingSupabaseDataSource] Error ensuring transaction: $e');
+      print(
+        '[ListingSupabaseDataSource] Unexpected error ensuring transaction: $e',
+      );
       return false;
     }
   }
@@ -794,7 +891,7 @@ class ListingSupabaseDataSource {
       // Verify auction exists and get current status before update
       final beforeUpdate = await _supabase
           .from('auctions')
-          .select('id, status_id, seller_id, deleted_at')
+          .select('id, status_id, seller_id')
           .eq('id', auctionId)
           .maybeSingle();
 
@@ -803,7 +900,7 @@ class ListingSupabaseDataSource {
       }
 
       print(
-        '[ListingSupabaseDataSource] Before cancel - status_id: ${beforeUpdate['status_id']}, deleted_at: ${beforeUpdate['deleted_at']}',
+        '[ListingSupabaseDataSource] Before cancel - status_id: ${beforeUpdate['status_id']}',
       );
 
       // Perform the status update
@@ -812,7 +909,7 @@ class ListingSupabaseDataSource {
       // Verify the update persisted
       final afterUpdate = await _supabase
           .from('auctions')
-          .select('id, status_id, deleted_at, auction_statuses(status_name)')
+          .select('id, status_id, auction_statuses(status_name)')
           .eq('id', auctionId)
           .maybeSingle();
 
@@ -829,7 +926,7 @@ class ListingSupabaseDataSource {
           : 'unknown';
 
       print(
-        '[ListingSupabaseDataSource] After cancel - status_id: $newStatusId, status_name: $statusName, deleted_at: ${afterUpdate['deleted_at']}',
+        '[ListingSupabaseDataSource] After cancel - status_id: $newStatusId, status_name: $statusName',
       );
       print(
         '[ListingSupabaseDataSource] Successfully cancelled listing: $auctionId',
