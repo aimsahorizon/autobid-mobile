@@ -156,9 +156,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> notif, bool isDark) {
-    final type = notif['type'] as String;
+    // Get type_name from the joined notification_types table
+    final notifType = notif['notification_types'] as Map<String, dynamic>?;
+    final type = (notifType?['type_name'] as String?) ?? 'notification';
     final title = notif['title'] as String?;
-    final body = notif['body'] as String?;
+    final message = notif['message'] as String?;
     final data = notif['data'] as Map<String, dynamic>?;
     final isRead = notif['is_read'] as bool;
     final createdAt = DateTime.parse(notif['created_at'] as String);
@@ -213,7 +215,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               ],
             ),
             const SizedBox(height: 12),
-            Text(body ?? '', style: Theme.of(context).textTheme.bodyMedium),
+            Text(message ?? '', style: Theme.of(context).textTheme.bodyMedium),
             if (isInvite && inviteId != null) ...[
               const SizedBox(height: 16),
               Row(

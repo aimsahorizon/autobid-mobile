@@ -7,7 +7,9 @@ class NotificationsSupabaseDatasource {
   Future<List<Map<String, dynamic>>> listMyNotifications() async {
     final res = await supabase
         .from('notifications')
-        .select('id, type, title, body, data, created_at, is_read')
+        .select(
+          'id, type_id, title, message, data, created_at, is_read, notification_types(type_name)',
+        )
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(res as List);
   }
