@@ -25,6 +25,11 @@ class TransactionEntity {
   final DateTime? deliveryStartedAt;
   final DateTime? deliveryCompletedAt;
 
+  // Buyer acceptance tracking (after delivery)
+  final BuyerAcceptanceStatus buyerAcceptanceStatus;
+  final DateTime? buyerAcceptedAt;
+  final String? buyerRejectionReason;
+
   const TransactionEntity({
     required this.id,
     required this.listingId,
@@ -45,6 +50,9 @@ class TransactionEntity {
     this.deliveryStatus = DeliveryStatus.pending,
     this.deliveryStartedAt,
     this.deliveryCompletedAt,
+    this.buyerAcceptanceStatus = BuyerAcceptanceStatus.pending,
+    this.buyerAcceptedAt,
+    this.buyerRejectionReason,
   });
 
   /// Check if both parties have submitted forms
@@ -57,20 +65,88 @@ class TransactionEntity {
   bool get readyForAdminReview => bothFormsSubmitted && bothConfirmed;
 
   /// Check if transaction is active (can be modified)
-  bool get isActive => status == TransactionStatus.discussion ||
-                       status == TransactionStatus.formReview;
+  bool get isActive =>
+      status == TransactionStatus.discussion ||
+      status == TransactionStatus.formReview;
+
+  /// Check if buyer can accept/reject (vehicle must be delivered)
+  bool get canBuyerRespond =>
+      deliveryStatus == DeliveryStatus.delivered &&
+      buyerAcceptanceStatus == BuyerAcceptanceStatus.pending;
+
+  /// Check if transaction was successfully completed
+  bool get isSuccessful =>
+      buyerAcceptanceStatus == BuyerAcceptanceStatus.accepted &&
+      status == TransactionStatus.completed;
+
+  /// Check if deal failed due to rejection
+  bool get isDealFailed =>
+      buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected ||
+      status == TransactionStatus.cancelled;
+
+  /// Copy with method for updating fields
+  TransactionEntity copyWith({
+    String? id,
+    String? listingId,
+    String? sellerId,
+    String? buyerId,
+    String? carName,
+    String? carImageUrl,
+    double? agreedPrice,
+    TransactionStatus? status,
+    DateTime? createdAt,
+    DateTime? completedAt,
+    bool? sellerFormSubmitted,
+    bool? buyerFormSubmitted,
+    bool? sellerConfirmed,
+    bool? buyerConfirmed,
+    bool? adminApproved,
+    DateTime? adminApprovedAt,
+    DeliveryStatus? deliveryStatus,
+    DateTime? deliveryStartedAt,
+    DateTime? deliveryCompletedAt,
+    BuyerAcceptanceStatus? buyerAcceptanceStatus,
+    DateTime? buyerAcceptedAt,
+    String? buyerRejectionReason,
+  }) {
+    return TransactionEntity(
+      id: id ?? this.id,
+      listingId: listingId ?? this.listingId,
+      sellerId: sellerId ?? this.sellerId,
+      buyerId: buyerId ?? this.buyerId,
+      carName: carName ?? this.carName,
+      carImageUrl: carImageUrl ?? this.carImageUrl,
+      agreedPrice: agreedPrice ?? this.agreedPrice,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      completedAt: completedAt ?? this.completedAt,
+      sellerFormSubmitted: sellerFormSubmitted ?? this.sellerFormSubmitted,
+      buyerFormSubmitted: buyerFormSubmitted ?? this.buyerFormSubmitted,
+      sellerConfirmed: sellerConfirmed ?? this.sellerConfirmed,
+      buyerConfirmed: buyerConfirmed ?? this.buyerConfirmed,
+      adminApproved: adminApproved ?? this.adminApproved,
+      adminApprovedAt: adminApprovedAt ?? this.adminApprovedAt,
+      deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+      deliveryStartedAt: deliveryStartedAt ?? this.deliveryStartedAt,
+      deliveryCompletedAt: deliveryCompletedAt ?? this.deliveryCompletedAt,
+      buyerAcceptanceStatus:
+          buyerAcceptanceStatus ?? this.buyerAcceptanceStatus,
+      buyerAcceptedAt: buyerAcceptedAt ?? this.buyerAcceptedAt,
+      buyerRejectionReason: buyerRejectionReason ?? this.buyerRejectionReason,
+    );
+  }
 }
 
 /// Status of the transaction in its lifecycle
 enum TransactionStatus {
-  discussion,      // Initial discussion phase
-  formReview,      // Both forms submitted, parties reviewing
+  discussion, // Initial discussion phase
+  formReview, // Both forms submitted, parties reviewing
   pendingApproval, // Submitted to admin for approval
-  approved,        // Admin approved, deposit handled
-  ongoing,         // Seller processing transaction
-  completed,       // Transaction finished
-  cancelled,       // Transaction cancelled
-  disputed,        // Issue raised, needs resolution
+  approved, // Admin approved, deposit handled
+  ongoing, // Seller processing transaction
+  completed, // Transaction finished
+  cancelled, // Transaction cancelled
+  disputed, // Issue raised, needs resolution
 }
 
 /// Extension for user-friendly status labels
@@ -122,9 +198,9 @@ class ChatMessageEntity {
 
 /// Type of chat message
 enum MessageType {
-  text,      // Regular text message
-  system,    // System notification (e.g., "Form submitted")
-  attachment // File or image attachment
+  text, // Regular text message
+  system, // System notification (e.g., "Form submitted")
+  attachment, // File or image attachment
 }
 
 /// Represents transaction form data (seller or buyer)
@@ -188,11 +264,11 @@ enum FormRole { seller, buyer }
 
 /// Status of form submission and review
 enum FormStatus {
-  draft,           // Not submitted yet
-  submitted,       // Submitted for review
-  reviewed,        // Other party reviewed
-  changesRequested,// Changes requested
-  confirmed,       // Confirmed by other party
+  draft, // Not submitted yet
+  submitted, // Submitted for review
+  reviewed, // Other party reviewed
+  changesRequested, // Changes requested
+  confirmed, // Confirmed by other party
 }
 
 /// Represents a timeline event in transaction progress
@@ -218,23 +294,60 @@ class TransactionTimelineEntity {
 
 /// Type of timeline event
 enum TimelineEventType {
-  created,         // Transaction created
-  formSubmitted,   // Form submitted
-  formConfirmed,   // Form confirmed
-  adminReview,     // Sent to admin
-  adminApproved,   // Admin approved
+  created, // Transaction created
+  messageSent, // Chat message sent
+  formSubmitted, // Form submitted
+  formReviewed, // Form reviewed
+  formConfirmed, // Form confirmed
+  adminReview, // Sent to admin
+  adminSubmitted, // Submitted to admin for approval
+  adminApproved, // Admin approved
   depositRefunded, // Deposit refunded
   transactionStarted, // Seller started processing
-  completed,       // Transaction completed
-  cancelled,       // Transaction cancelled
-  disputed,        // Dispute raised
+  deliveryStarted, // Delivery process started
+  deliveryCompleted, // Delivery completed
+  completed, // Transaction completed
+  cancelled, // Transaction cancelled
+  disputed, // Dispute raised
 }
 
 /// Delivery status for vehicle handover
 enum DeliveryStatus {
-  pending,      // Not started yet
-  preparing,    // Seller preparing vehicle
-  inTransit,    // Vehicle in transit
-  delivered,    // Vehicle delivered to buyer
-  completed,    // Delivery confirmed by buyer
+  pending, // Not started yet
+  preparing, // Seller preparing vehicle
+  inTransit, // Vehicle in transit
+  delivered, // Vehicle delivered to buyer
+  completed, // Delivery confirmed by buyer
+}
+
+/// Buyer's response after receiving the vehicle
+enum BuyerAcceptanceStatus {
+  pending, // Waiting for buyer response (vehicle not yet delivered)
+  accepted, // Buyer accepted the car - deal successful
+  rejected, // Buyer rejected - deal failed
+}
+
+/// Extension for BuyerAcceptanceStatus display
+extension BuyerAcceptanceStatusExt on BuyerAcceptanceStatus {
+  String get label {
+    switch (this) {
+      case BuyerAcceptanceStatus.pending:
+        return 'Pending';
+      case BuyerAcceptanceStatus.accepted:
+        return 'Accepted';
+      case BuyerAcceptanceStatus.rejected:
+        return 'Rejected';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case BuyerAcceptanceStatus.pending:
+        return 'Awaiting buyer confirmation';
+      case BuyerAcceptanceStatus.accepted:
+        return 'Buyer confirmed receipt of vehicle';
+      case BuyerAcceptanceStatus.rejected:
+        return 'Buyer rejected the vehicle';
+    }
+  }
 }

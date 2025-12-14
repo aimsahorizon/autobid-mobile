@@ -105,7 +105,27 @@ class TransactionSupabaseDataSource {
 
       // Map transaction -> auction data to ListingModel
       return transactions.map((txn) {
-        final auctionData = txn['auctions'] as Map<String, dynamic>;
+        // Clone auction data and normalize status/current_price fields
+        final auctionData = Map<String, dynamic>.from(
+          txn['auctions'] as Map<String, dynamic>,
+        );
+
+        // Prefer transaction status, otherwise use joined auction_statuses.status_name
+        final txnStatus = txn['status'] as String?;
+        final joinedStatus = auctionData['auction_statuses'] is Map
+            ? (auctionData['auction_statuses'] as Map)['status_name'] as String?
+            : null;
+
+        // Normalize to the string status field expected by ListingModel
+        auctionData['status'] =
+            txnStatus ?? joinedStatus ?? auctionData['status'];
+
+        // Map current_price (DB) to current_bid (model expectation)
+        if (auctionData['current_bid'] == null &&
+            auctionData['current_price'] != null) {
+          auctionData['current_bid'] = auctionData['current_price'];
+        }
+
         return _mergeAuctionWithVehicleData(auctionData);
       }).toList();
     } on PostgrestException catch (e) {

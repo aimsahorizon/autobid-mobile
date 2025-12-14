@@ -2,28 +2,35 @@ import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/transaction_status_entity.dart';
-import '../controllers/transactions_status_controller.dart';
-import '../pages/pre_transaction_page.dart';
+import '../controllers/buyer_seller_transactions_controller.dart';
+import '../pages/pre_transaction_realtime_page.dart';
 import '../../../lists/presentation/widgets/listings_grid.dart';
 import '../../../lists/domain/entities/seller_listing_entity.dart';
+import '../../../bids/presentation/widgets/user_bid_card.dart';
+import '../../../bids/domain/entities/user_bid_entity.dart';
 import '../../transactions_module.dart';
+import '../../data/datasources/transaction_supabase_datasource.dart';
+import '../../../bids/data/datasources/user_bids_supabase_datasource.dart';
 
-/// Page for status-based transactions (in_transaction, sold, deal_failed)
+/// Page for status-based transactions with buyer/seller perspective
 /// Displays in the Transactions bottom nav tab
+/// Features two main tabs: "As a Buyer" and "As a Seller"
+/// Each has sub-tabs for transaction status (In Transaction, Sold, Failed)
 class TransactionsStatusPage extends StatefulWidget {
-  final TransactionsStatusController controller;
-
-  const TransactionsStatusPage({super.key, required this.controller});
+  const TransactionsStatusPage({super.key});
 
   @override
   State<TransactionsStatusPage> createState() => _TransactionsStatusPageState();
 }
 
 class _TransactionsStatusPageState extends State<TransactionsStatusPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+    with TickerProviderStateMixin {
+  late TabController _mainTabController; // Buyer/Seller tabs
+  late TabController _statusTabController; // Status tabs
+  late BuyerSellerTransactionsController _controller;
+  bool _initialized = false;
 
-  static const _tabs = [
+  static const _statusTabs = [
     TransactionStatus.inTransaction,
     TransactionStatus.sold,
     TransactionStatus.dealFailed,
@@ -32,47 +39,73 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    widget.controller.loadTransactions();
+    _mainTabController = TabController(length: 2, vsync: this);
+    _statusTabController = TabController(
+      length: _statusTabs.length,
+      vsync: this,
+    );
+
+    // Initialize controller with both datasources
+    final sellerDataSource = TransactionSupabaseDataSource(
+      SupabaseConfig.client,
+    );
+    final buyerDataSource = UserBidsSupabaseDataSource(SupabaseConfig.client);
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+
+    _controller = BuyerSellerTransactionsController(
+      sellerDataSource,
+      buyerDataSource,
+      userId,
+    );
+
+    _controller.loadTransactions();
+    _initialized = true;
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _mainTabController.dispose();
+    _statusTabController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_initialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Transactions'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _controller.isLoading ? null : _controller.refresh,
+            tooltip: 'Refresh transactions',
+          ),
+        ],
         bottom: TabBar(
-          controller: _tabController,
-          tabs: _tabs.map((status) {
-            return ListenableBuilder(
-              listenable: widget.controller,
-              builder: (context, _) {
-                final count = widget.controller.getCountByStatus(status);
-                return _TabWithBadge(
-                  label: status.tabLabel,
-                  count: count,
-                  color: _getStatusColor(status),
-                );
-              },
-            );
-          }).toList(),
+          controller: _mainTabController,
+          tabs: const [
+            Tab(text: 'As a Buyer'),
+            Tab(text: 'As a Seller'),
+          ],
+          onTap: (_) {
+            _statusTabController.index = 0;
+          },
         ),
       ),
       body: ListenableBuilder(
-        listenable: widget.controller,
+        listenable: _controller,
         builder: (context, _) {
-          if (widget.controller.isLoading) {
+          if (_controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (widget.controller.error != null) {
+          if (_controller.error != null) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -92,13 +125,13 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    widget.controller.error!,
+                    _controller.error!,
                     style: TextStyle(color: ColorConstants.textSecondaryLight),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
-                    onPressed: () => widget.controller.refresh(),
+                    onPressed: () => _controller.refresh(),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Retry'),
                   ),
@@ -108,9 +141,48 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           }
 
           return TabBarView(
-            controller: _tabController,
-            children: _tabs.map((status) {
-              final transactions = widget.controller.getTransactionsByStatus(
+            controller: _mainTabController,
+            children: [
+              // Buyer tab
+              _buildBuyerTransactionsView(),
+              // Seller tab
+              _buildSellerTransactionsView(),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Build buyer transactions view with status sub-tabs
+  Widget _buildBuyerTransactionsView() {
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(48),
+        child: TabBar(
+          controller: _statusTabController,
+          tabs: _statusTabs.map((status) {
+            return ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                final count = _controller.getBuyerCountByStatus(status);
+                return _TabWithBadge(
+                  label: status.tabLabel,
+                  count: count,
+                  color: _getStatusColor(status),
+                );
+              },
+            );
+          }).toList(),
+        ),
+      ),
+      body: TabBarView(
+        controller: _statusTabController,
+        children: _statusTabs.map((status) {
+          return ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) {
+              final transactions = _controller.getBuyerTransactionsByStatus(
                 status,
               );
 
@@ -126,7 +198,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        _getEmptyTitle(status),
+                        _getEmptyBuyerTitle(status),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -134,7 +206,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _getEmptySubtitle(status),
+                        _getEmptyBuyerSubtitle(status),
                         style: TextStyle(
                           color: ColorConstants.textSecondaryLight,
                         ),
@@ -146,23 +218,172 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
               }
 
               return RefreshIndicator(
-                onRefresh: widget.controller.refresh,
+                onRefresh: _controller.refresh,
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.72,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: transactions.length,
+                  itemBuilder: (context, index) {
+                    final bid = transactions[index];
+                    return UserBidCard(
+                      bid: bid,
+                      onTap: (_) => _handleBuyerTransactionTap(context, bid),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// Build seller transactions view with status sub-tabs
+  Widget _buildSellerTransactionsView() {
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(48),
+        child: TabBar(
+          controller: _statusTabController,
+          tabs: _statusTabs.map((status) {
+            return ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                final count = _controller.getSellerCountByStatus(status);
+                return _TabWithBadge(
+                  label: status.tabLabel,
+                  count: count,
+                  color: _getStatusColor(status),
+                );
+              },
+            );
+          }).toList(),
+        ),
+      ),
+      body: TabBarView(
+        controller: _statusTabController,
+        children: _statusTabs.map((status) {
+          return ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) {
+              final transactions = _controller.getSellerTransactionsByStatus(
+                status,
+              );
+
+              if (transactions.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _getEmptyIcon(status),
+                        size: 64,
+                        color: ColorConstants.textSecondaryLight,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _getEmptySellerTitle(status),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _getEmptySellerSubtitle(status),
+                        style: TextStyle(
+                          color: ColorConstants.textSecondaryLight,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: _controller.refresh,
                 child: ListingsGrid(
                   listings: transactions,
                   isGridView: false,
                   isLoading: false,
-                  emptyTitle: _getEmptyTitle(status),
-                  emptySubtitle: _getEmptySubtitle(status),
+                  emptyTitle: _getEmptySellerTitle(status),
+                  emptySubtitle: _getEmptySellerSubtitle(status),
                   emptyIcon: _getEmptyIcon(status),
-                  onListingUpdated: () => widget.controller.refresh(),
-                  onTransactionCardTap: _handleTransactionCardTap,
+                  onListingUpdated: () => _controller.refresh(),
+                  onTransactionCardTap: _handleSellerTransactionTap,
                 ),
               );
-            }).toList(),
+            },
           );
-        },
+        }).toList(),
       ),
     );
+  }
+
+  /// Handle buyer transaction tap
+  Future<void> _handleBuyerTransactionTap(
+    BuildContext context,
+    UserBidEntity bid,
+  ) async {
+    final transactionController = TransactionsModule.instance
+        .createRealtimeTransactionController();
+
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+    final userName =
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
+        'Buyer';
+
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PreTransactionRealtimePage(
+          controller: transactionController,
+          transactionId:
+              bid.auctionId, // Use auction ID to find the transaction
+          userId: userId,
+          userName: userName,
+        ),
+      ),
+    );
+
+    await _controller.refresh();
+  }
+
+  /// Handle seller transaction tap
+  Future<void> _handleSellerTransactionTap(
+    BuildContext context,
+    SellerListingEntity listing,
+  ) async {
+    final transactionController = TransactionsModule.instance
+        .createRealtimeTransactionController();
+
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+    final userName =
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
+        'Seller';
+
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PreTransactionRealtimePage(
+          controller: transactionController,
+          transactionId: listing.id,
+          userId: userId,
+          userName: userName,
+        ),
+      ),
+    );
+
+    await _controller.refresh();
   }
 
   Color _getStatusColor(TransactionStatus status) {
@@ -187,18 +408,40 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     }
   }
 
-  String _getEmptyTitle(TransactionStatus status) {
+  String _getEmptyBuyerTitle(TransactionStatus status) {
     switch (status) {
       case TransactionStatus.inTransaction:
-        return 'No active transactions';
+        return 'No active purchases';
       case TransactionStatus.sold:
-        return 'No completed transactions';
+        return 'No completed purchases';
       case TransactionStatus.dealFailed:
-        return 'No failed transactions';
+        return 'No failed purchases';
     }
   }
 
-  String _getEmptySubtitle(TransactionStatus status) {
+  String _getEmptyBuyerSubtitle(TransactionStatus status) {
+    switch (status) {
+      case TransactionStatus.inTransaction:
+        return 'Your won auctions will appear here';
+      case TransactionStatus.sold:
+        return 'Completed purchases will appear here';
+      case TransactionStatus.dealFailed:
+        return 'Cancelled purchases will appear here';
+    }
+  }
+
+  String _getEmptySellerTitle(TransactionStatus status) {
+    switch (status) {
+      case TransactionStatus.inTransaction:
+        return 'No active sales';
+      case TransactionStatus.sold:
+        return 'No completed sales';
+      case TransactionStatus.dealFailed:
+        return 'No failed sales';
+    }
+  }
+
+  String _getEmptySellerSubtitle(TransactionStatus status) {
     switch (status) {
       case TransactionStatus.inTransaction:
         return 'Active negotiations will appear here';
@@ -207,37 +450,6 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       case TransactionStatus.dealFailed:
         return 'Cancelled transactions will appear here';
     }
-  }
-
-  /// Handle transaction card tap - opens PreTransactionPage with proper controller
-  Future<void> _handleTransactionCardTap(
-    BuildContext context,
-    SellerListingEntity listing,
-  ) async {
-    // Create transaction controller for this specific auction
-    final transactionController = TransactionsModule.instance
-        .createTransactionController(useMockData: false);
-
-    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
-    final userName =
-        SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
-        'Seller';
-
-    // Open PreTransactionPage with 4 subtabs (Chat, My Form, Buyer Form, Progress)
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PreTransactionPage(
-          controller: transactionController,
-          transactionId: listing.id, // Pass auction ID as transaction ID
-          userId: userId,
-          userName: userName,
-        ),
-      ),
-    );
-
-    // Refresh transactions after returning
-    await widget.controller.refresh();
   }
 }
 

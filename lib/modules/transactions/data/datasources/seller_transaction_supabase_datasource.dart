@@ -9,7 +9,9 @@ class SellerTransactionSupabaseDataSource {
 
   /// Get all transactions for seller
   /// Joins with vehicles and buyer profiles
-  Future<List<Map<String, dynamic>>> getSellerTransactions(String sellerId) async {
+  Future<List<Map<String, dynamic>>> getSellerTransactions(
+    String sellerId,
+  ) async {
     try {
       final response = await _supabase
           .from('transactions')
@@ -33,7 +35,9 @@ class SellerTransactionSupabaseDataSource {
 
   /// Get single transaction detail
   /// Includes all related data
-  Future<Map<String, dynamic>> getTransactionDetail(String transactionId) async {
+  Future<Map<String, dynamic>> getTransactionDetail(
+    String transactionId,
+  ) async {
     try {
       final response = await _supabase
           .from('transactions')
@@ -158,29 +162,23 @@ class SellerTransactionSupabaseDataSource {
   }
 
   /// Update delivery status
-  /// Seller updates delivery progress (preparing → in_transit → delivered → completed)
+  /// Seller updates delivery progress (preparing → in_transit → delivered)
+  /// Uses RPC function for proper validation and authorization
   Future<void> updateDeliveryStatus({
     required String transactionId,
+    required String sellerId,
     required String deliveryStatus,
   }) async {
     try {
-      final Map<String, dynamic> updates = {
-        'delivery_status': deliveryStatus,
-      };
-
-      // Set timestamps based on status
-      if (deliveryStatus == 'preparing') {
-        updates['delivery_started_at'] = DateTime.now().toIso8601String();
-      } else if (deliveryStatus == 'completed') {
-        updates['delivery_completed_at'] = DateTime.now().toIso8601String();
-        updates['status'] = 'completed';
-        updates['completed_at'] = DateTime.now().toIso8601String();
-      }
-
-      await _supabase
-          .from('transactions')
-          .update(updates)
-          .eq('id', transactionId);
+      // Use RPC function for secure update
+      await _supabase.rpc(
+        'update_delivery_status',
+        params: {
+          'p_transaction_id': transactionId,
+          'p_seller_id': sellerId,
+          'p_delivery_status': deliveryStatus,
+        },
+      );
 
       // Add timeline event
       String title = '';
@@ -191,16 +189,13 @@ class SellerTransactionSupabaseDataSource {
           description = 'Seller is preparing vehicle for delivery';
           break;
         case 'in_transit':
-          title = 'In Transit';
+          title = 'On Delivery';
           description = 'Vehicle is being transported to buyer';
           break;
         case 'delivered':
           title = 'Delivered';
-          description = 'Vehicle has been delivered to buyer';
-          break;
-        case 'completed':
-          title = 'Transaction Completed';
-          description = 'Transaction has been completed successfully';
+          description =
+              'Vehicle has been delivered to buyer. Awaiting buyer confirmation.';
           break;
       }
 
@@ -208,7 +203,7 @@ class SellerTransactionSupabaseDataSource {
         'transaction_id': transactionId,
         'title': title,
         'description': description,
-        'event_type': deliveryStatus == 'completed' ? 'completed' : 'started',
+        'event_type': deliveryStatus == 'delivered' ? 'delivered' : 'started',
         'actor_name': 'Seller',
       });
     } on PostgrestException catch (e) {
@@ -272,7 +267,8 @@ class SellerTransactionSupabaseDataSource {
       await _supabase.from('transaction_timeline').insert({
         'transaction_id': transactionId,
         'title': 'Transaction Cancelled',
-        'description': 'Transaction was cancelled. ${reason.isNotEmpty ? "Reason: $reason" : ""}',
+        'description':
+            'Transaction was cancelled. ${reason.isNotEmpty ? "Reason: $reason" : ""}',
         'event_type': 'cancelled',
         'actor_name': 'Seller',
       });

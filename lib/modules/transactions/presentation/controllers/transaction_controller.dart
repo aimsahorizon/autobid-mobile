@@ -38,7 +38,9 @@ class TransactionController extends ChangeNotifier {
 
   /// Load transaction and all related data
   Future<void> loadTransaction(String transactionId, String userId) async {
-    print('DEBUG [TransactionController]: ========================================');
+    print(
+      'DEBUG [TransactionController]: ========================================',
+    );
     print('DEBUG [TransactionController]: Loading transaction: $transactionId');
 
     _isLoading = true;
@@ -53,14 +55,26 @@ class TransactionController extends ChangeNotifier {
         return;
       }
 
-      print('DEBUG [TransactionController]: Transaction status: ${_transaction!.status.label}');
-      print('DEBUG [TransactionController]: Delivery status: ${_transaction!.deliveryStatus}');
-      print('DEBUG [TransactionController]: Seller form submitted: ${_transaction!.sellerFormSubmitted}');
-      print('DEBUG [TransactionController]: Buyer form submitted: ${_transaction!.buyerFormSubmitted}');
-      print('DEBUG [TransactionController]: Admin approved: ${_transaction!.adminApproved}');
+      print(
+        'DEBUG [TransactionController]: Transaction status: ${_transaction!.status.label}',
+      );
+      print(
+        'DEBUG [TransactionController]: Delivery status: ${_transaction!.deliveryStatus}',
+      );
+      print(
+        'DEBUG [TransactionController]: Seller form submitted: ${_transaction!.sellerFormSubmitted}',
+      );
+      print(
+        'DEBUG [TransactionController]: Buyer form submitted: ${_transaction!.buyerFormSubmitted}',
+      );
+      print(
+        'DEBUG [TransactionController]: Admin approved: ${_transaction!.adminApproved}',
+      );
 
       final role = getUserRole(userId);
-      final otherRole = role == FormRole.seller ? FormRole.buyer : FormRole.seller;
+      final otherRole = role == FormRole.seller
+          ? FormRole.buyer
+          : FormRole.seller;
 
       // Load all data in parallel
       await Future.wait([
@@ -70,11 +84,14 @@ class TransactionController extends ChangeNotifier {
         _loadTimeline(transactionId),
       ]);
 
-      print('DEBUG [TransactionController]: Loaded ${_chatMessages.length} messages');
-      print('DEBUG [TransactionController]: Loaded ${_timeline.length} timeline events');
+      print(
+        'DEBUG [TransactionController]: Loaded ${_chatMessages.length} messages',
+      );
+      print(
+        'DEBUG [TransactionController]: Loaded ${_timeline.length} timeline events',
+      );
       print('DEBUG [TransactionController]: ✅ Transaction loaded successfully');
       print('DEBUG [TransactionController]: Notifying listeners...');
-
     } catch (e, stackTrace) {
       _errorMessage = 'Failed to load transaction';
       print('ERROR [TransactionController]: Failed to load transaction: $e');
@@ -82,7 +99,9 @@ class TransactionController extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
-      print('DEBUG [TransactionController]: ========================================');
+      print(
+        'DEBUG [TransactionController]: ========================================',
+      );
     }
   }
 
@@ -103,7 +122,11 @@ class TransactionController extends ChangeNotifier {
   }
 
   /// Send chat message
-  Future<void> sendMessage(String userId, String userName, String message) async {
+  Future<void> sendMessage(
+    String userId,
+    String userName,
+    String message,
+  ) async {
     if (_transaction == null || message.trim().isEmpty) return;
 
     _isProcessing = true;
@@ -138,8 +161,12 @@ class TransactionController extends ChangeNotifier {
     try {
       final success = await _dataSource.submitForm(form);
       if (success) {
-        await loadTransaction(_transaction!.id,
-          form.role == FormRole.seller ? _transaction!.sellerId : _transaction!.buyerId);
+        await loadTransaction(
+          _transaction!.id,
+          form.role == FormRole.seller
+              ? _transaction!.sellerId
+              : _transaction!.buyerId,
+        );
       }
       return success;
     } catch (e) {
@@ -159,12 +186,15 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _dataSource.confirmForm(_transaction!.id, otherPartyRole);
+      final success = await _dataSource.confirmForm(
+        _transaction!.id,
+        otherPartyRole,
+      );
       if (success) {
         // Reload transaction to update status
         final userId = otherPartyRole == FormRole.buyer
-          ? _transaction!.sellerId
-          : _transaction!.buyerId;
+            ? _transaction!.sellerId
+            : _transaction!.buyerId;
         await loadTransaction(_transaction!.id, userId);
       }
       return success;
@@ -212,6 +242,7 @@ class TransactionController extends ChangeNotifier {
     try {
       final success = await _dataSource.updateDeliveryStatus(
         _transaction!.id,
+        _transaction!.sellerId,
         status,
       );
       if (success) {
@@ -220,6 +251,65 @@ class TransactionController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to update delivery status';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Buyer accepts the vehicle - transaction successful
+  Future<bool> acceptVehicle(String buyerId) async {
+    if (_transaction == null) return false;
+    if (!_transaction!.canBuyerRespond) {
+      _errorMessage = 'Cannot accept at this stage';
+      return false;
+    }
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.acceptVehicle(
+        _transaction!.id,
+        buyerId,
+      );
+      if (success) {
+        await loadTransaction(_transaction!.id, _transaction!.sellerId);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to accept vehicle';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Buyer rejects the vehicle - deal failed
+  Future<bool> rejectVehicle(String buyerId, String reason) async {
+    if (_transaction == null) return false;
+    if (!_transaction!.canBuyerRespond) {
+      _errorMessage = 'Cannot reject at this stage';
+      return false;
+    }
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.rejectVehicle(
+        _transaction!.id,
+        buyerId,
+        reason,
+      );
+      if (success) {
+        await loadTransaction(_transaction!.id, _transaction!.sellerId);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to reject vehicle';
       return false;
     } finally {
       _isProcessing = false;

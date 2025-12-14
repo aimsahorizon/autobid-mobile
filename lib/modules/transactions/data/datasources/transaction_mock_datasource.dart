@@ -54,7 +54,8 @@ class TransactionMockDataSource {
       sellerId: 'seller_001',
       buyerId: 'buyer_001',
       carName: '2020 Chevrolet Corvette C8',
-      carImageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800',
+      carImageUrl:
+          'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800',
       agreedPrice: 720000,
       status: TransactionStatus.discussion,
       createdAt: DateTime.now().subtract(const Duration(days: 2)),
@@ -100,7 +101,8 @@ class TransactionMockDataSource {
         transactionId: transactionId,
         senderId: 'seller_001',
         senderName: 'Maria Santos',
-        message: 'Hello! Thank you for your interest. The car is in excellent condition.',
+        message:
+            'Hello! Thank you for your interest. The car is in excellent condition.',
         timestamp: DateTime.now().subtract(const Duration(days: 2, hours: 2)),
       ),
       ChatMessageEntity(
@@ -201,8 +203,12 @@ class TransactionMockDataSource {
         completedAt: transaction.completedAt,
         sellerFormSubmitted: transaction.sellerFormSubmitted,
         buyerFormSubmitted: transaction.buyerFormSubmitted,
-        sellerConfirmed: role == FormRole.buyer ? true : transaction.sellerConfirmed,
-        buyerConfirmed: role == FormRole.seller ? true : transaction.buyerConfirmed,
+        sellerConfirmed: role == FormRole.buyer
+            ? true
+            : transaction.sellerConfirmed,
+        buyerConfirmed: role == FormRole.seller
+            ? true
+            : transaction.buyerConfirmed,
         adminApproved: transaction.adminApproved,
         adminApprovedAt: transaction.adminApprovedAt,
       );
@@ -217,7 +223,9 @@ class TransactionMockDataSource {
   ///   .select()
   ///   .eq('transaction_id', transactionId)
   ///   .order('timestamp', ascending: false);
-  Future<List<TransactionTimelineEntity>> getTimeline(String transactionId) async {
+  Future<List<TransactionTimelineEntity>> getTimeline(
+    String transactionId,
+  ) async {
     await _delay();
 
     final timeline = _mockTimeline
@@ -322,7 +330,8 @@ class TransactionMockDataSource {
           id: 'timeline_${transactionId}_${now.millisecondsSinceEpoch}',
           transactionId: transactionId,
           title: 'Admin Approved',
-          description: 'Transaction approved by admin - deposit will be refunded',
+          description:
+              'Transaction approved by admin - deposit will be refunded',
           timestamp: now,
           type: TimelineEventType.adminApproved,
           actorName: 'Admin',
@@ -343,6 +352,7 @@ class TransactionMockDataSource {
   /// }).eq('id', transactionId);
   Future<bool> updateDeliveryStatus(
     String transactionId,
+    String sellerId,
     DeliveryStatus status,
   ) async {
     await _delay();
@@ -363,7 +373,9 @@ class TransactionMockDataSource {
             ? TransactionStatus.completed
             : transaction.status,
         createdAt: transaction.createdAt,
-        completedAt: status == DeliveryStatus.completed ? now : transaction.completedAt,
+        completedAt: status == DeliveryStatus.completed
+            ? now
+            : transaction.completedAt,
         sellerFormSubmitted: transaction.sellerFormSubmitted,
         buyerFormSubmitted: transaction.buyerFormSubmitted,
         sellerConfirmed: transaction.sellerConfirmed,
@@ -421,10 +433,105 @@ class TransactionMockDataSource {
       case DeliveryStatus.inTransit:
         return 'Vehicle is being transported to buyer';
       case DeliveryStatus.delivered:
-        return 'Vehicle has been delivered to buyer';
+        return 'Vehicle has been delivered to buyer - awaiting buyer confirmation';
       case DeliveryStatus.completed:
         return 'Buyer confirmed receipt - transaction complete';
     }
+  }
+
+  /// Buyer accepts the vehicle - transaction successful
+  /// TODO: Implement Supabase RPC call:
+  /// await supabase.rpc('handle_buyer_acceptance', params: {
+  ///   'p_transaction_id': transactionId,
+  ///   'p_buyer_id': buyerId,
+  ///   'p_accepted': true,
+  /// });
+  Future<bool> acceptVehicle(String transactionId, String buyerId) async {
+    await _delay();
+    final index = _mockTransactions.indexWhere((t) => t.id == transactionId);
+    if (index >= 0) {
+      final transaction = _mockTransactions[index];
+      final now = DateTime.now();
+
+      // Verify it's the buyer and vehicle is delivered
+      if (transaction.buyerId != buyerId) return false;
+      if (transaction.deliveryStatus != DeliveryStatus.delivered) return false;
+
+      _mockTransactions[index] = transaction.copyWith(
+        buyerAcceptanceStatus: BuyerAcceptanceStatus.accepted,
+        buyerAcceptedAt: now,
+        deliveryStatus: DeliveryStatus.completed,
+        deliveryCompletedAt: now,
+        status: TransactionStatus.completed,
+        completedAt: now,
+      );
+
+      // Add timeline event
+      _mockTimeline.add(
+        TransactionTimelineEntity(
+          id: 'timeline_${transactionId}_${now.millisecondsSinceEpoch}',
+          transactionId: transactionId,
+          title: 'Vehicle Accepted',
+          description:
+              'Buyer confirmed receipt and accepted the vehicle - Transaction successful!',
+          timestamp: now,
+          type: TimelineEventType.completed,
+          actorName: 'Buyer',
+        ),
+      );
+
+      return true;
+    }
+    return false;
+  }
+
+  /// Buyer rejects the vehicle - deal failed
+  /// TODO: Implement Supabase RPC call:
+  /// await supabase.rpc('handle_buyer_acceptance', params: {
+  ///   'p_transaction_id': transactionId,
+  ///   'p_buyer_id': buyerId,
+  ///   'p_accepted': false,
+  ///   'p_rejection_reason': reason,
+  /// });
+  Future<bool> rejectVehicle(
+    String transactionId,
+    String buyerId,
+    String reason,
+  ) async {
+    await _delay();
+    final index = _mockTransactions.indexWhere((t) => t.id == transactionId);
+    if (index >= 0) {
+      final transaction = _mockTransactions[index];
+      final now = DateTime.now();
+
+      // Verify it's the buyer and vehicle is delivered
+      if (transaction.buyerId != buyerId) return false;
+      if (transaction.deliveryStatus != DeliveryStatus.delivered) return false;
+
+      _mockTransactions[index] = transaction.copyWith(
+        buyerAcceptanceStatus: BuyerAcceptanceStatus.rejected,
+        buyerAcceptedAt: now,
+        buyerRejectionReason: reason,
+        status: TransactionStatus.cancelled,
+        completedAt: now,
+      );
+
+      // Add timeline event
+      _mockTimeline.add(
+        TransactionTimelineEntity(
+          id: 'timeline_${transactionId}_${now.millisecondsSinceEpoch}',
+          transactionId: transactionId,
+          title: 'Vehicle Rejected',
+          description: 'Buyer rejected the vehicle. Reason: $reason',
+          timestamp: now,
+          type: TimelineEventType.cancelled,
+          actorName: 'Buyer',
+        ),
+      );
+
+      return true;
+    }
+    return false;
   }
 
   // Mock data storage
@@ -471,7 +578,8 @@ class TransactionMockDataSource {
       transactionId: 'txn_001',
       senderId: 'seller_001',
       senderName: 'Maria Santos',
-      message: 'Hello! Thank you for your interest. The car is in excellent condition.',
+      message:
+          'Hello! Thank you for your interest. The car is in excellent condition.',
       timestamp: DateTime.now().subtract(const Duration(days: 2, hours: 2)),
     ),
     ChatMessageEntity(
