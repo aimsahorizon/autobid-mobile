@@ -61,10 +61,12 @@ class BidSupabaseDataSource {
         'DEBUG [BidDataSource]: Fetching bid history for auction_id: $auctionId',
       );
 
-      // Query bids without users join (simpler, avoids FK issues)
+      // Query bids with users join to get bidder username/display_name
       final response = await _supabase
           .from('bids')
-          .select('id, bid_amount, is_auto_bid, created_at, bidder_id')
+          .select(
+            'id, bid_amount, is_auto_bid, created_at, bidder_id, bidder:users!bidder_id(username, display_name)',
+          )
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);
 

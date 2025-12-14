@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/user_bid_entity.dart';
@@ -26,6 +27,9 @@ class BidsController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Polling mechanism for auto-refresh when auctions end
+  Timer? _pollTimer;
+
   // Public getters for accessing state
   List<UserBidEntity> get activeBids => _activeBids;
   List<UserBidEntity> get wonBids => _wonBids;
@@ -37,6 +41,7 @@ class BidsController extends ChangeNotifier {
   /// Loads all user bids from data source
   /// Categorizes them into active, won, and lost lists
   /// Called on page init and when user pulls to refresh
+  /// Also starts polling to auto-refresh when active auctions end
   Future<void> loadUserBids() async {
     _isLoading = true;
     _errorMessage = null;
@@ -53,6 +58,13 @@ class BidsController extends ChangeNotifier {
       _activeBids = bidsMap['active'] ?? [];
       _wonBids = bidsMap['won'] ?? [];
       _lostBids = bidsMap['lost'] ?? [];
+
+      // Start polling if there are active bids
+      if (_activeBids.isNotEmpty) {
+        _startPolling();
+      } else {
+        _stopPolling();
+      }
     } catch (e) {
       // Handle error - show user-friendly message
       _errorMessage = 'Failed to load your bids. Please try again.';
@@ -61,6 +73,55 @@ class BidsController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Starts polling to check if active auctions have ended
+  /// Polls every 10 seconds to refresh bid status
+  void _startPolling() {
+    _stopPolling(); // Cancel any existing timer
+
+    _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      try {
+        final userId = SupabaseConfig.client.auth.currentUser?.id;
+        if (userId == null) return;
+
+        final bidsMap = await _dataSource.getUserBids(userId);
+        final newActiveBids = bidsMap['active'] ?? [];
+        final newWonBids = bidsMap['won'] ?? [];
+        final newLostBids = bidsMap['lost'] ?? [];
+
+        // Only update if bids changed (avoid unnecessary rebuilds)
+        if (newActiveBids.length != _activeBids.length ||
+            newWonBids.length != _wonBids.length ||
+            newLostBids.length != _lostBids.length) {
+          print('[BidsController] Bids changed during polling - updating UI');
+          _activeBids = newActiveBids;
+          _wonBids = newWonBids;
+          _lostBids = newLostBids;
+          notifyListeners();
+
+          // Stop polling if no more active bids
+          if (_activeBids.isEmpty) {
+            _stopPolling();
+          }
+        }
+      } catch (e) {
+        print('[BidsController] Polling error: $e');
+        // Silent fail - don't interrupt user experience
+      }
+    });
+  }
+
+  /// Stops the polling timer
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopPolling();
+    super.dispose();
   }
 
   /// Refreshes only active bids for real-time updates
@@ -85,11 +146,14 @@ class BidsController extends ChangeNotifier {
   }
 
   /// Get total count of all user bids
-  int get totalBidsCount => _activeBids.length + _wonBids.length + _lostBids.length;
+  int get totalBidsCount =>
+      _activeBids.length + _wonBids.length + _lostBids.length;
 
   /// Get count of bids where user is currently winning
-  int get winningBidsCount => _activeBids.where((bid) => bid.isHighestBidder).length;
+  int get winningBidsCount =>
+      _activeBids.where((bid) => bid.isHighestBidder).length;
 
   /// Get count of bids where user is being outbid
-  int get outbidCount => _activeBids.where((bid) => !bid.isHighestBidder).length;
+  int get outbidCount =>
+      _activeBids.where((bid) => !bid.isHighestBidder).length;
 }
