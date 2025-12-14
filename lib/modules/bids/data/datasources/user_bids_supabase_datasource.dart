@@ -11,69 +11,306 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
   UserBidsSupabaseDataSource(this._supabase);
 
   /// Fetches all user bids categorized by status
-  /// Uses get_user_active_bids function and joins with auctions table
+  /// Logic:
+  /// - Active: auction not ended (end_time in future)
+  /// - Won: auction ended, user is highest bidder
+  /// - Lost: auction ended, user not highest bidder
   @override
   Future<Map<String, List<UserBidEntity>>> getUserBids([String? userId]) async {
     if (userId == null) {
+      print('[UserBidsSupabaseDataSource] getUserBids: userId is null');
       return {'active': [], 'won': [], 'lost': []};
     }
+
+    print(
+      '[UserBidsSupabaseDataSource] getUserBids: fetching bids for userId=$userId',
+    );
+
+    final List<UserBidEntity> activeBids = [];
+    final List<UserBidEntity> wonBids = [];
+    final List<UserBidEntity> lostBids = [];
+
     try {
-      // Get user's active bids using PostgreSQL function
-      final activeBidsResponse = await _supabase.rpc(
-        'get_user_active_bids',
-        params: {'user_id': userId},
+      // Get all bids by this user - fetch auction details separately
+      final response = await _supabase
+          .from('bids')
+          .select('id, auction_id, bid_amount, created_at')
+          .eq('bidder_id', userId);
+
+      print(
+        '[UserBidsSupabaseDataSource] Query response type: ${response.runtimeType}',
+      );
+      print('[UserBidsSupabaseDataSource] Query response: $response');
+
+      final bidsList = response is List
+          ? List<Map<String, dynamic>>.from(response)
+          : <Map<String, dynamic>>[];
+
+      print(
+        '[UserBidsSupabaseDataSource] Parsed bidsList length: ${bidsList.length}',
       );
 
-      // Convert to list and join with auction data
-      final activeBidsData = List<Map<String, dynamic>>.from(activeBidsResponse);
+      if (bidsList.isEmpty) {
+        print('[UserBidsSupabaseDataSource] No bids found for user');
+        return {'active': [], 'won': [], 'lost': []};
+      }
 
-      // Fetch full listing details for each bid
-      final List<UserBidEntity> activeBids = [];
-      final List<UserBidEntity> wonBids = [];
-      final List<UserBidEntity> lostBids = [];
+      // Group bids by auction_id to get max bid per auction
+      final Map<String, List<Map<String, dynamic>>> bidsByAuctionId = {};
+      for (final bid in bidsList) {
+        final auctionId = bid['auction_id'] as String;
+        bidsByAuctionId.putIfAbsent(auctionId, () => []).add(bid);
+      }
 
-      for (final bidData in activeBidsData) {
-        final listingId = bidData['listing_id'] as String;
+      print(
+        '[UserBidsSupabaseDataSource] Grouped bids by auctionId. Count: ${bidsByAuctionId.length}',
+      );
 
-        // Get full listing details
-        final listingResponse = await _supabase
-            .from('listings')
-            .select('*')
-            .eq('id', listingId)
-            .single();
+      // Process each auction
+      for (final auctionId in bidsByAuctionId.keys) {
+        print('[UserBidsSupabaseDataSource] Processing auctionId: $auctionId');
+        try {
+          final bidsForThisAuction = bidsByAuctionId[auctionId]!;
 
-        // Combine bid and listing data
-        final combinedData = {
-          ...bidData,
-          'listings': listingResponse,
-        };
+          // Fetch auction directly by ID - try without any filters first
+          Map<String, dynamic>? auction;
+          try {
+            final auctionResponse = await _supabase
+                .from('auctions')
+                .select('*')
+                .eq('id', auctionId)
+                .maybeSingle();
 
-        // Create model from combined data
-        final bidModel = UserBidModel.fromJson(combinedData);
+            print(
+              '[UserBidsSupabaseDataSource]   Direct auction query result: $auctionResponse',
+            );
 
-        // Categorize by status
-        switch (bidModel.status) {
-          case UserBidStatus.active:
-            activeBids.add(bidModel);
-            break;
-          case UserBidStatus.won:
-            wonBids.add(bidModel);
-            break;
-          case UserBidStatus.lost:
-            lostBids.add(bidModel);
-            break;
+            if (auctionResponse != null) {
+              auction = auctionResponse as Map<String, dynamic>;
+            }
+          } catch (e) {
+            print(
+              '[UserBidsSupabaseDataSource]   Direct auction query error: $e',
+            );
+          }
+
+          if (auction == null) {
+            print(
+              '[UserBidsSupabaseDataSource]   Auction $auctionId not accessible, skipping',
+            );
+            continue;
+          }
+
+          // Fetch status separately
+          String? statusName;
+          try {
+            final statusResponse = await _supabase
+                .from('auction_statuses')
+                .select('status_name')
+                .eq('id', auction['status_id'])
+                .single();
+            statusName = statusResponse['status_name'] as String?;
+          } catch (_) {
+            statusName = null;
+          }
+
+          // Fetch vehicle separately
+          String vehicleDisplay = 'Vehicle';
+          int vehicleYear = 0;
+          try {
+            final vehicleResponse = await _supabase
+                .from('auction_vehicles')
+                .select('brand, model, year')
+                .eq('auction_id', auctionId)
+                .limit(1);
+            if (vehicleResponse is List && vehicleResponse.isNotEmpty) {
+              final v = vehicleResponse.first;
+              final brand = v['brand'] as String? ?? '';
+              final model = v['model'] as String? ?? '';
+              vehicleYear = (v['year'] as num?)?.toInt() ?? 0;
+              if (brand.isNotEmpty && model.isNotEmpty) {
+                vehicleDisplay = '$brand $model';
+              }
+            }
+          } catch (_) {
+            // Use default values
+          }
+
+          // Fetch cover photo separately
+          String? coverPhotoUrl;
+          try {
+            final photoResponse = await _supabase
+                .from('auction_photos')
+                .select('photo_url')
+                .eq('auction_id', auctionId)
+                .eq('is_primary', true)
+                .limit(1);
+            if (photoResponse is List && photoResponse.isNotEmpty) {
+              coverPhotoUrl = photoResponse.first['photo_url'] as String?;
+            }
+          } catch (_) {
+            coverPhotoUrl = null;
+          }
+
+          // Calculate user's max bid for this auction
+          final userMaxBid = bidsForThisAuction
+              .map((b) => (b['bid_amount'] as num).toDouble())
+              .fold<double>(0, (prev, val) => val > prev ? val : prev);
+
+          // Auction info
+          final title = auction['title'] as String? ?? 'Unknown';
+          final currentPrice =
+              (auction['current_price'] as num?)?.toDouble() ?? 0;
+          final startingPrice =
+              (auction['starting_price'] as num?)?.toDouble() ?? 0;
+          final endTimeStr = auction['end_time'] as String?;
+          final endTime = endTimeStr != null
+              ? DateTime.tryParse(endTimeStr)
+              : null;
+
+          print('[UserBidsSupabaseDataSource]   title: $title');
+          print('[UserBidsSupabaseDataSource]   statusName: $statusName');
+          print('[UserBidsSupabaseDataSource]   vehicle: $vehicleDisplay');
+          print('[UserBidsSupabaseDataSource]   endTime: $endTime');
+
+          // Check if auction ended: consider both end_time and explicit status
+          final hasExplicitEndedStatus =
+              statusName != null && statusName!.toLowerCase() != 'live';
+          final isTimeElapsed =
+              endTime != null && DateTime.now().isAfter(endTime);
+          final isAuctionEnded = hasExplicitEndedStatus || isTimeElapsed;
+
+          // Check if in_transaction status - buyer can access the transaction
+          final isInTransaction =
+              statusName != null &&
+              statusName!.toLowerCase() == 'in_transaction';
+
+          print(
+            '[UserBidsSupabaseDataSource]   isAuctionEnded: $isAuctionEnded',
+          );
+          print(
+            '[UserBidsSupabaseDataSource]   isInTransaction: $isInTransaction',
+          );
+
+          // Get highest bidder
+          String? highestBidderId;
+          try {
+            final rpcResult = await _supabase.rpc(
+              'get_highest_bid',
+              params: {'auction_id_param': auctionId},
+            );
+            if (rpcResult is List && rpcResult.isNotEmpty) {
+              highestBidderId =
+                  (rpcResult.first as Map<String, dynamic>)['bidder_id']
+                      as String?;
+            } else if (rpcResult is Map) {
+              highestBidderId = rpcResult['bidder_id'] as String?;
+            }
+          } catch (_) {
+            highestBidderId = null;
+          }
+
+          final isUserHighestBidder =
+              highestBidderId != null && highestBidderId == userId;
+
+          print(
+            '[UserBidsSupabaseDataSource]   highestBidderId: $highestBidderId',
+          );
+          print(
+            '[UserBidsSupabaseDataSource]   isUserHighestBidder: $isUserHighestBidder',
+          );
+
+          // Categorize bid
+          if (!isAuctionEnded) {
+            print('[UserBidsSupabaseDataSource]   -> ACTIVE BID');
+            // ACTIVE BID
+            activeBids.add(
+              UserBidEntity(
+                id: bidsForThisAuction.first['id'] as String? ?? '',
+                auctionId: auctionId,
+                carImageUrl: coverPhotoUrl ?? '',
+                year: vehicleYear,
+                make: vehicleDisplay.split(' ').first,
+                model: vehicleDisplay.contains(' ')
+                    ? vehicleDisplay.split(' ').last
+                    : vehicleDisplay,
+                userBidAmount: userMaxBid,
+                currentHighestBid: currentPrice,
+                endTime: endTime ?? DateTime.now(),
+                status: UserBidStatus.active,
+                hasDeposited: false,
+                isHighestBidder: isUserHighestBidder,
+                userBidCount: bidsForThisAuction.length,
+                canAccess: false,
+              ),
+            );
+          } else {
+            // Auction ended
+            if (isUserHighestBidder) {
+              print(
+                '[UserBidsSupabaseDataSource]   -> WON BID (canAccess: $isInTransaction)',
+              );
+              // WON
+              wonBids.add(
+                UserBidEntity(
+                  id: bidsForThisAuction.first['id'] as String? ?? '',
+                  auctionId: auctionId,
+                  carImageUrl: coverPhotoUrl ?? '',
+                  year: vehicleYear,
+                  make: vehicleDisplay.split(' ').first,
+                  model: vehicleDisplay.contains(' ')
+                      ? vehicleDisplay.split(' ').last
+                      : vehicleDisplay,
+                  userBidAmount: userMaxBid,
+                  currentHighestBid: currentPrice,
+                  endTime: endTime ?? DateTime.now(),
+                  status: UserBidStatus.won,
+                  hasDeposited: false,
+                  isHighestBidder: true,
+                  userBidCount: bidsForThisAuction.length,
+                  canAccess: isInTransaction, // true when seller has proceeded
+                ),
+              );
+            } else {
+              print('[UserBidsSupabaseDataSource]   -> LOST BID');
+              // LOST
+              lostBids.add(
+                UserBidEntity(
+                  id: bidsForThisAuction.first['id'] as String? ?? '',
+                  auctionId: auctionId,
+                  carImageUrl: coverPhotoUrl ?? '',
+                  year: vehicleYear,
+                  make: vehicleDisplay.split(' ').first,
+                  model: vehicleDisplay.contains(' ')
+                      ? vehicleDisplay.split(' ').last
+                      : vehicleDisplay,
+                  userBidAmount: userMaxBid,
+                  currentHighestBid: currentPrice,
+                  endTime: endTime ?? DateTime.now(),
+                  status: UserBidStatus.lost,
+                  hasDeposited: false,
+                  isHighestBidder: false,
+                  userBidCount: bidsForThisAuction.length,
+                  canAccess: false,
+                ),
+              );
+            }
+          }
+        } catch (e, st) {
+          print(
+            '[UserBidsSupabaseDataSource] Error processing auction $auctionId: $e\n$st',
+          );
+          continue;
         }
       }
 
-      return {
-        'active': activeBids,
-        'won': wonBids,
-        'lost': lostBids,
-      };
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to get user bids: ${e.message}');
-    } catch (e) {
-      throw Exception('Failed to get user bids: $e');
+      print(
+        '[UserBidsSupabaseDataSource] SUMMARY: active=${activeBids.length}, won=${wonBids.length}, lost=${lostBids.length}',
+      );
+      return {'active': activeBids, 'won': wonBids, 'lost': lostBids};
+    } catch (e, st) {
+      print('[UserBidsSupabaseDataSource] Failed to load bids: $e\n$st');
+      throw Exception('Failed to load bids: $e');
     }
   }
 

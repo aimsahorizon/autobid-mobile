@@ -17,50 +17,41 @@ class UserBidModel extends UserBidEntity {
     required super.hasDeposited,
     required super.isHighestBidder,
     required super.userBidCount,
+    required super.canAccess,
+    super.transactionStatus,
   });
 
   /// Create model from JSON (Supabase response)
   /// Combines data from bids and listings tables
-  factory UserBidModel.fromJson(Map<String, dynamic> json) {
-    // Parse listing data (joined from listings table)
-    final listing = json['listings'] as Map<String, dynamic>?;
-
-    // Determine status based on auction end time and bid position
-    final endTime = DateTime.parse(
-      listing?['auction_end_time'] ??
-          listing?['end_time'] ??
-          json['auction_end_time'] ??
-          json['end_time'] as String,
-    );
-    final isWinning = json['is_winning'] as bool? ?? false;
-    final hasEnded = DateTime.now().isAfter(endTime);
-
-    UserBidStatus status;
-    if (!hasEnded) {
-      status = UserBidStatus.active;
-    } else if (isWinning) {
-      status = UserBidStatus.won;
-    } else {
-      status = UserBidStatus.lost;
-    }
+  factory UserBidModel.fromComposite({
+    required Map<String, dynamic> auction,
+    required double userMaxBid,
+    required int userBidCount,
+    required bool isHighestBidder,
+    required bool hasEnded,
+    required bool hasTransaction,
+    String? transactionStatus,
+  }) {
+    final status = !hasEnded
+        ? UserBidStatus.active
+        : (isHighestBidder ? UserBidStatus.won : UserBidStatus.lost);
 
     return UserBidModel(
-      id: json['bid_id'] as String? ?? json['id'] as String,
-      auctionId: json['listing_id'] as String? ?? json['auction_id'] as String,
-      carImageUrl:
-          listing?['cover_photo_url'] as String? ??
-          listing?['car_image_url'] as String? ??
-          '',
-      year: listing?['year'] as int? ?? 0,
-      make: listing?['brand'] as String? ?? listing?['make'] as String? ?? '',
-      model: listing?['model'] as String? ?? '',
-      userBidAmount: (json['bid_amount'] as num).toDouble(),
-      currentHighestBid: (listing?['current_bid'] as num?)?.toDouble() ?? 0.0,
-      endTime: endTime,
+      id: auction['id'] as String? ?? '',
+      auctionId: auction['id'] as String? ?? '',
+      carImageUrl: auction['cover_photo_url'] as String? ?? '',
+      year: auction['year'] as int? ?? 0,
+      make: auction['brand'] as String? ?? '',
+      model: auction['model'] as String? ?? '',
+      userBidAmount: userMaxBid,
+      currentHighestBid: (auction['current_bid'] as num?)?.toDouble() ?? 0.0,
+      endTime: DateTime.parse(auction['auction_end_time'] as String),
       status: status,
-      hasDeposited: true, // If user has bid, they must have deposited
-      isHighestBidder: isWinning,
-      userBidCount: 1, // Will be counted from bid history
+      hasDeposited: true,
+      isHighestBidder: isHighestBidder,
+      userBidCount: userBidCount,
+      canAccess: status != UserBidStatus.won || hasTransaction,
+      transactionStatus: transactionStatus,
     );
   }
 
@@ -90,6 +81,8 @@ class UserBidModel extends UserBidEntity {
       hasDeposited: entity.hasDeposited,
       isHighestBidder: entity.isHighestBidder,
       userBidCount: entity.userBidCount,
+      canAccess: entity.canAccess,
+      transactionStatus: entity.transactionStatus,
     );
   }
 }

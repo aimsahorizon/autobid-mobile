@@ -24,10 +24,7 @@ import 'lost_bid_detail_page.dart';
 class BidsPage extends StatefulWidget {
   final BidsController controller;
 
-  const BidsPage({
-    super.key,
-    required this.controller,
-  });
+  const BidsPage({super.key, required this.controller});
 
   @override
   State<BidsPage> createState() => _BidsPageState();
@@ -61,21 +58,48 @@ class _BidsPageState extends State<BidsPage>
   }
 
   void _navigateToActiveBid(BuildContext context, UserBidEntity bid) {
+    print(
+      '[BidsPage] _navigateToActiveBid called with auctionId=${bid.auctionId}',
+    );
+
+    // Ensure Browse module uses same data mode as Bids module
+    // If Bids is using real data, Browse should too
+    if (BrowseModule.useMockData != BidsModule.useMockData) {
+      print(
+        '[BidsPage] Syncing data mode: BidsModule.useMockData=${BidsModule.useMockData}, BrowseModule.useMockData=${BrowseModule.useMockData}',
+      );
+      BrowseModule.toggleDemoMode();
+    }
+
     // Navigate to auction detail page from browse module
     // This shows the actual auction with live bidding functionality
     final controller = BrowseModule.instance.createAuctionDetailController();
+    print(
+      '[BidsPage] Created AuctionDetailController, navigating to AuctionDetailPage',
+    );
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AuctionDetailPage(
-          auctionId: bid.auctionId,
-          controller: controller,
-        ),
+        builder: (context) =>
+            AuctionDetailPage(auctionId: bid.auctionId, controller: controller),
       ),
     );
   }
 
   void _navigateToWonBid(BuildContext context, UserBidEntity bid) {
+    if (!bid.canAccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Waiting for seller to proceed to transaction.'),
+          backgroundColor: ColorConstants.warning,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    print(
+      '[BidsPage] _navigateToWonBid called with auctionId=${bid.auctionId}',
+    );
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -85,6 +109,9 @@ class _BidsPageState extends State<BidsPage>
   }
 
   void _navigateToLostBid(BuildContext context, UserBidEntity bid) {
+    print(
+      '[BidsPage] _navigateToLostBid called with auctionId=${bid.auctionId}',
+    );
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -129,7 +156,8 @@ class _BidsPageState extends State<BidsPage>
           ListenableBuilder(
             listenable: NotificationsModule.instance.controller,
             builder: (context, _) {
-              final notificationController = NotificationsModule.instance.controller;
+              final notificationController =
+                  NotificationsModule.instance.controller;
               final unreadCount = notificationController.unreadCount;
 
               return Stack(
@@ -288,7 +316,8 @@ class _BidsPageState extends State<BidsPage>
                         bids: _controller.activeBids,
                         isLoading: _controller.isLoading,
                         emptyTitle: 'No Active Bids',
-                        emptySubtitle: 'Browse auctions and place a bid to get started!',
+                        emptySubtitle:
+                            'Browse auctions and place a bid to get started!',
                         emptyIcon: Icons.gavel_rounded,
                         onBidTap: (bid) => _navigateToActiveBid(context, bid),
                         isGridView: _isGridView,
@@ -298,7 +327,8 @@ class _BidsPageState extends State<BidsPage>
                         bids: _controller.wonBids,
                         isLoading: _controller.isLoading,
                         emptyTitle: 'No Won Auctions',
-                        emptySubtitle: 'Keep bidding to win your first auction!',
+                        emptySubtitle:
+                            'Keep bidding to win your first auction!',
                         emptyIcon: Icons.emoji_events_outlined,
                         onBidTap: (bid) => _navigateToWonBid(context, bid),
                         isGridView: _isGridView,
@@ -308,7 +338,8 @@ class _BidsPageState extends State<BidsPage>
                         bids: _controller.lostBids,
                         isLoading: _controller.isLoading,
                         emptyTitle: 'No Lost Auctions',
-                        emptySubtitle: 'You haven\'t lost any auctions yet. Good luck!',
+                        emptySubtitle:
+                            'You haven\'t lost any auctions yet. Good luck!',
                         emptyIcon: Icons.sentiment_neutral_outlined,
                         onBidTap: (bid) => _navigateToLostBid(context, bid),
                         isGridView: _isGridView,
@@ -351,7 +382,9 @@ class _BidsPageState extends State<BidsPage>
             const SizedBox(height: 24),
             Text(
               'Failed to Load Bids',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(

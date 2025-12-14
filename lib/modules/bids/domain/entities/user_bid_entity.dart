@@ -41,6 +41,12 @@ class UserBidEntity {
   /// Total number of bids user placed on this auction
   final int userBidCount;
 
+  /// Whether the bidder can access post-auction details (requires seller to proceed)
+  final bool canAccess;
+
+  /// Transaction status if seller has proceeded (e.g., in_transaction, sold)
+  final String? transactionStatus;
+
   const UserBidEntity({
     required this.id,
     required this.auctionId,
@@ -55,6 +61,8 @@ class UserBidEntity {
     required this.hasDeposited,
     required this.isHighestBidder,
     required this.userBidCount,
+    required this.canAccess,
+    this.transactionStatus,
   });
 
   /// Get formatted car name (e.g., "2020 Toyota Supra")
@@ -65,6 +73,9 @@ class UserBidEntity {
 
   /// Get time remaining as Duration (returns zero if ended)
   Duration get timeRemaining => endTime.difference(DateTime.now());
+
+  /// True when user won but awaits seller action to proceed
+  bool get awaitingSellerDecision => status == UserBidStatus.won && !canAccess;
 }
 
 /// Enum representing the status of user's bid participation in an auction
