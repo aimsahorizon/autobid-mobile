@@ -20,6 +20,7 @@ class Step7Photos extends StatefulWidget {
 class _Step7PhotosState extends State<Step7Photos> {
   final _carDetectionService = CarDetectionService();
   bool _useAIDetection = true; // Toggle for AI vs Mock
+  bool _isUploadingDeedOfSale = false;
 
   Future<void> _pickImage(BuildContext context, String category) async {
     print('DEBUG [Step7Photos]: ========================================');
@@ -200,6 +201,378 @@ class _Step7PhotosState extends State<Step7Photos> {
         const SnackBar(content: Text('All demo photos added!')),
       );
     }
+  }
+
+  /// Pick and upload deed of sale document
+  Future<void> _pickDeedOfSale(BuildContext context) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: ColorConstants.primary.withValues(alpha: 0.1),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Upload Deed of Sale',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Supported formats: PDF, PNG, JPG, JPEG',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              subtitle: const Text('Capture document using camera'),
+              onTap: () => Navigator.pop(context, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              subtitle: const Text('Select image from device'),
+              onTap: () => Navigator.pop(context, 'gallery'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (action == null || !context.mounted) return;
+
+    setState(() => _isUploadingDeedOfSale = true);
+
+    try {
+      final picker = ImagePicker();
+      XFile? pickedFile;
+
+      if (action == 'camera') {
+        pickedFile = await picker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: 2048,
+          maxHeight: 2048,
+          imageQuality: 90,
+        );
+      } else {
+        pickedFile = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 2048,
+          maxHeight: 2048,
+          imageQuality: 90,
+        );
+      }
+
+      if (pickedFile == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No file selected')),
+          );
+        }
+        return;
+      }
+
+      final url = await widget.controller.uploadDeedOfSale(pickedFile.path);
+
+      if (context.mounted) {
+        if (url != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Deed of sale uploaded successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.controller.errorMessage ?? 'Failed to upload deed of sale',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingDeedOfSale = false);
+      }
+    }
+  }
+
+  /// Remove the uploaded deed of sale
+  Future<void> _removeDeedOfSale(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Deed of Sale?'),
+        content: const Text('Are you sure you want to remove the uploaded deed of sale document?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !context.mounted) return;
+
+    final success = await widget.controller.removeDeedOfSale();
+
+    if (context.mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Deed of sale removed'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to remove deed of sale'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Build the deed of sale upload section
+  Widget _buildDeedOfSaleSection(bool isDark) {
+    final deedOfSaleUrl = widget.controller.currentDraft?.deedOfSaleUrl;
+    final hasDocument = deedOfSaleUrl != null && deedOfSaleUrl.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: hasDocument
+              ? Colors.green.withValues(alpha: 0.5)
+              : ColorConstants.primary.withValues(alpha: 0.3),
+          width: hasDocument ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                hasDocument ? Icons.description : Icons.upload_file,
+                color: hasDocument ? Colors.green : ColorConstants.primary,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Deed of Sale (Optional)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasDocument
+                          ? 'Document uploaded'
+                          : 'Upload your deed of sale document',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: hasDocument
+                            ? Colors.green
+                            : (isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasDocument)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check, color: Colors.green, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'Uploaded',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasDocument) ...[
+            // Preview section for uploaded document
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.2)
+                    : Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    deedOfSaleUrl.toLowerCase().endsWith('.pdf')
+                        ? Icons.picture_as_pdf
+                        : Icons.image,
+                    color: deedOfSaleUrl.toLowerCase().endsWith('.pdf')
+                        ? Colors.red
+                        : Colors.blue,
+                    size: 40,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          deedOfSaleUrl.toLowerCase().endsWith('.pdf')
+                              ? 'PDF Document'
+                              : 'Image Document',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Tap to view',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: () => _removeDeedOfSale(context),
+                    tooltip: 'Remove document',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Replace button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isUploadingDeedOfSale
+                    ? null
+                    : () => _pickDeedOfSale(context),
+                icon: _isUploadingDeedOfSale
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.swap_horiz),
+                label: Text(_isUploadingDeedOfSale ? 'Uploading...' : 'Replace Document'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ColorConstants.primary,
+                  side: BorderSide(color: ColorConstants.primary),
+                ),
+              ),
+            ),
+          ] else ...[
+            // Upload button when no document exists
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isUploadingDeedOfSale
+                    ? null
+                    : () => _pickDeedOfSale(context),
+                icon: _isUploadingDeedOfSale
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.upload_file),
+                label: Text(_isUploadingDeedOfSale ? 'Uploading...' : 'Upload Deed of Sale'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorConstants.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'The deed of sale helps verify ownership and speeds up the transaction process.',
+            style: TextStyle(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   /// AI Detection: Auto-fill car details from uploaded photo
@@ -605,73 +978,97 @@ class _Step7PhotosState extends State<Step7Photos> {
               ),
             ),
             Expanded(
-              child: ListView.builder(
+              child: ListView(
                 padding: const EdgeInsets.all(16),
-                itemCount: PhotoCategories.categoryGroups.length,
-                itemBuilder: (context, groupIndex) {
-                  final groupName = PhotoCategories.categoryGroups.keys.elementAt(groupIndex);
-                  final categoryCount = PhotoCategories.categoryGroups[groupName]!;
-
-                  final groupCategories = _getCategoriesForGroup(groupName, categoryCount);
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Deed of Sale Section - At the top for visibility
+                  _buildDeedOfSaleSection(isDark),
+                  const SizedBox(height: 8),
+                  // Divider
+                  Row(
                     children: [
+                      Expanded(child: Divider(color: ColorConstants.primary.withValues(alpha: 0.3))),
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
-                          groupName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                          'Vehicle Photos',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
                           ),
                         ),
                       ),
-                      ...groupCategories.map((category) {
-                        final hasPhoto = photoUrls[category]?.isNotEmpty ?? false;
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: isDark
-                                  ? ColorConstants.surfaceLight
-                                  : ColorConstants.backgroundSecondaryLight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListTile(
-                            leading: Icon(
-                              hasPhoto ? Icons.check_circle : Icons.add_a_photo,
-                              color: hasPhoto ? Colors.green : ColorConstants.primary,
-                            ),
-                            title: Text(category),
-                            subtitle: hasPhoto
-                                ? Text(
-                                    '${photoUrls[category]!.length} photo(s)',
-                                    style: const TextStyle(color: Colors.green),
-                                  )
-                                : null,
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.info_outline, size: 20),
-                                  tooltip: 'View sample',
-                                  onPressed: () => _showSamplePhoto(context, category),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.camera_alt),
-                                  onPressed: () => _pickImage(context, category),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 16),
+                      Expanded(child: Divider(color: ColorConstants.primary.withValues(alpha: 0.3))),
                     ],
-                  );
-                },
+                  ),
+                  const SizedBox(height: 8),
+                  // Photo Categories
+                  ...PhotoCategories.categoryGroups.keys.map((groupName) {
+                    final categoryCount = PhotoCategories.categoryGroups[groupName]!;
+                    final groupCategories = _getCategoriesForGroup(groupName, categoryCount);
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text(
+                            groupName,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        ...groupCategories.map((category) {
+                          final hasPhoto = photoUrls[category]?.isNotEmpty ?? false;
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: isDark
+                                    ? ColorConstants.surfaceLight
+                                    : ColorConstants.backgroundSecondaryLight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              leading: Icon(
+                                hasPhoto ? Icons.check_circle : Icons.add_a_photo,
+                                color: hasPhoto ? Colors.green : ColorConstants.primary,
+                              ),
+                              title: Text(category),
+                              subtitle: hasPhoto
+                                  ? Text(
+                                      '${photoUrls[category]!.length} photo(s)',
+                                      style: const TextStyle(color: Colors.green),
+                                    )
+                                  : null,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.info_outline, size: 20),
+                                    tooltip: 'View sample',
+                                    onPressed: () => _showSamplePhoto(context, category),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.camera_alt),
+                                    onPressed: () => _pickImage(context, category),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  }),
+                ],
               ),
             ),
           ],
