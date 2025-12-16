@@ -3,7 +3,8 @@ import '../../../../app/core/constants/color_constants.dart';
 import '../controllers/transaction_realtime_controller.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../widgets/transaction_realtime/chat_realtime_tab.dart';
-import '../widgets/transaction_realtime/my_form_realtime_tab.dart';
+import '../widgets/transaction_realtime/seller_form_tab.dart';
+import '../widgets/transaction_realtime/buyer_form_tab.dart';
 import '../widgets/transaction_realtime/other_form_realtime_tab.dart';
 import '../widgets/transaction_realtime/progress_realtime_tab.dart';
 
@@ -192,6 +193,50 @@ class _PreTransactionRealtimePageState
             );
           }
 
+          // Check if deal is cancelled/failed
+          if (transaction.status == 'deal_failed') {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.cancel_outlined,
+                      size: 80,
+                      color: ColorConstants.error,
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Deal Cancelled',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'This transaction has been cancelled and is no longer active.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: isDark
+                            ? ColorConstants.textSecondaryDark
+                            : ColorConstants.textSecondaryLight,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Go Back'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           final role = widget.controller.getUserRole(widget.userId);
           final otherRoleLabel = role == FormRole.seller ? 'Buyer' : 'Seller';
 
@@ -256,15 +301,24 @@ class _PreTransactionRealtimePageState
                         userId: widget.userId,
                         userName: widget.userName,
                       ),
-                      MyFormRealtimeTab(
-                        controller: widget.controller,
-                        userId: widget.userId,
-                      ),
+                      // Role-specific form: Seller sees SellerFormTab, Buyer sees BuyerFormTab
+                      role == FormRole.seller
+                          ? SellerFormTab(
+                              controller: widget.controller,
+                              userId: widget.userId,
+                            )
+                          : BuyerFormTab(
+                              controller: widget.controller,
+                              userId: widget.userId,
+                            ),
                       OtherFormRealtimeTab(
                         controller: widget.controller,
                         userId: widget.userId,
                       ),
-                      ProgressRealtimeTab(controller: widget.controller),
+                      ProgressRealtimeTab(
+                        controller: widget.controller,
+                        userId: widget.userId,
+                      ),
                     ],
                   ),
                 ),
@@ -282,7 +336,12 @@ class _PreTransactionRealtimePageState
     IconData icon;
     String text;
 
-    if (transaction.adminApproved) {
+    if (transaction.status == 'deal_failed') {
+      bgColor = ColorConstants.error.withValues(alpha: 0.1);
+      textColor = ColorConstants.error;
+      icon = Icons.cancel;
+      text = 'Deal Cancelled - This transaction is no longer active';
+    } else if (transaction.adminApproved) {
       bgColor = ColorConstants.success.withValues(alpha: 0.1);
       textColor = ColorConstants.success;
       icon = Icons.verified;

@@ -268,6 +268,87 @@ class TransactionRealtimeController extends ChangeNotifier {
     }
   }
 
+  /// Withdraw confirmation of other party's form
+  /// Allows user to cancel their confirmation and request changes
+  Future<bool> withdrawConfirmation(FormRole otherPartyRole) async {
+    if (_transaction == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.withdrawConfirmation(
+        _transaction!.id,
+        otherPartyRole,
+      );
+
+      if (success) {
+        // Reload to get updated state
+        if (_currentUserId != null) {
+          await loadTransaction(_transaction!.id, _currentUserId!);
+        }
+        print('[TransactionRealtimeController] ✅ Confirmation withdrawn');
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to withdraw confirmation';
+      print(
+        '[TransactionRealtimeController] ❌ Error withdrawing confirmation: $e',
+      );
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Buyer cancels the deal
+  /// Returns true if cancellation was successful
+  Future<bool> buyerCancelDeal({String reason = ''}) async {
+    print('[TransactionRealtimeController] buyerCancelDeal called');
+    print('[TransactionRealtimeController] Transaction: ${_transaction?.id}');
+    print('[TransactionRealtimeController] Current user: $_currentUserId');
+
+    if (_transaction == null) {
+      print('[TransactionRealtimeController] ❌ No transaction loaded');
+      return false;
+    }
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      print(
+        '[TransactionRealtimeController] Calling datasource.buyerCancelDeal with ID: ${_transaction!.id}',
+      );
+      final success = await _dataSource.buyerCancelDeal(
+        _transaction!.id,
+        reason: reason,
+      );
+
+      if (success) {
+        // Reload to get updated state
+        if (_currentUserId != null) {
+          await loadTransaction(_transaction!.id, _currentUserId!);
+        }
+        print('[TransactionRealtimeController] ✅ Deal cancelled by buyer');
+      } else {
+        print(
+          '[TransactionRealtimeController] ❌ buyerCancelDeal returned false',
+        );
+      }
+      return success;
+    } catch (e, stackTrace) {
+      _errorMessage = 'Failed to cancel deal';
+      print('[TransactionRealtimeController] ❌ Error cancelling deal: $e');
+      print('[TransactionRealtimeController] Stack trace: $stackTrace');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
   /// Clear error message
   void clearError() {
     _errorMessage = null;

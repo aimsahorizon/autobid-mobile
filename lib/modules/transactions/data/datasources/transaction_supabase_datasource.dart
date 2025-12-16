@@ -150,6 +150,90 @@ class TransactionSupabaseDataSource {
     return getTransactionsByStatus(userId, 'deal_failed');
   }
 
+  /// Get transactions where user is the BUYER
+  /// Queries auction_transactions with buyer_id = userId
+  /// Excludes auctions where user is also the seller (prevents showing own listings)
+  Future<List<ListingModel>> getBuyerTransactionsByStatus(
+    String userId,
+    String status,
+  ) async {
+    try {
+      final response = await _supabase
+          .from('auction_transactions')
+          .select('''
+            auction_id,
+            seller_id,
+            auctions(
+              *,
+              auction_statuses(status_name),
+              auction_vehicles(
+                brand, model, variant, year, engine_type, engine_displacement,
+                cylinder_count, horsepower, torque, transmission, fuel_type,
+                drive_type, length, width, height, wheelbase, ground_clearance,
+                seating_capacity, door_count, fuel_tank_capacity, curb_weight,
+                gross_weight, exterior_color, paint_type, rim_type, rim_size,
+                tire_size, tire_brand, condition, mileage, previous_owners,
+                has_modifications, modifications_details, has_warranty,
+                warranty_details, usage_type, plate_number, orcr_status,
+                registration_status, registration_expiry, province,
+                city_municipality, known_issues, features
+              ),
+              auction_photos(
+                photo_url, category, display_order, is_primary, caption
+              )
+            )
+          ''')
+          .eq('buyer_id', userId)
+          .neq(
+            'seller_id',
+            userId,
+          ) // Exclude transactions where user is also seller
+          .eq('status', status)
+          .order('created_at', ascending: false);
+
+      final transactions = (response as List);
+      if (transactions.isEmpty) return [];
+
+      return transactions.map((txn) {
+        final auctionData = Map<String, dynamic>.from(
+          txn['auctions'] as Map<String, dynamic>,
+        );
+        final txnStatus = txn['status'] as String?;
+        final joinedStatus = auctionData['auction_statuses'] is Map
+            ? (auctionData['auction_statuses'] as Map)['status_name'] as String?
+            : null;
+        auctionData['status'] =
+            txnStatus ?? joinedStatus ?? auctionData['status'];
+        if (auctionData['current_bid'] == null &&
+            auctionData['current_price'] != null) {
+          auctionData['current_bid'] = auctionData['current_price'];
+        }
+        return _mergeAuctionWithVehicleData(auctionData);
+      }).toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch buyer transactions: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to fetch buyer transactions: $e');
+    }
+  }
+
+  /// Get active buyer transactions (in_transaction status)
+  Future<List<ListingModel>> getActiveBuyerTransactions(String userId) async {
+    return getBuyerTransactionsByStatus(userId, 'in_transaction');
+  }
+
+  /// Get completed buyer transactions (sold status)
+  Future<List<ListingModel>> getCompletedBuyerTransactions(
+    String userId,
+  ) async {
+    return getBuyerTransactionsByStatus(userId, 'sold');
+  }
+
+  /// Get failed buyer transactions (deal_failed status)
+  Future<List<ListingModel>> getFailedBuyerTransactions(String userId) async {
+    return getBuyerTransactionsByStatus(userId, 'deal_failed');
+  }
+
   /// Helper: Merge auction data with nested vehicle and photo data
   /// Handles Supabase's varying return formats (array vs object for one-to-one relations)
   ListingModel _mergeAuctionWithVehicleData(Map<String, dynamic> json) {

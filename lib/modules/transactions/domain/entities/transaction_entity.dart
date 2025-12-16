@@ -203,60 +203,134 @@ enum MessageType {
   attachment, // File or image attachment
 }
 
-/// Represents transaction form data (seller or buyer)
+/// Represents transaction form data - role-specific fields
+/// Seller and Buyer have different responsibilities and form fields
 class TransactionFormEntity {
   final String id;
   final String transactionId;
   final FormRole role;
   final FormStatus status;
-
-  // Agreement details
-  final double agreedPrice;
-  final String paymentMethod;
-  final DateTime deliveryDate;
-  final String deliveryLocation;
-
-  // Legal checklist
-  final bool orCrVerified;
-  final bool deedsOfSaleReady;
-  final bool plateNumberConfirmed;
-  final bool registrationValid;
-  final bool noOutstandingLoans;
-  final bool mechanicalInspectionDone;
-
-  // Additional terms
-  final String additionalTerms;
   final DateTime submittedAt;
   final String? reviewNotes;
+
+  // ===== SHARED FIELDS =====
+  final DateTime preferredDate;
+  final String contactNumber;
+  final String additionalNotes;
+
+  // ===== SELLER-SPECIFIC FIELDS =====
+  // Document Checklist
+  final bool orCrOriginalAvailable;
+  final bool deedOfSaleReady;
+  final bool releaseOfMortgage; // If applicable
+  final bool registrationValid;
+  final bool noLiensEncumbrances;
+
+  // Vehicle Condition
+  final bool conditionMatchesListing;
+  final String? newIssuesDisclosure; // Any issues since listing
+  final String fuelLevel; // Full, Half, Quarter, Empty
+  final String? accessoriesIncluded; // Keys, manual, tools, etc.
+
+  // Handover
+  final String handoverLocation;
+  final String handoverTimeSlot; // Morning, Afternoon, Evening
+
+  // ===== BUYER-SPECIFIC FIELDS =====
+  // Payment
+  final String paymentMethod; // Bank Transfer, Cash, Financing
+  final String? bankName;
+  final String? accountName;
+  final String? accountNumber;
+
+  // Pickup/Delivery
+  final String pickupOrDelivery; // Pickup, Delivery
+  final String? deliveryAddress;
+
+  // Acknowledgments
+  final bool reviewedVehicleCondition;
+  final bool understoodAuctionTerms;
+  final bool willArrangeInsurance;
+  final bool acceptsAsIsCondition;
 
   const TransactionFormEntity({
     required this.id,
     required this.transactionId,
     required this.role,
     required this.status,
-    required this.agreedPrice,
-    required this.paymentMethod,
-    required this.deliveryDate,
-    required this.deliveryLocation,
-    required this.orCrVerified,
-    required this.deedsOfSaleReady,
-    required this.plateNumberConfirmed,
-    required this.registrationValid,
-    required this.noOutstandingLoans,
-    required this.mechanicalInspectionDone,
-    required this.additionalTerms,
     required this.submittedAt,
     this.reviewNotes,
+    // Shared
+    required this.preferredDate,
+    this.contactNumber = '',
+    this.additionalNotes = '',
+    // Seller
+    this.orCrOriginalAvailable = false,
+    this.deedOfSaleReady = false,
+    this.releaseOfMortgage = false,
+    this.registrationValid = false,
+    this.noLiensEncumbrances = false,
+    this.conditionMatchesListing = false,
+    this.newIssuesDisclosure,
+    this.fuelLevel = 'Half',
+    this.accessoriesIncluded,
+    this.handoverLocation = '',
+    this.handoverTimeSlot = 'Afternoon',
+    // Buyer
+    this.paymentMethod = 'Bank Transfer',
+    this.bankName,
+    this.accountName,
+    this.accountNumber,
+    this.pickupOrDelivery = 'Pickup',
+    this.deliveryAddress,
+    this.reviewedVehicleCondition = false,
+    this.understoodAuctionTerms = false,
+    this.willArrangeInsurance = false,
+    this.acceptsAsIsCondition = false,
   });
 
-  /// Check if all required checkboxes are checked
-  bool get allChecklistComplete =>
-      orCrVerified &&
-      deedsOfSaleReady &&
-      plateNumberConfirmed &&
+  // Legacy getters for backward compatibility
+  double get agreedPrice => 0; // Now comes from transaction
+  DateTime get deliveryDate => preferredDate;
+  String get deliveryLocation => pickupOrDelivery == 'Delivery'
+      ? (deliveryAddress ?? handoverLocation)
+      : handoverLocation;
+
+  // Legacy checklist getters (map to new fields)
+  bool get orCrVerified => orCrOriginalAvailable;
+  bool get deedsOfSaleReady => deedOfSaleReady;
+  bool get plateNumberConfirmed =>
+      true; // Always true, not needed as separate field
+  bool get noOutstandingLoans => noLiensEncumbrances;
+  bool get mechanicalInspectionDone => conditionMatchesListing;
+
+  /// Check if seller checklist is complete
+  bool get sellerChecklistComplete =>
+      orCrOriginalAvailable &&
+      deedOfSaleReady &&
       registrationValid &&
-      noOutstandingLoans &&
-      mechanicalInspectionDone;
+      noLiensEncumbrances &&
+      conditionMatchesListing;
+
+  /// Check if buyer acknowledgments are complete
+  bool get buyerAcknowledgmentsComplete =>
+      reviewedVehicleCondition &&
+      understoodAuctionTerms &&
+      willArrangeInsurance &&
+      acceptsAsIsCondition;
+
+  /// Check if form is valid for submission
+  bool get isValidForSubmission {
+    if (role == FormRole.seller) {
+      return sellerChecklistComplete &&
+          handoverLocation.isNotEmpty &&
+          contactNumber.isNotEmpty;
+    } else {
+      return buyerAcknowledgmentsComplete &&
+          paymentMethod.isNotEmpty &&
+          contactNumber.isNotEmpty;
+    }
+  }
 }
 
 /// Role in the transaction form

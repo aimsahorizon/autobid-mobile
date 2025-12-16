@@ -6,11 +6,8 @@ import '../controllers/buyer_seller_transactions_controller.dart';
 import '../pages/pre_transaction_realtime_page.dart';
 import '../../../lists/presentation/widgets/listings_grid.dart';
 import '../../../lists/domain/entities/seller_listing_entity.dart';
-import '../../../bids/presentation/widgets/user_bid_card.dart';
-import '../../../bids/domain/entities/user_bid_entity.dart';
 import '../../transactions_module.dart';
 import '../../data/datasources/transaction_supabase_datasource.dart';
-import '../../../bids/data/datasources/user_bids_supabase_datasource.dart';
 
 /// Page for status-based transactions with buyer/seller perspective
 /// Displays in the Transactions bottom nav tab
@@ -45,16 +42,13 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       vsync: this,
     );
 
-    // Initialize controller with both datasources
-    final sellerDataSource = TransactionSupabaseDataSource(
-      SupabaseConfig.client,
-    );
-    final buyerDataSource = UserBidsSupabaseDataSource(SupabaseConfig.client);
+    // Initialize controller with transaction datasource only
+    final dataSource = TransactionSupabaseDataSource(SupabaseConfig.client);
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
 
     _controller = BuyerSellerTransactionsController(
-      sellerDataSource,
-      buyerDataSource,
+      dataSource,
+      null, // No longer need separate buyer datasource
       userId,
     );
 
@@ -219,22 +213,15 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
 
               return RefreshIndicator(
                 onRefresh: _controller.refresh,
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.72,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: transactions.length,
-                  itemBuilder: (context, index) {
-                    final bid = transactions[index];
-                    return UserBidCard(
-                      bid: bid,
-                      onTap: (_) => _handleBuyerTransactionTap(context, bid),
-                    );
-                  },
+                child: ListingsGrid(
+                  listings: transactions,
+                  isGridView: false,
+                  isLoading: false,
+                  emptyTitle: _getEmptyBuyerTitle(status),
+                  emptySubtitle: _getEmptyBuyerSubtitle(status),
+                  emptyIcon: _getEmptyIcon(status),
+                  onListingUpdated: () => _controller.refresh(),
+                  onTransactionCardTap: _handleBuyerTransactionTap,
                 ),
               );
             },
@@ -330,7 +317,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
   /// Handle buyer transaction tap
   Future<void> _handleBuyerTransactionTap(
     BuildContext context,
-    UserBidEntity bid,
+    SellerListingEntity listing,
   ) async {
     final transactionController = TransactionsModule.instance
         .createRealtimeTransactionController();
@@ -346,8 +333,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       MaterialPageRoute(
         builder: (context) => PreTransactionRealtimePage(
           controller: transactionController,
-          transactionId:
-              bid.auctionId, // Use auction ID to find the transaction
+          transactionId: listing.id, // Use listing ID to find the transaction
           userId: userId,
           userName: userName,
         ),

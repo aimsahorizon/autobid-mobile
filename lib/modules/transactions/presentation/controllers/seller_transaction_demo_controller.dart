@@ -45,7 +45,9 @@ class SellerTransactionDemoController extends ChangeNotifier {
       await _delay(2000);
 
       // Step 3: Simulate buyer form submission
-      print('DEBUG [DemoController]: Step 3 - Simulating buyer form submission');
+      print(
+        'DEBUG [DemoController]: Step 3 - Simulating buyer form submission',
+      );
       await _submitBuyerForm();
       await _delay(3000); // Increased delay
 
@@ -92,7 +94,6 @@ class SellerTransactionDemoController extends ChangeNotifier {
       _currentStep = 'Demo completed!';
       print('DEBUG [DemoController]: ✅ Demo completed successfully');
       notifyListeners();
-
     } catch (e, stackTrace) {
       _currentStep = 'Demo error: $e';
       print('ERROR [DemoController]: ❌ Demo failed: $e');
@@ -116,17 +117,21 @@ class SellerTransactionDemoController extends ChangeNotifier {
       transactionId: transactionController.transaction?.id ?? '',
       role: FormRole.seller,
       status: FormStatus.submitted,
-      agreedPrice: transactionController.transaction?.agreedPrice ?? 500000,
+      preferredDate: DateTime.now().add(const Duration(days: 7)),
+      contactNumber: '09171234567',
+      additionalNotes: 'All documents ready for transfer',
       paymentMethod: 'Bank Transfer',
-      deliveryDate: DateTime.now().add(const Duration(days: 7)),
-      deliveryLocation: 'Seller Location - Makati City',
-      orCrVerified: true,
-      deedsOfSaleReady: true,
-      plateNumberConfirmed: true,
+      handoverLocation: 'Seller Location - Makati City',
+      handoverTimeSlot: 'Afternoon',
+      orCrOriginalAvailable: true,
+      deedOfSaleReady: true,
       registrationValid: true,
-      noOutstandingLoans: true,
-      mechanicalInspectionDone: true,
-      additionalTerms: 'All documents ready for transfer',
+      noLiensEncumbrances: true,
+      conditionMatchesListing: true,
+      reviewedVehicleCondition: true,
+      understoodAuctionTerms: true,
+      willArrangeInsurance: true,
+      acceptsAsIsCondition: true,
       submittedAt: DateTime.now(),
     );
 
@@ -142,17 +147,18 @@ class SellerTransactionDemoController extends ChangeNotifier {
       transactionId: transactionController.transaction?.id ?? '',
       role: FormRole.buyer,
       status: FormStatus.submitted,
-      agreedPrice: transactionController.transaction?.agreedPrice ?? 500000,
+      preferredDate: DateTime.now().add(const Duration(days: 7)),
+      contactNumber: '09181234567',
+      additionalNotes: 'Ready for vehicle pickup',
       paymentMethod: 'Bank Transfer',
-      deliveryDate: DateTime.now().add(const Duration(days: 7)),
-      deliveryLocation: 'Buyer preferred location - QC',
-      orCrVerified: true,
-      deedsOfSaleReady: true,
-      plateNumberConfirmed: true,
-      registrationValid: true,
-      noOutstandingLoans: true,
-      mechanicalInspectionDone: true,
-      additionalTerms: 'Ready for vehicle pickup',
+      pickupOrDelivery: 'Delivery',
+      deliveryAddress: 'Buyer preferred location - QC',
+      handoverLocation: 'Buyer preferred location - QC',
+      handoverTimeSlot: 'Afternoon',
+      reviewedVehicleCondition: true,
+      understoodAuctionTerms: true,
+      willArrangeInsurance: true,
+      acceptsAsIsCondition: true,
       submittedAt: DateTime.now(),
     );
 
@@ -176,17 +182,33 @@ class SellerTransactionDemoController extends ChangeNotifier {
         transactionId: transactionController.myForm!.transactionId,
         role: transactionController.myForm!.role,
         status: FormStatus.confirmed,
-        agreedPrice: transactionController.myForm!.agreedPrice,
+        preferredDate: transactionController.myForm!.preferredDate,
+        contactNumber: transactionController.myForm!.contactNumber,
+        additionalNotes: transactionController.myForm!.additionalNotes,
         paymentMethod: transactionController.myForm!.paymentMethod,
-        deliveryDate: transactionController.myForm!.deliveryDate,
-        deliveryLocation: transactionController.myForm!.deliveryLocation,
-        orCrVerified: transactionController.myForm!.orCrVerified,
-        deedsOfSaleReady: transactionController.myForm!.deedsOfSaleReady,
-        plateNumberConfirmed: transactionController.myForm!.plateNumberConfirmed,
+        pickupOrDelivery: transactionController.myForm!.pickupOrDelivery,
+        deliveryAddress: transactionController.myForm!.deliveryAddress,
+        handoverLocation: transactionController.myForm!.handoverLocation,
+        handoverTimeSlot: transactionController.myForm!.handoverTimeSlot,
+        orCrOriginalAvailable:
+            transactionController.myForm!.orCrOriginalAvailable,
+        deedOfSaleReady: transactionController.myForm!.deedOfSaleReady,
+        releaseOfMortgage: transactionController.myForm!.releaseOfMortgage,
         registrationValid: transactionController.myForm!.registrationValid,
-        noOutstandingLoans: transactionController.myForm!.noOutstandingLoans,
-        mechanicalInspectionDone: transactionController.myForm!.mechanicalInspectionDone,
-        additionalTerms: transactionController.myForm!.additionalTerms,
+        noLiensEncumbrances: transactionController.myForm!.noLiensEncumbrances,
+        conditionMatchesListing:
+            transactionController.myForm!.conditionMatchesListing,
+        newIssuesDisclosure: transactionController.myForm!.newIssuesDisclosure,
+        fuelLevel: transactionController.myForm!.fuelLevel,
+        accessoriesIncluded: transactionController.myForm!.accessoriesIncluded,
+        reviewedVehicleCondition:
+            transactionController.myForm!.reviewedVehicleCondition,
+        understoodAuctionTerms:
+            transactionController.myForm!.understoodAuctionTerms,
+        willArrangeInsurance:
+            transactionController.myForm!.willArrangeInsurance,
+        acceptsAsIsCondition:
+            transactionController.myForm!.acceptsAsIsCondition,
         submittedAt: transactionController.myForm!.submittedAt,
         reviewNotes: 'Confirmed by buyer',
       );
@@ -207,7 +229,9 @@ class SellerTransactionDemoController extends ChangeNotifier {
     // In real scenario, admin would approve via admin panel
     if (transactionController.transaction != null) {
       final datasource = TransactionMockDataSource();
-      await datasource.simulateAdminApproval(transactionController.transaction!.id);
+      await datasource.simulateAdminApproval(
+        transactionController.transaction!.id,
+      );
       // Reload transaction to reflect changes
       await transactionController.loadTransaction(
         transactionController.transaction!.id,

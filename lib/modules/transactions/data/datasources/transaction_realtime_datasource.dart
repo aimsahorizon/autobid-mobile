@@ -327,20 +327,32 @@ class TransactionRealtimeDataSource {
       transactionId: data['transaction_id'] as String,
       role: data['role'] == 'seller' ? FormRole.seller : FormRole.buyer,
       status: _mapFormStatus(data['status'] as String? ?? 'draft'),
-      agreedPrice: (data['agreed_price'] as num).toDouble(),
-      paymentMethod: data['payment_method'] as String? ?? '',
-      deliveryDate: data['delivery_date'] != null
+      preferredDate: data['delivery_date'] != null
           ? DateTime.parse(data['delivery_date'] as String)
           : DateTime.now().add(const Duration(days: 7)),
-      deliveryLocation: data['delivery_location'] as String? ?? '',
-      orCrVerified: data['or_cr_verified'] as bool? ?? false,
-      deedsOfSaleReady: data['deeds_of_sale_ready'] as bool? ?? false,
-      plateNumberConfirmed: data['plate_number_confirmed'] as bool? ?? false,
+      contactNumber: data['contact_number'] as String? ?? '',
+      additionalNotes: data['additional_terms'] as String? ?? '',
+      paymentMethod: data['payment_method'] as String? ?? '',
+      handoverLocation: data['delivery_location'] as String? ?? '',
+      handoverTimeSlot: data['handover_time_slot'] as String? ?? 'Afternoon',
+      pickupOrDelivery: data['pickup_or_delivery'] as String? ?? 'Pickup',
+      deliveryAddress: data['delivery_address'] as String?,
+      orCrOriginalAvailable: data['or_cr_verified'] as bool? ?? false,
+      deedOfSaleReady: data['deeds_of_sale_ready'] as bool? ?? false,
+      releaseOfMortgage: data['release_of_mortgage'] as bool? ?? false,
       registrationValid: data['registration_valid'] as bool? ?? false,
-      noOutstandingLoans: data['no_outstanding_loans'] as bool? ?? false,
-      mechanicalInspectionDone:
+      noLiensEncumbrances: data['no_outstanding_loans'] as bool? ?? false,
+      conditionMatchesListing:
           data['mechanical_inspection_done'] as bool? ?? false,
-      additionalTerms: data['additional_terms'] as String? ?? '',
+      newIssuesDisclosure: data['new_issues_disclosure'] as String?,
+      fuelLevel: data['fuel_level'] as String? ?? 'Half',
+      accessoriesIncluded: data['accessories_included'] as String?,
+      reviewedVehicleCondition:
+          data['reviewed_vehicle_condition'] as bool? ?? false,
+      understoodAuctionTerms:
+          data['understood_auction_terms'] as bool? ?? false,
+      willArrangeInsurance: data['will_arrange_insurance'] as bool? ?? false,
+      acceptsAsIsCondition: data['accepts_as_is_condition'] as bool? ?? false,
       submittedAt: data['submitted_at'] != null
           ? DateTime.parse(data['submitted_at'] as String)
           : DateTime.now(),
@@ -377,15 +389,26 @@ class TransactionRealtimeDataSource {
         'status': 'submitted',
         'agreed_price': form.agreedPrice,
         'payment_method': form.paymentMethod,
-        'delivery_date': form.deliveryDate.toIso8601String(),
-        'delivery_location': form.deliveryLocation,
-        'or_cr_verified': form.orCrVerified,
-        'deeds_of_sale_ready': form.deedsOfSaleReady,
-        'plate_number_confirmed': form.plateNumberConfirmed,
+        'delivery_date': form.preferredDate.toIso8601String(),
+        'delivery_location': form.handoverLocation,
+        'pickup_or_delivery': form.pickupOrDelivery,
+        'delivery_address': form.deliveryAddress,
+        'contact_number': form.contactNumber,
+        'handover_time_slot': form.handoverTimeSlot,
+        'or_cr_verified': form.orCrOriginalAvailable,
+        'deeds_of_sale_ready': form.deedOfSaleReady,
+        'release_of_mortgage': form.releaseOfMortgage,
         'registration_valid': form.registrationValid,
-        'no_outstanding_loans': form.noOutstandingLoans,
-        'mechanical_inspection_done': form.mechanicalInspectionDone,
-        'additional_terms': form.additionalTerms,
+        'no_outstanding_loans': form.noLiensEncumbrances,
+        'mechanical_inspection_done': form.conditionMatchesListing,
+        'reviewed_vehicle_condition': form.reviewedVehicleCondition,
+        'understood_auction_terms': form.understoodAuctionTerms,
+        'will_arrange_insurance': form.willArrangeInsurance,
+        'accepts_as_is_condition': form.acceptsAsIsCondition,
+        'new_issues_disclosure': form.newIssuesDisclosure,
+        'fuel_level': form.fuelLevel,
+        'accessories_included': form.accessoriesIncluded,
+        'additional_terms': form.additionalNotes,
         'submitted_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       };
@@ -475,6 +498,176 @@ class TransactionRealtimeDataSource {
       return true;
     } catch (e) {
       print('[TransactionRealtimeDataSource] Error confirming form: $e');
+      return false;
+    }
+  }
+
+  /// Withdraw confirmation of the other party's form
+  /// This allows the user to edit their decision if they confirmed by mistake
+  /// or if they need to request changes from the other party
+  Future<bool> withdrawConfirmation(
+    String transactionId,
+    FormRole roleToWithdraw,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      // Revert form status to submitted (so it can be reviewed again)
+      final roleStr = roleToWithdraw == FormRole.seller ? 'seller' : 'buyer';
+      await _supabase
+          .from('transaction_forms')
+          .update({
+            'status': 'submitted',
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('transaction_id', txnId)
+          .eq('role', roleStr);
+
+      // Revert transaction confirmed flag
+      final flagColumn = roleToWithdraw == FormRole.seller
+          ? 'seller_confirmed'
+          : 'buyer_confirmed';
+
+      await _supabase
+          .from('auction_transactions')
+          .update({
+            flagColumn: false,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', txnId);
+
+      // Add timeline event
+      final userId = _supabase.auth.currentUser?.id ?? '';
+      final userName =
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'User';
+      await _addTimelineEvent(
+        txnId,
+        '${roleStr.substring(0, 1).toUpperCase()}${roleStr.substring(1)} Form Confirmation Withdrawn',
+        '$userName withdrew their confirmation of the $roleStr form',
+        'form_confirmation_withdrawn',
+        userId,
+        userName,
+      );
+
+      return true;
+    } catch (e) {
+      print(
+        '[TransactionRealtimeDataSource] Error withdrawing confirmation: $e',
+      );
+      return false;
+    }
+  }
+
+  /// Buyer cancels the deal
+  /// This sets the transaction to deal_failed and the auction to deal_failed
+  /// Seller can then choose to offer to next bidder or relist
+  Future<bool> buyerCancelDeal(
+    String transactionId, {
+    String reason = '',
+  }) async {
+    print('[BuyerCancelDeal] 🚀 Starting cancel for: $transactionId');
+
+    try {
+      // Step 1: Resolve transaction ID
+      print('[BuyerCancelDeal] Step 1: Resolving transaction ID...');
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) {
+        print('[BuyerCancelDeal] ❌ Failed: Could not resolve transaction ID');
+        return false;
+      }
+      print('[BuyerCancelDeal] ✅ Resolved txnId: $txnId');
+
+      // Step 2: Get transaction summary
+      print('[BuyerCancelDeal] Step 2: Getting transaction summary...');
+      final txn = await _getTransactionSummary(txnId);
+      if (txn == null) {
+        print('[BuyerCancelDeal] ❌ Failed: Could not get transaction summary');
+        return false;
+      }
+      print('[BuyerCancelDeal] ✅ Transaction summary: $txn');
+
+      final auctionId = txn['auctionId'] as String?;
+      if (auctionId == null) {
+        print('[BuyerCancelDeal] ❌ Failed: No auction ID in transaction');
+        return false;
+      }
+      print('[BuyerCancelDeal] ✅ Auction ID: $auctionId');
+
+      final now = DateTime.now().toIso8601String();
+
+      // Step 3: Update transaction status
+      print('[BuyerCancelDeal] Step 3: Updating transaction status...');
+      try {
+        await _supabase
+            .from('auction_transactions')
+            .update({'status': 'deal_failed', 'updated_at': now})
+            .eq('id', txnId);
+        print('[BuyerCancelDeal] ✅ Transaction status updated to deal_failed');
+      } catch (e) {
+        print('[BuyerCancelDeal] ❌ Failed to update transaction: $e');
+        return false;
+      }
+
+      // Step 4: Update auction status
+      print('[BuyerCancelDeal] Step 4: Updating auction status...');
+      try {
+        await _supabase
+            .from('auctions')
+            .update({'status': 'deal_failed', 'updated_at': now})
+            .eq('id', auctionId);
+        print('[BuyerCancelDeal] ✅ Auction status updated to deal_failed');
+      } catch (e) {
+        print('[BuyerCancelDeal] ⚠️ Warning: Failed to update auction: $e');
+        // Don't return false - auction update is secondary
+      }
+
+      // Step 5: Update buyer's bid status
+      final buyerId = txn['buyerId'] as String?;
+      print(
+        '[BuyerCancelDeal] Step 5: Updating bid status for buyer: $buyerId',
+      );
+      if (buyerId != null) {
+        try {
+          await _supabase
+              .from('bids')
+              .update({'status': 'cancelled', 'updated_at': now})
+              .eq('auction_id', auctionId)
+              .eq('bidder_id', buyerId);
+          print('[BuyerCancelDeal] ✅ Bid status updated to cancelled');
+        } catch (e) {
+          print('[BuyerCancelDeal] ⚠️ Warning: Failed to update bid: $e');
+          // Don't return false - bid update is secondary
+        }
+      }
+
+      // Step 6: Add timeline event
+      print('[BuyerCancelDeal] Step 6: Adding timeline event...');
+      final userId = _supabase.auth.currentUser?.id ?? '';
+      final userName =
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Buyer';
+      try {
+        await _addTimelineEvent(
+          txnId,
+          'Deal Cancelled by Buyer',
+          reason.isNotEmpty
+              ? 'Buyer cancelled the deal. Reason: $reason'
+              : 'Buyer cancelled the deal.',
+          'cancelled',
+          userId,
+          userName,
+        );
+        print('[BuyerCancelDeal] ✅ Timeline event added');
+      } catch (e) {
+        print('[BuyerCancelDeal] ⚠️ Warning: Failed to add timeline: $e');
+        // Don't return false - timeline is secondary
+      }
+
+      print('[BuyerCancelDeal] 🎉 SUCCESS: Deal cancelled successfully');
+      return true;
+    } catch (e, stackTrace) {
+      print('[BuyerCancelDeal] ❌ FATAL ERROR: $e');
+      print('[BuyerCancelDeal] Stack trace: $stackTrace');
       return false;
     }
   }
@@ -712,6 +905,7 @@ class TransactionRealtimeDataSource {
 
   /// Resolve transaction ID from either transaction ID or auction ID
   Future<String?> _resolveTransactionId(String idOrAuctionId) async {
+    print('[_resolveTransactionId] Input: $idOrAuctionId');
     try {
       // First try as transaction ID
       final txnById = await _supabase
@@ -721,10 +915,14 @@ class TransactionRealtimeDataSource {
           .maybeSingle();
 
       if (txnById != null) {
+        print(
+          '[_resolveTransactionId] Found by transaction ID: ${txnById['id']}',
+        );
         return txnById['id'] as String;
       }
 
       // Try as auction ID
+      print('[_resolveTransactionId] Not found by ID, trying as auction ID...');
       final txnByAuction = await _supabase
           .from('auction_transactions')
           .select('id')
@@ -732,14 +930,16 @@ class TransactionRealtimeDataSource {
           .maybeSingle();
 
       if (txnByAuction != null) {
+        print(
+          '[_resolveTransactionId] Found by auction ID: ${txnByAuction['id']}',
+        );
         return txnByAuction['id'] as String;
       }
 
+      print('[_resolveTransactionId] ❌ Not found by either method');
       return null;
     } catch (e) {
-      print(
-        '[TransactionRealtimeDataSource] Error resolving transaction ID: $e',
-      );
+      print('[_resolveTransactionId] ❌ Error: $e');
       return null;
     }
   }
