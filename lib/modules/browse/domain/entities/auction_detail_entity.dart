@@ -19,6 +19,16 @@ class AuctionDetailEntity {
   final CarPhotosEntity photos;
   final bool hasUserDeposited;
 
+  // Anti-snipe guard configuration
+  /// When enabled, auction extends if bid placed near end time (default: true)
+  final bool snipeGuardEnabled;
+
+  /// If bid placed within this many seconds before end, trigger extension (default: 300 = 5 minutes)
+  final int snipeGuardThresholdSeconds;
+
+  /// How many seconds to extend auction end time when triggered (default: 300 = 5 minutes)
+  final int snipeGuardExtendSeconds;
+
   // Step 1: Basic Information
   final String brand;
   final String model;
@@ -95,6 +105,9 @@ class AuctionDetailEntity {
     required this.status,
     required this.photos,
     required this.hasUserDeposited,
+    this.snipeGuardEnabled = true,
+    this.snipeGuardThresholdSeconds = 300,
+    this.snipeGuardExtendSeconds = 300,
     required this.brand,
     required this.model,
     this.variant,

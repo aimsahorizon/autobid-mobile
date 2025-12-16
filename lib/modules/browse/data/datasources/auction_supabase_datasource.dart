@@ -228,16 +228,22 @@ class AuctionSupabaseDataSource {
 
       // Get all photos for the auction
       final photosResponse = await _supabase
-          .from('auction_images')
-          .select('image_url, display_order')
+          .from('auction_photos')
+          .select('photo_url, category, display_order')
           .eq('auction_id', auctionId)
           .order('display_order', ascending: true);
 
       final photos = <String, List<String>>{};
       if (photosResponse.isNotEmpty) {
-        photos['all'] = (photosResponse as List)
-            .map((p) => p['image_url'] as String)
-            .toList();
+        // Group photos by category
+        final photoList = (photosResponse as List);
+        for (final photo in photoList) {
+          final url = photo['photo_url'] as String;
+          final category = photo['category'] as String? ?? 'other';
+          photos.putIfAbsent(category, () => []).add(url);
+        }
+        // Also provide 'all' list for backward compatibility
+        photos['all'] = photoList.map((p) => p['photo_url'] as String).toList();
       }
 
       // Check if user has deposited (if logged in)

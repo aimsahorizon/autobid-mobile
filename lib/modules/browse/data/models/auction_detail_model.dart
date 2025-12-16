@@ -19,6 +19,9 @@ class AuctionDetailModel extends AuctionDetailEntity {
     required super.status,
     required super.photos,
     required super.hasUserDeposited,
+    super.snipeGuardEnabled,
+    super.snipeGuardThresholdSeconds,
+    super.snipeGuardExtendSeconds,
     required super.brand,
     required super.model,
     super.variant,
@@ -88,6 +91,13 @@ class AuctionDetailModel extends AuctionDetailEntity {
       _numOrZero(json['bid_increment'], 1000),
     );
 
+    final snipeGuardEnabled = json['snipe_guard_enabled'] as bool? ?? true;
+    final snipeGuardThresholdSeconds =
+        (json['snipe_guard_threshold_seconds'] as int?) ?? 300;
+    final snipeGuardExtendSeconds =
+        (json['snipe_guard_extend_seconds'] as int?) ??
+        snipeGuardThresholdSeconds;
+
     final enableIncrementalBiddingValue =
         (json['enable_incremental_bidding'] as bool?) ?? true;
 
@@ -112,6 +122,9 @@ class AuctionDetailModel extends AuctionDetailEntity {
         json['photos'] as Map<String, dynamic>? ?? {},
       ),
       hasUserDeposited: json['has_user_deposited'] as bool? ?? false,
+      snipeGuardEnabled: snipeGuardEnabled,
+      snipeGuardThresholdSeconds: snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds: snipeGuardExtendSeconds,
       brand: (json['brand'] as String?) ?? (json['make'] as String?) ?? '',
       model: (json['model'] as String?) ?? '',
       variant: json['variant'] as String?,
@@ -199,6 +212,9 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'status': status,
       'photos': (photos as CarPhotosModel).toJson(),
       'has_user_deposited': hasUserDeposited,
+      'snipe_guard_enabled': snipeGuardEnabled,
+      'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
+      'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
       'brand': brand,
       'make': brand, // backwards compatibility
       'model': model,

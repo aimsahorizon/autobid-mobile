@@ -461,6 +461,7 @@ class AuctionDetailController extends ChangeNotifier {
         success = await _mockDataSource!.placeBid(_auction!.id, amount);
       } else {
         // Place bid in Supabase
+        print('[AuctionDetailController] Placing bid: \$${amount}');
         await _supabaseBidHistoryDataSource!.placeBid(
           auctionId: _auction!.id,
           bidderId: effectiveUserId!,
@@ -469,11 +470,18 @@ class AuctionDetailController extends ChangeNotifier {
           maxAutoBid: _maxAutoBid,
           autoBidIncrement: _isAutoBidActive ? _bidIncrement : null,
         );
+        print(
+          '[AuctionDetailController] Bid placed successfully, reloading auction data...',
+        );
       }
 
       if (success) {
         // Reload auction to update current bid and bid history
+        // This will also get the potentially extended end_time from snipe guard
         await loadAuctionDetail(_auction!.id);
+        print(
+          '[AuctionDetailController] Auction data reloaded. New end time: ${_auction!.endTime}',
+        );
       }
       return success;
     } catch (e) {
