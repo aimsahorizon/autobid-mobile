@@ -6,8 +6,9 @@ import '../../../domain/entities/transaction_entity.dart';
 /// Progress tab - shows transaction timeline and status
 class ProgressRealtimeTab extends StatelessWidget {
   final TransactionRealtimeController controller;
+  final String? userId;
 
-  const ProgressRealtimeTab({super.key, required this.controller});
+  const ProgressRealtimeTab({super.key, required this.controller, this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +25,17 @@ class ProgressRealtimeTab extends StatelessWidget {
           return const Center(child: Text('No transaction data'));
         }
 
+        // Check if current user is the buyer
+        final isBuyer =
+            userId != null && controller.getUserRole(userId!) == FormRole.buyer;
+
+        // Check if deal can be cancelled (not yet admin approved and not already failed/cancelled)
+        final canCancelDeal =
+            isBuyer &&
+            !transaction.adminApproved &&
+            transaction.status != TransactionStatus.cancelled &&
+            transaction.status != TransactionStatus.completed;
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -36,6 +48,12 @@ class ProgressRealtimeTab extends StatelessWidget {
 
               // Progress Steps
               _buildProgressSteps(transaction, isDark),
+
+              // Cancel Deal Button (only for buyers who haven't completed transaction)
+              if (canCancelDeal) ...[
+                const SizedBox(height: 24),
+                _buildCancelDealSection(context, isDark),
+              ],
 
               const SizedBox(height: 24),
 
@@ -77,6 +95,185 @@ class ProgressRealtimeTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildCancelDealSection(BuildContext context, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ColorConstants.error.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ColorConstants.error.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: ColorConstants.error,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Cancel Transaction',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'If you can no longer proceed with this purchase, you can cancel the deal. The seller will be notified and may offer to the next highest bidder.',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: controller.isProcessing
+                  ? null
+                  : () => _showCancelDealDialog(context),
+              icon: controller.isProcessing
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cancel_outlined),
+              label: const Text('Cancel Deal'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColorConstants.error,
+                side: BorderSide(color: ColorConstants.error),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showCancelDealDialog(BuildContext context) async {
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: ColorConstants.error),
+            const SizedBox(width: 12),
+            const Text('Cancel Deal'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Are you sure you want to cancel this deal? This action cannot be undone.',
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Please provide a reason (optional):',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Enter reason for cancellation...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ColorConstants.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: ColorConstants.warning,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'The seller will be notified and may offer to the next highest bidder.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep Deal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.error,
+            ),
+            child: const Text('Cancel Deal'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      print(
+        '[ProgressRealtimeTab] User confirmed cancel. Calling controller...',
+      );
+      print('[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"');
+
+      final success = await controller.buyerCancelDeal(
+        reason: reasonController.text.trim(),
+      );
+
+      print('[ProgressRealtimeTab] buyerCancelDeal returned: $success');
+
+      if (context.mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Deal cancelled successfully'),
+              backgroundColor: ColorConstants.success,
+            ),
+          );
+          // Navigate back since the deal is cancelled
+          Navigator.pop(context);
+        } else {
+          print(
+            '[ProgressRealtimeTab] ❌ Cancel failed. Error: ${controller.errorMessage}',
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(controller.errorMessage ?? 'Failed to cancel deal'),
+              backgroundColor: ColorConstants.error,
+            ),
+          );
+        }
+      }
+    }
+
+    reasonController.dispose();
   }
 
   Widget _buildSummaryCard(TransactionEntity transaction, bool isDark) {

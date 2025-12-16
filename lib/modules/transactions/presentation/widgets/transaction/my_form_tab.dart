@@ -8,11 +8,7 @@ class MyFormTab extends StatefulWidget {
   final TransactionController controller;
   final String userId;
 
-  const MyFormTab({
-    super.key,
-    required this.controller,
-    required this.userId,
-  });
+  const MyFormTab({super.key, required this.controller, required this.userId});
 
   @override
   State<MyFormTab> createState() => _MyFormTabState();
@@ -24,6 +20,7 @@ class _MyFormTabState extends State<MyFormTab> {
   // Form fields
   late TextEditingController _priceController;
   late TextEditingController _locationController;
+  late TextEditingController _contactController;
   late TextEditingController _termsController;
 
   String _paymentMethod = 'Bank Transfer';
@@ -42,22 +39,25 @@ class _MyFormTabState extends State<MyFormTab> {
     super.initState();
     _priceController = TextEditingController();
     _locationController = TextEditingController();
+    _contactController = TextEditingController();
     _termsController = TextEditingController();
 
     // Load existing form if available
     final form = widget.controller.myForm;
     if (form != null) {
-      _priceController.text = form.agreedPrice.toString();
+      _priceController.text =
+          widget.controller.transaction?.agreedPrice.toString() ?? '';
       _paymentMethod = form.paymentMethod;
-      _deliveryDate = form.deliveryDate;
+      _deliveryDate = form.preferredDate;
       _locationController.text = form.deliveryLocation;
+      _contactController.text = form.contactNumber;
       _orCrVerified = form.orCrVerified;
       _deedsOfSaleReady = form.deedsOfSaleReady;
       _plateNumberConfirmed = form.plateNumberConfirmed;
       _registrationValid = form.registrationValid;
       _noOutstandingLoans = form.noOutstandingLoans;
       _mechanicalInspectionDone = form.mechanicalInspectionDone;
-      _termsController.text = form.additionalTerms;
+      _termsController.text = form.additionalNotes;
     } else {
       // Pre-fill with agreed price from transaction
       final transaction = widget.controller.transaction;
@@ -71,6 +71,7 @@ class _MyFormTabState extends State<MyFormTab> {
   void dispose() {
     _priceController.dispose();
     _locationController.dispose();
+    _contactController.dispose();
     _termsController.dispose();
     super.dispose();
   }
@@ -84,17 +85,23 @@ class _MyFormTabState extends State<MyFormTab> {
       transactionId: widget.controller.transaction!.id,
       role: role,
       status: FormStatus.submitted,
-      agreedPrice: double.parse(_priceController.text),
+      preferredDate: _deliveryDate,
+      contactNumber: _contactController.text.trim(),
+      additionalNotes: _termsController.text.trim(),
       paymentMethod: _paymentMethod,
-      deliveryDate: _deliveryDate,
-      deliveryLocation: _locationController.text,
-      orCrVerified: _orCrVerified,
-      deedsOfSaleReady: _deedsOfSaleReady,
-      plateNumberConfirmed: _plateNumberConfirmed,
+      pickupOrDelivery: 'Delivery',
+      deliveryAddress: _locationController.text.trim(),
+      handoverLocation: _locationController.text.trim(),
+      handoverTimeSlot: 'Afternoon',
+      orCrOriginalAvailable: _orCrVerified,
+      deedOfSaleReady: _deedsOfSaleReady,
       registrationValid: _registrationValid,
-      noOutstandingLoans: _noOutstandingLoans,
-      mechanicalInspectionDone: _mechanicalInspectionDone,
-      additionalTerms: _termsController.text,
+      noLiensEncumbrances: _noOutstandingLoans,
+      conditionMatchesListing: _mechanicalInspectionDone,
+      reviewedVehicleCondition: true,
+      understoodAuctionTerms: true,
+      willArrangeInsurance: true,
+      acceptsAsIsCondition: true,
       submittedAt: DateTime.now(),
     );
 
@@ -115,7 +122,8 @@ class _MyFormTabState extends State<MyFormTab> {
       listenable: widget.controller,
       builder: (context, _) {
         final myForm = widget.controller.myForm;
-        final isSubmitted = myForm?.status == FormStatus.submitted ||
+        final isSubmitted =
+            myForm?.status == FormStatus.submitted ||
             myForm?.status == FormStatus.reviewed ||
             myForm?.status == FormStatus.confirmed;
         final isConfirmed = myForm?.status == FormStatus.confirmed;
@@ -156,15 +164,9 @@ class _MyFormTabState extends State<MyFormTab> {
                 _buildTextField(
                   controller: _priceController,
                   label: 'Agreed Price (₱)',
-                  enabled: !isSubmitted,
+                  enabled: false,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter agreed price';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 12),
 
@@ -194,6 +196,21 @@ class _MyFormTabState extends State<MyFormTab> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter delivery location';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+                _buildTextField(
+                  controller: _contactController,
+                  label: 'Contact Number',
+                  enabled: !isSubmitted,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a contact number';
                     }
                     return null;
                   },
@@ -255,7 +272,9 @@ class _MyFormTabState extends State<MyFormTab> {
                 const SizedBox(height: 24),
                 if (!isSubmitted)
                   ElevatedButton(
-                    onPressed: widget.controller.isProcessing ? null : _submitForm,
+                    onPressed: widget.controller.isProcessing
+                        ? null
+                        : _submitForm,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ColorConstants.primary,
                       foregroundColor: Colors.white,
@@ -316,9 +335,7 @@ class _MyFormTabState extends State<MyFormTab> {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -334,9 +351,7 @@ class _MyFormTabState extends State<MyFormTab> {
       value: value,
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       items: items.map((item) {
         return DropdownMenuItem(value: item, child: Text(item));
@@ -356,9 +371,7 @@ class _MyFormTabState extends State<MyFormTab> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -370,8 +383,8 @@ class _MyFormTabState extends State<MyFormTab> {
               color: enabled
                   ? ColorConstants.primary
                   : (isDark
-                      ? ColorConstants.textSecondaryDark
-                      : ColorConstants.textSecondaryLight),
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight),
             ),
           ],
         ),

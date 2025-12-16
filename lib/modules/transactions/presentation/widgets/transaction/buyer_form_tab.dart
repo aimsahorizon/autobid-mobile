@@ -96,7 +96,8 @@ class BuyerFormTab extends StatelessWidget {
         }
 
         final isConfirmed = buyerForm.status == FormStatus.confirmed;
-        final canConfirm = buyerForm.status == FormStatus.submitted ||
+        final canConfirm =
+            buyerForm.status == FormStatus.submitted ||
             buyerForm.status == FormStatus.reviewed;
 
         return SingleChildScrollView(
@@ -139,7 +140,10 @@ class BuyerFormTab extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: ColorConstants.primary),
+                      const Icon(
+                        Icons.info_outline,
+                        color: ColorConstants.primary,
+                      ),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
@@ -158,23 +162,63 @@ class BuyerFormTab extends StatelessWidget {
               _buildSectionTitle('Agreement Details', isDark),
               const SizedBox(height: 12),
 
-              _buildDetailRow('Agreed Price', '₱${_formatPrice(buyerForm.agreedPrice)}', isDark),
-              _buildDetailRow('Payment Method', buyerForm.paymentMethod, isDark),
-              _buildDetailRow('Delivery Date', _formatDate(buyerForm.deliveryDate), isDark),
-              _buildDetailRow('Delivery Location', buyerForm.deliveryLocation, isDark),
+              _buildDetailRow(
+                'Agreed Price',
+                '₱${_formatPrice(controller.transaction?.agreedPrice ?? 0)}',
+                isDark,
+              ),
+              _buildDetailRow(
+                'Payment Method',
+                buyerForm.paymentMethod,
+                isDark,
+              ),
+              _buildDetailRow(
+                'Delivery Date',
+                _formatDate(buyerForm.preferredDate),
+                isDark,
+              ),
+              _buildDetailRow(
+                'Delivery Location',
+                buyerForm.deliveryLocation,
+                isDark,
+              ),
 
               const SizedBox(height: 24),
               _buildSectionTitle('Legal Checklist', isDark),
               const SizedBox(height: 12),
 
-              _buildChecklistItem('OR/CR verified and authentic', buyerForm.orCrVerified, isDark),
-              _buildChecklistItem('Deeds of Sale ready for signing', buyerForm.deedsOfSaleReady, isDark),
-              _buildChecklistItem('Plate number confirmed with LTO', buyerForm.plateNumberConfirmed, isDark),
-              _buildChecklistItem('Registration is valid and current', buyerForm.registrationValid, isDark),
-              _buildChecklistItem('No outstanding loans on vehicle', buyerForm.noOutstandingLoans, isDark),
-              _buildChecklistItem('Mechanical inspection completed', buyerForm.mechanicalInspectionDone, isDark),
+              _buildChecklistItem(
+                'OR/CR verified and authentic',
+                buyerForm.orCrVerified,
+                isDark,
+              ),
+              _buildChecklistItem(
+                'Deeds of Sale ready for signing',
+                buyerForm.deedsOfSaleReady,
+                isDark,
+              ),
+              _buildChecklistItem(
+                'Plate number confirmed with LTO',
+                buyerForm.plateNumberConfirmed,
+                isDark,
+              ),
+              _buildChecklistItem(
+                'Registration is valid and current',
+                buyerForm.registrationValid,
+                isDark,
+              ),
+              _buildChecklistItem(
+                'No outstanding loans on vehicle',
+                buyerForm.noOutstandingLoans,
+                isDark,
+              ),
+              _buildChecklistItem(
+                'Mechanical inspection completed',
+                buyerForm.mechanicalInspectionDone,
+                isDark,
+              ),
 
-              if (buyerForm.additionalTerms.isNotEmpty) ...[
+              if (buyerForm.additionalNotes.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 _buildSectionTitle('Additional Terms', isDark),
                 const SizedBox(height: 12),
@@ -186,7 +230,7 @@ class BuyerFormTab extends StatelessWidget {
                         : ColorConstants.backgroundSecondaryLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(buyerForm.additionalTerms),
+                  child: Text(buyerForm.additionalNotes),
                 ),
               ],
 
@@ -381,7 +425,9 @@ class BuyerFormTab extends StatelessWidget {
   }
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );

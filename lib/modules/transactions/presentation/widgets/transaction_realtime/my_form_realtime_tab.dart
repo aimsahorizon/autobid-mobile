@@ -25,6 +25,7 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
   late TextEditingController _priceController;
   late TextEditingController _paymentMethodController;
   late TextEditingController _deliveryLocationController;
+  late TextEditingController _contactController;
   late TextEditingController _additionalTermsController;
   DateTime _deliveryDate = DateTime.now().add(const Duration(days: 7));
 
@@ -42,6 +43,7 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
     _priceController = TextEditingController();
     _paymentMethodController = TextEditingController();
     _deliveryLocationController = TextEditingController();
+    _contactController = TextEditingController();
     _additionalTermsController = TextEditingController();
 
     // Pre-populate from existing form if available
@@ -59,8 +61,9 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
         _priceController.text = form.agreedPrice.toStringAsFixed(0);
         _paymentMethodController.text = form.paymentMethod;
         _deliveryLocationController.text = form.deliveryLocation;
-        _additionalTermsController.text = form.additionalTerms;
-        _deliveryDate = form.deliveryDate;
+        _contactController.text = form.contactNumber;
+        _additionalTermsController.text = form.additionalNotes;
+        _deliveryDate = form.preferredDate;
         _orCrVerified = form.orCrVerified;
         _deedsOfSaleReady = form.deedsOfSaleReady;
         _plateNumberConfirmed = form.plateNumberConfirmed;
@@ -79,6 +82,7 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
     _priceController.dispose();
     _paymentMethodController.dispose();
     _deliveryLocationController.dispose();
+    _contactController.dispose();
     _additionalTermsController.dispose();
     super.dispose();
   }
@@ -96,18 +100,24 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
       transactionId: transaction.id,
       role: role,
       status: FormStatus.submitted,
-      agreedPrice:
-          double.tryParse(_priceController.text) ?? transaction.agreedPrice,
+      preferredDate: _deliveryDate,
+      contactNumber: _contactController.text.trim(),
+      additionalNotes: _additionalTermsController.text.trim(),
       paymentMethod: _paymentMethodController.text,
-      deliveryDate: _deliveryDate,
-      deliveryLocation: _deliveryLocationController.text,
-      orCrVerified: _orCrVerified,
-      deedsOfSaleReady: _deedsOfSaleReady,
-      plateNumberConfirmed: _plateNumberConfirmed,
+      pickupOrDelivery: 'Delivery',
+      deliveryAddress: _deliveryLocationController.text.trim(),
+      handoverLocation: _deliveryLocationController.text.trim(),
+      handoverTimeSlot: 'Afternoon',
+      orCrOriginalAvailable: _orCrVerified,
+      deedOfSaleReady: _deedsOfSaleReady,
+      releaseOfMortgage: false,
       registrationValid: _registrationValid,
-      noOutstandingLoans: _noOutstandingLoans,
-      mechanicalInspectionDone: _mechanicalInspectionDone,
-      additionalTerms: _additionalTermsController.text,
+      noLiensEncumbrances: _noOutstandingLoans,
+      conditionMatchesListing: _mechanicalInspectionDone,
+      reviewedVehicleCondition: true,
+      understoodAuctionTerms: true,
+      willArrangeInsurance: true,
+      acceptsAsIsCondition: true,
       submittedAt: DateTime.now(),
     );
 
@@ -173,7 +183,7 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
 
                 TextFormField(
                   controller: _priceController,
-                  enabled: !isSubmitted,
+                  enabled: false,
                   decoration: InputDecoration(
                     labelText: 'Agreed Price (₱)',
                     prefixIcon: const Icon(Icons.payments),
@@ -245,6 +255,23 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
                     hintText: 'Address for vehicle delivery',
                   ),
                   maxLines: 2,
+                  validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                ),
+
+                const SizedBox(height: 12),
+
+                TextFormField(
+                  controller: _contactController,
+                  enabled: !isSubmitted,
+                  decoration: InputDecoration(
+                    labelText: 'Contact Number',
+                    prefixIcon: const Icon(Icons.phone),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    hintText: 'e.g., 09XX...',
+                  ),
+                  keyboardType: TextInputType.phone,
                   validator: (v) => v?.isEmpty == true ? 'Required' : null,
                 ),
 
