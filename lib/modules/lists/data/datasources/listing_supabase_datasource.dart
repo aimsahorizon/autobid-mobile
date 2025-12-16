@@ -128,6 +128,8 @@ class ListingSupabaseDataSource {
         province: draft.province,
         cityMunicipality: draft.cityMunicipality,
         photoUrls: draft.photoUrls,
+        tags: draft.tags,
+        deedOfSaleUrl: draft.deedOfSaleUrl,
         description: draft.description,
         knownIssues: draft.knownIssues,
         features: draft.features,
@@ -1302,6 +1304,90 @@ class ListingSupabaseDataSource {
       throw Exception('Failed to delete photo: ${e.message}');
     } catch (e) {
       throw Exception('Failed to delete photo: $e');
+    }
+  }
+
+  // ============================================================================
+  // DOCUMENT UPLOAD (Deed of Sale)
+  // ============================================================================
+
+  /// Upload deed of sale document to storage
+  /// Supports PDF and image files (PNG, JPG, JPEG)
+  Future<String> uploadDeedOfSale({
+    required String userId,
+    required String listingId,
+    required File documentFile,
+  }) async {
+    try {
+      // Validate file extension
+      final extension = documentFile.path.split('.').last.toLowerCase();
+      final allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
+      if (!allowedExtensions.contains(extension)) {
+        throw Exception(
+          'Invalid file type. Allowed: PDF, PNG, JPG, JPEG',
+        );
+      }
+
+      // Generate unique filename
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filename = 'deed_of_sale_$timestamp.$extension';
+
+      // Path: {listing_id}/documents/{filename}
+      final path = '$listingId/documents/$filename';
+
+      // Determine content type
+      String contentType;
+      switch (extension) {
+        case 'pdf':
+          contentType = 'application/pdf';
+          break;
+        case 'png':
+          contentType = 'image/png';
+          break;
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg';
+          break;
+        default:
+          contentType = 'application/octet-stream';
+      }
+
+      await _supabase.storage.from('auction-images').upload(
+            path,
+            documentFile,
+            fileOptions: FileOptions(
+              upsert: true,
+              contentType: contentType,
+            ),
+          );
+
+      // Get public URL
+      final url = _supabase.storage.from('auction-images').getPublicUrl(path);
+
+      return url;
+    } on StorageException catch (e) {
+      throw Exception('Failed to upload deed of sale: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to upload deed of sale: $e');
+    }
+  }
+
+  /// Delete deed of sale document from storage
+  Future<void> deleteDeedOfSale(String documentUrl) async {
+    try {
+      // Extract path from URL
+      final uri = Uri.parse(documentUrl);
+      final pathSegments = uri.pathSegments;
+
+      // URL format: .../storage/v1/object/public/auction-images/{path}
+      if (pathSegments.length >= 6) {
+        final path = pathSegments.sublist(6).join('/');
+        await _supabase.storage.from('auction-images').remove([path]);
+      }
+    } on StorageException catch (e) {
+      throw Exception('Failed to delete deed of sale: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to delete deed of sale: $e');
     }
   }
 

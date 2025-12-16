@@ -61,9 +61,10 @@ class ListingDraftEntity {
   final String? province;
   final String? cityMunicipality;
 
-  // Step 7: Photos (56 categories)
+  // Step 7: Photos (56 categories) & Documents
   final Map<String, List<String>>? photoUrls; // category -> list of URLs
   final List<String>? tags; // AI-generated tags for search/filter
+  final String? deedOfSaleUrl; // Deed of sale document URL (PDF/image)
 
   // Step 8: Final Details, Pricing & Bidding Configuration
   final String? description;
@@ -129,6 +130,7 @@ class ListingDraftEntity {
     this.cityMunicipality,
     this.photoUrls,
     this.tags,
+    this.deedOfSaleUrl,
     this.description,
     this.knownIssues,
     this.features,

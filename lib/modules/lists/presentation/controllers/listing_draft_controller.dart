@@ -460,6 +460,13 @@ class ListingDraftController extends ChangeNotifier {
           startingPrice: _currentDraft!.startingPrice,
           reservePrice: _currentDraft!.reservePrice,
           auctionEndDate: _currentDraft!.auctionEndDate,
+          biddingType: _currentDraft!.biddingType,
+          bidIncrement: _currentDraft!.bidIncrement,
+          minBidIncrement: _currentDraft!.minBidIncrement,
+          depositAmount: _currentDraft!.depositAmount,
+          enableIncrementalBidding: _currentDraft!.enableIncrementalBidding,
+          deedOfSaleUrl: _currentDraft!.deedOfSaleUrl,
+          tags: _currentDraft!.tags,
         );
         notifyListeners();
         _autoSave();
@@ -467,6 +474,184 @@ class ListingDraftController extends ChangeNotifier {
       }
       return false;
     } catch (e) {
+      return false;
+    }
+  }
+
+  /// Upload deed of sale document
+  /// Returns the URL of the uploaded document or null if failed
+  Future<String?> uploadDeedOfSale(String localPath) async {
+    if (_currentDraft == null) return null;
+
+    try {
+      String? url;
+      if (_useMockData) {
+        // Mock: just return the local path as URL
+        url = localPath;
+      } else {
+        url = await _supabaseDataSource!.uploadDeedOfSale(
+          userId: _currentDraft!.sellerId,
+          listingId: _currentDraft!.id,
+          documentFile: File(localPath),
+        );
+      }
+
+      if (url != null) {
+        _currentDraft = ListingDraftEntity(
+          id: _currentDraft!.id,
+          sellerId: _currentDraft!.sellerId,
+          currentStep: _currentDraft!.currentStep,
+          lastSaved: DateTime.now(),
+          isComplete: _currentDraft!.isComplete,
+          brand: _currentDraft!.brand,
+          model: _currentDraft!.model,
+          variant: _currentDraft!.variant,
+          year: _currentDraft!.year,
+          engineType: _currentDraft!.engineType,
+          engineDisplacement: _currentDraft!.engineDisplacement,
+          cylinderCount: _currentDraft!.cylinderCount,
+          horsepower: _currentDraft!.horsepower,
+          torque: _currentDraft!.torque,
+          transmission: _currentDraft!.transmission,
+          fuelType: _currentDraft!.fuelType,
+          driveType: _currentDraft!.driveType,
+          length: _currentDraft!.length,
+          width: _currentDraft!.width,
+          height: _currentDraft!.height,
+          wheelbase: _currentDraft!.wheelbase,
+          groundClearance: _currentDraft!.groundClearance,
+          seatingCapacity: _currentDraft!.seatingCapacity,
+          doorCount: _currentDraft!.doorCount,
+          fuelTankCapacity: _currentDraft!.fuelTankCapacity,
+          curbWeight: _currentDraft!.curbWeight,
+          grossWeight: _currentDraft!.grossWeight,
+          exteriorColor: _currentDraft!.exteriorColor,
+          paintType: _currentDraft!.paintType,
+          rimType: _currentDraft!.rimType,
+          rimSize: _currentDraft!.rimSize,
+          tireSize: _currentDraft!.tireSize,
+          tireBrand: _currentDraft!.tireBrand,
+          condition: _currentDraft!.condition,
+          mileage: _currentDraft!.mileage,
+          previousOwners: _currentDraft!.previousOwners,
+          hasModifications: _currentDraft!.hasModifications,
+          modificationsDetails: _currentDraft!.modificationsDetails,
+          hasWarranty: _currentDraft!.hasWarranty,
+          warrantyDetails: _currentDraft!.warrantyDetails,
+          usageType: _currentDraft!.usageType,
+          plateNumber: _currentDraft!.plateNumber,
+          orcrStatus: _currentDraft!.orcrStatus,
+          registrationStatus: _currentDraft!.registrationStatus,
+          registrationExpiry: _currentDraft!.registrationExpiry,
+          province: _currentDraft!.province,
+          cityMunicipality: _currentDraft!.cityMunicipality,
+          photoUrls: _currentDraft!.photoUrls,
+          tags: _currentDraft!.tags,
+          deedOfSaleUrl: url,
+          description: _currentDraft!.description,
+          knownIssues: _currentDraft!.knownIssues,
+          features: _currentDraft!.features,
+          startingPrice: _currentDraft!.startingPrice,
+          reservePrice: _currentDraft!.reservePrice,
+          auctionEndDate: _currentDraft!.auctionEndDate,
+          biddingType: _currentDraft!.biddingType,
+          bidIncrement: _currentDraft!.bidIncrement,
+          minBidIncrement: _currentDraft!.minBidIncrement,
+          depositAmount: _currentDraft!.depositAmount,
+          enableIncrementalBidding: _currentDraft!.enableIncrementalBidding,
+        );
+        notifyListeners();
+        _autoSave();
+        return url;
+      }
+      return null;
+    } catch (e) {
+      _errorMessage = 'Failed to upload deed of sale: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Remove deed of sale document
+  Future<bool> removeDeedOfSale() async {
+    if (_currentDraft == null || _currentDraft!.deedOfSaleUrl == null) {
+      return false;
+    }
+
+    try {
+      if (!_useMockData && _supabaseDataSource != null) {
+        await _supabaseDataSource.deleteDeedOfSale(_currentDraft!.deedOfSaleUrl!);
+      }
+
+      _currentDraft = ListingDraftEntity(
+        id: _currentDraft!.id,
+        sellerId: _currentDraft!.sellerId,
+        currentStep: _currentDraft!.currentStep,
+        lastSaved: DateTime.now(),
+        isComplete: _currentDraft!.isComplete,
+        brand: _currentDraft!.brand,
+        model: _currentDraft!.model,
+        variant: _currentDraft!.variant,
+        year: _currentDraft!.year,
+        engineType: _currentDraft!.engineType,
+        engineDisplacement: _currentDraft!.engineDisplacement,
+        cylinderCount: _currentDraft!.cylinderCount,
+        horsepower: _currentDraft!.horsepower,
+        torque: _currentDraft!.torque,
+        transmission: _currentDraft!.transmission,
+        fuelType: _currentDraft!.fuelType,
+        driveType: _currentDraft!.driveType,
+        length: _currentDraft!.length,
+        width: _currentDraft!.width,
+        height: _currentDraft!.height,
+        wheelbase: _currentDraft!.wheelbase,
+        groundClearance: _currentDraft!.groundClearance,
+        seatingCapacity: _currentDraft!.seatingCapacity,
+        doorCount: _currentDraft!.doorCount,
+        fuelTankCapacity: _currentDraft!.fuelTankCapacity,
+        curbWeight: _currentDraft!.curbWeight,
+        grossWeight: _currentDraft!.grossWeight,
+        exteriorColor: _currentDraft!.exteriorColor,
+        paintType: _currentDraft!.paintType,
+        rimType: _currentDraft!.rimType,
+        rimSize: _currentDraft!.rimSize,
+        tireSize: _currentDraft!.tireSize,
+        tireBrand: _currentDraft!.tireBrand,
+        condition: _currentDraft!.condition,
+        mileage: _currentDraft!.mileage,
+        previousOwners: _currentDraft!.previousOwners,
+        hasModifications: _currentDraft!.hasModifications,
+        modificationsDetails: _currentDraft!.modificationsDetails,
+        hasWarranty: _currentDraft!.hasWarranty,
+        warrantyDetails: _currentDraft!.warrantyDetails,
+        usageType: _currentDraft!.usageType,
+        plateNumber: _currentDraft!.plateNumber,
+        orcrStatus: _currentDraft!.orcrStatus,
+        registrationStatus: _currentDraft!.registrationStatus,
+        registrationExpiry: _currentDraft!.registrationExpiry,
+        province: _currentDraft!.province,
+        cityMunicipality: _currentDraft!.cityMunicipality,
+        photoUrls: _currentDraft!.photoUrls,
+        tags: _currentDraft!.tags,
+        deedOfSaleUrl: null,
+        description: _currentDraft!.description,
+        knownIssues: _currentDraft!.knownIssues,
+        features: _currentDraft!.features,
+        startingPrice: _currentDraft!.startingPrice,
+        reservePrice: _currentDraft!.reservePrice,
+        auctionEndDate: _currentDraft!.auctionEndDate,
+        biddingType: _currentDraft!.biddingType,
+        bidIncrement: _currentDraft!.bidIncrement,
+        minBidIncrement: _currentDraft!.minBidIncrement,
+        depositAmount: _currentDraft!.depositAmount,
+        enableIncrementalBidding: _currentDraft!.enableIncrementalBidding,
+      );
+      notifyListeners();
+      _autoSave();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to remove deed of sale: $e';
+      notifyListeners();
       return false;
     }
   }

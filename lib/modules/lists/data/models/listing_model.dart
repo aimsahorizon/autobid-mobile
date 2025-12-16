@@ -258,6 +258,7 @@ class ListingModel {
       endTime: auctionEndTime,
       winnerName: null, // Will be populated separately if needed
       soldPrice: soldPrice,
+      sellerId: sellerId,
     );
   }
 
