@@ -4,7 +4,7 @@ import '../../domain/entities/user_bid_entity.dart';
 import '../../presentation/controllers/bids_controller.dart';
 
 /// Supabase datasource for user's bid history
-/// Fetches user's active, won, and lost bids from database
+/// Fetches user's active, won, lost, and cancelled bids from database
 class UserBidsSupabaseDataSource implements IUserBidsDataSource {
   final SupabaseClient _supabase;
 
@@ -13,13 +13,14 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
   /// Fetches all user bids categorized by status
   /// Logic:
   /// - Active: auction not ended (end_time in future)
-  /// - Won: auction ended, user is highest bidder
+  /// - Won: auction ended, user is highest bidder and transaction active
   /// - Lost: auction ended, user not highest bidder
+  /// - Cancelled: auction in deal_failed status, user was highest bidder
   @override
   Future<Map<String, List<UserBidEntity>>> getUserBids([String? userId]) async {
     if (userId == null) {
       print('[UserBidsSupabaseDataSource] getUserBids: userId is null');
-      return {'active': [], 'won': [], 'lost': []};
+      return {'active': [], 'won': [], 'lost': [], 'cancelled': []};
     }
 
     print(
@@ -29,6 +30,7 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
     final List<UserBidEntity> activeBids = [];
     final List<UserBidEntity> wonBids = [];
     final List<UserBidEntity> lostBids = [];
+    final List<UserBidEntity> cancelledBids = [];
 
     try {
       // Get all bids by this user - fetch auction details separately
@@ -97,6 +99,16 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
           if (auction == null) {
             print(
               '[UserBidsSupabaseDataSource]   Auction $auctionId not accessible, skipping',
+            );
+            continue;
+          }
+
+          // Skip if the current user is the seller; prevents showing seller-owned
+          // listings in the buyer tab when the auction enters transaction state.
+          final sellerId = auction['seller_id'] as String?;
+          if (sellerId != null && sellerId == userId) {
+            print(
+              '[UserBidsSupabaseDataSource]   Skipping auction $auctionId because user is seller',
             );
             continue;
           }
@@ -185,12 +197,17 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
               statusName != null &&
               statusName!.toLowerCase() == 'in_transaction';
 
+          // Check if deal_failed status - buyer cancelled or deal fell through
+          final isDealFailed =
+              statusName != null && statusName!.toLowerCase() == 'deal_failed';
+
           print(
             '[UserBidsSupabaseDataSource]   isAuctionEnded: $isAuctionEnded',
           );
           print(
             '[UserBidsSupabaseDataSource]   isInTransaction: $isInTransaction',
           );
+          print('[UserBidsSupabaseDataSource]   isDealFailed: $isDealFailed');
 
           // Get highest bidder
           String? highestBidderId;
@@ -242,35 +259,67 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
                 isHighestBidder: isUserHighestBidder,
                 userBidCount: bidsForThisAuction.length,
                 canAccess: false,
+                sellerId: sellerId,
               ),
             );
           } else {
             // Auction ended
             if (isUserHighestBidder) {
-              print(
-                '[UserBidsSupabaseDataSource]   -> WON BID (canAccess: $isInTransaction)',
-              );
-              // WON
-              wonBids.add(
-                UserBidEntity(
-                  id: bidsForThisAuction.first['id'] as String? ?? '',
-                  auctionId: auctionId,
-                  carImageUrl: coverPhotoUrl ?? '',
-                  year: vehicleYear,
-                  make: vehicleDisplay.split(' ').first,
-                  model: vehicleDisplay.contains(' ')
-                      ? vehicleDisplay.split(' ').last
-                      : vehicleDisplay,
-                  userBidAmount: userMaxBid,
-                  currentHighestBid: currentPrice,
-                  endTime: endTime ?? DateTime.now(),
-                  status: UserBidStatus.won,
-                  hasDeposited: false,
-                  isHighestBidder: true,
-                  userBidCount: bidsForThisAuction.length,
-                  canAccess: isInTransaction, // true when seller has proceeded
-                ),
-              );
+              // Check if deal was cancelled/failed
+              if (isDealFailed) {
+                print(
+                  '[UserBidsSupabaseDataSource]   -> CANCELLED BID (deal_failed)',
+                );
+                // CANCELLED - buyer cancelled the deal
+                cancelledBids.add(
+                  UserBidEntity(
+                    id: bidsForThisAuction.first['id'] as String? ?? '',
+                    auctionId: auctionId,
+                    carImageUrl: coverPhotoUrl ?? '',
+                    year: vehicleYear,
+                    make: vehicleDisplay.split(' ').first,
+                    model: vehicleDisplay.contains(' ')
+                        ? vehicleDisplay.split(' ').last
+                        : vehicleDisplay,
+                    userBidAmount: userMaxBid,
+                    currentHighestBid: currentPrice,
+                    endTime: endTime ?? DateTime.now(),
+                    status: UserBidStatus.cancelled,
+                    hasDeposited: false,
+                    isHighestBidder: true,
+                    userBidCount: bidsForThisAuction.length,
+                    canAccess: false,
+                    sellerId: sellerId,
+                  ),
+                );
+              } else {
+                print(
+                  '[UserBidsSupabaseDataSource]   -> WON BID (canAccess: $isInTransaction)',
+                );
+                // WON
+                wonBids.add(
+                  UserBidEntity(
+                    id: bidsForThisAuction.first['id'] as String? ?? '',
+                    auctionId: auctionId,
+                    carImageUrl: coverPhotoUrl ?? '',
+                    year: vehicleYear,
+                    make: vehicleDisplay.split(' ').first,
+                    model: vehicleDisplay.contains(' ')
+                        ? vehicleDisplay.split(' ').last
+                        : vehicleDisplay,
+                    userBidAmount: userMaxBid,
+                    currentHighestBid: currentPrice,
+                    endTime: endTime ?? DateTime.now(),
+                    status: UserBidStatus.won,
+                    hasDeposited: false,
+                    isHighestBidder: true,
+                    userBidCount: bidsForThisAuction.length,
+                    canAccess:
+                        isInTransaction, // true when seller has proceeded
+                    sellerId: sellerId,
+                  ),
+                );
+              }
             } else {
               print('[UserBidsSupabaseDataSource]   -> LOST BID');
               // LOST
@@ -292,6 +341,7 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
                   isHighestBidder: false,
                   userBidCount: bidsForThisAuction.length,
                   canAccess: false,
+                  sellerId: sellerId,
                 ),
               );
             }
@@ -305,9 +355,14 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
       }
 
       print(
-        '[UserBidsSupabaseDataSource] SUMMARY: active=${activeBids.length}, won=${wonBids.length}, lost=${lostBids.length}',
+        '[UserBidsSupabaseDataSource] SUMMARY: active=${activeBids.length}, won=${wonBids.length}, lost=${lostBids.length}, cancelled=${cancelledBids.length}',
       );
-      return {'active': activeBids, 'won': wonBids, 'lost': lostBids};
+      return {
+        'active': activeBids,
+        'won': wonBids,
+        'lost': lostBids,
+        'cancelled': cancelledBids,
+      };
     } catch (e, st) {
       print('[UserBidsSupabaseDataSource] Failed to load bids: $e\n$st');
       throw Exception('Failed to load bids: $e');

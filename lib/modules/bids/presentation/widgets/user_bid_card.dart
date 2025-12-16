@@ -132,7 +132,7 @@ class _UserBidCardState extends State<UserBidCard> {
   }
 
   /// Determines border color based on bid status and position
-  /// Green: Winning or Won | Orange: Outbid | Red: Lost
+  /// Green: Winning or Won | Orange: Outbid | Red: Lost | Gray: Cancelled
   Color _getBorderColor(bool isDark) {
     switch (widget.bid.status) {
       case UserBidStatus.active:
@@ -145,6 +145,8 @@ class _UserBidCardState extends State<UserBidCard> {
             : ColorConstants.success;
       case UserBidStatus.lost:
         return ColorConstants.error.withValues(alpha: 0.5);
+      case UserBidStatus.cancelled:
+        return Colors.grey.withValues(alpha: 0.5);
     }
   }
 }

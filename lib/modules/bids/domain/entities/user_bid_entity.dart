@@ -47,6 +47,10 @@ class UserBidEntity {
   /// Transaction status if seller has proceeded (e.g., in_transaction, sold)
   final String? transactionStatus;
 
+  /// Seller ID for the auction (used to avoid showing seller-owned listings
+  /// in buyer views)
+  final String? sellerId;
+
   const UserBidEntity({
     required this.id,
     required this.auctionId,
@@ -63,6 +67,7 @@ class UserBidEntity {
     required this.userBidCount,
     required this.canAccess,
     this.transactionStatus,
+    this.sellerId,
   });
 
   /// Get formatted car name (e.g., "2020 Toyota Supra")
@@ -88,4 +93,7 @@ enum UserBidStatus {
 
   /// Auction ended and user lost (was not the highest bidder)
   lost,
+
+  /// Deal was cancelled by buyer or fell through
+  cancelled,
 }

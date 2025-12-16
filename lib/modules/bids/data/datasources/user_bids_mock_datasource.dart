@@ -183,8 +183,16 @@ class UserBidsMockDataSource implements IUserBidsDataSource {
       ),
     ];
 
+    // Cancelled bids - deals that fell through
+    final cancelledBids = <UserBidEntity>[];
+
     // Return categorized bids
-    return {'active': activeBids, 'won': wonBids, 'lost': lostBids};
+    return {
+      'active': activeBids,
+      'won': wonBids,
+      'lost': lostBids,
+      'cancelled': cancelledBids,
+    };
   }
 
   /// Fetches only active bids for real-time monitoring

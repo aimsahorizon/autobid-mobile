@@ -40,6 +40,9 @@ class UserBidEntity {
   /// Total number of bids user placed on this auction
   final int userBidCount;
 
+  /// Seller ID for the auction (used to hide seller-owned listings in buyer views)
+  final String? sellerId;
+
   const UserBidEntity({
     required this.id,
     required this.auctionId,
@@ -54,6 +57,7 @@ class UserBidEntity {
     required this.hasDeposited,
     required this.isHighestBidder,
     required this.userBidCount,
+    this.sellerId,
   });
 
   /// Get formatted car name
@@ -76,4 +80,7 @@ enum UserBidStatus {
 
   /// Auction ended and user lost (was not highest bidder)
   lost,
+
+  /// Deal was cancelled after winning
+  cancelled,
 }

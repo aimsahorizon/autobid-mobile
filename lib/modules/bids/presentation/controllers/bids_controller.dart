@@ -24,6 +24,7 @@ class BidsController extends ChangeNotifier {
   List<UserBidEntity> _activeBids = [];
   List<UserBidEntity> _wonBids = [];
   List<UserBidEntity> _lostBids = [];
+  List<UserBidEntity> _cancelledBids = [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -34,6 +35,7 @@ class BidsController extends ChangeNotifier {
   List<UserBidEntity> get activeBids => _activeBids;
   List<UserBidEntity> get wonBids => _wonBids;
   List<UserBidEntity> get lostBids => _lostBids;
+  List<UserBidEntity> get cancelledBids => _cancelledBids;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
@@ -58,6 +60,7 @@ class BidsController extends ChangeNotifier {
       _activeBids = bidsMap['active'] ?? [];
       _wonBids = bidsMap['won'] ?? [];
       _lostBids = bidsMap['lost'] ?? [];
+      _cancelledBids = bidsMap['cancelled'] ?? [];
 
       // Start polling if there are active bids
       if (_activeBids.isNotEmpty) {
@@ -89,15 +92,18 @@ class BidsController extends ChangeNotifier {
         final newActiveBids = bidsMap['active'] ?? [];
         final newWonBids = bidsMap['won'] ?? [];
         final newLostBids = bidsMap['lost'] ?? [];
+        final newCancelledBids = bidsMap['cancelled'] ?? [];
 
         // Only update if bids changed (avoid unnecessary rebuilds)
         if (newActiveBids.length != _activeBids.length ||
             newWonBids.length != _wonBids.length ||
-            newLostBids.length != _lostBids.length) {
+            newLostBids.length != _lostBids.length ||
+            newCancelledBids.length != _cancelledBids.length) {
           print('[BidsController] Bids changed during polling - updating UI');
           _activeBids = newActiveBids;
           _wonBids = newWonBids;
           _lostBids = newLostBids;
+          _cancelledBids = newCancelledBids;
           notifyListeners();
 
           // Stop polling if no more active bids
@@ -147,7 +153,10 @@ class BidsController extends ChangeNotifier {
 
   /// Get total count of all user bids
   int get totalBidsCount =>
-      _activeBids.length + _wonBids.length + _lostBids.length;
+      _activeBids.length +
+      _wonBids.length +
+      _lostBids.length +
+      _cancelledBids.length;
 
   /// Get count of bids where user is currently winning
   int get winningBidsCount =>

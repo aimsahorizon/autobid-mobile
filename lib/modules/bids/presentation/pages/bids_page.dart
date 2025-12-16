@@ -40,8 +40,8 @@ class _BidsPageState extends State<BidsPage>
   @override
   void initState() {
     super.initState();
-    // Initialize tab controller for 3 tabs
-    _tabController = TabController(length: 3, vsync: this);
+    // Initialize tab controller for 4 tabs
+    _tabController = TabController(length: 4, vsync: this);
     // Load bids on page init
     _controller.loadUserBids();
   }
@@ -301,6 +301,11 @@ class _BidsPageState extends State<BidsPage>
                       count: _controller.lostBids.length,
                       color: ColorConstants.error,
                     ),
+                    _TabWithBadge(
+                      label: 'Cancelled',
+                      count: _controller.cancelledBids.length,
+                      color: ColorConstants.warning,
+                    ),
                   ],
                 ),
               ),
@@ -344,6 +349,18 @@ class _BidsPageState extends State<BidsPage>
                         onBidTap: (bid) => _navigateToLostBid(context, bid),
                         isGridView: _isGridView,
                       ),
+                      // Cancelled bids tab
+                      UserBidsList(
+                        bids: _controller.cancelledBids,
+                        isLoading: _controller.isLoading,
+                        emptyTitle: 'No Cancelled Deals',
+                        emptySubtitle:
+                            'Deals you\'ve cancelled will appear here.',
+                        emptyIcon: Icons.cancel_outlined,
+                        onBidTap: (bid) =>
+                            _navigateToCancelledBid(context, bid),
+                        isGridView: _isGridView,
+                      ),
                     ],
                   ),
                 ),
@@ -351,6 +368,19 @@ class _BidsPageState extends State<BidsPage>
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _navigateToCancelledBid(BuildContext context, UserBidEntity bid) {
+    // Cancelled bids are read-only - just show auction details
+    print(
+      '[BidsPage] _navigateToCancelledBid called with auctionId=${bid.auctionId}',
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LostBidDetailPage(auctionId: bid.auctionId),
       ),
     );
   }

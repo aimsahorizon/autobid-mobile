@@ -46,10 +46,56 @@ class BidSupabaseDataSource {
           'is_active': true,
         });
       }
+
+      await _maybeApplySnipeGuard(auctionId);
     } on PostgrestException catch (e) {
       throw Exception('Failed to place bid: ${e.message}');
     } catch (e) {
       throw Exception('Failed to place bid: $e');
+    }
+  }
+
+  /// Extend auction end time by 5 minutes on every bid
+  Future<void> _maybeApplySnipeGuard(String auctionId) async {
+    try {
+      print('[SnipeGuard] 🔍 Adding 5 minutes to auction $auctionId');
+
+      final auction = await _supabase
+          .from('auctions')
+          .select('end_time')
+          .eq('id', auctionId)
+          .maybeSingle();
+
+      if (auction == null) {
+        print('[SnipeGuard] ❌ Auction not found');
+        return;
+      }
+
+      final endTimeRaw = auction['end_time'] as String?;
+      if (endTimeRaw == null) {
+        print('[SnipeGuard] ❌ No end_time found');
+        return;
+      }
+
+      final endTime = DateTime.parse(endTimeRaw).toUtc();
+      final now = DateTime.now().toUtc();
+      final newEndTime = endTime.add(const Duration(minutes: 5));
+
+      print('[SnipeGuard] Old end: $endTime');
+      print('[SnipeGuard] New end: $newEndTime (+ 5 minutes)');
+
+      await _supabase
+          .from('auctions')
+          .update({
+            'end_time': newEndTime.toIso8601String(),
+            'snipe_guard_last_applied_at': now.toIso8601String(),
+          })
+          .eq('id', auctionId);
+
+      print('[SnipeGuard] ✅ Added 5 minutes successfully!');
+    } catch (e) {
+      // Non-fatal; bid already placed. Log and continue.
+      print('[SnipeGuard] ❌ Failed to add time: $e');
     }
   }
 

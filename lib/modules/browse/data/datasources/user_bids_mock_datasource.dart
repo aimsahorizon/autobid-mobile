@@ -17,7 +17,8 @@ class UserBidsMockDataSource {
       UserBidEntity(
         id: 'ub_001',
         auctionId: 'auction_001',
-        carImageUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800',
         year: 2023,
         make: 'Toyota',
         model: 'Supra GR',
@@ -28,11 +29,13 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: true,
         userBidCount: 3,
+        sellerId: 'seller_001',
       ),
       UserBidEntity(
         id: 'ub_002',
         auctionId: 'auction_002',
-        carImageUrl: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800',
         year: 2022,
         make: 'BMW',
         model: 'M4 Competition',
@@ -43,11 +46,13 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: false,
         userBidCount: 2,
+        sellerId: 'seller_002',
       ),
       UserBidEntity(
         id: 'ub_003',
         auctionId: 'auction_003',
-        carImageUrl: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=800',
         year: 2021,
         make: 'Porsche',
         model: '911 Carrera',
@@ -58,6 +63,7 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: true,
         userBidCount: 5,
+        sellerId: 'seller_003',
       ),
     ];
 
@@ -66,7 +72,8 @@ class UserBidsMockDataSource {
       UserBidEntity(
         id: 'ub_004',
         auctionId: 'auction_004',
-        carImageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800',
         year: 2020,
         make: 'Chevrolet',
         model: 'Corvette C8',
@@ -77,11 +84,13 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: true,
         userBidCount: 8,
+        sellerId: 'seller_004',
       ),
       UserBidEntity(
         id: 'ub_005',
         auctionId: 'auction_005',
-        carImageUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800',
         year: 2019,
         make: 'Mercedes-Benz',
         model: 'AMG GT',
@@ -92,6 +101,7 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: true,
         userBidCount: 4,
+        sellerId: 'seller_005',
       ),
     ];
 
@@ -100,7 +110,8 @@ class UserBidsMockDataSource {
       UserBidEntity(
         id: 'ub_006',
         auctionId: 'auction_006',
-        carImageUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800',
         year: 2022,
         make: 'Ford',
         model: 'Mustang GT',
@@ -111,11 +122,13 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: false,
         userBidCount: 3,
+        sellerId: 'seller_006',
       ),
       UserBidEntity(
         id: 'ub_007',
         auctionId: 'auction_007',
-        carImageUrl: 'https://images.unsplash.com/photo-1542362567-b07e54358753?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1542362567-b07e54358753?w=800',
         year: 2021,
         make: 'Nissan',
         model: 'GT-R',
@@ -126,11 +139,13 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: false,
         userBidCount: 6,
+        sellerId: 'seller_007',
       ),
       UserBidEntity(
         id: 'ub_008',
         auctionId: 'auction_008',
-        carImageUrl: 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800',
         year: 2020,
         make: 'Audi',
         model: 'RS7',
@@ -141,14 +156,19 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: false,
         userBidCount: 2,
+        sellerId: 'seller_008',
       ),
     ];
 
-    return {
-      'active': activeBids,
-      'won': wonBids,
-      'lost': lostBids,
-    };
+    // Sort for determinism: newest end time first
+    int sortByEndTimeDesc(UserBidEntity a, UserBidEntity b) =>
+        b.endTime.compareTo(a.endTime);
+
+    activeBids.sort(sortByEndTimeDesc);
+    wonBids.sort(sortByEndTimeDesc);
+    lostBids.sort(sortByEndTimeDesc);
+
+    return {'active': activeBids, 'won': wonBids, 'lost': lostBids};
   }
 
   /// Fetches only active bids for real-time sync
