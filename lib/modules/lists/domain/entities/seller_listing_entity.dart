@@ -52,6 +52,9 @@ class SellerListingEntity {
   /// Transaction amount (for Sold status)
   final double? soldPrice;
 
+  /// Seller ID (owner of the listing)
+  final String? sellerId;
+
   const SellerListingEntity({
     required this.id,
     required this.imageUrl,
@@ -70,6 +73,7 @@ class SellerListingEntity {
     this.endTime,
     this.winnerName,
     this.soldPrice,
+    this.sellerId,
   });
 
   /// Get formatted car name
@@ -85,8 +89,8 @@ class SellerListingEntity {
   Duration? get timeRemaining =>
       endTime != null ? endTime!.difference(DateTime.now()) : null;
 
-    /// Time until auction starts (for scheduled listings)
-    Duration? get timeUntilStart =>
+  /// Time until auction starts (for scheduled listings)
+  Duration? get timeUntilStart =>
       startTime != null ? startTime!.difference(DateTime.now()) : null;
 
   /// Check if auction has ended
