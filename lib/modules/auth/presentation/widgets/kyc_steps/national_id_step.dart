@@ -8,10 +8,7 @@ import '../image_picker_card.dart';
 class NationalIdStep extends StatefulWidget {
   final KYCRegistrationController controller;
 
-  const NationalIdStep({
-    super.key,
-    required this.controller,
-  });
+  const NationalIdStep({super.key, required this.controller});
 
   @override
   State<NationalIdStep> createState() => _NationalIdStepState();
@@ -39,33 +36,9 @@ class _NationalIdStepState extends State<NationalIdStep> {
   }
 
   void _pickImage(String type) async {
-    final source = await showDialog<ImageSource>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Image Source'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
     try {
       final XFile? image = await _picker.pickImage(
-        source: source,
+        source: ImageSource.camera,
         maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
@@ -81,9 +54,9 @@ class _NationalIdStepState extends State<NationalIdStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
       }
     }
   }

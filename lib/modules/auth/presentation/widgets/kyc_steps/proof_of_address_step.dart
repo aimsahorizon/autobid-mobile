@@ -8,10 +8,7 @@ import '../image_picker_card.dart';
 class ProofOfAddressStep extends StatefulWidget {
   final KYCRegistrationController controller;
 
-  const ProofOfAddressStep({
-    super.key,
-    required this.controller,
-  });
+  const ProofOfAddressStep({super.key, required this.controller});
 
   @override
   State<ProofOfAddressStep> createState() => _ProofOfAddressStepState();
@@ -21,33 +18,9 @@ class _ProofOfAddressStepState extends State<ProofOfAddressStep> {
   final ImagePicker _picker = ImagePicker();
 
   void _pickDocument() async {
-    final source = await showDialog<ImageSource>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Image Source'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
     try {
       final XFile? image = await _picker.pickImage(
-        source: source,
+        source: ImageSource.camera,
         maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
@@ -59,9 +32,9 @@ class _ProofOfAddressStepState extends State<ProofOfAddressStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
       }
     }
   }
@@ -177,9 +150,9 @@ class _ProofOfAddressStepState extends State<ProofOfAddressStep> {
         const SizedBox(width: 8),
         Text(
           text,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: ColorConstants.info,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: ColorConstants.info),
         ),
       ],
     );

@@ -54,34 +54,10 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
 
   // Shows image source picker (camera or gallery)
   void _pickImage(String type) async {
-    final source = await showDialog<ImageSource>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Image Source'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
     try {
-      // Pick image from selected source
+      // Pick image directly from camera (gallery disabled)
       final XFile? image = await _picker.pickImage(
-        source: source,
+        source: ImageSource.camera,
         maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
@@ -99,9 +75,9 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
       }
     }
   }
@@ -133,14 +109,15 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
                 ),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             const Expanded(
-              child: Text(
-                'AI Auto-fill',
-                style: TextStyle(fontSize: 18),
-              ),
+              child: Text('AI Auto-fill', style: TextStyle(fontSize: 18)),
             ),
           ],
         ),
@@ -155,12 +132,19 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
             SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.check_circle, color: ColorConstants.success, size: 20),
+                Icon(
+                  Icons.check_circle,
+                  color: ColorConstants.success,
+                  size: 20,
+                ),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'You can review and edit all information in the next steps',
-                    style: TextStyle(fontSize: 12, color: ColorConstants.success),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: ColorConstants.success,
+                    ),
                   ),
                 ),
               ],
@@ -303,10 +287,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
               prefixIcon: Icon(Icons.credit_card_rounded),
             ),
             items: _idTypes.map((type) {
-              return DropdownMenuItem(
-                value: type,
-                child: Text(type),
-              );
+              return DropdownMenuItem(value: type, child: Text(type));
             }).toList(),
             onChanged: (value) {
               widget.controller.setSecondaryIdType(value);
