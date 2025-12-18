@@ -55,7 +55,9 @@ class _LoginPageState extends State<LoginPage> {
         _passwordController.text,
       );
 
-      if (mounted && success && widget.controller.currentStep == LoginStep.otpVerification) {
+      if (mounted &&
+          success &&
+          widget.controller.currentStep == LoginStep.otpVerification) {
         _navigateToOtpPage();
       }
     }
@@ -245,9 +247,7 @@ class _LoginPageState extends State<LoginPage> {
       label: const Text('Browse as Guest'),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         side: BorderSide(
           color: isDark
               ? ColorConstants.borderDark
@@ -262,10 +262,7 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          "Don't have an account? ",
-          style: theme.textTheme.bodyMedium,
-        ),
+        Text("Don't have an account? ", style: theme.textTheme.bodyMedium),
         TextButton(
           onPressed: () {
             Navigator.of(context).pushNamed(AuthRoutes.registration);
@@ -343,10 +340,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         title: const Text(
           'Admin Dashboard',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         subtitle: Text(
           'DEV ONLY: Quick Access',
