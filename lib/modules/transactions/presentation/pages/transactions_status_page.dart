@@ -319,14 +319,22 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     BuildContext context,
     SellerListingEntity listing,
   ) async {
+    print('[DEBUG] _handleBuyerTransactionTap called');
+    print('[DEBUG] Listing ID: ${listing.id}');
+    print('[DEBUG] Listing status: ${listing.status}');
+    print('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
+
     final transactionController = TransactionsModule.instance
         .createRealtimeTransactionController();
-
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     final userName =
         SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
         SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
         'Buyer';
+
+    print('[DEBUG] User ID: $userId');
+    print('[DEBUG] User name: $userName');
+    print('[DEBUG] Navigating to PreTransactionRealtimePage...');
 
     await Navigator.push<void>(
       context,
@@ -340,6 +348,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       ),
     );
 
+    print('[DEBUG] Returned from PreTransactionRealtimePage');
     await _controller.refresh();
   }
 
@@ -348,6 +357,21 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     BuildContext context,
     SellerListingEntity listing,
   ) async {
+    print('[DEBUG] _handleSellerTransactionTap called');
+    print('[DEBUG] Listing ID: ${listing.id}');
+    print('[DEBUG] Listing status: ${listing.status}');
+    print('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
+
+    // Show debug snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Opening: ${listing.id.substring(0, 8)}... status=${listing.status}',
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
     final transactionController = TransactionsModule.instance
         .createRealtimeTransactionController();
 
@@ -357,17 +381,36 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
         'Seller';
 
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PreTransactionRealtimePage(
-          controller: transactionController,
-          transactionId: listing.id,
-          userId: userId,
-          userName: userName,
+    print('[DEBUG] User ID: $userId');
+    print('[DEBUG] User name: $userName');
+    print('[DEBUG] Navigating to PreTransactionRealtimePage...');
+
+    try {
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PreTransactionRealtimePage(
+            controller: transactionController,
+            transactionId: listing.id,
+            userId: userId,
+            userName: userName,
+          ),
         ),
-      ),
-    );
+      );
+      print('[DEBUG] Returned from PreTransactionRealtimePage normally');
+    } catch (e, stack) {
+      print('[DEBUG] ❌ Navigation error: $e');
+      print('[DEBUG] Stack: $stack');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
 
     await _controller.refresh();
   }

@@ -18,9 +18,11 @@ class TransactionSupabaseDataSource {
     try {
       // Query auction_transactions for the user as seller with the specified status
       // Then join with auctions to get full listing details
+      // IMPORTANT: Select 'id' (transaction_id) to use for navigation
       final response = await _supabase
           .from('auction_transactions')
           .select('''
+            id,
             auction_id,
             auctions(
               *,
@@ -100,8 +102,15 @@ class TransactionSupabaseDataSource {
       // Extract auction data from transaction records
       final transactions = (response as List);
       if (transactions.isEmpty) {
+        print(
+          '[TransactionSupabaseDataSource] No transactions found for status: $status',
+        );
         return [];
       }
+
+      print(
+        '[TransactionSupabaseDataSource] Found ${transactions.length} transactions for status: $status',
+      );
 
       // Map transaction -> auction data to ListingModel
       return transactions.map((txn) {
@@ -109,6 +118,15 @@ class TransactionSupabaseDataSource {
         final auctionData = Map<String, dynamic>.from(
           txn['auctions'] as Map<String, dynamic>,
         );
+
+        // IMPORTANT: Override the auction's id with the TRANSACTION id
+        // This ensures navigation to PreTransactionRealtimePage works correctly
+        final transactionId = txn['id'] as String;
+        final auctionId = txn['auction_id'] as String?;
+        print(
+          '[TransactionSupabaseDataSource] Transaction ID: $transactionId, Auction ID: $auctionId',
+        );
+        auctionData['id'] = transactionId; // Use transaction ID for navigation
 
         // Prefer transaction status, otherwise use joined auction_statuses.status_name
         final txnStatus = txn['status'] as String?;
@@ -161,6 +179,7 @@ class TransactionSupabaseDataSource {
       final response = await _supabase
           .from('auction_transactions')
           .select('''
+            id,
             auction_id,
             seller_id,
             auctions(
@@ -198,6 +217,11 @@ class TransactionSupabaseDataSource {
         final auctionData = Map<String, dynamic>.from(
           txn['auctions'] as Map<String, dynamic>,
         );
+
+        // IMPORTANT: Override the auction's id with the TRANSACTION id
+        final transactionId = txn['id'] as String;
+        auctionData['id'] = transactionId;
+
         final txnStatus = txn['status'] as String?;
         final joinedStatus = auctionData['auction_statuses'] is Map
             ? (auctionData['auction_statuses'] as Map)['status_name'] as String?

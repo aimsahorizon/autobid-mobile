@@ -63,30 +63,37 @@ class TransactionRealtimeDataSource {
         '[TransactionRealtimeDataSource] Getting transaction: $transactionId',
       );
 
-      // First try as transaction ID
+      // First try as transaction ID (without user joins to avoid FK errors)
       var response = await _supabase
           .from('auction_transactions')
           .select('''
             *,
-            auctions!inner(title, auction_vehicles(brand, model)),
-            seller:users!auction_transactions_seller_id_fkey(display_name),
-            buyer:users!auction_transactions_buyer_id_fkey(display_name)
+            auctions(title, auction_vehicles(brand, model))
           ''')
           .eq('id', transactionId)
           .maybeSingle();
 
-      // If not found, try as auction ID
+      // If not found, try as auction ID (get the most recent transaction)
       if (response == null) {
-        response = await _supabase
+        print(
+          '[TransactionRealtimeDataSource] Not found by ID, trying auction_id...',
+        );
+        final multiResponse = await _supabase
             .from('auction_transactions')
             .select('''
               *,
-              auctions!inner(title, auction_vehicles(brand, model)),
-              seller:users!auction_transactions_seller_id_fkey(display_name),
-              buyer:users!auction_transactions_buyer_id_fkey(display_name)
+              auctions(title, auction_vehicles(brand, model))
             ''')
             .eq('auction_id', transactionId)
-            .maybeSingle();
+            .order('created_at', ascending: false)
+            .limit(1);
+
+        if (multiResponse is List && multiResponse.isNotEmpty) {
+          response = multiResponse.first;
+          print(
+            '[TransactionRealtimeDataSource] Found ${multiResponse.length} transaction(s) by auction_id, using most recent',
+          );
+        }
       }
 
       if (response == null) {
@@ -94,9 +101,31 @@ class TransactionRealtimeDataSource {
         return null;
       }
 
-      return _mapToTransactionEntity(response);
-    } catch (e) {
-      print('[TransactionRealtimeDataSource] Error getting transaction: $e');
+      print(
+        '[TransactionRealtimeDataSource] ✅ Found transaction: ${response['id']}',
+      );
+      print('[TransactionRealtimeDataSource] Status: ${response['status']}');
+      print(
+        '[TransactionRealtimeDataSource] Raw data keys: ${response.keys.toList()}',
+      );
+
+      try {
+        final entity = _mapToTransactionEntity(response);
+        print(
+          '[TransactionRealtimeDataSource] ✅ Mapped to entity successfully',
+        );
+        return entity;
+      } catch (mappingError, mappingStack) {
+        print(
+          '[TransactionRealtimeDataSource] ❌ Error mapping transaction: $mappingError',
+        );
+        print('[TransactionRealtimeDataSource] Mapping stack: $mappingStack');
+        print('[TransactionRealtimeDataSource] Response data: $response');
+        rethrow;
+      }
+    } catch (e, stackTrace) {
+      print('[TransactionRealtimeDataSource] ❌ Error getting transaction: $e');
+      print('[TransactionRealtimeDataSource] Stack: $stackTrace');
       return null;
     }
   }
@@ -124,14 +153,16 @@ class TransactionRealtimeDataSource {
 
     return TransactionEntity(
       id: data['id'] as String,
-      listingId: data['auction_id'] as String,
-      sellerId: data['seller_id'] as String,
-      buyerId: data['buyer_id'] as String,
+      listingId: data['auction_id'] as String? ?? '',
+      sellerId: data['seller_id'] as String? ?? '',
+      buyerId: data['buyer_id'] as String? ?? '',
       carName: carName,
       carImageUrl: carImageUrl,
-      agreedPrice: (data['agreed_price'] as num).toDouble(),
+      agreedPrice: (data['agreed_price'] as num?)?.toDouble() ?? 0.0,
       status: _mapStatus(data['status'] as String? ?? 'in_transaction'),
-      createdAt: DateTime.parse(data['created_at'] as String),
+      createdAt: data['created_at'] != null
+          ? DateTime.parse(data['created_at'] as String)
+          : DateTime.now(),
       completedAt: data['completed_at'] != null
           ? DateTime.parse(data['completed_at'] as String)
           : null,
@@ -609,32 +640,56 @@ class TransactionRealtimeDataSource {
         return false;
       }
 
-      // Step 4: Update auction status
+      // Step 4: Update auction status to cancelled/deal_failed
       print('[BuyerCancelDeal] Step 4: Updating auction status...');
       try {
-        await _supabase
-            .from('auctions')
-            .update({'status': 'deal_failed', 'updated_at': now})
-            .eq('id', auctionId);
-        print('[BuyerCancelDeal] ✅ Auction status updated to deal_failed');
+        // Get 'cancelled' status ID (for failed deals)
+        final cancelledStatusResponse = await _supabase
+            .from('auction_statuses')
+            .select('id')
+            .eq('status_name', 'cancelled')
+            .maybeSingle();
+
+        if (cancelledStatusResponse != null) {
+          await _supabase
+              .from('auctions')
+              .update({
+                'status_id': cancelledStatusResponse['id'],
+                'updated_at': now,
+              })
+              .eq('id', auctionId);
+          print('[BuyerCancelDeal] ✅ Auction status updated to cancelled');
+        } else {
+          print('[BuyerCancelDeal] ⚠️ Cancelled status not found');
+        }
       } catch (e) {
         print('[BuyerCancelDeal] ⚠️ Warning: Failed to update auction: $e');
         // Don't return false - auction update is secondary
       }
 
-      // Step 5: Update buyer's bid status
+      // Step 5: Update buyer's bid status to 'lost' (cancelled bids are marked as lost)
       final buyerId = txn['buyerId'] as String?;
       print(
         '[BuyerCancelDeal] Step 5: Updating bid status for buyer: $buyerId',
       );
       if (buyerId != null) {
         try {
-          await _supabase
-              .from('bids')
-              .update({'status': 'cancelled', 'updated_at': now})
-              .eq('auction_id', auctionId)
-              .eq('bidder_id', buyerId);
-          print('[BuyerCancelDeal] ✅ Bid status updated to cancelled');
+          // Get the 'lost' status ID from bid_statuses
+          final lostStatusResponse = await _supabase
+              .from('bid_statuses')
+              .select('id')
+              .eq('status_name', 'lost')
+              .maybeSingle();
+
+          if (lostStatusResponse != null) {
+            final lostStatusId = lostStatusResponse['id'] as String;
+            await _supabase
+                .from('bids')
+                .update({'status_id': lostStatusId, 'updated_at': now})
+                .eq('auction_id', auctionId)
+                .eq('bidder_id', buyerId);
+            print('[BuyerCancelDeal] ✅ Bid status updated to lost');
+          }
         } catch (e) {
           print('[BuyerCancelDeal] ⚠️ Warning: Failed to update bid: $e');
           // Don't return false - bid update is secondary
@@ -676,47 +731,97 @@ class TransactionRealtimeDataSource {
   /// Falls back gracefully if no secondary bidder exists
   Future<bool> offerToNextHighestBidder(String transactionId) async {
     try {
+      print('[OfferNextBidder] Starting for transaction: $transactionId');
+
       final txn = await _getTransactionSummary(transactionId);
-      if (txn == null) return false;
+      if (txn == null) {
+        print('[OfferNextBidder] ❌ Transaction summary not found');
+        return false;
+      }
 
       final auctionId = txn['auctionId'] as String?;
       final currentBuyerId = txn['buyerId'] as String?;
-      if (auctionId == null) return false;
+      if (auctionId == null) {
+        print('[OfferNextBidder] ❌ Auction ID not found');
+        return false;
+      }
 
+      print(
+        '[OfferNextBidder] Auction: $auctionId, Current buyer: $currentBuyerId',
+      );
+
+      // Query all bids for this auction, ordered by amount descending
+      // Join with bid_statuses to filter out lost/refunded bids
       final bidsResponse = await _supabase
           .from('bids')
-          .select('bidder_id, bid_amount')
+          .select('''
+            id,
+            bidder_id,
+            bid_amount,
+            created_at,
+            bid_statuses!inner(status_name)
+          ''')
           .eq('auction_id', auctionId)
-          .order('bid_amount', ascending: false)
-          .limit(10);
+          .order('bid_amount', ascending: false);
 
-      if (bidsResponse is! List) return false;
+      print('[OfferNextBidder] Found ${bidsResponse.length} bids');
 
+      if (bidsResponse.isEmpty) {
+        print('[OfferNextBidder] ❌ No bids found for this auction');
+        return false;
+      }
+
+      // Find the next highest bidder (excluding current buyer and lost bids)
       Map<String, dynamic>? nextBid;
       for (final bid in bidsResponse) {
         final bidderId = bid['bidder_id'] as String?;
-        if (bidderId != null && bidderId != currentBuyerId) {
-          nextBid = Map<String, dynamic>.from(bid as Map);
+        final statusData = bid['bid_statuses'];
+        final statusName = statusData is Map
+            ? statusData['status_name'] as String?
+            : null;
+
+        print(
+          '[OfferNextBidder] Bid: bidder=$bidderId, amount=${bid['bid_amount']}, status=$statusName',
+        );
+
+        // Skip current buyer and lost/refunded bids
+        if (bidderId != null &&
+            bidderId != currentBuyerId &&
+            statusName != 'lost' &&
+            statusName != 'refunded') {
+          nextBid = Map<String, dynamic>.from(bid);
+          print('[OfferNextBidder] ✅ Found eligible next bidder: $bidderId');
           break;
         }
       }
 
-      if (nextBid == null) return false;
+      if (nextBid == null) {
+        print('[OfferNextBidder] ❌ No eligible next bidder found');
+        return false;
+      }
 
       final nextBidderId = nextBid['bidder_id'] as String?;
-      final amountRaw = nextBid['bid_amount'] ?? nextBid['amount'];
-      final nextAmount = (amountRaw as num?)?.toDouble();
+      final nextAmount = (nextBid['bid_amount'] as num?)?.toDouble();
 
-      if (nextBidderId == null || nextAmount == null) return false;
+      if (nextBidderId == null || nextAmount == null) {
+        print('[OfferNextBidder] ❌ Invalid next bidder data');
+        return false;
+      }
+
+      print(
+        '[OfferNextBidder] Reassigning to: $nextBidderId with amount: $nextAmount',
+      );
 
       final now = DateTime.now().toIso8601String();
+      final txnId = txn['transactionId'] as String;
 
+      // Update transaction with new buyer
       await _supabase
           .from('auction_transactions')
           .update({
             'buyer_id': nextBidderId,
             'agreed_price': nextAmount,
-            'status': 'discussion',
+            'status': 'in_transaction',
             'seller_form_submitted': false,
             'buyer_form_submitted': false,
             'seller_confirmed': false,
@@ -729,26 +834,50 @@ class TransactionRealtimeDataSource {
             'completed_at': null,
             'updated_at': now,
           })
-          .eq('id', txn['transactionId'] as String);
+          .eq('id', txnId);
 
+      print('[OfferNextBidder] ✅ Transaction updated');
+
+      // Update auction current_price to reflect the new winning bid
       await _supabase
           .from('auctions')
-          .update({
-            'winner_id': nextBidderId,
-            'winning_bid': nextAmount,
-            'status': 'in_transaction',
-            'offer_to_next_bidder': true,
-            'allow_rebid': false,
-            'updated_at': now,
-          })
+          .update({'current_price': nextAmount, 'updated_at': now})
           .eq('id', auctionId);
 
+      print('[OfferNextBidder] ✅ Auction current_price updated');
+
+      // Mark the previous buyer's bid as lost
+      if (currentBuyerId != null) {
+        try {
+          final lostStatusResponse = await _supabase
+              .from('bid_statuses')
+              .select('id')
+              .eq('status_name', 'lost')
+              .maybeSingle();
+
+          if (lostStatusResponse != null) {
+            await _supabase
+                .from('bids')
+                .update({
+                  'status_id': lostStatusResponse['id'],
+                  'updated_at': now,
+                })
+                .eq('auction_id', auctionId)
+                .eq('bidder_id', currentBuyerId);
+            print('[OfferNextBidder] ✅ Previous buyer bid marked as lost');
+          }
+        } catch (e) {
+          print('[OfferNextBidder] ⚠️ Warning: Failed to update old bid: $e');
+        }
+      }
+
+      // Add timeline event
       final actorId = _supabase.auth.currentUser?.id ?? '';
       final actorName =
           _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Seller';
 
       await _addTimelineEvent(
-        txn['transactionId'] as String,
+        txnId,
         'Offered to next highest bidder',
         'Seller reassigned the transaction to the next eligible bidder.',
         'message_sent',
@@ -756,9 +885,11 @@ class TransactionRealtimeDataSource {
         actorName,
       );
 
+      print('[OfferNextBidder] 🎉 SUCCESS');
       return true;
-    } catch (e) {
-      print('[TransactionRealtimeDataSource] Error offering next bidder: $e');
+    } catch (e, stack) {
+      print('[OfferNextBidder] ❌ Error: $e');
+      print('[OfferNextBidder] Stack: $stack');
       return false;
     }
   }
@@ -767,46 +898,408 @@ class TransactionRealtimeDataSource {
   /// Resets auction timing and clears winner fields
   Future<bool> relistAuction(String transactionId) async {
     try {
+      print('[RelistAuction] Starting for transaction: $transactionId');
+
       final txn = await _getTransactionSummary(transactionId);
-      if (txn == null) return false;
+      if (txn == null) {
+        print('[RelistAuction] ❌ Transaction summary not found');
+        return false;
+      }
 
       final auctionId = txn['auctionId'] as String?;
-      if (auctionId == null) return false;
+      final txnId = txn['transactionId'] as String?;
+      if (auctionId == null) {
+        print('[RelistAuction] ❌ Auction ID not found');
+        return false;
+      }
+
+      print('[RelistAuction] Auction: $auctionId');
 
       final now = DateTime.now();
       final newEnd = now.add(const Duration(days: 7));
 
+      // Get the 'live' status ID (auctions use 'live' not 'active')
+      final liveStatusResponse = await _supabase
+          .from('auction_statuses')
+          .select('id')
+          .eq('status_name', 'live')
+          .maybeSingle();
+
+      if (liveStatusResponse == null) {
+        print('[RelistAuction] ❌ Live status not found');
+        return false;
+      }
+
+      final liveStatusId = liveStatusResponse['id'] as String;
+
+      // Update auction to live status with new timing
+      // Note: auctions table only has status_id, current_price, start_time, end_time
+      // Winner info is stored in auction_transactions, not auctions
       await _supabase
           .from('auctions')
           .update({
-            'status': 'active',
-            'winner_id': null,
-            'winning_bid': null,
-            'current_bid': 0,
-            'allow_rebid': true,
-            'offer_to_next_bidder': false,
+            'status_id': liveStatusId,
+            'current_price': 0,
             'start_time': now.toIso8601String(),
             'end_time': newEnd.toIso8601String(),
             'updated_at': now.toIso8601String(),
           })
           .eq('id', auctionId);
 
+      print('[RelistAuction] ✅ Auction updated to live');
+
+      // Delete the failed transaction record (start fresh)
+      if (txnId != null) {
+        try {
+          // Delete related records first
+          await _supabase
+              .from('transaction_timeline')
+              .delete()
+              .eq('transaction_id', txnId);
+
+          await _supabase
+              .from('transaction_chat_messages')
+              .delete()
+              .eq('transaction_id', txnId);
+
+          await _supabase
+              .from('transaction_forms')
+              .delete()
+              .eq('transaction_id', txnId);
+
+          await _supabase.from('auction_transactions').delete().eq('id', txnId);
+
+          print('[RelistAuction] ✅ Old transaction deleted');
+        } catch (e) {
+          print(
+            '[RelistAuction] ⚠️ Warning: Failed to delete old transaction: $e',
+          );
+        }
+      }
+
+      print('[RelistAuction] 🎉 SUCCESS');
+      return true;
+    } catch (e, stack) {
+      print('[RelistAuction] ❌ Error: $e');
+      print('[RelistAuction] Stack: $stack');
+      return false;
+    }
+  }
+
+  /// Delete the auction entirely after a failed deal
+  /// Removes the auction and transaction records
+  Future<bool> deleteAuction(String transactionId) async {
+    try {
+      print('[DeleteAuction] Starting for transaction: $transactionId');
+
+      final txn = await _getTransactionSummary(transactionId);
+      if (txn == null) {
+        print('[DeleteAuction] ❌ Transaction summary not found');
+        return false;
+      }
+
+      final auctionId = txn['auctionId'] as String?;
+      final txnId = txn['transactionId'] as String?;
+      if (auctionId == null) {
+        print('[DeleteAuction] ❌ Auction ID not found');
+        return false;
+      }
+
+      print('[DeleteAuction] Auction: $auctionId, Transaction: $txnId');
+
+      // Delete transaction record first (foreign key constraint)
+      if (txnId != null) {
+        try {
+          // Delete related records first
+          await _supabase
+              .from('transaction_timeline')
+              .delete()
+              .eq('transaction_id', txnId);
+
+          await _supabase
+              .from('transaction_chat_messages')
+              .delete()
+              .eq('transaction_id', txnId);
+
+          await _supabase
+              .from('transaction_forms')
+              .delete()
+              .eq('transaction_id', txnId);
+
+          await _supabase.from('auction_transactions').delete().eq('id', txnId);
+
+          print('[DeleteAuction] ✅ Transaction records deleted');
+        } catch (e) {
+          print('[DeleteAuction] ⚠️ Warning: Failed to delete transaction: $e');
+        }
+      }
+
+      // Get the 'cancelled' status ID
+      final cancelledStatusResponse = await _supabase
+          .from('auction_statuses')
+          .select('id')
+          .eq('status_name', 'cancelled')
+          .maybeSingle();
+
+      if (cancelledStatusResponse == null) {
+        print('[DeleteAuction] ❌ Cancelled status not found');
+        return false;
+      }
+
+      final cancelledStatusId = cancelledStatusResponse['id'] as String;
+
+      // Update auction status to cancelled (soft delete)
+      // Note: auctions table only has status_id, current_price - winner info is in auction_transactions
+      await _supabase
+          .from('auctions')
+          .update({
+            'status_id': cancelledStatusId,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', auctionId);
+
+      print('[DeleteAuction] ✅ Auction marked as cancelled');
+      print('[DeleteAuction] 🎉 SUCCESS');
+      return true;
+    } catch (e, stack) {
+      print('[DeleteAuction] ❌ Error: $e');
+      print('[DeleteAuction] Stack: $stack');
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // BIDDERS
+  // ============================================================================
+
+  /// Get all bidders for an auction with their bid details
+  /// Used by seller to view all participants and choose next bidder
+  Future<List<Map<String, dynamic>>> getAuctionBidders(
+    String transactionId,
+  ) async {
+    try {
+      print('[GetAuctionBidders] Starting for transaction: $transactionId');
+
+      final txn = await _getTransactionSummary(transactionId);
+      if (txn == null) {
+        print('[GetAuctionBidders] ❌ Transaction not found');
+        return [];
+      }
+
+      final auctionId = txn['auctionId'] as String?;
+      final currentBuyerId = txn['buyerId'] as String?;
+      if (auctionId == null) {
+        print('[GetAuctionBidders] ❌ Auction ID not found');
+        return [];
+      }
+
+      print(
+        '[GetAuctionBidders] Auction: $auctionId, CurrentBuyer: $currentBuyerId',
+      );
+
+      // First, get all bids for this auction (simpler query)
+      final bidsResponse = await _supabase
+          .from('bids')
+          .select('id, bidder_id, bid_amount, status_id, created_at')
+          .eq('auction_id', auctionId)
+          .order('bid_amount', ascending: false);
+
+      print(
+        '[GetAuctionBidders] Raw bids query returned: ${bidsResponse.length} bids',
+      );
+
+      if (bidsResponse.isEmpty) {
+        print('[GetAuctionBidders] ⚠️ No bids found for auction $auctionId');
+        return [];
+      }
+
+      final List<Map<String, dynamic>> bidders = [];
+
+      // Process each bid
+      for (final bid in bidsResponse) {
+        final bidderId = bid['bidder_id'] as String?;
+        final bidAmount = (bid['bid_amount'] as num?)?.toDouble() ?? 0;
+        final statusId = bid['status_id'] as String?;
+
+        print(
+          '[GetAuctionBidders] Processing bid: bidder=$bidderId, amount=$bidAmount',
+        );
+
+        // Get bidder info
+        String userName = 'Unknown';
+        String? avatarUrl;
+        if (bidderId != null) {
+          try {
+            final userResponse = await _supabase
+                .from('users')
+                .select('full_name, profile_image_url')
+                .eq('id', bidderId)
+                .maybeSingle();
+
+            if (userResponse != null) {
+              userName = userResponse['full_name'] as String? ?? 'Unknown';
+              avatarUrl = userResponse['profile_image_url'] as String?;
+            }
+          } catch (e) {
+            print('[GetAuctionBidders] ⚠️ Failed to get user info: $e');
+          }
+        }
+
+        // Get bid status
+        String? statusName;
+        String? statusDisplay;
+        if (statusId != null) {
+          try {
+            final statusResponse = await _supabase
+                .from('bid_statuses')
+                .select('status_name, display_name')
+                .eq('id', statusId)
+                .maybeSingle();
+
+            if (statusResponse != null) {
+              statusName = statusResponse['status_name'] as String?;
+              statusDisplay = statusResponse['display_name'] as String?;
+            }
+          } catch (e) {
+            print('[GetAuctionBidders] ⚠️ Failed to get status info: $e');
+          }
+        }
+
+        final isCurrentBuyer = bidderId == currentBuyerId;
+        final isEligible =
+            !isCurrentBuyer && statusName != 'lost' && statusName != 'refunded';
+
+        bidders.add({
+          'id': bid['id'],
+          'bidder_id': bidderId,
+          'bidder_name': userName,
+          'avatar_url': avatarUrl,
+          'bid_amount': bidAmount,
+          'status': statusName,
+          'status_display': statusDisplay,
+          'created_at': bid['created_at'],
+          'is_current_buyer': isCurrentBuyer,
+          'is_eligible': isEligible,
+        });
+      }
+
+      print('[GetAuctionBidders] Processed ${bidders.length} bidders');
+      return bidders;
+    } catch (e, stack) {
+      print('[GetAuctionBidders] ❌ Error: $e');
+      print('[GetAuctionBidders] Stack: $stack');
+      return [];
+    }
+  }
+
+  /// Offer to a specific bidder (not just the next highest)
+  Future<bool> offerToSpecificBidder(
+    String transactionId,
+    String newBidderId,
+    double bidAmount,
+  ) async {
+    try {
+      print(
+        '[OfferToSpecificBidder] Starting: txn=$transactionId, bidder=$newBidderId',
+      );
+
+      final txn = await _getTransactionSummary(transactionId);
+      if (txn == null) {
+        print('[OfferToSpecificBidder] ❌ Transaction not found');
+        return false;
+      }
+
+      final auctionId = txn['auctionId'] as String?;
+      final currentBuyerId = txn['buyerId'] as String?;
+      final txnId = txn['transactionId'] as String;
+
+      if (auctionId == null) {
+        print('[OfferToSpecificBidder] ❌ Auction ID not found');
+        return false;
+      }
+
+      final now = DateTime.now().toIso8601String();
+
+      // Update transaction with new buyer
+      await _supabase
+          .from('auction_transactions')
+          .update({
+            'buyer_id': newBidderId,
+            'agreed_price': bidAmount,
+            'status': 'in_transaction',
+            'seller_form_submitted': false,
+            'buyer_form_submitted': false,
+            'seller_confirmed': false,
+            'buyer_confirmed': false,
+            'admin_approved': false,
+            'admin_approved_at': null,
+            'delivery_status': 'pending',
+            'delivery_started_at': null,
+            'delivery_completed_at': null,
+            'completed_at': null,
+            'updated_at': now,
+          })
+          .eq('id', txnId);
+
+      print('[OfferToSpecificBidder] ✅ Transaction updated');
+
+      // Update auction current_price to reflect the new winning bid
+      // Note: winner info is stored in auction_transactions, not auctions table
+      await _supabase
+          .from('auctions')
+          .update({'current_price': bidAmount, 'updated_at': now})
+          .eq('id', auctionId);
+
+      print('[OfferToSpecificBidder] ✅ Auction current_price updated');
+
+      // Mark the previous buyer's bid as lost
+      if (currentBuyerId != null) {
+        try {
+          final lostStatusResponse = await _supabase
+              .from('bid_statuses')
+              .select('id')
+              .eq('status_name', 'lost')
+              .maybeSingle();
+
+          if (lostStatusResponse != null) {
+            await _supabase
+                .from('bids')
+                .update({
+                  'status_id': lostStatusResponse['id'],
+                  'updated_at': now,
+                })
+                .eq('auction_id', auctionId)
+                .eq('bidder_id', currentBuyerId);
+            print(
+              '[OfferToSpecificBidder] ✅ Previous buyer bid marked as lost',
+            );
+          }
+        } catch (e) {
+          print(
+            '[OfferToSpecificBidder] ⚠️ Warning: Failed to update old bid: $e',
+          );
+        }
+      }
+
+      // Add timeline event
       final actorId = _supabase.auth.currentUser?.id ?? '';
       final actorName =
           _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Seller';
 
       await _addTimelineEvent(
-        txn['transactionId'] as String,
-        'Listing relisted for rebid',
-        'Seller reopened the auction for a new bidding round.',
+        txnId,
+        'Offered to selected bidder',
+        'Seller selected a new buyer for this transaction.',
         'message_sent',
         actorId,
         actorName,
       );
 
+      print('[OfferToSpecificBidder] 🎉 SUCCESS');
       return true;
-    } catch (e) {
-      print('[TransactionRealtimeDataSource] Error relisting auction: $e');
+    } catch (e, stack) {
+      print('[OfferToSpecificBidder] ❌ Error: $e');
+      print('[OfferToSpecificBidder] Stack: $stack');
       return false;
     }
   }
@@ -921,19 +1414,20 @@ class TransactionRealtimeDataSource {
         return txnById['id'] as String;
       }
 
-      // Try as auction ID
+      // Try as auction ID (get most recent to handle multiple transactions)
       print('[_resolveTransactionId] Not found by ID, trying as auction ID...');
-      final txnByAuction = await _supabase
+      final txnByAuctionList = await _supabase
           .from('auction_transactions')
           .select('id')
           .eq('auction_id', idOrAuctionId)
-          .maybeSingle();
+          .order('created_at', ascending: false)
+          .limit(1);
 
-      if (txnByAuction != null) {
+      if (txnByAuctionList is List && txnByAuctionList.isNotEmpty) {
         print(
-          '[_resolveTransactionId] Found by auction ID: ${txnByAuction['id']}',
+          '[_resolveTransactionId] Found by auction ID: ${txnByAuctionList.first['id']}',
         );
-        return txnByAuction['id'] as String;
+        return txnByAuctionList.first['id'] as String;
       }
 
       print('[_resolveTransactionId] ❌ Not found by either method');

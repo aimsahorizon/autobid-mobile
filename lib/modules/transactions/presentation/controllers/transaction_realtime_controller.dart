@@ -87,16 +87,25 @@ class TransactionRealtimeController extends ChangeNotifier {
 
       print('[TransactionRealtimeController] Current user role: ${role.name}');
 
-      // Load all data in parallel
-      await Future.wait([
-        _loadChatMessages(_transaction!.id),
-        _loadMyForm(_transaction!.id, role),
-        _loadOtherPartyForm(_transaction!.id, otherRole),
-        _loadTimeline(_transaction!.id),
-      ]);
+      // For cancelled/failed transactions, don't load extra data
+      // The page will show a special UI for cancelled/failed status
+      // Note: 'deal_failed' from DB is mapped to TransactionStatus.cancelled
+      if (_transaction!.status != TransactionStatus.cancelled) {
+        // Load all data in parallel with individual error handling
+        await Future.wait([
+          _loadChatMessagesSafe(_transaction!.id),
+          _loadMyFormSafe(_transaction!.id, role),
+          _loadOtherPartyFormSafe(_transaction!.id, otherRole),
+          _loadTimelineSafe(_transaction!.id),
+        ]);
 
-      // Subscribe to real-time updates
-      _subscribeToRealtime(_transaction!.id);
+        // Subscribe to real-time updates only for active transactions
+        _subscribeToRealtime(_transaction!.id);
+      } else {
+        print(
+          '[TransactionRealtimeController] Skipping extra data for cancelled transaction',
+        );
+      }
 
       print(
         '[TransactionRealtimeController] Loaded ${_chatMessages.length} messages',
@@ -163,6 +172,57 @@ class TransactionRealtimeController extends ChangeNotifier {
 
   Future<void> _loadTimeline(String transactionId) async {
     _timeline = await _dataSource.getTimeline(transactionId);
+  }
+
+  // Safe wrappers that don't throw exceptions
+  Future<void> _loadChatMessagesSafe(String transactionId) async {
+    try {
+      _chatMessages = await _dataSource.getChatMessages(transactionId);
+    } catch (e) {
+      print(
+        '[TransactionRealtimeController] Warning: Failed to load chat messages: $e',
+      );
+      _chatMessages = [];
+    }
+  }
+
+  Future<void> _loadMyFormSafe(String transactionId, FormRole role) async {
+    try {
+      _myForm = await _dataSource.getTransactionForm(transactionId, role);
+    } catch (e) {
+      print(
+        '[TransactionRealtimeController] Warning: Failed to load my form: $e',
+      );
+      _myForm = null;
+    }
+  }
+
+  Future<void> _loadOtherPartyFormSafe(
+    String transactionId,
+    FormRole role,
+  ) async {
+    try {
+      _otherPartyForm = await _dataSource.getTransactionForm(
+        transactionId,
+        role,
+      );
+    } catch (e) {
+      print(
+        '[TransactionRealtimeController] Warning: Failed to load other party form: $e',
+      );
+      _otherPartyForm = null;
+    }
+  }
+
+  Future<void> _loadTimelineSafe(String transactionId) async {
+    try {
+      _timeline = await _dataSource.getTimeline(transactionId);
+    } catch (e) {
+      print(
+        '[TransactionRealtimeController] Warning: Failed to load timeline: $e',
+      );
+      _timeline = [];
+    }
   }
 
   /// Send chat message (real-time)
@@ -400,6 +460,72 @@ class TransactionRealtimeController extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Failed to relist auction';
       print('[TransactionRealtimeController] ❌ Error relisting auction: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete the auction entirely
+  Future<bool> deleteAuction() async {
+    if (_transaction == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.deleteAuction(_transaction!.id);
+
+      if (success) {
+        print('[TransactionRealtimeController] ✅ Auction deleted');
+      }
+
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to delete auction';
+      print('[TransactionRealtimeController] ❌ Error deleting auction: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Get all bidders for the current auction
+  Future<List<Map<String, dynamic>>> getAuctionBidders() async {
+    if (_transaction == null) return [];
+
+    try {
+      return await _dataSource.getAuctionBidders(_transaction!.id);
+    } catch (e) {
+      print('[TransactionRealtimeController] ❌ Error getting bidders: $e');
+      return [];
+    }
+  }
+
+  /// Offer to a specific bidder
+  Future<bool> offerToSpecificBidder(String bidderId, double bidAmount) async {
+    if (_transaction == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.offerToSpecificBidder(
+        _transaction!.id,
+        bidderId,
+        bidAmount,
+      );
+
+      if (success && _currentUserId != null) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to offer to bidder';
+      print('[TransactionRealtimeController] ❌ Error offering to bidder: $e');
       return false;
     } finally {
       _isProcessing = false;
