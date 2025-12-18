@@ -24,7 +24,9 @@ class _Step7PhotosState extends State<Step7Photos> {
 
   Future<void> _pickImage(BuildContext context, String category) async {
     print('DEBUG [Step7Photos]: ========================================');
-    print('DEBUG [Step7Photos]: Attempting to pick image for category: $category');
+    print(
+      'DEBUG [Step7Photos]: Attempting to pick image for category: $category',
+    );
 
     final action = await showModalBottomSheet<String>(
       context: context,
@@ -80,18 +82,23 @@ class _Step7PhotosState extends State<Step7Photos> {
       if (pickedFile == null) {
         print('DEBUG [Step7Photos]: No image selected');
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No image selected')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No image selected')));
         }
         return;
       }
 
       print('DEBUG [Step7Photos]: Image picked - Path: ${pickedFile.path}');
-      print('DEBUG [Step7Photos]: Image size: ${await pickedFile.length()} bytes');
+      print(
+        'DEBUG [Step7Photos]: Image size: ${await pickedFile.length()} bytes',
+      );
       print('DEBUG [Step7Photos]: Uploading to controller...');
 
-      final success = await widget.controller.uploadPhoto(category, pickedFile.path);
+      final success = await widget.controller.uploadPhoto(
+        category,
+        pickedFile.path,
+      );
 
       print('DEBUG [Step7Photos]: Upload result: $success');
 
@@ -197,90 +204,31 @@ class _Step7PhotosState extends State<Step7Photos> {
     widget.controller.updateDraft(updatedDraft);
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All demo photos added!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('All demo photos added!')));
     }
   }
 
   /// Pick and upload deed of sale document
   Future<void> _pickDeedOfSale(BuildContext context) async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: ColorConstants.primary.withValues(alpha: 0.1),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Upload Deed of Sale',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Supported formats: PDF, PNG, JPG, JPEG',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
-              subtitle: const Text('Capture document using camera'),
-              onTap: () => Navigator.pop(context, 'camera'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
-              subtitle: const Text('Select image from device'),
-              onTap: () => Navigator.pop(context, 'gallery'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (action == null || !context.mounted) return;
-
+    // Directly open camera for document capture
     setState(() => _isUploadingDeedOfSale = true);
 
     try {
       final picker = ImagePicker();
-      XFile? pickedFile;
-
-      if (action == 'camera') {
-        pickedFile = await picker.pickImage(
-          source: ImageSource.camera,
-          maxWidth: 2048,
-          maxHeight: 2048,
-          imageQuality: 90,
-        );
-      } else {
-        pickedFile = await picker.pickImage(
-          source: ImageSource.gallery,
-          maxWidth: 2048,
-          maxHeight: 2048,
-          imageQuality: 90,
-        );
-      }
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 90,
+      );
 
       if (pickedFile == null) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No file selected')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No file selected')));
         }
         return;
       }
@@ -299,7 +247,8 @@ class _Step7PhotosState extends State<Step7Photos> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                widget.controller.errorMessage ?? 'Failed to upload deed of sale',
+                widget.controller.errorMessage ??
+                    'Failed to upload deed of sale',
               ),
               backgroundColor: Colors.red,
             ),
@@ -328,7 +277,9 @@ class _Step7PhotosState extends State<Step7Photos> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Deed of Sale?'),
-        content: const Text('Are you sure you want to remove the uploaded deed of sale document?'),
+        content: const Text(
+          'Are you sure you want to remove the uploaded deed of sale document?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -421,8 +372,8 @@ class _Step7PhotosState extends State<Step7Photos> {
                         color: hasDocument
                             ? Colors.green
                             : (isDark
-                                ? ColorConstants.textSecondaryDark
-                                : ColorConstants.textSecondaryLight),
+                                  ? ColorConstants.textSecondaryDark
+                                  : ColorConstants.textSecondaryLight),
                       ),
                     ),
                   ],
@@ -430,7 +381,10 @@ class _Step7PhotosState extends State<Step7Photos> {
               ),
               if (hasDocument)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -525,7 +479,9 @@ class _Step7PhotosState extends State<Step7Photos> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.swap_horiz),
-                label: Text(_isUploadingDeedOfSale ? 'Uploading...' : 'Replace Document'),
+                label: Text(
+                  _isUploadingDeedOfSale ? 'Uploading...' : 'Replace Document',
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: ColorConstants.primary,
                   side: BorderSide(color: ColorConstants.primary),
@@ -550,7 +506,11 @@ class _Step7PhotosState extends State<Step7Photos> {
                         ),
                       )
                     : const Icon(Icons.upload_file),
-                label: Text(_isUploadingDeedOfSale ? 'Uploading...' : 'Upload Deed of Sale'),
+                label: Text(
+                  _isUploadingDeedOfSale
+                      ? 'Uploading...'
+                      : 'Upload Deed of Sale',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ColorConstants.primary,
                   foregroundColor: Colors.white,
@@ -581,7 +541,9 @@ class _Step7PhotosState extends State<Step7Photos> {
     if (photoUrls == null || photoUrls.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please upload at least one photo first')),
+          const SnackBar(
+            content: Text('Please upload at least one photo first'),
+          ),
         );
       }
       return;
@@ -651,7 +613,9 @@ class _Step7PhotosState extends State<Step7Photos> {
 
     try {
       // Call AI detection service (Mock for now)
-      final detectedData = await _carDetectionService.detectCarFromImage(firstPhoto);
+      final detectedData = await _carDetectionService.detectCarFromImage(
+        firstPhoto,
+      );
 
       if (!context.mounted) return;
       Navigator.pop(context); // Close loading
@@ -775,10 +739,7 @@ class _Step7PhotosState extends State<Step7Photos> {
               const Expanded(
                 child: Text(
                   'AI Car Detection',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
               ),
               Switch(
@@ -886,9 +847,7 @@ class _Step7PhotosState extends State<Step7Photos> {
               Container(
                 height: 300,
                 color: Colors.grey[300],
-                child: const Center(
-                  child: Text('No sample available'),
-                ),
+                child: const Center(child: Text('No sample available')),
               ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -935,7 +894,10 @@ class _Step7PhotosState extends State<Step7Photos> {
                           children: [
                             const Text(
                               'Step 1: Upload Photos',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -951,7 +913,10 @@ class _Step7PhotosState extends State<Step7Photos> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: uploadedCount >= 56
                               ? Colors.green
@@ -971,7 +936,9 @@ class _Step7PhotosState extends State<Step7Photos> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  DemoAutofillButton(onPressed: () => _autofillDemoPhotos(context)),
+                  DemoAutofillButton(
+                    onPressed: () => _autofillDemoPhotos(context),
+                  ),
                   const SizedBox(height: 12),
                   _buildAIToggleSection(isDark),
                 ],
@@ -987,7 +954,11 @@ class _Step7PhotosState extends State<Step7Photos> {
                   // Divider
                   Row(
                     children: [
-                      Expanded(child: Divider(color: ColorConstants.primary.withValues(alpha: 0.3))),
+                      Expanded(
+                        child: Divider(
+                          color: ColorConstants.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
@@ -1001,14 +972,22 @@ class _Step7PhotosState extends State<Step7Photos> {
                           ),
                         ),
                       ),
-                      Expanded(child: Divider(color: ColorConstants.primary.withValues(alpha: 0.3))),
+                      Expanded(
+                        child: Divider(
+                          color: ColorConstants.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   // Photo Categories
                   ...PhotoCategories.categoryGroups.keys.map((groupName) {
-                    final categoryCount = PhotoCategories.categoryGroups[groupName]!;
-                    final groupCategories = _getCategoriesForGroup(groupName, categoryCount);
+                    final categoryCount =
+                        PhotoCategories.categoryGroups[groupName]!;
+                    final groupCategories = _getCategoriesForGroup(
+                      groupName,
+                      categoryCount,
+                    );
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1024,7 +1003,8 @@ class _Step7PhotosState extends State<Step7Photos> {
                           ),
                         ),
                         ...groupCategories.map((category) {
-                          final hasPhoto = photoUrls[category]?.isNotEmpty ?? false;
+                          final hasPhoto =
+                              photoUrls[category]?.isNotEmpty ?? false;
                           return Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             decoration: BoxDecoration(
@@ -1037,27 +1017,38 @@ class _Step7PhotosState extends State<Step7Photos> {
                             ),
                             child: ListTile(
                               leading: Icon(
-                                hasPhoto ? Icons.check_circle : Icons.add_a_photo,
-                                color: hasPhoto ? Colors.green : ColorConstants.primary,
+                                hasPhoto
+                                    ? Icons.check_circle
+                                    : Icons.add_a_photo,
+                                color: hasPhoto
+                                    ? Colors.green
+                                    : ColorConstants.primary,
                               ),
                               title: Text(category),
                               subtitle: hasPhoto
                                   ? Text(
                                       '${photoUrls[category]!.length} photo(s)',
-                                      style: const TextStyle(color: Colors.green),
+                                      style: const TextStyle(
+                                        color: Colors.green,
+                                      ),
                                     )
                                   : null,
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.info_outline, size: 20),
+                                    icon: const Icon(
+                                      Icons.info_outline,
+                                      size: 20,
+                                    ),
                                     tooltip: 'View sample',
-                                    onPressed: () => _showSamplePhoto(context, category),
+                                    onPressed: () =>
+                                        _showSamplePhoto(context, category),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.camera_alt),
-                                    onPressed: () => _pickImage(context, category),
+                                    onPressed: () =>
+                                        _pickImage(context, category),
                                   ),
                                 ],
                               ),
