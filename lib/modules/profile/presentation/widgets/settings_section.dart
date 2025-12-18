@@ -28,30 +28,31 @@ class SettingsSection extends StatelessWidget {
       ),
       child: Column(
         children: [
-          ListenableBuilder(
-            listenable: themeController,
-            builder: (context, _) {
-              return _buildSettingTile(
-                icon: themeController.isDarkMode
-                    ? Icons.light_mode_rounded
-                    : Icons.dark_mode_rounded,
-                title: 'Theme',
-                subtitle: themeController.isDarkMode ? 'Dark Mode' : 'Light Mode',
-                trailing: Switch(
-                  value: themeController.isDarkMode,
-                  onChanged: (value) => themeController.toggleTheme(),
-                  activeTrackColor: ColorConstants.primary,
-                ),
-                theme: theme,
-                isDark: isDark,
-              );
-            },
-          ),
-          Divider(
-            height: 1,
-            indent: 72,
-            color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
-          ),
+          // Temporarily hidden theme toggle
+          // ListenableBuilder(
+          //   listenable: themeController,
+          //   builder: (context, _) {
+          //     return _buildSettingTile(
+          //       icon: themeController.isDarkMode
+          //           ? Icons.light_mode_rounded
+          //           : Icons.dark_mode_rounded,
+          //       title: 'Theme',
+          //       subtitle: themeController.isDarkMode ? 'Dark Mode' : 'Light Mode',
+          //       trailing: Switch(
+          //         value: themeController.isDarkMode,
+          //         onChanged: (value) => themeController.toggleTheme(),
+          //         activeTrackColor: ColorConstants.primary,
+          //       ),
+          //       theme: theme,
+          //       isDark: isDark,
+          //     );
+          //   },
+          // ),
+          // Divider(
+          //   height: 1,
+          //   indent: 72,
+          //   color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          // ),
           _buildSettingTile(
             icon: Icons.logout_rounded,
             title: 'Sign Out',

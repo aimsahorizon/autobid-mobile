@@ -88,8 +88,8 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildThemeToggle(),
-                const SizedBox(height: 20),
+                // _buildThemeToggle(), // Temporarily hidden
+                // const SizedBox(height: 20),
                 _buildHeader(theme, isDark),
                 const SizedBox(height: 48),
                 _buildErrorMessage(),
