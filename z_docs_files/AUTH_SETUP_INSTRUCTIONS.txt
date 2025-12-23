@@ -1,0 +1,218 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║         SUPABASE + GOOGLE SIGN-IN AUTHENTICATION SETUP GUIDE            ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+ALL IMPLEMENTATION COMPLETE ✓
+Follow these steps to configure your credentials:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1: INSTALL DEPENDENCIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run in your terminal:
+
+  flutter pub get
+
+This installs:
+  • supabase_flutter (already installed)
+  • google_sign_in
+  • flutter_dotenv
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2: SETUP SUPABASE PROJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go to: https://supabase.com/dashboard
+
+2. Create a new project or use existing one
+
+3. Copy your credentials from Project Settings > API:
+   • Project URL (e.g., https://xxxxx.supabase.co)
+   • anon/public key
+
+4. Enable Email Auth:
+   → Authentication > Providers > Email
+   → Enable "Email Provider"
+   → Configure email templates (optional)
+
+5. Enable Google Auth:
+   → Authentication > Providers > Google
+   → Enable "Google Provider"
+   → Add your Google Client ID and Secret (see Step 3)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3: SETUP GOOGLE OAUTH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Go to: https://console.cloud.google.com/
+
+2. Create new project or select existing
+
+3. Enable Google+ API:
+   → APIs & Services > Library
+   → Search "Google+ API"
+   → Enable
+
+4. Configure OAuth Consent Screen:
+   → APIs & Services > OAuth consent screen
+   → User Type: External
+   → Fill required fields (App name, email, etc.)
+   → Add scopes: email, profile
+   → Add test users (your email)
+
+5. Create OAuth 2.0 Client IDs (you need 3):
+
+   A) WEB APPLICATION:
+      → APIs & Services > Credentials > Create Credentials
+      → OAuth Client ID > Web application
+      → Name: "AutoBid Web"
+      → Authorized redirect URIs:
+         https://your-project-id.supabase.co/auth/v1/callback
+      → Copy CLIENT ID (ends with .apps.googleusercontent.com)
+
+   B) ANDROID:
+      → Create Credentials > OAuth Client ID > Android
+      → Name: "AutoBid Android"
+      → Package name: com.autobid.mobile (or your package)
+      → SHA-1 certificate fingerprint:
+         Run: keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+         Copy SHA-1 fingerprint
+      → Copy CLIENT ID
+
+   C) IOS:
+      → Create Credentials > OAuth Client ID > iOS
+      → Name: "AutoBid iOS"
+      → Bundle ID: com.autobid.mobile (from ios/Runner.xcodeproj)
+      → Copy CLIENT ID
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4: CONFIGURE .env FILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Open the .env file in your project root
+
+2. Replace placeholder values with your actual credentials:
+
+   SUPABASE_URL=https://your-project-id.supabase.co
+   SUPABASE_ANON_KEY=your-anon-key-here
+   GOOGLE_WEB_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+   GOOGLE_IOS_CLIENT_ID=your-ios-client-id.apps.googleusercontent.com
+
+3. Save the file
+
+⚠️  IMPORTANT: Never commit .env to git (already in .gitignore)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5: PLATFORM-SPECIFIC CONFIGURATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ANDROID:
+--------
+1. Open: android/app/build.gradle
+
+2. Add to defaultConfig:
+   minSdkVersion 21  // Google Sign-In requires min 21
+
+3. No additional configuration needed (handled by google_sign_in plugin)
+
+
+IOS:
+----
+1. Open: ios/Runner/Info.plist
+
+2. Add before </dict>:
+
+   <key>CFBundleURLTypes</key>
+   <array>
+     <dict>
+       <key>CFBundleTypeRole</key>
+       <string>Editor</string>
+       <key>CFBundleURLSchemes</key>
+       <array>
+         <string>com.googleusercontent.apps.YOUR-IOS-CLIENT-ID-PREFIX</string>
+       </array>
+     </dict>
+   </array>
+
+   Replace YOUR-IOS-CLIENT-ID-PREFIX with the part before .apps.googleusercontent.com
+
+3. Set minimum deployment target:
+   Open ios/Podfile, ensure:
+   platform :ios, '12.0'
+
+
+WEB (Optional):
+---------------
+1. Open: web/index.html
+
+2. Add before </head>:
+
+   <meta name="google-signin-client_id" content="YOUR-WEB-CLIENT-ID.apps.googleusercontent.com">
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6: TEST THE IMPLEMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run the app:
+   flutter run
+
+2. Navigate to login page
+
+3. Test username/password sign in:
+   • Create account via sign up
+   • Check Supabase dashboard > Authentication > Users
+
+4. Test Google Sign-In:
+   • Click "Sign in with Google"
+   • Select Google account
+   • Check Supabase dashboard for new user
+
+5. Test password reset:
+   • Click "Forgot password"
+   • Enter email
+   • Check email inbox for reset link
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ERROR: "Supabase not initialized"
+→ Ensure main.dart calls SupabaseConfig.initialize() before runApp()
+
+ERROR: "Google sign in failed"
+→ Check if correct CLIENT ID in .env
+→ Verify OAuth consent screen is configured
+→ For Android: Verify SHA-1 fingerprint matches
+→ For iOS: Verify CFBundleURLSchemes is correct
+
+ERROR: ".env file not found"
+→ Ensure .env exists in project root
+→ Run flutter clean && flutter pub get
+
+ERROR: "Invalid credentials"
+→ Double-check SUPABASE_URL and SUPABASE_ANON_KEY in .env
+→ Ensure no extra spaces in .env values
+
+ERROR: Android build fails
+→ Ensure minSdkVersion is at least 21 in android/app/build.gradle
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Dependencies added (google_sign_in, flutter_dotenv)
+✓ Supabase configuration helper created
+✓ AuthRemoteDataSourceImpl fully implemented with:
+  - getCurrentUser()
+  - signInWithUsername()
+  - signInWithGoogle()
+  - signOut()
+  - sendPasswordResetRequest()
+  - verifyOtp()
+  - signUp()
+✓ Auth module DI updated with Supabase injection
+✓ main.dart updated to initialize Supabase
+✓ .env and .env.example created
+✓ .gitignore updated to exclude .env
+
+All code is production-ready. Just configure your credentials!

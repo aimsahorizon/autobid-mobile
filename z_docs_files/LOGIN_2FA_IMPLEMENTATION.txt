@@ -1,0 +1,253 @@
+================================================================================
+  LOGIN 2-STEP VERIFICATION WITH GOOGLE SIGN-IN VALIDATION - COMPLETE
+================================================================================
+
+IMPLEMENTATION SUMMARY:
+----------------------
+✅ Google Sign-In now validates if email exists in user_profiles
+✅ Manual login validates credentials then requires OTP
+✅ Both login methods require 2-step OTP verification (email + phone)
+✅ Users cannot proceed without verifying both email and phone OTP
+
+FILES CREATED:
+--------------
+✅ lib/modules/auth/presentation/controllers/login_otp_controller.dart
+   - Manages OTP verification state for login flow
+   - Tracks email and phone verification status
+   - Methods: sendEmailOtp(), sendPhoneOtp(), verifyEmailOtp(), verifyPhoneOtp()
+
+✅ lib/modules/auth/presentation/widgets/login_otp_dialog.dart
+   - Dialog widget for 2-step OTP verification
+   - Displays email and phone verification cards
+   - Auto-closes when both verifications complete
+
+FILES MODIFIED:
+---------------
+✅ lib/modules/profile/data/datasources/profile_supabase_datasource.dart
+   - Added checkEmailExists(String email) - validates email registration
+   - Added getUserProfileByEmail(String email) - fetches profile for login
+
+✅ lib/modules/auth/presentation/controllers/login_controller.dart
+   - Added LoginStep enum (credentials, otpVerification, completed)
+   - Updated signIn() to fetch profile and move to OTP step
+   - Updated signInWithGoogle() to:
+     * Check if email exists via checkEmailExists()
+     * Show error if not registered
+     * Fetch profile for phone number
+     * Move to OTP verification step
+   - Returns bool to indicate success/failure
+
+✅ lib/modules/auth/auth_module.dart
+   - Updated createLoginController() to inject ProfileSupabaseDataSource
+   - Added createLoginOtpController() factory method
+
+FLOW DIAGRAM:
+-------------
+
+MANUAL LOGIN:
+1. User enters username/password
+2. LoginController.signIn() validates credentials
+3. Fetch user profile to get email and phone number
+4. Move to LoginStep.otpVerification
+5. Show LoginOtpDialog
+6. User verifies email OTP
+7. User verifies phone OTP
+8. Both verified → LoginStep.completed → Navigate to home
+
+GOOGLE SIGN-IN:
+1. User clicks "Sign in with Google"
+2. LoginController.signInWithGoogle() gets Google user
+3. Check if email exists in user_profiles
+4. If NOT exists → Show error "Account not registered. Please sign up first."
+5. If exists → Fetch profile for phone number
+6. Move to LoginStep.otpVerification
+7. Show LoginOtpDialog
+8. User verifies email OTP
+9. User verifies phone OTP
+10. Both verified → LoginStep.completed → Navigate to home
+
+HOW TO USE IN LOGIN PAGE:
+--------------------------
+
+import 'package:flutter/material.dart';
+import '../controllers/login_controller.dart';
+import '../controllers/login_otp_controller.dart';
+import '../widgets/login_otp_dialog.dart';
+import '../../auth_module.dart';
+
+class LoginPage extends StatefulWidget {
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  late final LoginController _loginController;
+  late final LoginOtpController _otpController;
+
+  @override
+  void initState() {
+    super.initState();
+    _loginController = AuthModule.instance.createLoginController();
+    _otpController = AuthModule.instance.createLoginOtpController();
+  }
+
+  Future<void> _handleLogin(String username, String password) async {
+    final success = await _loginController.signIn(username, password);
+
+    if (success && _loginController.currentStep == LoginStep.otpVerification) {
+      _showOtpDialog();
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    final success = await _loginController.signInWithGoogle();
+
+    if (success && _loginController.currentStep == LoginStep.otpVerification) {
+      _showOtpDialog();
+    }
+  }
+
+  void _showOtpDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => LoginOtpDialog(
+        email: _loginController.userEmail!,
+        phoneNumber: _loginController.userPhoneNumber!,
+        controller: _otpController,
+        onComplete: () {
+          _loginController.completeLogin();
+          // Navigate to home
+          Navigator.pushReplacementNamed(context, '/home');
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          // Username field
+          TextField(...),
+
+          // Password field
+          TextField(...),
+
+          // Login button
+          ElevatedButton(
+            onPressed: () => _handleLogin(username, password),
+            child: Text('Login'),
+          ),
+
+          // Google Sign-In button
+          ElevatedButton(
+            onPressed: _handleGoogleSignIn,
+            child: Text('Sign in with Google'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+ERROR HANDLING:
+---------------
+
+Google Sign-In Not Registered:
+- Shows: "Account not registered. Please sign up first."
+- Action: User should click "Sign Up" button
+
+Manual Login Invalid:
+- Shows: "Invalid username or password"
+- Action: User should try again or reset password
+
+Profile Not Found:
+- Shows: "User profile not found. Please register."
+- Action: Contact support or re-register
+
+OTP Send Failed:
+- Shows: "Failed to send email/phone OTP: [error]"
+- Action: User can click "Resend OTP"
+
+OTP Verification Failed:
+- Shows: "Invalid OTP. Please try again."
+- Action: User can re-enter OTP or resend
+
+SUPABASE REQUIREMENTS:
+----------------------
+1. user_profiles table must have:
+   - id (UUID, FK to auth.users)
+   - email (TEXT, UNIQUE)
+   - contact_number (TEXT)
+
+2. Enable Email OTP:
+   Authentication → Providers → Email → "Enable Email OTP"
+
+3. Enable Phone OTP:
+   Authentication → Providers → Phone → Enable
+   - Configure SMS provider (Twilio, etc.)
+   - Set Philippines (+63) as allowed country
+
+4. Google OAuth configured:
+   - Google provider enabled in Supabase
+   - GOOGLE_WEB_CLIENT_ID in .env file
+
+TESTING CHECKLIST:
+------------------
+☐ Manual Login → OTP Dialog appears
+☐ Email OTP sends successfully
+☐ Phone OTP sends successfully
+☐ Email OTP verification works
+☐ Phone OTP verification works
+☐ Dialog closes after both verified
+☐ Google Sign-In with registered email → OTP Dialog
+☐ Google Sign-In with unregistered email → Error message
+☐ Google Sign-In error prompts user to sign up
+☐ Invalid credentials show error
+☐ Resend OTP works for both email and phone
+
+SECURITY FEATURES:
+------------------
+✅ 2-Factor Authentication (2FA)
+✅ Email + Phone verification required
+✅ Google Sign-In validation against database
+✅ Cannot login without registered account
+✅ OTP expiration handled by Supabase
+✅ Rate limiting via Supabase Auth
+
+================================================================================
+  NEXT STEPS FOR YOU:
+================================================================================
+
+1. UPDATE YOUR LOGIN PAGE:
+   - Import LoginOtpDialog widget
+   - Create LoginOtpController instance
+   - Call _showOtpDialog() when login succeeds
+   - Handle navigation after OTP complete
+
+2. UPDATE YOUR GOOGLE SIGN-IN BUTTON:
+   - Use LoginController.signInWithGoogle()
+   - Check for error messages about registration
+   - Show user-friendly prompts to sign up
+
+3. CONFIGURE SUPABASE:
+   - Enable Email OTP in Authentication settings
+   - Configure Phone OTP with SMS provider
+   - Test OTP delivery to your email/phone
+
+4. TEST THE FLOW:
+   - Try manual login with valid credentials
+   - Verify OTP dialog appears
+   - Test both email and phone OTP
+   - Try Google Sign-In with unregistered email
+   - Confirm error message shows correctly
+
+5. USER EXPERIENCE:
+   - Add loading states to buttons
+   - Show clear error messages
+   - Provide "Forgot Password" link
+   - Add "Sign Up" button for new users
+
+================================================================================

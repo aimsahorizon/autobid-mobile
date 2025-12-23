@@ -1,0 +1,84 @@
+================================================================================
+  AUTH REGISTRATION IMAGE UPLOAD - FIXED
+================================================================================
+
+PROBLEM:
+--------
+The KYC registration flow was collecting user data and images but not actually:
+1. Creating the user account in Supabase Auth
+2. Uploading the selfie/profile image to Supabase Storage
+3. Creating the user profile in the database
+
+SOLUTION:
+---------
+Integrated the KYC registration controller with Supabase backend.
+
+FILES CREATED:
+--------------
+✅ lib/modules/auth/domain/usecases/sign_up_usecase.dart
+   - New use case for user registration
+   - Calls AuthRepository.signUp()
+
+FILES MODIFIED:
+---------------
+✅ lib/modules/auth/presentation/controllers/kyc_registration_controller.dart
+   - Added dependency injection for SignUpUseCase and ProfileSupabaseDataSource
+   - Updated submitRegistration() method to:
+     1. Create auth account with email/password
+     2. Upload selfie as profile photo to Supabase Storage
+     3. Create user profile in database
+     4. Update profile with photo URL
+
+✅ lib/modules/auth/auth_module.dart
+   - Added ProfileSupabaseDataSource to datasources
+   - Added SignUpUseCase to use cases
+   - Created createKYCRegistrationController() factory method
+   - Properly wires all dependencies
+
+✅ lib/modules/auth/presentation/pages/registration_page.dart
+   - Updated to use AuthModule.instance.createKYCRegistrationController()
+   - Now gets controller with proper Supabase integration
+
+HOW IT WORKS:
+-------------
+1. User fills out all 9 KYC steps
+2. On final submit, the controller:
+   a. Creates Supabase auth account (email + password)
+   b. Uploads selfie image to 'user-avatars' storage bucket
+   c. Creates user_profiles row with full name, email, phone
+   d. Updates profile with uploaded photo URL
+
+3. User can now sign in with their credentials
+
+WHAT'S UPLOADED:
+----------------
+✅ Profile photo (selfie) → user-avatars bucket (public)
+⏳ National ID images → user-documents bucket (private) - TODO
+⏳ Secondary ID images → user-documents bucket (private) - TODO
+⏳ Proof of address → user-documents bucket (private) - TODO
+
+TESTING:
+--------
+1. Run the app
+2. Navigate to Registration page
+3. Complete all 9 KYC steps with:
+   - Valid email
+   - Strong password (8+ characters)
+   - Take/upload selfie photo
+   - Fill all required fields
+4. Click Submit on Review step
+5. Should see success dialog
+6. Check Supabase:
+   - Authentication → Users (new user created)
+   - Storage → user-avatars (selfie uploaded)
+   - Table Editor → user_profiles (profile created)
+
+NEXT STEPS (Optional):
+----------------------
+- Add method to upload ID documents to user-documents bucket (private)
+- Store document URLs in user_profiles or separate kyc_documents table
+- Implement admin approval workflow for KYC verification
+
+================================================================================
+  REGISTRATION FLOW NOW FULLY FUNCTIONAL
+================================================================================

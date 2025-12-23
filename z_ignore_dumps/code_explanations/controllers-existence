@@ -1,0 +1,61 @@
+Great question! Let me explain the difference between pages that need a controller and those that don't.
+Why Some Pages Have Controllers and Others Don't
+
+Pages WITH Controllers (Login, Forgot Password)
+These pages use dependency injection - the controller is created elsewhere and "injected" into the page:
+// login_page.dart
+class LoginPage extends StatefulWidget {
+  final LoginController controller;  // ← Controller passed from outside
+  
+  const LoginPage({super.key, required this.controller});
+}
+
+Why? Because we want to:
+Reuse the same controller across the app
+Test the page easily by passing a mock controller
+Share state between different parts of the app
+
+The router creates and passes the controller:
+case '/login':
+  return MaterialPageRoute(
+    builder: (_) => LoginPage(
+      controller: LoginController(),  // ← Created here, passed to page
+    ),
+  );
+Pages WITHOUT Controllers (Registration Page - NEW KYC)
+
+The new registration page creates its own controller internally:
+// registration_page.dart
+class _RegistrationPageState extends State<RegistrationPage> {
+  late final KYCRegistrationController _controller;
+  
+  @override
+  void initState() {
+    super.init State();
+    _controller = KYCRegistrationController();  // ← Created inside
+  }
+}
+
+Why? Because:
+Self-contained - The KYC flow is complex with 9 steps, so it manages its own state
+Fresh start every time - Each registration should start clean with new data
+Simpler routing - No need to pass anything from the router
+
+Simple Analogy
+Think of it like ordering food: WITH Controller (Login):
+Like a shared menu that everyone at the restaurant uses
+The waiter (router) brings you the menu (controller)
+Everyone sees the same menu
+
+WITHOUT Controller (Registration):
+Like your personal order form
+You get a fresh, blank form when you sit down
+Your form is just for you, not shared with anyone
+
+Should We Fix It?
+For the new KYC registration, the current approach is correct. The page doesn't need a controller parameter because it creates its own. But if you look at the router error, it's likely trying to pass a controller that doesn't exist anymore. We should update the router to match:
+case '/registration':
+  return MaterialPageRoute(
+    builder: (_) => const RegistrationPage(),  // ← No controller needed!
+  );
+The old registration page had RegistrationController, but the new KYC flow uses KYCRegistrationController internally instead. Bottom line: Both approaches are valid! Use external controllers when you need to share state, use internal controllers when the page should be self-contained.

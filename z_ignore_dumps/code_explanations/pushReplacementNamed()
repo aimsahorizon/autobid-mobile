@@ -1,0 +1,47 @@
+## How `pushReplacementNamed()` Works
+
+**The referenced line:**
+```dart
+Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+```
+
+### The Three-Part System:
+
+1. **Route Constants** (`AuthRoutes` class):
+   - Defines named route strings like `login = '/login'`
+   - These are just string constants that act as identifiers
+
+2. **Route Handler** (`AppRouter.onGenerateRoute`):
+   - Configured in your `MaterialApp` via the `onGenerateRoute` parameter
+   - This callback intercepts navigation requests whenever `pushReplacementNamed()` is called
+   - It examines the route name and returns the appropriate `MaterialPageRoute` with the correct widget
+
+3. **Navigation Call**:
+   - `pushReplacementNamed(AuthRoutes.login)` passes the string `/login` to the Navigator
+   - The Navigator calls `onGenerateRoute()` with `RouteSettings(name: '/login')`
+   - The router's switch statement matches the name and builds the corresponding page
+
+### The Flow:
+
+```
+pushReplacementNamed(AuthRoutes.login)
+         ↓
+   passes "/login"
+         ↓
+   onGenerateRoute() receives RouteSettings
+         ↓
+   switch(settings.name) matches case AuthRoutes.login
+         ↓
+   Returns MaterialPageRoute(builder: LoginPage(...))
+         ↓
+   LoginPage is displayed, replacing the previous route
+```
+
+**Key benefit**: You don't need to manually create routes—Flutter's 
+Navigator system automatically handles finding and building the right page 
+based on the route name. The `onGenerateRoute` callback acts as a central 
+registry that maps route names to their widgets.
+
+
+-----
+

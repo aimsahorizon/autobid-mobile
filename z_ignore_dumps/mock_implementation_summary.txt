@@ -1,0 +1,77 @@
+MOCK IMPLEMENTATION SUMMARY
+===========================
+
+Problem:
+- In Transaction tab cards showed "Transaction not found"
+- Draft and Cancelled tabs also had no dynamic data
+- Mock data had hardcoded IDs that didn't match actual listing IDs
+
+Solution:
+- Added dynamic fallback creation for missing data
+- All mock datasources now work with any listing ID
+- Backend-ready toggle flag added to all datasources
+
+Files Updated:
+==============
+
+1. transaction_mock_datasource.dart
+   - Added useMockData toggle flag (line 11-13)
+   - _createDynamicTransaction() - generates transaction for any listing ID
+   - _createDynamicChatMessages() - generates sample chat messages
+   - _createDynamicTimeline() - generates sample timeline events
+   - getTransaction() now falls back to dynamic creation if ID not found
+   - getChatMessages() creates sample messages if none exist
+   - getTimeline() creates sample timeline if none exists
+
+2. listing_draft_mock_datasource.dart
+   - Added useMockData toggle flag (line 10-12)
+   - _createDynamicDraft() - generates draft for any draft ID
+   - getDraft() now falls back to dynamic creation if ID not found
+
+3. listing_detail_mock_datasource.dart
+   - Updated useMockData toggle comment (line 9-11)
+   - convertToDetailEntity() already works dynamically
+
+4. seller_listings_mock_datasource.dart
+   - Added useMockData toggle flag (line 7-9)
+
+5. listings_grid.dart
+   - Already updated to route In Transaction to PreTransactionPage
+   - Passes listing.id as transactionId
+
+6. lists_page.dart
+   - enableNavigation set to true for all tabs
+   - sellerId provided to In Transaction tab
+
+How It Works:
+=============
+
+When user clicks In Transaction card:
+1. listings_grid.dart receives listing with id 'list_005'
+2. Creates TransactionController with TransactionMockDataSource
+3. Navigates to PreTransactionPage with transactionId='list_005'
+4. PreTransactionPage calls controller.loadTransaction('list_005')
+5. TransactionMockDataSource.getTransaction('list_005'):
+   - Tries to find existing transaction with id 'list_005'
+   - Not found, calls _createDynamicTransaction('list_005')
+   - Returns new TransactionEntity with all required fields
+6. Similarly for chat messages and timeline
+7. UI displays working transaction page with sample data
+
+Same pattern for Draft and Cancelled tabs.
+
+Backend Switching:
+==================
+
+To switch from mock to real backend:
+1. Change useMockData from true to false in each datasource
+2. Implement actual Supabase queries in TODO sections
+3. No changes needed in presentation layer
+
+Benefits:
+=========
+- All tabs now work regardless of listing IDs
+- UI can be fully tested with mock data
+- Easy one-line switch to real backend
+- No "not found" errors during development
+- Backend preparation remains intact

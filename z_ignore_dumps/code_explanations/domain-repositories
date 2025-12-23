@@ -1,0 +1,167 @@
+Understanding domain/repositories/<repository files>
+
+nekolaiv: using the referenced line of code, can you explain how are we able to use pushReplacementNamed(<routename>)
+
+GitHub Copilot: I'll explain how `pushReplacementNamed()` works by examining the code context and the routing setup. 
+
+Read [](file:///c%3A/Users/nekol/Desktop/Flutter/autobid_mobile/lib/app/app_routes.dart)
+
+Read [](file:///c%3A/Users/nekol/Desktop/Flutter/autobid_mobile/lib/modules/auth/auth_routes.dart)
+
+Read [](file:///c%3A/Users/nekol/Desktop/Flutter/autobid_mobile/lib/app/app.dart)
+
+Now let me check the app router to see how routes are generated: 
+
+Read [](file:///c%3A/Users/nekol/Desktop/Flutter/autobid_mobile/lib/app/router)
+
+Read [](file:///c%3A/Users/nekol/Desktop/Flutter/autobid_mobile/lib/app/router/app_router.dart)
+
+Perfect! Now I can explain how this works. Here's how `pushReplacementNamed()` is able to work in your code:
+
+## How `pushReplacementNamed()` Works
+
+**The referenced line:**
+```dart
+Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+```
+
+### The Three-Part System:
+
+1. **Route Constants** (`AuthRoutes` class):
+   - Defines named route strings like `login = '/login'`
+   - These are just string constants that act as identifiers
+
+2. **Route Handler** (`AppRouter.onGenerateRoute`):
+   - Configured in your `MaterialApp` via the `onGenerateRoute` parameter
+   - This callback intercepts navigation requests whenever `pushReplacementNamed()` is called
+   - It examines the route name and returns the appropriate `MaterialPageRoute` with the correct widget
+
+3. **Navigation Call**:
+   - `pushReplacementNamed(AuthRoutes.login)` passes the string `/login` to the Navigator
+   - The Navigator calls `onGenerateRoute()` with `RouteSettings(name: '/login')`
+   - The router's switch statement matches the name and builds the corresponding page
+
+### The Flow:
+
+```
+pushReplacementNamed(AuthRoutes.login)
+         ↓
+   passes "/login"
+         ↓
+   onGenerateRoute() receives RouteSettings
+         ↓
+   switch(settings.name) matches case AuthRoutes.login
+         ↓
+   Returns MaterialPageRoute(builder: LoginPage(...))
+         ↓
+   LoginPage is displayed, replacing the previous route
+```
+
+**Key benefit**: You don't need to manually create routes—Flutter's Navigator system automatically handles finding and building the right page based on the route name. The `onGenerateRoute` callback acts as a central registry that maps route names to their widgets.
+
+nekolaiv: In the referenced file, explain the use of this file in simple terms meant for beginner coder.
+
+GitHub Copilot: I'm going to add a short todo plan, then explain the file and give simple usage examples.
+
+Created 3 todos
+
+Progress: plan created. Now I'll explain the file and show examples.  
+
+**File:** auth_repository.dart
+
+**Simple explanation (for a beginner):**
+- **What this file is:**  
+  - It declares an interface (an abstract class) named `AuthRepository` that lists the actions your app can perform related to authentication (sign in, sign out, sign up, etc.).
+- **Why use an interface/abstract class:**  
+  - It defines a "contract" — what methods are available and what data they return — without saying how they work. This lets different parts of the app use authentication without depending on a specific implementation (e.g., real API, fake/mock for tests).
+- **Where it belongs (architecture):**  
+  - It sits in the "domain" layer (core business logic). The domain layer only cares about what operations exist, not how they are implemented.
+- **What `UserEntity` is (brief):**  
+  - `UserEntity` is a simple data object representing a user (id, email, name, etc.). The repository methods return or use that object.
+- **Why methods return `Future<...>`:**  
+  - These operations are asynchronous (they may call a server, access secure storage). `Future` means "I will complete later" — you'll `await` the result or use `.then()`.
+
+**Methods in the file — plain language:**
+- `Future<UserEntity?> getCurrentUser()`  
+  - Returns the current signed-in user, or `null` if nobody is signed in.
+- `Future<UserEntity> signInWithUsername(String username, String password)`  
+  - Sign in using username/password and return the signed-in user.
+- `Future<UserEntity> signInWithGoogle()`  
+  - Sign in with Google and return the user.
+- `Future<void> signOut()`  
+  - Sign the user out.
+- `Future<void> sendPasswordResetRequest(String username)`  
+  - Ask the server to start a password reset for the given username/email.
+- `Future<bool> verifyOtp(String username, String otp)`  
+  - Verify a one-time password (OTP); returns true if valid.
+- `Future<UserEntity> signUp(String email, String password, {String? username})`  
+  - Create a new account and return the created user.
+
+**How you (or the app) uses this file:**
+- Other parts of the app depend on `AuthRepository` (the abstract contract).  
+- A concrete implementation (e.g., `AuthRepositoryImpl`) lives in the data layer and implements these methods — calling REST APIs, Firebase, or local storage.  
+- The UI or controllers ask the `AuthRepository` for actions like sign-in. Because UI only depends on the abstract class, the implementation can be swapped (good for testing).
+
+**Tiny example — what an implementation might look like (very simplified):**
+```dart
+class AuthRepositoryImpl implements AuthRepository {
+  @override
+  Future<UserEntity?> getCurrentUser() async {
+    // e.g., read from secure storage or return null
+    return null;
+  }
+
+  @override
+  Future<UserEntity> signInWithUsername(String username, String password) async {
+    // e.g., send HTTP request to server, parse response
+    return UserEntity(id: '123', email: username);
+  }
+
+  @override
+  Future<UserEntity> signInWithGoogle() async {
+    // e.g., perform Google sign-in flow
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> signOut() async {
+    // clear tokens, update local state
+  }
+
+  @override
+  Future<void> sendPasswordResetRequest(String username) async {
+    // call API to send reset email
+  }
+
+  @override
+  Future<bool> verifyOtp(String username, String otp) async {
+    // call API to verify OTP
+    return true;
+  }
+
+  @override
+  Future<UserEntity> signUp(String email, String password, {String? username}) async {
+    // call API to create user
+    return UserEntity(id: '456', email: email);
+  }
+}
+```
+
+**Simple usage example from UI / controller (async/await style):**
+```dart
+final AuthRepository authRepo = AuthRepositoryImpl();
+
+Future<void> signIn() async {
+  try {
+    final user = await authRepo.signInWithUsername('me@example.com', 'p@ssword');
+    // proceed with signed-in user
+  } catch (e) {
+    // handle error (show message, etc.)
+  }
+}
+```
+
+**Why this helps beginners:**
+- Keeps code organized and testable.
+- Separates "what" (the methods your app needs) from "how" (the implementation details).
+- Makes it easy to replace the real backend with a fake implementation for unit tests.

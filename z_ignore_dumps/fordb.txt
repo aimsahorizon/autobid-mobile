@@ -1,0 +1,11 @@
+Features we need for database:
+- Sign in
+- Register
+- Forgot Password
+- Car listing
+- Car Bidding
+
+Entities:
+- User (email, number, username, password, KYC documents)
+- Car Auction {Car Info, Bidding Info} 
+- 

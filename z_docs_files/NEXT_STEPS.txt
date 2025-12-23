@@ -1,0 +1,367 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║            AUTOBID MOBILE - NEXT IMPLEMENTATION STEPS                    ║
+║                    Continue from Browse Module                           ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ COMPLETED SO FAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. ✓ Database Schema (12 tables, RLS, Storage)
+2. ✓ Auth Module (Supabase + Google Sign-In)
+3. ✓ Profile Module (Complete Supabase integration)
+4. ✓ Browse Module - Started:
+   - auction_supabase_datasource.dart created
+   - Models already have JSON converters
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 STEP-BY-STEP: COMPLETE BROWSE MODULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: Create Bid Datasource
+────────────────────────────────────────────────────────────────────────
+
+File: lib/modules/browse/data/datasources/bid_supabase_datasource.dart
+
+```dart
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class BidSupabaseDataSource {
+  final SupabaseClient _supabase;
+
+  BidSupabaseDataSource(this._supabase);
+
+  /// Place a bid on an auction
+  Future<void> placeBid({
+    required String vehicleId,
+    required String bidderId,
+    required double amount,
+    bool isAutoBid = false,
+    double? maxAutoBid,
+  }) async {
+    try {
+      await _supabase.from('bids').insert({
+        'vehicle_id': vehicleId,
+        'bidder_id': bidderId,
+        'amount': amount,
+        'is_auto_bid': isAutoBid,
+        'max_auto_bid': maxAutoBid,
+        'status': 'active',
+      });
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to place bid: ${e.message}');
+    }
+  }
+
+  /// Get bid history for an auction
+  Future<List<Map<String, dynamic>>> getBidHistory(String vehicleId) async {
+    try {
+      final response = await _supabase
+          .from('bids')
+          .select('*, user_profiles(username, profile_photo_url)')
+          .eq('vehicle_id', vehicleId)
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to get bid history: ${e.message}');
+    }
+  }
+
+  /// Get user's bids
+  Future<List<Map<String, dynamic>>> getUserBids(String userId) async {
+    try {
+      final response = await _supabase
+          .from('bids')
+          .select('*, vehicles(id, brand, model, year, main_image_url, status, end_time)')
+          .eq('bidder_id', userId)
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to get user bids: ${e.message}');
+    }
+  }
+
+  /// Check if user has deposited for auction
+  Future<bool> hasDeposit(String userId, String vehicleId) async {
+    try {
+      final response = await _supabase
+          .from('deposits')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('vehicle_id', vehicleId)
+          .eq('status', 'confirmed')
+          .maybeSingle();
+
+      return response != null;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to check deposit: ${e.message}');
+    }
+  }
+
+  /// Submit deposit for auction
+  Future<void> submitDeposit({
+    required String userId,
+    required String vehicleId,
+    required double amount,
+    String? paymentReference,
+  }) async {
+    try {
+      await _supabase.from('deposits').insert({
+        'user_id': userId,
+        'vehicle_id': vehicleId,
+        'amount': amount,
+        'status': 'pending',
+        'payment_reference': paymentReference,
+      });
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        throw Exception('Deposit already submitted for this auction');
+      }
+      throw Exception('Failed to submit deposit: ${e.message}');
+    }
+  }
+}
+```
+
+
+STEP 2: Create Q&A Datasource
+────────────────────────────────────────────────────────────────────────
+
+File: lib/modules/browse/data/datasources/qa_supabase_datasource.dart
+
+```dart
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class QASupabaseDataSource {
+  final SupabaseClient _supabase;
+
+  QASupabaseDataSource(this._supabase);
+
+  /// Get Q&A for an auction
+  Future<List<Map<String, dynamic>>> getQA(String vehicleId) async {
+    try {
+      final response = await _supabase
+          .from('qa_entries')
+          .select('*, user_profiles!asker_id(username, profile_photo_url)')
+          .eq('vehicle_id', vehicleId)
+          .eq('is_public', true)
+          .order('created_at', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to get Q&A: ${e.message}');
+    }
+  }
+
+  /// Ask a question
+  Future<void> askQuestion({
+    required String vehicleId,
+    required String askerId,
+    required String question,
+  }) async {
+    try {
+      await _supabase.from('qa_entries').insert({
+        'vehicle_id': vehicleId,
+        'asker_id': askerId,
+        'question': question,
+        'is_public': true,
+      });
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to ask question: ${e.message}');
+    }
+  }
+
+  /// Answer a question (seller only)
+  Future<void> answerQuestion({
+    required String qaId,
+    required String answer,
+  }) async {
+    try {
+      await _supabase.from('qa_entries').update({
+        'answer': answer,
+        'answered_at': DateTime.now().toIso8601String(),
+      }).eq('id', qaId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to answer question: ${e.message}');
+    }
+  }
+}
+```
+
+
+STEP 3: Update Browse Module DI
+────────────────────────────────────────────────────────────────────────
+
+File: lib/modules/browse/browse_module.dart
+
+Add imports:
+```dart
+import '../../app/core/config/supabase_config.dart';
+import 'data/datasources/auction_supabase_datasource.dart';
+import 'data/datasources/bid_supabase_datasource.dart';
+import 'data/datasources/qa_supabase_datasource.dart';
+```
+
+Update useMockData:
+```dart
+static const bool useMockData = false;
+```
+
+Add Supabase datasource creators:
+```dart
+AuctionSupabaseDataSource _createAuctionSupabaseDataSource() {
+  return AuctionSupabaseDataSource(SupabaseConfig.client);
+}
+
+BidSupabaseDataSource _createBidSupabaseDataSource() {
+  return BidSupabaseDataSource(SupabaseConfig.client);
+}
+
+QASupabaseDataSource _createQASupabaseDataSource() {
+  return QASupabaseDataSource(SupabaseConfig.client);
+}
+```
+
+Update repository creation to use Supabase datasources when useMockData = false.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 AFTER BROWSE MODULE: IMPLEMENT LISTS MODULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 4: Create Listing Datasource
+────────────────────────────────────────────────────────────────────────
+
+File: lib/modules/lists/data/datasources/listing_supabase_datasource.dart
+
+Key operations:
+- getSellerListings(sellerId, status) → Query vehicles table
+- createDraft(sellerId, vehicleData) → Insert into vehicles
+- updateListing(vehicleId, updates) → Update vehicles
+- uploadVehiclePhoto(vehicleId, file, category) → Upload to vehicle-photos bucket
+- submitForApproval(vehicleId) → Update status to 'pending'
+- deleteListing(vehicleId) → Delete from vehicles (if draft/cancelled)
+
+
+STEP 5: Create Seller Transaction Datasource
+────────────────────────────────────────────────────────────────────────
+
+File: lib/modules/lists/data/datasources/seller_transaction_supabase_datasource.dart
+
+Key operations:
+- getSellerTransactions(sellerId) → Query transactions table
+- submitSellerForm(transactionId, formData) → Insert into transaction_forms
+- confirmSellerForm(transactionId) → Update transactions.seller_confirmed
+- updateDeliveryStatus(transactionId, status) → Update delivery_status
+
+
+STEP 6: Create Chat Datasource
+────────────────────────────────────────────────────────────────────────
+
+File: lib/modules/lists/data/datasources/chat_supabase_datasource.dart
+
+Key operations:
+- getMessages(transactionId) → Query chat_messages
+- sendMessage(transactionId, senderId, message) → Insert into chat_messages
+- markAsRead(transactionId, userId) → Update is_read
+- streamMessages(transactionId) → Real-time subscription
+
+
+STEP 7: Create Timeline Datasource
+────────────────────────────────────────────────────────────────────────
+
+File: lib/modules/lists/data/datasources/timeline_supabase_datasource.dart
+
+Key operations:
+- getTimeline(transactionId) → Query transaction_timeline
+- addTimelineEvent(transactionId, eventData) → Insert into transaction_timeline
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 AFTER LISTS MODULE: IMPLEMENT BIDS MODULE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 8: Create Buyer Transaction Datasource
+────────────────────────────────────────────────────────────────────────
+
+File: lib/modules/bids/data/datasources/buyer_transaction_supabase_datasource.dart
+
+Key operations:
+- getBuyerTransactions(buyerId) → Query transactions table
+- submitBuyerForm(transactionId, formData) → Insert into transaction_forms
+- confirmBuyerForm(transactionId) → Update transactions.buyer_confirmed
+- getUserBids(userId) → Query bids table
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 QUICK IMPLEMENTATION TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. USE EXISTING PATTERNS
+   → auction_supabase_datasource.dart is your reference
+   → profile_supabase_datasource.dart for file uploads
+   → All follow same error handling pattern
+
+2. COLUMN NAME MAPPING
+   → Database uses snake_case (current_bid, main_image_url)
+   → Models use camelCase (currentBid, carImageUrl)
+   → Map in fromJson/toJson methods
+
+3. REAL-TIME CHAT
+   ```dart
+   final stream = _supabase
+       .from('chat_messages')
+       .stream(primaryKey: ['id'])
+       .eq('transaction_id', transactionId);
+   ```
+
+4. FILE UPLOADS
+   ```dart
+   final filepath = '$vehicleId/$category/${timestamp}_$filename';
+   await _supabase.storage.from('vehicle-photos').upload(filepath, file);
+   final url = _supabase.storage.from('vehicle-photos').getPublicUrl(filepath);
+   ```
+
+5. JOINS
+   ```dart
+   .select('*, user_profiles(username, profile_photo_url)')
+   .select('*, vehicles!inner(brand, model, year)')
+   ```
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 REFERENCE FILES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Guides:
+  • BACKEND_INTEGRATION_GUIDE.txt - Complete implementation guide
+  • IMPLEMENTATION_STATUS.txt - Progress tracker
+  • NEXT_STEPS.txt - This file
+
+Implemented Examples:
+  • lib/modules/profile/data/datasources/profile_supabase_datasource.dart
+  • lib/modules/browse/data/datasources/auction_supabase_datasource.dart
+  • lib/modules/auth/data/datasources/auth_remote_datasource.dart
+
+Database:
+  • supabase_schema.sql
+  • supabase_rls_policies.sql
+  • supabase_storage_setup.sql
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ TESTING CHECKLIST (After Each Module)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+□ Run flutter pub get
+□ Set useMockData = false in module
+□ Run app and navigate to module
+□ Check Supabase Dashboard > Table Editor for data
+□ Verify CRUD operations work
+□ Check Supabase Logs for errors
+□ Test on both Android and Web (if applicable)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Start with Browse module (Steps 1-3), then Lists (Steps 4-7), then Bids (Step 8).
+Follow the patterns from completed modules. Database is ready, just connect it!
