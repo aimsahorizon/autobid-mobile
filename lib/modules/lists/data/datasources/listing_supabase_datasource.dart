@@ -520,6 +520,7 @@ class ListingSupabaseDataSource {
   }
 
   /// Get cancelled/rejected listings
+  /// Joins with auction_transactions to check if cancelled listing has a failed transaction
   Future<List<ListingModel>> getCancelledListings(String sellerId) async {
     try {
       final cancelledStatusId = await _getStatusId('cancelled');
@@ -530,15 +531,32 @@ class ListingSupabaseDataSource {
             *,
             auction_statuses(status_name),
             auction_vehicles(*),
-            auction_photos(photo_url, category, display_order, is_primary)
+            auction_photos(photo_url, category, display_order, is_primary),
+            auction_transactions!auction_transactions_auction_id_fkey(id, status)
           ''')
           .eq('seller_id', sellerId)
           .eq('status_id', cancelledStatusId)
           .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((json) => _mergeAuctionWithVehicleData(json))
-          .toList();
+      return (response as List).map((json) {
+        // Check if there's a failed transaction associated with this cancelled listing
+        final transactions = json['auction_transactions'] as List?;
+        String? transactionId;
+        if (transactions != null && transactions.isNotEmpty) {
+          // Find the transaction (typically deal_failed status for buyer-cancelled deals)
+          final failedTransaction = transactions.firstWhere(
+            (txn) => txn['status'] == 'deal_failed',
+            orElse: () => transactions.first,
+          );
+          transactionId = failedTransaction['id'] as String?;
+        }
+
+        // Add transaction_id to the JSON before merging
+        final jsonWithTransaction = Map<String, dynamic>.from(json);
+        jsonWithTransaction['transaction_id'] = transactionId;
+
+        return _mergeAuctionWithVehicleData(jsonWithTransaction);
+      }).toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch cancelled listings: ${e.message}');
     } catch (e) {
@@ -1323,9 +1341,7 @@ class ListingSupabaseDataSource {
       final extension = documentFile.path.split('.').last.toLowerCase();
       final allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
       if (!allowedExtensions.contains(extension)) {
-        throw Exception(
-          'Invalid file type. Allowed: PDF, PNG, JPG, JPEG',
-        );
+        throw Exception('Invalid file type. Allowed: PDF, PNG, JPG, JPEG');
       }
 
       // Generate unique filename
@@ -1352,13 +1368,12 @@ class ListingSupabaseDataSource {
           contentType = 'application/octet-stream';
       }
 
-      await _supabase.storage.from('auction-images').upload(
+      await _supabase.storage
+          .from('auction-images')
+          .upload(
             path,
             documentFile,
-            fileOptions: FileOptions(
-              upsert: true,
-              contentType: contentType,
-            ),
+            fileOptions: FileOptions(upsert: true, contentType: contentType),
           );
 
       // Get public URL

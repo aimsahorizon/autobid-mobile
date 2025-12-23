@@ -55,6 +55,10 @@ class SellerListingEntity {
   /// Seller ID (owner of the listing)
   final String? sellerId;
 
+  /// Transaction ID if this listing has an associated transaction
+  /// Used for cancelled listings that came from failed transactions
+  final String? transactionId;
+
   const SellerListingEntity({
     required this.id,
     required this.imageUrl,
@@ -74,6 +78,7 @@ class SellerListingEntity {
     this.winnerName,
     this.soldPrice,
     this.sellerId,
+    this.transactionId,
   });
 
   /// Get formatted car name

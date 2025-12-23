@@ -12,6 +12,7 @@ import '../pages/draft_listing_detail_page.dart';
 import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
 import '../../../transactions/presentation/pages/pre_transaction_page.dart';
+import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
 import '../../../transactions/transactions_module.dart';
 
 class ListingsGrid extends StatelessWidget {
@@ -91,11 +92,49 @@ class ListingsGrid extends StatelessWidget {
         detailPage = EndedListingDetailPage(listing: detailEntity);
         break;
       case ListingStatus.cancelled:
-        if (draftController == null || sellerId == null) return;
+        // Check if this cancelled listing has an associated failed transaction
+        // If so, route to the transaction page with options to handle the failed deal
+        if (listing.transactionId != null) {
+          // Has a transaction - route to transaction page for deal failed options
+          // (next highest bidder, relist, delete)
+          if (!context.mounted) return;
+          final realtimeController = TransactionsModule.instance
+              .createRealtimeTransactionController();
+
+          final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+          final userName =
+              SupabaseConfig
+                  .client
+                  .auth
+                  .currentUser
+                  ?.userMetadata?['full_name'] ??
+              'Seller';
+
+          await Navigator.push<void>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PreTransactionRealtimePage(
+                controller: realtimeController,
+                transactionId: listing.transactionId!,
+                userId: userId,
+                userName: userName,
+              ),
+            ),
+          );
+
+          // Reload listings after returning from transaction page
+          if (onListingUpdated != null) {
+            onListingUpdated!();
+          }
+          return;
+        }
+
+        // No transaction - regular cancelled listing page
+        // Controller and sellerId are optional - page handles null gracefully
         detailPage = CancelledListingDetailPage(
           listing: detailEntity,
-          controller: draftController!,
-          sellerId: sellerId!,
+          controller: draftController,
+          sellerId: sellerId,
         );
         break;
       case ListingStatus.inTransaction:

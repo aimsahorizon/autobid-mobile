@@ -73,6 +73,9 @@ class ListingModel {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// Transaction ID for cancelled listings that have an associated failed transaction
+  final String? transactionId;
+
   const ListingModel({
     required this.id,
     required this.sellerId,
@@ -142,6 +145,7 @@ class ListingModel {
     this.soldAt,
     required this.createdAt,
     required this.updatedAt,
+    this.transactionId,
   });
 
   /// Convert database row to model
@@ -235,6 +239,7 @@ class ListingModel {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
+      transactionId: json['transaction_id'] as String?,
     );
   }
 
@@ -259,6 +264,7 @@ class ListingModel {
       winnerName: null, // Will be populated separately if needed
       soldPrice: soldPrice,
       sellerId: sellerId,
+      transactionId: transactionId,
     );
   }
 

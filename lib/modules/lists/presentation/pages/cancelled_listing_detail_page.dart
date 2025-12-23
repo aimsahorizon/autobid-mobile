@@ -10,15 +10,18 @@ import 'create_listing_page.dart';
 
 class CancelledListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
-  final ListingDraftController controller;
-  final String sellerId;
+  final ListingDraftController? controller;
+  final String? sellerId;
 
   const CancelledListingDetailPage({
     super.key,
     required this.listing,
-    required this.controller,
-    required this.sellerId,
+    this.controller,
+    this.sellerId,
   });
+
+  /// Check if edit actions are available (requires controller and sellerId)
+  bool get canPerformActions => controller != null && sellerId != null;
 
   @override
   State<CancelledListingDetailPage> createState() =>
@@ -29,14 +32,28 @@ class _CancelledListingDetailPageState
     extends State<CancelledListingDetailPage> {
   bool _isProcessing = false;
   late final ListingSupabaseDataSource _datasource;
+  late final String? _effectiveSellerId;
 
   @override
   void initState() {
     super.initState();
     _datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+    // Use provided sellerId or try to get from current user
+    _effectiveSellerId =
+        widget.sellerId ?? SupabaseConfig.client.auth.currentUser?.id;
   }
 
   Future<void> _editListing(BuildContext context) async {
+    if (_effectiveSellerId == null || widget.controller == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to edit: Please log in first'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -70,15 +87,17 @@ class _CancelledListingDetailPageState
       // Copy the cancelled listing to a new draft
       final draftId = await _datasource.copyListingToDraft(
         widget.listing.id,
-        widget.sellerId,
+        _effectiveSellerId!,
       );
 
       // Remove the old cancelled listing so it disappears from the tab
       try {
-        await _datasource.deleteListing(widget.listing.id, widget.sellerId);
+        await _datasource.deleteListing(widget.listing.id, _effectiveSellerId!);
       } catch (e) {
         // Non-fatal: continue even if delete fails
-        debugPrint('Warning: failed to delete cancelled listing after copy: $e');
+        debugPrint(
+          'Warning: failed to delete cancelled listing after copy: $e',
+        );
       }
 
       if (!mounted) return;
@@ -89,8 +108,8 @@ class _CancelledListingDetailPageState
         context,
         MaterialPageRoute(
           builder: (context) => CreateListingPage(
-            controller: widget.controller,
-            sellerId: widget.sellerId,
+            controller: widget.controller!,
+            sellerId: _effectiveSellerId!,
             draftId: draftId,
           ),
         ),
@@ -123,6 +142,16 @@ class _CancelledListingDetailPageState
   }
 
   Future<void> _reAuction(BuildContext context) async {
+    if (_effectiveSellerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to re-auction: Please log in first'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -157,7 +186,7 @@ class _CancelledListingDetailPageState
       // Create new auction from the cancelled listing
       final newAuctionId = await _datasource.createAuctionFromCancelled(
         widget.listing.id,
-        widget.sellerId,
+        _effectiveSellerId!,
         null, // Use original starting price
         null, // Use default 7-day auction duration
       );
@@ -190,6 +219,16 @@ class _CancelledListingDetailPageState
   }
 
   Future<void> _deleteListing(BuildContext context) async {
+    if (_effectiveSellerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to delete: Please log in first'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -222,14 +261,13 @@ class _CancelledListingDetailPageState
 
     try {
       // Delete the listing
-      await _datasource.deleteListing(widget.listing.id, widget.sellerId);
+      await _datasource.deleteListing(widget.listing.id, _effectiveSellerId!);
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
 
-      // Pop back twice to return to listing view
-      Navigator.pop(context);
-      Navigator.pop(context);
+      // Return to listing view with result to trigger refresh
+      Navigator.pop(context, true);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
