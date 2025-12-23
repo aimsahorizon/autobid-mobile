@@ -118,13 +118,15 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 32),
           DropdownButtonFormField<String>(
-            value: widget.controller.region,
+            value: _regions.contains(widget.controller.region)
+                ? widget.controller.region
+                : null,
             decoration: const InputDecoration(
               labelText: 'Region',
               hintText: 'Select your region',
               prefixIcon: Icon(Icons.map_outlined),
             ),
-            items: _regions.map((region) {
+            items: _regions.toSet().toList().map((region) {
               return DropdownMenuItem(
                 value: region,
                 child: Text(region, style: const TextStyle(fontSize: 14)),
@@ -134,13 +136,15 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: widget.controller.province,
+            value: _provinces.contains(widget.controller.province)
+                ? widget.controller.province
+                : null,
             decoration: const InputDecoration(
               labelText: 'Province',
               hintText: 'Select your province',
               prefixIcon: Icon(Icons.location_city_outlined),
             ),
-            items: _provinces.map((province) {
+            items: _provinces.toSet().toList().map((province) {
               return DropdownMenuItem(
                 value: province,
                 child: Text(province),
@@ -150,13 +154,15 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: widget.controller.city,
+            value: _cities.contains(widget.controller.city)
+                ? widget.controller.city
+                : null,
             decoration: const InputDecoration(
               labelText: 'City/Municipality',
               hintText: 'Select your city',
               prefixIcon: Icon(Icons.apartment_outlined),
             ),
-            items: _cities.map((city) {
+            items: _cities.toSet().toList().map((city) {
               return DropdownMenuItem(
                 value: city,
                 child: Text(city),
@@ -166,13 +172,15 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: widget.controller.barangay,
+            value: _barangays.contains(widget.controller.barangay)
+                ? widget.controller.barangay
+                : null,
             decoration: const InputDecoration(
               labelText: 'Barangay',
               hintText: 'Select your barangay',
               prefixIcon: Icon(Icons.home_outlined),
             ),
-            items: _barangays.map((barangay) {
+            items: _barangays.toSet().toList().map((barangay) {
               return DropdownMenuItem(
                 value: barangay,
                 child: Text(barangay),

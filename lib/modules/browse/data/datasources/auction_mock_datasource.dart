@@ -20,6 +20,7 @@ class AuctionMockDataSource {
       watchersCount: 45,
       biddersCount: 12,
       endTime: DateTime.now().add(const Duration(hours: 2)),
+      sellerId: 'mock-seller-1',
     ),
     AuctionModel(
       id: '2',
@@ -31,6 +32,7 @@ class AuctionMockDataSource {
       watchersCount: 32,
       biddersCount: 8,
       endTime: DateTime.now().add(const Duration(minutes: 45)),
+      sellerId: 'mock-seller-2',
     ),
     AuctionModel(
       id: '3',
@@ -42,6 +44,7 @@ class AuctionMockDataSource {
       watchersCount: 89,
       biddersCount: 23,
       endTime: DateTime.now().add(const Duration(days: 1)),
+      sellerId: 'mock-seller-3',
     ),
     AuctionModel(
       id: '4',
@@ -53,6 +56,7 @@ class AuctionMockDataSource {
       watchersCount: 28,
       biddersCount: 6,
       endTime: DateTime.now().add(const Duration(hours: 5)),
+      sellerId: 'mock-seller-1',
     ),
     AuctionModel(
       id: '5',
@@ -64,6 +68,7 @@ class AuctionMockDataSource {
       watchersCount: 156,
       biddersCount: 34,
       endTime: DateTime.now().add(const Duration(hours: 12)),
+      sellerId: 'mock-seller-2',
     ),
     AuctionModel(
       id: '6',
@@ -75,6 +80,7 @@ class AuctionMockDataSource {
       watchersCount: 19,
       biddersCount: 4,
       endTime: DateTime.now().add(const Duration(hours: 3)),
+      sellerId: 'mock-seller-3',
     ),
     AuctionModel(
       id: '7',
@@ -86,6 +92,7 @@ class AuctionMockDataSource {
       watchersCount: 203,
       biddersCount: 41,
       endTime: DateTime.now().add(const Duration(days: 2)),
+      sellerId: 'mock-seller-1',
     ),
     AuctionModel(
       id: '8',
@@ -97,6 +104,7 @@ class AuctionMockDataSource {
       watchersCount: 37,
       biddersCount: 9,
       endTime: DateTime.now().add(const Duration(hours: 8)),
+      sellerId: 'mock-seller-2',
     ),
   ];
 

@@ -8,11 +8,7 @@ class UserBidCard extends StatefulWidget {
   final UserBidEntity bid;
   final VoidCallback? onTap;
 
-  const UserBidCard({
-    super.key,
-    required this.bid,
-    this.onTap,
-  });
+  const UserBidCard({super.key, required this.bid, this.onTap});
 
   @override
   State<UserBidCard> createState() => _UserBidCardState();
@@ -27,7 +23,10 @@ class _UserBidCardState extends State<UserBidCard> {
     super.initState();
     if (widget.bid.status == UserBidStatus.active) {
       _updateTimeRemaining();
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTimeRemaining());
+      _timer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _updateTimeRemaining(),
+      );
     }
   }
 
@@ -56,7 +55,9 @@ class _UserBidCardState extends State<UserBidCard> {
       onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+          color: isDark
+              ? ColorConstants.surfaceDark
+              : ColorConstants.surfaceLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _getBorderColor(isDark),
@@ -119,6 +120,8 @@ class _UserBidCardState extends State<UserBidCard> {
         return ColorConstants.success;
       case UserBidStatus.lost:
         return ColorConstants.error.withValues(alpha: 0.5);
+      case UserBidStatus.cancelled:
+        return Colors.grey.withValues(alpha: 0.5);
     }
   }
 }
@@ -177,7 +180,9 @@ class _BidPositionBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isHighestBidder ? ColorConstants.success : ColorConstants.warning,
+        color: isHighestBidder
+            ? ColorConstants.success
+            : ColorConstants.warning,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -245,7 +250,9 @@ class _BidAmountRow extends StatelessWidget {
     if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(2)}M';
     }
-    return amount.toStringAsFixed(0).replaceAllMapped(
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
@@ -306,30 +313,47 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isWon = status == UserBidStatus.won;
+    final isCancelled = status == UserBidStatus.cancelled;
+
+    Color backgroundColor;
+    Color iconColor;
+    IconData icon;
+    String text;
+
+    if (isCancelled) {
+      backgroundColor = Colors.grey.withValues(alpha: 0.1);
+      iconColor = Colors.grey;
+      icon = Icons.cancel_outlined;
+      text = 'Cancelled';
+    } else if (isWon) {
+      backgroundColor = ColorConstants.success.withValues(alpha: 0.1);
+      iconColor = ColorConstants.success;
+      icon = Icons.emoji_events;
+      text = 'Won';
+    } else {
+      backgroundColor = ColorConstants.error.withValues(alpha: 0.1);
+      iconColor = ColorConstants.error;
+      icon = Icons.close;
+      text = 'Lost';
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isWon
-            ? ColorConstants.success.withValues(alpha: 0.1)
-            : ColorConstants.error.withValues(alpha: 0.1),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isWon ? Icons.emoji_events : Icons.close,
-            size: 14,
-            color: isWon ? ColorConstants.success : ColorConstants.error,
-          ),
+          Icon(icon, size: 14, color: iconColor),
           const SizedBox(width: 4),
           Text(
-            isWon ? 'Won' : 'Lost',
+            text,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isWon ? ColorConstants.success : ColorConstants.error,
+              color: iconColor,
             ),
           ),
         ],

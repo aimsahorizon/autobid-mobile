@@ -40,6 +40,7 @@ class ListingDetailMockDataSource {
       id: sellerListing.id,
       status: sellerListing.status,
       startingPrice: sellerListing.startingPrice,
+      startTime: sellerListing.startTime,
       currentBid: sellerListing.currentBid,
       reservePrice: sellerListing.reservePrice,
       totalBids: sellerListing.totalBids,

@@ -1,161 +1,43 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
 import '../image_picker_card.dart';
 
 class SelfieWithIdStep extends StatefulWidget {
   final KYCRegistrationController controller;
-  final VoidCallback onAIAutoFillComplete;
 
-  const SelfieWithIdStep({
-    super.key,
-    required this.controller,
-    required this.onAIAutoFillComplete,
-  });
+  const SelfieWithIdStep({super.key, required this.controller});
 
   @override
   State<SelfieWithIdStep> createState() => _SelfieWithIdStepState();
 }
 
 class _SelfieWithIdStepState extends State<SelfieWithIdStep> {
+  final ImagePicker _picker = ImagePicker();
+
   void _pickSelfie() async {
-    // Mock image picker
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Selfie Capture'),
-        content: const Text('Camera would open here for selfie'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // After capturing selfie, show AI auto-fill dialog
-              _showAIAutoFillDialog();
-            },
-            child: const Text('Capture'),
-          ),
-        ],
-      ),
-    );
-  }
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
 
-  void _showAIAutoFillDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: ColorConstants.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                color: ColorConstants.primary,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'AI Auto-fill',
-                style: TextStyle(fontSize: 20),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'We\'ve successfully extracted information from your ID. Would you like us to automatically fill in your personal information?',
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ColorConstants.success.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: ColorConstants.success.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_outline,
-                    color: ColorConstants.success,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'You can review and edit this information in the next step',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: ColorConstants.success,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              widget.controller.setAiAutoFillAccepted(false);
-              Navigator.pop(context);
-            },
-            child: const Text('Skip'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              widget.controller.setAiAutoFillAccepted(true);
-              Navigator.pop(context);
-
-              // Show loading dialog
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text('Processing your ID...'),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-
-              await widget.controller.performAIAutoFill();
-
-              if (mounted) {
-                Navigator.pop(context);
-                widget.onAIAutoFillComplete();
-              }
-            },
-            child: const Text('Auto-fill'),
-          ),
-        ],
-      ),
-    );
+      if (image != null) {
+        final File imageFile = File(image.path);
+        widget.controller.setSelfieWithId(imageFile);
+        // No AI autofill here - it happens after secondary ID upload
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+      }
+    }
   }
 
   @override
@@ -243,19 +125,15 @@ class _SelfieWithIdStepState extends State<SelfieWithIdStep> {
       children: [
         const Padding(
           padding: EdgeInsets.only(top: 4),
-          child: Icon(
-            Icons.check_circle,
-            color: ColorConstants.info,
-            size: 16,
-          ),
+          child: Icon(Icons.check_circle, color: ColorConstants.info, size: 16),
         ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: ColorConstants.info,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: ColorConstants.info),
           ),
         ),
       ],

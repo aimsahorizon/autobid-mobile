@@ -1,0 +1,149 @@
+================================================================================
+SUPABASE SETUP INSTRUCTIONS FOR AUTOBID AUTHENTICATION
+================================================================================
+
+STEP 1: RESET DATABASE
+-----------------------
+1. Go to Supabase Dashboard → Settings → Database
+2. Click "Reset Database" (WARNING: This deletes ALL data)
+3. Confirm reset
+
+STEP 2: RUN SQL FILES IN ORDER
+-------------------------------
+Go to SQL Editor and run these files in exact order:
+
+1. supabase_auth_schema.sql (Creates all tables and functions)
+2. supabase_auth_rls.sql (Sets up security policies)
+3. supabase_auth_storage.sql (Creates storage buckets)
+
+STEP 3: CONFIGURE AUTHENTICATION
+---------------------------------
+1. Go to Authentication → Settings
+
+2. Enable Email Provider:
+   - Check "Enable Email provider"
+   - UNCHECK "Confirm email" (we handle OTP manually)
+   - Save
+
+3. Enable Phone Provider:
+   - Check "Enable Phone provider"
+   - Configure SMS Provider (Twilio recommended for Philippines)
+
+4. Email Templates:
+   - Go to Authentication → Email Templates
+   - Select "Confirm signup" template
+   - Change to use {{ .Token }} for 6-digit OTP
+   - Save
+
+5. Test Phone Numbers (for FREE testing):
+   - Go to Authentication → Phone Auth
+   - Add test numbers:
+     639123456789=123456
+     639987654321=654321
+
+STEP 4: VERIFY TABLES CREATED
+------------------------------
+Go to Table Editor and verify these tables exist:
+✓ pending_registrations
+✓ user_sensitive_data
+✓ user_public_data
+✓ user_profiles
+
+STEP 5: VERIFY STORAGE BUCKETS
+-------------------------------
+Go to Storage and verify these buckets exist:
+✓ user-avatars (public)
+✓ user-covers (public)
+✓ kyc-documents (private)
+
+STEP 6: TEST REGISTRATION
+--------------------------
+1. Run Flutter app
+2. Fill all 9 KYC steps
+3. Submit registration
+4. Check pending_registrations table in Supabase
+
+STEP 7: APPROVE REGISTRATION (FOR TESTING)
+-------------------------------------------
+In SQL Editor, run:
+
+SELECT approve_registration(
+  '<user_id_from_pending_registrations>',
+  '<admin_user_id>'
+);
+
+This will:
+- Move data to user_sensitive_data
+- Move data to user_public_data
+- Create user_profiles entry
+- Delete from pending_registrations
+
+STEP 8: VERIFY USER APPROVED
+-----------------------------
+Check these tables:
+✓ user_sensitive_data (should have 1 row)
+✓ user_public_data (should have 1 row)
+✓ user_profiles (should have 1 row)
+✓ pending_registrations (should be empty)
+
+STEP 9: TEST LOGIN
+-------------------
+1. Use username and password from registration
+2. Should login successfully
+3. Profile should load with data
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+ERROR: "RLS policy violation"
+FIX: Make sure all 3 SQL files ran successfully
+
+ERROR: "Table not found"
+FIX: Run supabase_auth_schema.sql again
+
+ERROR: "Storage bucket not found"
+FIX: Run supabase_auth_storage.sql again
+
+ERROR: "Username already exists"
+FIX: User already registered, use different username
+
+ERROR: "User not authenticated"
+FIX: Complete OTP verification first (Step 6 of registration)
+
+================================================================================
+DATABASE ARCHITECTURE SUMMARY
+================================================================================
+
+TABLE 0: pending_registrations
+- Stores KYC submissions awaiting approval
+- Data is TEMPORARY (deleted after approval)
+
+TABLE 1: user_sensitive_data
+- Encrypted PII (IDs, address, documents)
+- Only user and admins can access
+
+TABLE 2: user_public_data
+- Public profile info (username, display name, etc)
+- Everyone can view active users
+
+TABLE 3: user_profiles (MAIN)
+- Central user table
+- Links to all user activities (bids, listings, transactions)
+- Connects to public and sensitive data
+
+================================================================================
+READY FOR FEATURE IMPLEMENTATION
+================================================================================
+
+The schema is prepared for:
+✓ Bidding system
+✓ Listing/auction system
+✓ Transactions
+✓ Subscriptions
+✓ Support tickets
+✓ Q&A system
+
+Add new tables that reference user_profiles.id for user-specific features.
+
+================================================================================

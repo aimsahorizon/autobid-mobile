@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter pub get:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(del \"supabase\\migrations\\00026_fix_reserve_price_constraint.sql\")",
+      "Bash(npx supabase:*)",
+      "Bash(ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

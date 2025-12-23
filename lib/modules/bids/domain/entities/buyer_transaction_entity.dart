@@ -27,6 +27,16 @@ class BuyerTransactionEntity {
   final bool adminApproved;
   final DateTime? adminApprovedAt;
 
+  // Delivery tracking
+  final DeliveryStatus deliveryStatus;
+  final DateTime? deliveryStartedAt;
+  final DateTime? deliveryCompletedAt;
+
+  // Buyer acceptance
+  final BuyerAcceptanceStatus buyerAcceptanceStatus;
+  final DateTime? buyerAcceptedAt;
+  final String? buyerRejectionReason;
+
   const BuyerTransactionEntity({
     required this.id,
     required this.auctionId,
@@ -45,6 +55,12 @@ class BuyerTransactionEntity {
     required this.sellerConfirmed,
     required this.adminApproved,
     this.adminApprovedAt,
+    this.deliveryStatus = DeliveryStatus.pending,
+    this.deliveryStartedAt,
+    this.deliveryCompletedAt,
+    this.buyerAcceptanceStatus = BuyerAcceptanceStatus.pending,
+    this.buyerAcceptedAt,
+    this.buyerRejectionReason,
   });
 
   bool get readyForAdminReview =>
@@ -53,6 +69,27 @@ class BuyerTransactionEntity {
       buyerConfirmed &&
       sellerConfirmed &&
       !adminApproved;
+
+  /// Check if buyer can accept/reject (vehicle must be delivered)
+  bool get canBuyerRespond =>
+      deliveryStatus == DeliveryStatus.delivered &&
+      buyerAcceptanceStatus == BuyerAcceptanceStatus.pending;
+}
+
+/// Delivery status for vehicle handover
+enum DeliveryStatus {
+  pending, // Not started yet
+  preparing, // Seller preparing vehicle
+  inTransit, // Vehicle in transit
+  delivered, // Vehicle delivered to buyer
+  completed, // Delivery confirmed by buyer
+}
+
+/// Buyer's response after receiving the vehicle
+enum BuyerAcceptanceStatus {
+  pending, // Waiting for buyer response
+  accepted, // Buyer accepted the car
+  rejected, // Buyer rejected the car
 }
 
 enum TransactionStatus {
@@ -124,10 +161,7 @@ class BuyerTransactionFormEntity {
   });
 }
 
-enum FormRole {
-  buyer,
-  seller,
-}
+enum FormRole { buyer, seller }
 
 /// Chat message in transaction
 class TransactionChatMessage {

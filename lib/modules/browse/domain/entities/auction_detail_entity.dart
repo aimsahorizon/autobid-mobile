@@ -9,6 +9,8 @@ class AuctionDetailEntity {
   final double? reservePrice;
   final bool isReserveMet;
   final bool showReservePrice;
+  final double minBidIncrement;
+  final bool enableIncrementalBidding;
   final int watchersCount;
   final int biddersCount;
   final int totalBids;
@@ -16,6 +18,16 @@ class AuctionDetailEntity {
   final String status; // 'active', 'ended', 'sold'
   final CarPhotosEntity photos;
   final bool hasUserDeposited;
+
+  // Anti-snipe guard configuration
+  /// When enabled, auction extends if bid placed near end time (default: true)
+  final bool snipeGuardEnabled;
+
+  /// If bid placed within this many seconds before end, trigger extension (default: 300 = 5 minutes)
+  final int snipeGuardThresholdSeconds;
+
+  /// How many seconds to extend auction end time when triggered (default: 300 = 5 minutes)
+  final int snipeGuardExtendSeconds;
 
   // Step 1: Basic Information
   final String brand;
@@ -81,6 +93,8 @@ class AuctionDetailEntity {
     required this.carImageUrl,
     required this.currentBid,
     required this.minimumBid,
+    required this.minBidIncrement,
+    required this.enableIncrementalBidding,
     this.reservePrice,
     required this.isReserveMet,
     required this.showReservePrice,
@@ -91,6 +105,9 @@ class AuctionDetailEntity {
     required this.status,
     required this.photos,
     required this.hasUserDeposited,
+    this.snipeGuardEnabled = true,
+    this.snipeGuardThresholdSeconds = 300,
+    this.snipeGuardExtendSeconds = 300,
     required this.brand,
     required this.model,
     this.variant,
@@ -149,12 +166,7 @@ class AuctionDetailEntity {
 
   /// Get full car name including variant
   String get fullCarName {
-    final parts = [
-      year.toString(),
-      brand,
-      model,
-      if (variant != null) variant,
-    ];
+    final parts = [year.toString(), brand, model, if (variant != null) variant];
     return parts.join(' ');
   }
 

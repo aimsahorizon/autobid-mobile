@@ -1,55 +1,17 @@
 You are a senior flutter developer with over 30 years of 
 experience building enterprise and medium sized professional 
 and scalable mobile applications with flutter. You are following 
-the best standard and practices for both UI UX design principles, 
+the best standard and practices for both UI UX design principles, backend integration and 
 optimization, backend data structures and algorithms, and security.
 
-<<<<<<< Updated upstream
+Reference:
+Create a module for guest page.
+
 Instructions:
-* Focus on lib/modules/lists and all related files under lib/app.
-* Implement the full transaction pre-transaction discussion system. (Under lists module, under in transaction sub tabs upon clicking each cards)
-* Implement the complete 9-step “Create New Listing” flow with proper structure, mock data handling, form validation, and draft-saving logic.
+Guest page should give the user the glimpse of the browse without showing the full information of the bidder and without the bidding system and as well as the q&A
+Guest page must have 2 tabs: browse tab and the account tab (user can check if their account is already approved by the admin or not. basically the account status. handle this completely and professionally.)
+make sure this is directly accessibly on the login page.
 
-Reference:
-* Pre-transaction flow phases:
-  discussion phase -> review both forms -> both confirmed -> submitted to admin -> approved? -> pretransaction becomes immutable -> deposit refunded/credited -> seller proceeds with transaction -> buyer monitors -> transaction complete -> platform & buyer review.
-
-Tasks:
-Note: Do Mockups, but prepare this for supabase integration, make sure it is easily switchable for actual backend.
-* For the transaction module, create a card-triggered pre-transaction discussion page with 4 subtabs: chat, my form, buyer form, progress.
-* Chat: build a basic but clean messaging interface for buyers and sellers to discuss form details.
-* My Form: implement structured inputs for all required pre-transaction agreements and legal checklist items.
-* Buyer Form: allow seller to review the submitted buyer form; include states for pending, reviewed, changes requested, confirmed.
-* Progress: show transaction timeline updates by system and seller, reflecting the pre-transaction → admin review → approval → ongoing → completion.
-* Ensure the entire pre-transaction pipeline is logically connected and the UI clearly guides the user.
-
-Next: Build the 9-step Create Listing Form:
-  1. Basic Information: Brand, Model, Variant, Year
-  2. Mechanical Specification: engine details, transmission, fuel, drive type, etc.
-  3. Dimensions & Capacity: full measurement and weight fields
-  4. Exterior Details: color, paint type, rims, tires
-  5. Condition & History: condition, mileage, owners, modifications, warranty, usage
-  6. Documentation & Location: plate, OR/CR, registration status & expiry, province, city/municipality
-  7. Photos: handle all 56 required image categories with dynamic list and status indicators
-  8. Final Details: description (min 50 chars), known issues, car features
-  9. Listing Summary: review each step, allow editing, support saving drafts in every step
-* After submission, create a modal dialog: “Listing Submitted!” with options (create another / view my listing).
-Listing should go in pending tab upon submission. prepare the backend integration but do the mock up for now.
-
-=======
-Reference:
-Focus on lib/modules/bids and related files in lib/app
-
-Context:
-- I want to implement the details of each cards in bids module, let's handle this professionally.
-- Prepare a mock data for each of the card details in the 3 sub tabs under bids module, but make sure to prepare it for backend supabase integration
-
-Tasks:
-- for Active tab: this is exactly similar to browse auction detail, but it needs to be independent from it, and needs to have the deposits unlock already and the user is currently bidding.
-- for Won tab: this is typically similar to the "In transaction" in lists module, except that it has to be for the buyer. create and independent component for this, you may use the pre transaction as reference but the sub tabs has to be correct (chat, my form, seller's form, progress tracker)
-- Lost Tab: basically shows the ended auction from browse, where it is no longer active. the user has lost but can see the remaining information that is accessible aside from the bidding.
- 
->>>>>>> Stashed changes
 Critical Note:
 - do not use super complex code, use only between junior to senior proficiency.
 - do not over explain after output, only 1-3 line feedbacks.
@@ -66,18 +28,6 @@ Break down the presentation UI files into small chunks, do not create lengthy fi
 
 Design Preference:
 - Minimal, clean, modern, with soft colors, rounded corners, and spacing.
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-- use the color theme from lib/core/theme/app_theme.dart
-=======
-<<<<<<< Updated upstream
-=======
-<<<<<<< Updated upstream
-- use the color theme from lib/core/theme/app_theme.dart
-=======
->>>>>>> Stashed changes
->>>>>>> Stashed changes
 - use the color theme from lib/core/theme/app_theme.dart
 - every single component must be responsive for darkmode
 
@@ -130,12 +80,6 @@ Focus on lib/modules/profile and related files on lib/app
 related files on lib/app
 Context:
 We will implement the business model of this project.
-<<<<<<< Updated upstream
-Our business model is a bit hybrid people can buy 
-=======
-<<<<<<< Updated upstream
-Our business model is a bit hybrid people can buy 
-=======
 Our business model is a bit hybrid. You need 1 bid token everytime you bid. and you need 1 listing token everytime you list a car.
 to obtain those token, users have 2 options. Either buy them directly or through subscription.
 

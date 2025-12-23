@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
 import '../../../../app/core/controllers/theme_controller.dart';
+import '../../../../app/core/utils/dev_admin_auth.dart';
+import '../../auth_module.dart';
 import '../../auth_routes.dart';
+import '../../../admin/admin_module.dart';
+import '../../../admin/presentation/pages/admin_main_page.dart';
+import '../../../guest/guest_routes.dart';
 import '../controllers/login_controller.dart';
+import '../controllers/login_otp_controller.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_error_message.dart';
 import '../widgets/auth_loading_button.dart';
-import '../widgets/auth_divider.dart';
-import '../widgets/social_sign_in_button.dart';
+import 'login_otp_page.dart';
 
 class LoginPage extends StatefulWidget {
   final LoginController controller;
@@ -27,25 +32,48 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  late final LoginOtpController _otpController;
+
+  @override
+  void initState() {
+    super.initState();
+    _otpController = AuthModule.instance.createLoginOtpController();
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      await widget.controller.signIn(
+      final success = await widget.controller.signIn(
         _usernameController.text.trim(),
         _passwordController.text,
       );
 
-      if (mounted && widget.controller.errorMessage == null) {
-        Navigator.of(context).pushReplacementNamed('/home');
+      if (mounted &&
+          success &&
+          widget.controller.currentStep == LoginStep.otpVerification) {
+        _navigateToOtpPage();
       }
     }
+  }
+
+  void _navigateToOtpPage() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => LoginOtpPage(
+          email: widget.controller.userEmail!,
+          phoneNumber: widget.controller.userPhoneNumber!,
+          otpController: _otpController,
+          loginController: widget.controller,
+        ),
+      ),
+    );
   }
 
   @override
@@ -62,8 +90,8 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildThemeToggle(),
-                const SizedBox(height: 20),
+                // _buildThemeToggle(), // Temporarily hidden
+                // const SizedBox(height: 20),
                 _buildHeader(theme, isDark),
                 const SizedBox(height: 48),
                 _buildErrorMessage(),
@@ -75,10 +103,10 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
                 _buildLoginButton(),
                 const SizedBox(height: 32),
-                const AuthDivider(),
-                const SizedBox(height: 32),
-                _buildGoogleSignIn(),
-                const SizedBox(height: 40),
+                _buildGuestModeLink(theme, isDark),
+                const SizedBox(height: 24),
+                _buildAdminQuickAccess(),
+                const SizedBox(height: 24),
                 _buildSignUpPrompt(theme),
               ],
             ),
@@ -210,17 +238,23 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildGoogleSignIn() {
-    return ListenableBuilder(
-      listenable: widget.controller,
-      builder: (context, _) {
-        return SocialSignInButton(
-          icon: Icons.g_mobiledata,
-          label: 'Continue with Google',
-          onPressed: widget.controller.signInWithGoogle,
-          isLoading: widget.controller.isLoading,
-        );
+  Widget _buildGuestModeLink(ThemeData theme, bool isDark) {
+    return OutlinedButton.icon(
+      onPressed: () {
+        Navigator.of(context).pushNamed(GuestRoutes.main);
       },
+      icon: const Icon(Icons.preview_rounded),
+      label: const Text('Browse as Guest'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        side: BorderSide(
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
+          width: 1.5,
+        ),
+      ),
     );
   }
 
@@ -228,10 +262,7 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          "Don't have an account? ",
-          style: theme.textTheme.bodyMedium,
-        ),
+        Text("Don't have an account? ", style: theme.textTheme.bodyMedium),
         TextButton(
           onPressed: () {
             Navigator.of(context).pushNamed(AuthRoutes.registration);
@@ -244,6 +275,84 @@ class _LoginPageState extends State<LoginPage> {
           child: const Text('Sign Up'),
         ),
       ],
+    );
+  }
+
+  /// DEV ONLY: Admin quick access
+  void _navigateToAdminDashboard() async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Quick admin login
+    final success = await DevAdminAuth.quickAdminLogin();
+
+    if (!mounted) return;
+
+    Navigator.pop(context); // Close loading
+
+    if (success) {
+      // Initialize admin module
+      AdminModule.instance.initialize();
+
+      // Navigate to admin dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AdminMainPage(
+            controller: AdminModule.instance.controller,
+            kycController: AdminModule.instance.kycController,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to access admin dashboard'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
+  }
+
+  Widget _buildAdminQuickAccess() {
+    return Container(
+      decoration: BoxDecoration(
+        color: ColorConstants.warning.withValues(alpha: 0.1),
+        border: Border.all(color: ColorConstants.warning, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: ColorConstants.warning,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.admin_panel_settings,
+            color: Colors.white,
+            size: 20,
+          ),
+        ),
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          'DEV ONLY: Quick Access',
+          style: TextStyle(
+            color: ColorConstants.warning,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+        onTap: _navigateToAdminDashboard,
+      ),
     );
   }
 }

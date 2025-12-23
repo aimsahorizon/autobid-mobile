@@ -9,6 +9,7 @@ class AuctionEntity {
   final int watchersCount;
   final int biddersCount;
   final DateTime endTime;
+  final String sellerId;
 
   const AuctionEntity({
     required this.id,
@@ -20,6 +21,7 @@ class AuctionEntity {
     required this.watchersCount,
     required this.biddersCount,
     required this.endTime,
+    required this.sellerId,
   });
 
   /// Calculate time remaining in minutes
@@ -34,6 +36,20 @@ class AuctionEntity {
     return DateTime.now().isAfter(endTime);
   }
 
-  /// Get formatted car name (Year Make Model)
-  String get carName => '$year $make $model';
+  /// Get formatted car name with graceful fallbacks
+  String get carName {
+    final hasYear = year > 0;
+    final hasMake = make.isNotEmpty;
+    final hasModel = model.isNotEmpty;
+
+    if (hasYear && (hasMake || hasModel)) {
+      return '$year $make $model'.trim();
+    }
+
+    if (hasMake || hasModel) {
+      return '$make $model'.trim();
+    }
+
+    return 'Vehicle listing';
+  }
 }

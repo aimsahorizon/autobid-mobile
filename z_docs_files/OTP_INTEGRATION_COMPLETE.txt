@@ -1,0 +1,134 @@
+================================================================================
+  OTP VERIFICATION BACKEND INTEGRATION - COMPLETE
+================================================================================
+
+IMPLEMENTATION SUMMARY:
+----------------------
+Integrated Supabase OTP verification for both email and phone during KYC
+registration flow. The system now sends real OTPs via Supabase Auth.
+
+FILES CREATED:
+--------------
+✅ lib/modules/auth/domain/usecases/send_email_otp_usecase.dart
+   - Use case for sending OTP to email
+
+✅ lib/modules/auth/domain/usecases/send_phone_otp_usecase.dart
+   - Use case for sending OTP to phone number
+
+✅ lib/modules/auth/domain/usecases/verify_email_otp_usecase.dart
+   - Use case for verifying email OTP
+
+✅ lib/modules/auth/domain/usecases/verify_phone_otp_usecase.dart
+   - Use case for verifying phone OTP
+
+FILES MODIFIED:
+---------------
+✅ lib/modules/auth/domain/repositories/auth_repository.dart
+   - Added abstract methods:
+     * Future<void> sendEmailOtp(String email)
+     * Future<void> sendPhoneOtp(String phoneNumber)
+     * Future<bool> verifyEmailOtp(String email, String otp)
+     * Future<bool> verifyPhoneOtp(String phoneNumber, String otp)
+
+✅ lib/modules/auth/data/repositories/auth_repository_impl.dart
+   - Implemented repository methods that delegate to datasource
+
+✅ lib/modules/auth/data/datasources/auth_remote_datasource.dart
+   - Added Supabase OTP implementation:
+     * sendEmailOtp() - Uses auth.signInWithOtp() for email
+     * sendPhoneOtp() - Uses auth.signInWithOtp() for phone (+63 prefix)
+     * verifyEmailOtp() - Uses auth.verifyOTP() with OtpType.email
+     * verifyPhoneOtp() - Uses auth.verifyOTP() with OtpType.sms
+
+✅ lib/modules/auth/auth_module.dart
+   - Registered new use cases in dependency injection
+   - Updated createKYCRegistrationController() to inject OTP use cases
+
+✅ lib/modules/auth/presentation/controllers/kyc_registration_controller.dart
+   - Added OTP use case dependencies
+   - Added methods:
+     * Future<void> sendPhoneOtp()
+     * Future<void> sendEmailOtp()
+     * Future<bool> verifyPhoneOtp(String otp)
+     * Future<bool> verifyEmailOtp(String otp)
+
+✅ lib/modules/auth/presentation/widgets/kyc_steps/otp_verification_step.dart
+   - Updated _sendPhoneOtp() to call controller.sendPhoneOtp()
+   - Updated _verifyPhoneOtp() to call controller.verifyPhoneOtp()
+   - Updated _sendEmailOtp() to call controller.sendEmailOtp()
+   - Updated _verifyEmailOtp() to call controller.verifyEmailOtp()
+   - Added proper error handling with user feedback
+
+HOW IT WORKS:
+-------------
+1. User fills out phone number and email in KYC steps 4 & 5
+2. On OTP verification step (step 6):
+
+   PHONE VERIFICATION:
+   a. Click "Send OTP" → calls controller.sendPhoneOtp()
+   b. Supabase sends SMS to +63{phoneNumber}
+   c. User enters 6-digit OTP
+   d. Click "Verify" → calls controller.verifyPhoneOtp(otp)
+   e. Supabase verifies OTP and returns success/failure
+
+   EMAIL VERIFICATION:
+   a. Click "Send OTP" → calls controller.sendEmailOtp()
+   b. Supabase sends email with OTP code
+   c. User enters 6-digit OTP
+   d. Click "Verify" → calls controller.verifyEmailOtp(otp)
+   e. Supabase verifies OTP and returns success/failure
+
+3. Both verifications must pass before proceeding to next step
+
+SUPABASE CONFIGURATION REQUIRED:
+--------------------------------
+1. Enable Email OTP in Supabase Dashboard:
+   Authentication → Providers → Email → Enable "Email OTP"
+
+2. Enable Phone OTP in Supabase Dashboard:
+   Authentication → Providers → Phone → Enable
+   - Configure SMS provider (Twilio, MessageBird, etc.)
+   - Set Philippines (+63) as allowed country
+
+3. Configure email templates if needed:
+   Authentication → Email Templates → Magic Link
+
+TESTING:
+--------
+1. Run the app and navigate to Registration
+2. Complete steps 1-5 (IDs, personal info, account info)
+3. On OTP Verification step:
+
+   For Phone:
+   - Click "Send OTP" on phone card
+   - Check phone for SMS (format: +639XXXXXXXXX)
+   - Enter 6-digit code
+   - Click "Verify"
+
+   For Email:
+   - Click "Send OTP" on email card
+   - Check email inbox/spam
+   - Enter 6-digit code
+   - Click "Verify"
+
+4. Both should show "Verified" badge when successful
+5. Can proceed to address step only when both verified
+
+ERROR HANDLING:
+---------------
+✅ Shows user-friendly error messages via SnackBar
+✅ Handles network failures gracefully
+✅ Validates phone number format (+63 prefix)
+✅ Provides "Resend OTP" functionality
+✅ Shows loading states during verification
+
+NEXT STEPS (Optional):
+----------------------
+- Add OTP expiration timer (e.g., "Code expires in 5:00")
+- Add rate limiting for OTP requests
+- Store verification status in database for audit trail
+- Add option to skip phone verification (email only)
+
+================================================================================
+  OTP VERIFICATION FULLY INTEGRATED WITH SUPABASE BACKEND
+================================================================================

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../auth_module.dart';
 import '../controllers/kyc_registration_controller.dart';
 import '../widgets/kyc_steps/national_id_step.dart';
 import '../widgets/kyc_steps/selfie_with_id_step.dart';
@@ -21,11 +22,13 @@ class RegistrationPage extends StatefulWidget {
 
 class _RegistrationPageState extends State<RegistrationPage> {
   late final KYCRegistrationController _controller;
+  final GlobalKey<SecondaryIdStepState> _secondaryIdKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    _controller = KYCRegistrationController();
+    // Use AuthModule factory to create controller with Supabase integration
+    _controller = AuthModule.instance.createKYCRegistrationController();
   }
 
   @override
@@ -36,6 +39,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   String _getStepTitle() {
     switch (_controller.currentStep) {
+      case KYCStep.accountInfo:
+        return 'Account Setup';
+      case KYCStep.otpVerification:
+        return 'Verification';
       case KYCStep.nationalId:
         return 'National ID';
       case KYCStep.selfieWithId:
@@ -44,10 +51,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
         return 'Secondary ID';
       case KYCStep.personalInfo:
         return 'Personal Info';
-      case KYCStep.accountInfo:
-        return 'Account Setup';
-      case KYCStep.otpVerification:
-        return 'Verification';
       case KYCStep.address:
         return 'Address';
       case KYCStep.proofOfAddress:
@@ -59,6 +62,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   bool _canProceed() {
     switch (_controller.currentStep) {
+      case KYCStep.accountInfo:
+        return _controller.validateAccountInfoStep();
+      case KYCStep.otpVerification:
+        return _controller.validateOtpStep();
       case KYCStep.nationalId:
         return _controller.validateNationalIdStep();
       case KYCStep.selfieWithId:
@@ -67,10 +74,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
         return _controller.validateSecondaryIdStep();
       case KYCStep.personalInfo:
         return _controller.validatePersonalInfoStep();
-      case KYCStep.accountInfo:
-        return _controller.validateAccountInfoStep();
-      case KYCStep.otpVerification:
-        return _controller.validateOtpStep();
       case KYCStep.address:
         return _controller.validateAddressStep();
       case KYCStep.proofOfAddress:
@@ -82,6 +85,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   void _handleNext() {
     if (_canProceed()) {
+      // Trigger AI extraction for secondary ID step before proceeding
+      if (_controller.currentStep == KYCStep.secondaryId) {
+        _secondaryIdKey.currentState?.triggerAiExtraction();
+        return; // AI dialog will handle next step
+      }
+
       if (_controller.currentStep == KYCStep.review) {
         _handleSubmit();
       } else {
@@ -89,6 +98,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
         setState(() {});
       }
     }
+  }
+
+  // Called by SecondaryIdStep after AI extraction completes
+  void _proceedToNextStep() {
+    _controller.nextStep();
+    setState(() {});
   }
 
   void _handleBack() {
@@ -167,6 +182,50 @@ class _RegistrationPageState extends State<RegistrationPage> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: _handleBack,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome, color: ColorConstants.warning),
+            tooltip: 'Auto-fill Demo Data',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: ColorConstants.warning),
+                      SizedBox(width: 12),
+                      Text('Auto-fill Demo Data'),
+                    ],
+                  ),
+                  content: const Text(
+                    'This will automatically fill all fields with randomized demo data.\n\nNote: Email, phone number, and document uploads must still be filled manually.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _controller.autoFillDemoData();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Demo data auto-filled successfully!'),
+                            backgroundColor: ColorConstants.success,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      child: const Text('Auto-fill'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: ListenableBuilder(
         listenable: _controller,
@@ -234,28 +293,22 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   Widget _buildCurrentStep() {
     switch (_controller.currentStep) {
-      case KYCStep.nationalId:
-        return NationalIdStep(controller: _controller);
-      case KYCStep.selfieWithId:
-        return SelfieWithIdStep(
-          controller: _controller,
-          onAIAutoFillComplete: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Information auto-filled successfully!'),
-                backgroundColor: ColorConstants.success,
-              ),
-            );
-          },
-        );
-      case KYCStep.secondaryId:
-        return SecondaryIdStep(controller: _controller);
-      case KYCStep.personalInfo:
-        return PersonalInfoStep(controller: _controller);
       case KYCStep.accountInfo:
         return AccountInfoStep(controller: _controller);
       case KYCStep.otpVerification:
         return OtpVerificationStep(controller: _controller);
+      case KYCStep.nationalId:
+        return NationalIdStep(controller: _controller);
+      case KYCStep.selfieWithId:
+        return SelfieWithIdStep(controller: _controller);
+      case KYCStep.secondaryId:
+        return SecondaryIdStep(
+          key: _secondaryIdKey,
+          controller: _controller,
+          onRequestAiExtraction: _proceedToNextStep,
+        );
+      case KYCStep.personalInfo:
+        return PersonalInfoStep(controller: _controller);
       case KYCStep.address:
         return AddressStep(controller: _controller);
       case KYCStep.proofOfAddress:

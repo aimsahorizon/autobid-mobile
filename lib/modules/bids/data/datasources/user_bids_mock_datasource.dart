@@ -1,4 +1,5 @@
 import '../../domain/entities/user_bid_entity.dart';
+import '../../presentation/controllers/bids_controller.dart';
 
 /// Mock data source for user's bid history across all auctions
 /// Provides sample data for Active, Won, and Lost tabs in Bids module
@@ -9,7 +10,7 @@ import '../../domain/entities/user_bid_entity.dart';
 /// - Filter by status (active/won/lost) based on auction end_time and user's bid position
 ///
 /// TODO: Replace with SupabaseUserBidsDataSource for production
-class UserBidsMockDataSource {
+class UserBidsMockDataSource implements IUserBidsDataSource {
   /// Simulated network delay for realistic UX
   static const _mockDelay = Duration(milliseconds: 600);
 
@@ -19,7 +20,8 @@ class UserBidsMockDataSource {
   /// Active: Auctions still ongoing where user has placed bids
   /// Won: Ended auctions where user was the highest bidder
   /// Lost: Ended auctions where user was outbid
-  Future<Map<String, List<UserBidEntity>>> getUserBids() async {
+  @override
+  Future<Map<String, List<UserBidEntity>>> getUserBids([String? userId]) async {
     // Simulate network delay
     await Future.delayed(_mockDelay);
 
@@ -30,7 +32,8 @@ class UserBidsMockDataSource {
       UserBidEntity(
         id: 'ub_001',
         auctionId: 'auction_001',
-        carImageUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800',
         year: 2023,
         make: 'Toyota',
         model: 'Supra GR',
@@ -41,11 +44,14 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: true,
         userBidCount: 3,
+        canAccess: true,
+        transactionStatus: null,
       ),
       UserBidEntity(
         id: 'ub_002',
         auctionId: 'auction_002',
-        carImageUrl: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=800',
         year: 2022,
         make: 'BMW',
         model: 'M4 Competition',
@@ -56,11 +62,14 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: false,
         userBidCount: 2,
+        canAccess: true,
+        transactionStatus: null,
       ),
       UserBidEntity(
         id: 'ub_003',
         auctionId: 'auction_003',
-        carImageUrl: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?w=800',
         year: 2021,
         make: 'Porsche',
         model: '911 Carrera',
@@ -71,6 +80,8 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: true,
         userBidCount: 5,
+        canAccess: true,
+        transactionStatus: null,
       ),
     ];
 
@@ -79,7 +90,8 @@ class UserBidsMockDataSource {
       UserBidEntity(
         id: 'ub_004',
         auctionId: 'auction_004',
-        carImageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800',
         year: 2020,
         make: 'Chevrolet',
         model: 'Corvette C8',
@@ -90,11 +102,14 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: true,
         userBidCount: 8,
+        canAccess: false, // awaiting seller proceed
+        transactionStatus: null,
       ),
       UserBidEntity(
         id: 'ub_005',
         auctionId: 'auction_005',
-        carImageUrl: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=800',
         year: 2019,
         make: 'Mercedes-Benz',
         model: 'AMG GT',
@@ -105,6 +120,8 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: true,
         userBidCount: 4,
+        canAccess: true, // seller proceeded
+        transactionStatus: 'in_transaction',
       ),
     ];
 
@@ -113,7 +130,8 @@ class UserBidsMockDataSource {
       UserBidEntity(
         id: 'ub_006',
         auctionId: 'auction_006',
-        carImageUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800',
         year: 2022,
         make: 'Ford',
         model: 'Mustang GT',
@@ -124,11 +142,14 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: false,
         userBidCount: 3,
+        canAccess: true,
+        transactionStatus: null,
       ),
       UserBidEntity(
         id: 'ub_007',
         auctionId: 'auction_007',
-        carImageUrl: 'https://images.unsplash.com/photo-1542362567-b07e54358753?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1542362567-b07e54358753?w=800',
         year: 2021,
         make: 'Nissan',
         model: 'GT-R',
@@ -139,11 +160,14 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: false,
         userBidCount: 6,
+        canAccess: true,
+        transactionStatus: null,
       ),
       UserBidEntity(
         id: 'ub_008',
         auctionId: 'auction_008',
-        carImageUrl: 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800',
+        carImageUrl:
+            'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=800',
         year: 2020,
         make: 'Audi',
         model: 'RS7',
@@ -154,14 +178,20 @@ class UserBidsMockDataSource {
         hasDeposited: true,
         isHighestBidder: false,
         userBidCount: 2,
+        canAccess: true,
+        transactionStatus: null,
       ),
     ];
+
+    // Cancelled bids - deals that fell through
+    final cancelledBids = <UserBidEntity>[];
 
     // Return categorized bids
     return {
       'active': activeBids,
       'won': wonBids,
       'lost': lostBids,
+      'cancelled': cancelledBids,
     };
   }
 

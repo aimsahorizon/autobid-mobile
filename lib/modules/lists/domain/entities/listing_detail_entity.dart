@@ -9,6 +9,7 @@ class ListingDetailEntity {
   final String id;
   final ListingStatus status;
   final double startingPrice;
+  final DateTime? startTime;
   final double? currentBid;
   final double? reservePrice;
   final int totalBids;
@@ -86,6 +87,7 @@ class ListingDetailEntity {
     required this.id,
     required this.status,
     required this.startingPrice,
+    this.startTime,
     this.currentBid,
     this.reservePrice,
     this.totalBids = 0,
@@ -163,6 +165,10 @@ class ListingDetailEntity {
   /// Get time remaining (for active listings)
   Duration? get timeRemaining =>
       endTime != null ? endTime!.difference(DateTime.now()) : null;
+
+    /// Time until auction starts (for scheduled listings)
+    Duration? get timeUntilStart =>
+      startTime != null ? startTime!.difference(DateTime.now()) : null;
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);

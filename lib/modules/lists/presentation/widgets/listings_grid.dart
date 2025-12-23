@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import 'listing_card.dart';
 import '../../data/datasources/listing_detail_mock_datasource.dart';
 import '../controllers/listing_draft_controller.dart';
 import '../pages/active_listing_detail_page.dart';
 import '../pages/pending_listing_detail_page.dart';
+import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
-import '../pages/sold_listing_detail_page.dart';
+import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
-import '../pages/pre_transaction_page.dart';
-import '../controllers/transaction_controller.dart';
-import '../../data/datasources/transaction_mock_datasource.dart';
+import '../../../transactions/presentation/pages/pre_transaction_page.dart';
+import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
+import '../../../transactions/transactions_module.dart';
 
 class ListingsGrid extends StatelessWidget {
   final List<SellerListingEntity> listings;
@@ -23,6 +25,9 @@ class ListingsGrid extends StatelessWidget {
   final bool enableNavigation;
   final ListingDraftController? draftController;
   final String? sellerId;
+  final VoidCallback? onListingUpdated;
+  final Future<void> Function(BuildContext, SellerListingEntity)?
+  onTransactionCardTap;
 
   const ListingsGrid({
     super.key,
@@ -35,6 +40,8 @@ class ListingsGrid extends StatelessWidget {
     this.enableNavigation = true,
     this.draftController,
     this.sellerId,
+    this.onListingUpdated,
+    this.onTransactionCardTap,
   });
 
   void _navigateToDetail(
@@ -66,6 +73,13 @@ class ListingsGrid extends StatelessWidget {
       case ListingStatus.pending:
         detailPage = PendingListingDetailPage(listing: detailEntity);
         break;
+      case ListingStatus.approved:
+        detailPage = ApprovedListingDetailPage(listing: detailEntity);
+        break;
+      case ListingStatus.scheduled:
+        // Scheduled listings are treated like approved listings for details
+        detailPage = ApprovedListingDetailPage(listing: detailEntity);
+        break;
       case ListingStatus.draft:
         if (draftController == null || sellerId == null) return;
         detailPage = DraftListingDetailPage(
@@ -74,36 +88,102 @@ class ListingsGrid extends StatelessWidget {
           sellerId: sellerId!,
         );
         break;
-      case ListingStatus.sold:
-        detailPage = SoldListingDetailPage(listing: detailEntity);
+      case ListingStatus.ended:
+        detailPage = EndedListingDetailPage(listing: detailEntity);
         break;
       case ListingStatus.cancelled:
-        if (draftController == null || sellerId == null) return;
+        // Check if this cancelled listing has an associated failed transaction
+        // If so, route to the transaction page with options to handle the failed deal
+        if (listing.transactionId != null) {
+          // Has a transaction - route to transaction page for deal failed options
+          // (next highest bidder, relist, delete)
+          if (!context.mounted) return;
+          final realtimeController = TransactionsModule.instance
+              .createRealtimeTransactionController();
+
+          final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+          final userName =
+              SupabaseConfig
+                  .client
+                  .auth
+                  .currentUser
+                  ?.userMetadata?['full_name'] ??
+              'Seller';
+
+          await Navigator.push<void>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PreTransactionRealtimePage(
+                controller: realtimeController,
+                transactionId: listing.transactionId!,
+                userId: userId,
+                userName: userName,
+              ),
+            ),
+          );
+
+          // Reload listings after returning from transaction page
+          if (onListingUpdated != null) {
+            onListingUpdated!();
+          }
+          return;
+        }
+
+        // No transaction - regular cancelled listing page
+        // Controller and sellerId are optional - page handles null gracefully
         detailPage = CancelledListingDetailPage(
           listing: detailEntity,
-          controller: draftController!,
-          sellerId: sellerId!,
+          controller: draftController,
+          sellerId: sellerId,
         );
         break;
       case ListingStatus.inTransaction:
-        if (sellerId == null) return;
-        // Create transaction controller for pre-transaction page
-        final transactionController = TransactionController(
-          TransactionMockDataSource(),
+      case ListingStatus.sold:
+      case ListingStatus.dealFailed:
+        // Transaction statuses MUST use callback or open pre-transaction page
+        // Never navigate to a listings detail page for transactions
+        if (onTransactionCardTap != null) {
+          await onTransactionCardTap!(context, listing);
+          return;
+        }
+
+        // Fallback: open pre-transaction page directly
+        if (!context.mounted) return;
+        final transactionController = TransactionsModule.instance
+            .createTransactionController(useMockData: false);
+
+        final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+        final userName =
+            SupabaseConfig
+                .client
+                .auth
+                .currentUser
+                ?.userMetadata?['full_name'] ??
+            'Seller';
+
+        await Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PreTransactionPage(
+              controller: transactionController,
+              transactionId: listing.id,
+              userId: userId,
+              userName: userName,
+            ),
+          ),
         );
-        detailPage = PreTransactionPage(
-          controller: transactionController,
-          transactionId: listing.id,
-          userId: sellerId!,
-          userName: 'Seller', // TODO: Get actual user name from auth
-        );
-        break;
+        return;
     }
 
-    Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => detailPage),
     );
+
+    // Reload listings if there was an update (delete/submit)
+    if (result != null && onListingUpdated != null) {
+      onListingUpdated!();
+    }
   }
 
   @override

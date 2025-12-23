@@ -1,4 +1,5 @@
 import '../../domain/entities/auction_entity.dart';
+import '../../domain/entities/auction_filter.dart';
 import '../../domain/repositories/auction_repository.dart';
 import '../datasources/auction_remote_datasource.dart';
 
@@ -10,8 +11,8 @@ class AuctionRepositoryImpl implements AuctionRepository {
   AuctionRepositoryImpl(this._remoteDataSource);
 
   @override
-  Future<List<AuctionEntity>> getActiveAuctions() async {
-    return await _remoteDataSource.getActiveAuctions();
+  Future<List<AuctionEntity>> getActiveAuctions({AuctionFilter? filter}) async {
+    return await _remoteDataSource.getActiveAuctions(filter: filter);
   }
 
   @override

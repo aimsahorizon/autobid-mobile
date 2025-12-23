@@ -1,0 +1,1977 @@
+================================================================================
+AUTOBID MOBILE - COMPLETE DATABASE SCHEMA (3NF NORMALIZED)
+================================================================================
+Version: 2.0 - Fresh Start with Thesis Defense Enhancements
+Based on: 29 Domain Entities + Current Implementation + Thesis Requirements
+Normalization: Third Normal Form (3NF) Compliant
+================================================================================
+
+================================================================================
+SECTION 1: AUTHENTICATION & USER MANAGEMENT
+================================================================================
+
+TABLE: auth.users
+Purpose: Supabase authentication (managed by Supabase Auth)
+Columns:
+  - id: uuid PRIMARY KEY
+  - email: text UNIQUE NOT NULL
+  - encrypted_password: text NOT NULL
+  - email_confirmed_at: timestamptz
+  - phone: text
+  - phone_confirmed_at: timestamptz
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+Notes: Supabase managed table - do not modify schema
+
+--------------------------------------------------------------------------------
+
+TABLE: addresses
+Purpose: Normalized address data (3NF compliant - eliminates transitive dependencies)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - street_address: text NOT NULL
+  - barangay: text NOT NULL
+  - city: text NOT NULL
+  - province: text NOT NULL
+  - region: text NOT NULL
+  - zipcode: text NOT NULL
+  - created_at: timestamptz DEFAULT now()
+Constraints:
+  - UNIQUE(street_address, barangay, city, province, zipcode)
+Indexes:
+  - idx_addresses_location ON (province, city, barangay)
+  - idx_addresses_zipcode ON (zipcode)
+
+--------------------------------------------------------------------------------
+
+TABLE: users
+Purpose: KYC-verified user profiles and personal information
+Columns:
+  - id: uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE
+  - username: text UNIQUE NOT NULL
+  - email: text UNIQUE NOT NULL
+
+  Personal Information:
+  - first_name: text NOT NULL
+  - middle_name: text
+  - last_name: text NOT NULL
+  - date_of_birth: date NOT NULL
+  - sex: text NOT NULL CHECK (sex IN ('M', 'F'))
+  - phone_number: text UNIQUE NOT NULL
+
+  Address:
+  - address_id: uuid REFERENCES addresses(id) ON DELETE RESTRICT
+
+  Profile Media:
+  - profile_photo_url: text
+  - cover_photo_url: text
+
+  National ID:
+  - national_id_number: text UNIQUE NOT NULL
+  - national_id_front_url: text NOT NULL
+  - national_id_back_url: text NOT NULL
+
+  Secondary Government ID:
+  - secondary_gov_id_type: text NOT NULL CHECK (secondary_gov_id_type IN ('driver_license', 'passport', 'umid', 'postal_id', 'voters_id', 'prc_id', 'sss_id', 'gsis_id', 'philhealth_id'))
+  - secondary_gov_id_number: text NOT NULL
+  - secondary_gov_id_front_url: text NOT NULL
+  - secondary_gov_id_back_url: text NOT NULL
+
+  Proof of Address:
+  - proof_of_address_type: text NOT NULL CHECK (proof_of_address_type IN ('utility_bill', 'bank_statement', 'government_issued_document', 'barangay_certificate'))
+  - proof_of_address_url: text NOT NULL
+
+  Selfie Verification:
+  - selfie_with_id_url: text NOT NULL
+
+  Legal Acceptance:
+  - accepted_terms_at: timestamptz NOT NULL
+  - accepted_privacy_at: timestamptz NOT NULL
+
+  KYC Status:
+  - status: text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'under_review', 'approved', 'rejected', 'suspended'))
+  - reviewed_by: uuid REFERENCES auth.users(id)
+  - reviewed_at: timestamptz
+  - rejection_reason: text
+  - admin_notes: text
+
+  Timestamps:
+  - submitted_at: timestamptz
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_users_email ON (email)
+  - idx_users_username ON (username)
+  - idx_users_phone ON (phone_number)
+  - idx_users_status ON (status)
+  - idx_users_address ON (address_id)
+
+RLS Policies:
+  - Users can read own profile
+  - Only admins can update KYC status
+  - Public can read approved user basic info (username, profile_photo_url)
+
+Triggers:
+  - updated_at auto-update on modification
+
+================================================================================
+SECTION 2: VEHICLE & LISTING MASTER DATA (3NF NORMALIZED)
+================================================================================
+
+TABLE: car_brands
+Purpose: Normalized brand master data (3NF - separate brand entity)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - name: text UNIQUE NOT NULL
+  - country_of_origin: text
+  - logo_url: text
+  - created_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_car_brands_name ON (name)
+
+--------------------------------------------------------------------------------
+
+TABLE: car_models
+Purpose: Normalized model master data (3NF - brand -> model hierarchy)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - brand_id: uuid NOT NULL REFERENCES car_brands(id) ON DELETE CASCADE
+  - model_name: text NOT NULL
+  - variant: text
+  - body_type: text CHECK (body_type IN ('sedan', 'suv', 'hatchback', 'pickup', 'van', 'coupe', 'convertible', 'wagon'))
+  - created_at: timestamptz DEFAULT now()
+Constraints:
+  - UNIQUE(brand_id, model_name, variant)
+Indexes:
+  - idx_car_models_brand ON (brand_id)
+  - idx_car_models_name ON (model_name)
+
+--------------------------------------------------------------------------------
+
+TABLE: listing_drafts
+Purpose: Work-in-progress vehicle listings (9-step creation process)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - seller_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - current_step: integer NOT NULL DEFAULT 1 CHECK (current_step >= 1 AND current_step <= 9)
+  - is_complete: boolean DEFAULT false
+
+  Step 1: Basic Information
+  - car_model_id: uuid REFERENCES car_models(id) ON DELETE RESTRICT
+  - year: integer CHECK (year >= 1900 AND year <= 2100)
+
+  Step 2: Mechanical Specification
+  - engine_type: text
+  - engine_displacement: decimal(4,2)
+  - cylinder_count: integer
+  - horsepower: integer
+  - torque: integer
+  - transmission: text CHECK (transmission IN ('manual', 'automatic', 'cvt', 'dct'))
+  - fuel_type: text CHECK (fuel_type IN ('gasoline', 'diesel', 'hybrid', 'electric', 'lpg'))
+  - drive_type: text CHECK (drive_type IN ('fwd', 'rwd', 'awd', '4wd'))
+
+  Step 3: Dimensions & Capacity
+  - length: decimal(7,2)
+  - width: decimal(7,2)
+  - height: decimal(7,2)
+  - wheelbase: decimal(7,2)
+  - ground_clearance: decimal(5,2)
+  - seating_capacity: integer
+  - door_count: integer
+  - fuel_tank_capacity: decimal(5,2)
+  - curb_weight: decimal(7,2)
+  - gross_weight: decimal(7,2)
+
+  Step 4: Exterior Details
+  - exterior_color: text
+  - paint_type: text CHECK (paint_type IN ('solid', 'metallic', 'pearlescent', 'matte'))
+  - rim_type: text
+  - rim_size: text
+  - tire_size: text
+  - tire_brand: text
+
+  Step 5: Condition & History (ENHANCED - Thesis Requirements)
+  - condition: text CHECK (condition IN ('excellent', 'very_good', 'good', 'fair', 'poor'))
+  - mileage: integer CHECK (mileage >= 0)
+  - previous_owners: integer CHECK (previous_owners >= 0)
+  - has_modifications: boolean DEFAULT false
+  - modifications_details: text
+  - has_warranty: boolean DEFAULT false
+  - warranty_details: text
+  - usage_type: text CHECK (usage_type IN ('private', 'commercial', 'taxi', 'government'))
+  - insurance_status: text CHECK (insurance_status IN ('active', 'expired', 'none'))
+  - insurance_provider: text
+  - insurance_expiry: date
+  - last_maintenance_date: date
+  - maintenance_history: text
+  - damage_history: text
+  - past_condition: text
+  - current_condition_notes: text
+
+  Step 6: Documentation & Location
+  - plate_number: text UNIQUE
+  - orcr_status: text CHECK (orcr_status IN ('available', 'pending_release', 'lost', 'not_available'))
+  - registration_status: text CHECK (registration_status IN ('current', 'expired', 'suspended'))
+  - registration_expiry: date
+  - address_id: uuid REFERENCES addresses(id) ON DELETE RESTRICT
+
+  Step 8: Final Details & Pricing
+  - description: text CHECK (length(description) >= 50)
+  - known_issues: text
+  - starting_price: decimal(12,2) CHECK (starting_price > 0)
+  - reserve_price: decimal(12,2) CHECK (reserve_price >= starting_price)
+  - auction_end_date: timestamptz
+
+  AI Generated Fields (ENHANCED - Thesis Requirements)
+  - ai_suggested_keywords: text[]
+  - ai_suggested_starting_price: decimal(12,2)
+  - ai_suggested_reserve_price: decimal(12,2)
+  - ai_price_confidence_score: decimal(3,2) CHECK (ai_price_confidence_score >= 0 AND ai_price_confidence_score <= 1)
+  - ai_analysis_timestamp: timestamptz
+
+  Timestamps:
+  - last_saved: timestamptz DEFAULT now()
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+  - deleted_at: timestamptz
+
+Indexes:
+  - idx_listing_drafts_seller ON (seller_id)
+  - idx_listing_drafts_model ON (car_model_id)
+  - idx_listing_drafts_deleted ON (deleted_at) WHERE deleted_at IS NULL
+
+RLS Policies:
+  - Sellers can CRUD own drafts only
+  - Admins can read all drafts
+
+Triggers:
+  - updated_at auto-update
+  - last_saved auto-update
+
+--------------------------------------------------------------------------------
+
+TABLE: listing_photos
+Purpose: Normalized photo storage (1NF compliant - eliminates JSONB arrays)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - listing_id: uuid REFERENCES listing_drafts(id) ON DELETE CASCADE
+  - category: text NOT NULL
+  - photo_url: text NOT NULL
+  - display_order: integer DEFAULT 0
+  - is_cover_photo: boolean DEFAULT false
+  - uploaded_at: timestamptz DEFAULT now()
+
+Photo Categories (56 total):
+  Exterior (20): Front View, Rear View, Left Side, Right Side, Front Left Angle, Front Right Angle, Rear Left Angle, Rear Right Angle, Roof, Undercarriage, Front Bumper, Rear Bumper, Left Fender, Right Fender, Hood, Trunk/Tailgate, Fuel Door, Side Mirrors, Door Handles, Exterior Lights
+
+  Interior (15): Dashboard, Steering Wheel, Center Console, Front Seats, Rear Seats, Headliner, Door Panels, Carpet/Floor Mats, Trunk Interior, Glove Box, Sun Visors, Instrument Cluster, Infotainment Screen, Climate Controls, Interior Lights
+
+  Engine & Mechanical (12): Engine Bay Overview, Engine Block, Battery, Fluid Reservoirs, Air Filter, Alternator, Belts & Hoses, Suspension, Brakes Front, Brakes Rear, Exhaust System, Transmission
+
+  Wheels & Tires (4): Front Left Wheel, Front Right Wheel, Rear Left Wheel, Rear Right Wheel
+
+  Documents (5): OR/CR, Registration Papers, Insurance, Maintenance Records, Inspection Report
+
+Constraints:
+  - CHECK (category IN (...56 categories...))
+  - UNIQUE(listing_id, category, display_order)
+
+Indexes:
+  - idx_listing_photos_listing ON (listing_id)
+  - idx_listing_photos_category ON (category)
+  - idx_listing_photos_cover ON (is_cover_photo) WHERE is_cover_photo = true
+
+RLS Policies:
+  - Public can read photos of active listings
+  - Sellers can CRUD photos of own listings
+  - Admins can read all photos
+
+--------------------------------------------------------------------------------
+
+TABLE: listing_documents
+Purpose: Separate document storage (ENHANCED - Thesis Requirement)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - listing_id: uuid NOT NULL REFERENCES listing_drafts(id) ON DELETE CASCADE
+  - document_type: text NOT NULL CHECK (document_type IN ('orcr', 'registration', 'insurance', 'maintenance_records', 'inspection_report', 'deed_of_sale', 'other'))
+  - file_url: text NOT NULL
+  - file_name: text NOT NULL
+  - file_size: bigint NOT NULL
+  - mime_type: text NOT NULL
+  - uploaded_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_listing_documents_listing ON (listing_id)
+  - idx_listing_documents_type ON (document_type)
+
+RLS Policies:
+  - Sellers can CRUD documents of own listings
+  - Admins can read all documents
+  - Buyers of won auctions can read relevant documents
+
+--------------------------------------------------------------------------------
+
+TABLE: listing_features
+Purpose: Normalized features storage (1NF compliant - eliminates TEXT[] arrays)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - listing_id: uuid NOT NULL REFERENCES listing_drafts(id) ON DELETE CASCADE
+  - feature_name: text NOT NULL
+  - created_at: timestamptz DEFAULT now()
+
+Constraints:
+  - UNIQUE(listing_id, feature_name)
+
+Common Features:
+  - Air Conditioning, Power Steering, Power Windows, Power Locks, Cruise Control
+  - ABS Brakes, Airbags, Backup Camera, Parking Sensors, Blind Spot Monitoring
+  - Leather Seats, Heated Seats, Sunroof, Navigation System, Bluetooth
+  - Keyless Entry, Push Start, Auto Headlights, Rain Sensing Wipers
+  - Third Row Seating, Roof Rack, Tow Hitch, etc.
+
+Indexes:
+  - idx_listing_features_listing ON (listing_id)
+
+RLS Policies:
+  - Same as listing_photos
+
+================================================================================
+SECTION 3: AUCTION & BIDDING SYSTEM (ENHANCED - Thesis Requirements)
+================================================================================
+
+TABLE: auctions
+Purpose: Active vehicle auctions (approved listings go live as auctions)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - listing_draft_id: uuid UNIQUE NOT NULL REFERENCES listing_drafts(id) ON DELETE RESTRICT
+  - seller_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+
+  Car Reference (denormalized for performance):
+  - car_model_id: uuid NOT NULL REFERENCES car_models(id)
+  - year: integer NOT NULL
+  - cover_photo_url: text NOT NULL
+
+  Auction Configuration (ENHANCED - Thesis Requirements):
+  - bidding_type: text NOT NULL DEFAULT 'public' CHECK (bidding_type IN ('public', 'private'))
+  - starting_bid: decimal(12,2) NOT NULL CHECK (starting_bid > 0)
+  - reserve_price: decimal(12,2) CHECK (reserve_price >= starting_bid)
+  - minimum_bid_increment: decimal(12,2) NOT NULL DEFAULT 1000 CHECK (minimum_bid_increment > 0)
+  - snipe_guard_seconds: integer DEFAULT 120 CHECK (snipe_guard_seconds >= 0 AND snipe_guard_seconds <= 600)
+  - enable_snipe_guard: boolean DEFAULT true
+  - allow_rebid: boolean DEFAULT false
+  - offer_to_next_bidder: boolean DEFAULT false
+
+  Current State (maintained by triggers):
+  - current_bid: decimal(12,2) DEFAULT 0
+  - is_reserve_met: boolean DEFAULT false
+  - watchers_count: integer DEFAULT 0 CHECK (watchers_count >= 0)
+  - bidders_count: integer DEFAULT 0 CHECK (bidders_count >= 0)
+  - total_bids: integer DEFAULT 0 CHECK (total_bids >= 0)
+  - views_count: integer DEFAULT 0 CHECK (views_count >= 0)
+
+  Timing:
+  - start_time: timestamptz NOT NULL DEFAULT now()
+  - end_time: timestamptz NOT NULL
+  - extended_seconds: integer DEFAULT 0
+
+  Status:
+  - status: text NOT NULL DEFAULT 'active' CHECK (status IN ('draft', 'active', 'ended', 'sold', 'cancelled', 'rebid'))
+
+  Winner Tracking:
+  - winner_id: uuid REFERENCES users(id)
+  - winning_bid: decimal(12,2)
+  - ended_at: timestamptz
+
+  Admin:
+  - admin_status: text CHECK (admin_status IN ('pending_review', 'approved', 'rejected'))
+  - reviewed_by: uuid REFERENCES users(id)
+  - reviewed_at: timestamptz
+  - rejection_reason: text
+
+  Timestamps:
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Constraints:
+  - CHECK (end_time > start_time)
+  - CHECK (current_bid >= starting_bid OR current_bid = 0)
+  - CHECK (winning_bid IS NULL OR winning_bid = current_bid)
+
+Indexes:
+  - idx_auctions_seller ON (seller_id)
+  - idx_auctions_model ON (car_model_id)
+  - idx_auctions_status ON (status)
+  - idx_auctions_end_time ON (end_time) WHERE status = 'active'
+  - idx_auctions_winner ON (winner_id)
+  - idx_auctions_bidding_type ON (bidding_type)
+
+RLS Policies:
+  - Public can read active public auctions
+  - Private auction viewers determined by auction_participants table
+  - Sellers can read own auctions
+  - Admins can read/update all auctions
+
+Triggers:
+  - Auto-extend end_time if bid placed within snipe_guard_seconds of end
+  - Update is_reserve_met when current_bid >= reserve_price
+  - Mark auction as 'ended' when end_time passes
+  - Notification triggers for final 2 minutes (admin alert)
+
+--------------------------------------------------------------------------------
+
+TABLE: auction_participants
+Purpose: Track participants in private auctions
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - auction_id: uuid NOT NULL REFERENCES auctions(id) ON DELETE CASCADE
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - invited_by: uuid REFERENCES users(id)
+  - invited_at: timestamptz DEFAULT now()
+  - accepted_at: timestamptz
+
+Constraints:
+  - UNIQUE(auction_id, user_id)
+
+Indexes:
+  - idx_auction_participants_auction ON (auction_id)
+  - idx_auction_participants_user ON (user_id)
+
+RLS Policies:
+  - Participants can read own participation
+  - Sellers can CRUD participants for own auctions
+  - Admins can read all
+
+--------------------------------------------------------------------------------
+
+TABLE: bids
+Purpose: All bid records with auto-bidding support
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - auction_id: uuid NOT NULL REFERENCES auctions(id) ON DELETE CASCADE
+  - bidder_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - amount: decimal(12,2) NOT NULL CHECK (amount > 0)
+
+  Auto-bidding:
+  - is_auto_bid: boolean DEFAULT false
+  - max_auto_bid: decimal(12,2)
+  - auto_bid_increment: decimal(12,2)
+
+  Status (ENHANCED - Thesis Requirement):
+  - status: text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'outbid', 'winning', 'won', 'lost', 'cancelled'))
+
+  Timestamps:
+  - created_at: timestamptz DEFAULT now()
+
+Constraints:
+  - CHECK (max_auto_bid IS NULL OR max_auto_bid >= amount)
+
+Indexes:
+  - idx_bids_auction ON (auction_id)
+  - idx_bids_bidder ON (bidder_id)
+  - idx_bids_amount ON (amount DESC)
+  - idx_bids_status ON (status)
+  - idx_bids_created ON (created_at DESC)
+
+RLS Policies:
+  - Bidders can read own bids
+  - Public can read bid amounts for public auctions (anonymized bidder)
+  - Sellers can read all bids on own auctions
+  - Admins can read all bids
+
+Triggers:
+  - Update auction.current_bid to MAX(amount)
+  - Update auction.total_bids count
+  - Update auction.bidders_count (distinct bidders)
+  - Mark previous bids as 'outbid'
+  - Mark highest bid as 'winning'
+  - Auto-bid trigger when outbid (if is_auto_bid and amount < max_auto_bid)
+  - Consume bidding token from user
+  - Extend auction end_time if within snipe_guard window
+
+--------------------------------------------------------------------------------
+
+TABLE: auction_deposits
+Purpose: Required deposits to participate in high-value auctions
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - auction_id: uuid NOT NULL REFERENCES auctions(id) ON DELETE CASCADE
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - amount: decimal(12,2) NOT NULL CHECK (amount > 0)
+  - status: text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'refunded', 'forfeited'))
+  - payment_intent_id: text
+  - payment_reference: text
+  - paid_at: timestamptz
+  - refunded_at: timestamptz
+  - forfeited_at: timestamptz
+  - created_at: timestamptz DEFAULT now()
+
+Constraints:
+  - UNIQUE(auction_id, user_id)
+
+Indexes:
+  - idx_auction_deposits_auction ON (auction_id)
+  - idx_auction_deposits_user ON (user_id)
+  - idx_auction_deposits_status ON (status)
+
+RLS Policies:
+  - Users can read/create own deposits
+  - Sellers can read deposits for own auctions
+  - Admins can update deposit status
+
+Triggers:
+  - Auto-refund when auction ends and user didn't win
+  - Auto-forfeit when winner doesn't complete transaction
+
+--------------------------------------------------------------------------------
+
+TABLE: watchlist
+Purpose: Users watching auctions for updates
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - auction_id: uuid NOT NULL REFERENCES auctions(id) ON DELETE CASCADE
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - created_at: timestamptz DEFAULT now()
+
+Constraints:
+  - UNIQUE(auction_id, user_id)
+
+Indexes:
+  - idx_watchlist_auction ON (auction_id)
+  - idx_watchlist_user ON (user_id)
+
+RLS Policies:
+  - Users can CRUD own watchlist entries
+
+Triggers:
+  - Increment auction.watchers_count on INSERT
+  - Decrement auction.watchers_count on DELETE
+
+--------------------------------------------------------------------------------
+
+TABLE: auction_questions
+Purpose: Q&A system for auctions (renamed from listing_questions)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - auction_id: uuid NOT NULL REFERENCES auctions(id) ON DELETE CASCADE
+  - asker_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - question: text NOT NULL CHECK (length(question) > 0)
+  - category: text NOT NULL DEFAULT 'general' CHECK (category IN ('general', 'condition', 'history', 'features', 'documents', 'price'))
+  - answer: text
+  - answered_at: timestamptz
+  - likes_count: integer NOT NULL DEFAULT 0 CHECK (likes_count >= 0)
+  - is_public: boolean NOT NULL DEFAULT true
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_auction_questions_auction ON (auction_id)
+  - idx_auction_questions_asker ON (asker_id)
+  - idx_auction_questions_category ON (category)
+  - idx_auction_questions_public ON (is_public) WHERE is_public = true
+
+RLS Policies:
+  - Public can read public questions on active auctions
+  - Users can create questions
+  - Sellers can answer questions on own auctions
+  - Admins can moderate all questions
+
+Triggers:
+  - updated_at auto-update
+
+--------------------------------------------------------------------------------
+
+TABLE: auction_question_likes
+Purpose: Users liking helpful questions
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - question_id: uuid NOT NULL REFERENCES auction_questions(id) ON DELETE CASCADE
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - created_at: timestamptz DEFAULT now()
+
+Constraints:
+  - UNIQUE(question_id, user_id)
+
+Indexes:
+  - idx_question_likes_question ON (question_id)
+  - idx_question_likes_user ON (user_id)
+
+RLS Policies:
+  - Users can CRUD own likes
+
+Triggers:
+  - Increment auction_questions.likes_count on INSERT
+  - Decrement auction_questions.likes_count on DELETE
+
+================================================================================
+SECTION 4: TRANSACTION SYSTEM
+================================================================================
+
+TABLE: transactions
+Purpose: Post-auction buyer-seller transactions
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - auction_id: uuid NOT NULL REFERENCES auctions(id) ON DELETE RESTRICT
+  - seller_id: uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT
+  - buyer_id: uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT
+
+  Agreement:
+  - agreed_price: decimal(12,2) NOT NULL
+  - deposit_amount: decimal(12,2) NOT NULL DEFAULT 0
+
+  Form Tracking:
+  - seller_form_submitted: boolean DEFAULT false
+  - buyer_form_submitted: boolean DEFAULT false
+  - seller_confirmed: boolean DEFAULT false
+  - buyer_confirmed: boolean DEFAULT false
+
+  Admin:
+  - admin_approved: boolean DEFAULT false
+  - admin_approved_by: uuid REFERENCES users(id)
+  - admin_approved_at: timestamptz
+  - admin_notes: text
+
+  Status:
+  - status: text NOT NULL DEFAULT 'discussion' CHECK (status IN ('discussion', 'form_review', 'pending_approval', 'approved', 'ongoing', 'completed', 'cancelled', 'disputed'))
+
+  Delivery Tracking:
+  - delivery_status: text DEFAULT 'pending' CHECK (delivery_status IN ('pending', 'preparing', 'in_transit', 'delivered', 'completed'))
+  - delivery_started_at: timestamptz
+  - delivery_completed_at: timestamptz
+
+  Timestamps:
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+  - completed_at: timestamptz
+
+Indexes:
+  - idx_transactions_auction ON (auction_id)
+  - idx_transactions_seller ON (seller_id)
+  - idx_transactions_buyer ON (buyer_id)
+  - idx_transactions_status ON (status)
+
+RLS Policies:
+  - Buyer and seller can read/update own transactions
+  - Admins can read/update all transactions
+
+Triggers:
+  - updated_at auto-update
+  - Create timeline event on status change
+
+--------------------------------------------------------------------------------
+
+TABLE: transaction_forms
+Purpose: Buyer and seller submitted forms
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - transaction_id: uuid NOT NULL REFERENCES transactions(id) ON DELETE CASCADE
+  - role: text NOT NULL CHECK (role IN ('buyer', 'seller'))
+
+  Personal Information:
+  - full_name: text NOT NULL
+  - email: text NOT NULL
+  - phone: text NOT NULL
+
+  Address:
+  - address_id: uuid REFERENCES addresses(id)
+
+  ID Verification:
+  - id_type: text NOT NULL
+  - id_number: text NOT NULL
+  - id_photo_url: text
+
+  Payment Details:
+  - payment_method: text NOT NULL
+  - bank_name: text
+  - account_number: text
+
+  Delivery:
+  - delivery_method: text NOT NULL
+  - delivery_date: date
+  - delivery_address_id: uuid REFERENCES addresses(id)
+
+  Legal Checklist (Seller):
+  - orcr_verified: boolean DEFAULT false
+  - deeds_of_sale_ready: boolean DEFAULT false
+  - plate_number_confirmed: boolean DEFAULT false
+  - registration_valid: boolean DEFAULT false
+  - no_outstanding_loans: boolean DEFAULT false
+  - mechanical_inspection_done: boolean DEFAULT false
+
+  Additional:
+  - additional_terms: text
+  - agreed_to_terms: boolean NOT NULL DEFAULT false
+
+  Status:
+  - status: text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'reviewed', 'changes_requested', 'confirmed'))
+  - review_notes: text
+
+  Timestamps:
+  - submitted_at: timestamptz
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Constraints:
+  - UNIQUE(transaction_id, role)
+
+Indexes:
+  - idx_transaction_forms_transaction ON (transaction_id)
+  - idx_transaction_forms_role ON (role)
+
+RLS Policies:
+  - Buyer/seller can CRUD own form
+  - Other party can read confirmed forms
+  - Admins can read all forms
+
+Triggers:
+  - Update transactions.seller_form_submitted/buyer_form_submitted
+  - Create timeline event on submission
+
+--------------------------------------------------------------------------------
+
+TABLE: transaction_messages
+Purpose: Buyer-seller chat during transaction
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - transaction_id: uuid NOT NULL REFERENCES transactions(id) ON DELETE CASCADE
+  - sender_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - message: text NOT NULL
+  - message_type: text DEFAULT 'text' CHECK (message_type IN ('text', 'system', 'attachment'))
+  - attachment_url: text
+  - is_read: boolean DEFAULT false
+  - created_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_transaction_messages_transaction ON (transaction_id)
+  - idx_transaction_messages_sender ON (sender_id)
+  - idx_transaction_messages_created ON (created_at)
+
+RLS Policies:
+  - Buyer and seller can CRUD messages in own transaction
+  - Admins can read all messages
+
+Real-time:
+  - Enable Supabase real-time subscriptions for live chat
+
+--------------------------------------------------------------------------------
+
+TABLE: transaction_timeline
+Purpose: Transaction event history
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - transaction_id: uuid NOT NULL REFERENCES transactions(id) ON DELETE CASCADE
+  - event_type: text NOT NULL CHECK (event_type IN ('created', 'form_submitted', 'form_confirmed', 'admin_review', 'admin_approved', 'deposit_refunded', 'started', 'completed', 'cancelled', 'disputed'))
+  - title: text NOT NULL
+  - description: text NOT NULL
+  - actor_id: uuid REFERENCES users(id)
+  - actor_name: text
+  - created_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_transaction_timeline_transaction ON (transaction_id)
+  - idx_transaction_timeline_event ON (event_type)
+  - idx_transaction_timeline_created ON (created_at DESC)
+
+RLS Policies:
+  - Buyer and seller can read timeline of own transaction
+  - System can insert events
+  - Admins can read all timelines
+
+================================================================================
+SECTION 5: PAYMENT & TOKEN SYSTEM
+================================================================================
+
+TABLE: user_token_balances
+Purpose: User's token economy balance
+Columns:
+  - user_id: uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE
+  - bidding_tokens: integer NOT NULL DEFAULT 0 CHECK (bidding_tokens >= 0)
+  - listing_tokens: integer NOT NULL DEFAULT 0 CHECK (listing_tokens >= 0)
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_token_balances_user ON (user_id)
+
+RLS Policies:
+  - Users can read own balance
+  - Only server functions can update balances
+
+Triggers:
+  - updated_at auto-update
+  - Initialize with free plan tokens on user creation
+
+--------------------------------------------------------------------------------
+
+TABLE: user_subscriptions
+Purpose: User subscription plans
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - user_id: uuid UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - plan: text NOT NULL CHECK (plan IN ('free', 'pro_basic_monthly', 'pro_plus_monthly', 'pro_basic_yearly', 'pro_plus_yearly'))
+  - is_active: boolean DEFAULT true
+  - start_date: date
+  - end_date: date
+  - auto_renew: boolean DEFAULT false
+  - cancelled_at: timestamptz
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_user_subscriptions_user ON (user_id)
+  - idx_user_subscriptions_plan ON (plan)
+  - idx_user_subscriptions_active ON (is_active)
+
+RLS Policies:
+  - Users can read own subscription
+  - Only server functions can update subscriptions
+
+Triggers:
+  - Grant tokens on subscription activation
+  - Auto-renew check daily
+
+--------------------------------------------------------------------------------
+
+TABLE: token_packages
+Purpose: Available token purchase packages
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - token_type: text NOT NULL CHECK (token_type IN ('bidding', 'listing'))
+  - tokens: integer NOT NULL CHECK (tokens > 0)
+  - bonus_tokens: integer DEFAULT 0 CHECK (bonus_tokens >= 0)
+  - price: decimal(10,2) NOT NULL CHECK (price > 0)
+  - description: text NOT NULL
+  - is_active: boolean DEFAULT true
+  - display_order: integer DEFAULT 0
+  - created_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_token_packages_type ON (token_type)
+  - idx_token_packages_active ON (is_active)
+
+RLS Policies:
+  - Public can read active packages
+  - Only admins can manage packages
+
+--------------------------------------------------------------------------------
+
+TABLE: token_transactions
+Purpose: Token purchase and consumption history
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - token_type: text NOT NULL CHECK (token_type IN ('bidding', 'listing'))
+  - amount: integer NOT NULL
+  - price: decimal(10,2) NOT NULL DEFAULT 0
+  - transaction_type: text NOT NULL CHECK (transaction_type IN ('purchase', 'subscription', 'consumed', 'refund', 'bonus'))
+  - reference_id: text
+  - payment_id: uuid REFERENCES payment_transactions(id)
+  - created_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_token_transactions_user ON (user_id)
+  - idx_token_transactions_type ON (transaction_type)
+  - idx_token_transactions_created ON (created_at DESC)
+
+RLS Policies:
+  - Users can read own token transactions
+  - Only server functions can insert token transactions
+
+--------------------------------------------------------------------------------
+
+TABLE: payment_transactions
+Purpose: Payment records from Stripe/PayMongo
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT
+  - payment_provider: text NOT NULL CHECK (payment_provider IN ('stripe', 'paymongo'))
+  - payment_intent_id: text UNIQUE NOT NULL
+  - amount: decimal(12,2) NOT NULL CHECK (amount > 0)
+  - currency: text NOT NULL DEFAULT 'PHP'
+  - payment_method: text NOT NULL CHECK (payment_method IN ('card', 'gcash', 'maya', 'bank_transfer'))
+  - status: text NOT NULL CHECK (status IN ('pending', 'processing', 'succeeded', 'failed', 'cancelled', 'refunded'))
+  - reference_type: text CHECK (reference_type IN ('token_purchase', 'subscription', 'deposit', 'other'))
+  - reference_id: uuid
+  - provider_response: jsonb
+  - error_message: text
+  - metadata: jsonb
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_payment_transactions_user ON (user_id)
+  - idx_payment_transactions_intent ON (payment_intent_id)
+  - idx_payment_transactions_status ON (status)
+  - idx_payment_transactions_created ON (created_at DESC)
+
+RLS Policies:
+  - Users can read own payment transactions
+  - Only server functions can create/update payments
+
+Triggers:
+  - updated_at auto-update
+  - Grant tokens/activate subscription on succeeded status
+
+================================================================================
+SECTION 6: SUPPORT SYSTEM
+================================================================================
+
+TABLE: support_categories
+Purpose: Support ticket categories
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - name: text UNIQUE NOT NULL
+  - description: text
+  - icon_name: text
+  - is_active: boolean DEFAULT true
+  - display_order: integer DEFAULT 0
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_support_categories_active ON (is_active)
+
+RLS Policies:
+  - Public can read active categories
+  - Only admins can manage categories
+
+--------------------------------------------------------------------------------
+
+TABLE: support_tickets
+Purpose: Customer support tickets
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - category_id: uuid NOT NULL REFERENCES support_categories(id)
+  - subject: text NOT NULL
+  - description: text NOT NULL
+  - priority: text NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent'))
+  - status: text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed'))
+  - assigned_to: uuid REFERENCES users(id)
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+  - resolved_at: timestamptz
+  - closed_at: timestamptz
+
+Indexes:
+  - idx_support_tickets_user ON (user_id)
+  - idx_support_tickets_category ON (category_id)
+  - idx_support_tickets_status ON (status)
+  - idx_support_tickets_assigned ON (assigned_to)
+  - idx_support_tickets_created ON (created_at DESC)
+
+RLS Policies:
+  - Users can CRUD own tickets
+  - Assigned support staff can read/update assigned tickets
+  - Admins can read/update all tickets
+
+Triggers:
+  - updated_at auto-update
+  - Notification on status change
+
+--------------------------------------------------------------------------------
+
+TABLE: support_ticket_messages
+Purpose: Messages within support tickets
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - ticket_id: uuid NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - message: text NOT NULL
+  - is_internal: boolean DEFAULT false
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_support_messages_ticket ON (ticket_id)
+  - idx_support_messages_user ON (user_id)
+  - idx_support_messages_created ON (created_at)
+
+RLS Policies:
+  - Ticket owner and assigned staff can CRUD messages
+  - Internal messages only visible to staff
+  - Admins can read all messages
+
+Triggers:
+  - Update support_tickets.updated_at on new message
+
+--------------------------------------------------------------------------------
+
+TABLE: support_ticket_attachments
+Purpose: File attachments in support tickets
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - ticket_id: uuid REFERENCES support_tickets(id) ON DELETE CASCADE
+  - message_id: uuid REFERENCES support_ticket_messages(id) ON DELETE CASCADE
+  - file_name: text NOT NULL
+  - file_path: text NOT NULL
+  - file_size: bigint NOT NULL
+  - mime_type: text NOT NULL
+  - uploaded_by: uuid NOT NULL REFERENCES users(id)
+  - created_at: timestamptz DEFAULT now()
+
+Constraints:
+  - CHECK (ticket_id IS NOT NULL OR message_id IS NOT NULL)
+
+Indexes:
+  - idx_support_attachments_ticket ON (ticket_id)
+  - idx_support_attachments_message ON (message_id)
+
+RLS Policies:
+  - Same visibility as messages
+  - File size limit: 10MB per attachment
+
+================================================================================
+SECTION 7: NOTIFICATIONS
+================================================================================
+
+TABLE: notifications
+Purpose: User notifications and alerts
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - user_id: uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE
+  - type: text NOT NULL CHECK (type IN ('bid_update', 'auction_update', 'listing_update', 'transaction', 'system', 'message'))
+  - priority: text NOT NULL DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent'))
+  - title: text NOT NULL
+  - message: text NOT NULL
+  - is_read: boolean DEFAULT false
+  - related_entity_type: text
+  - related_entity_id: uuid
+  - metadata: jsonb
+  - created_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_notifications_user ON (user_id)
+  - idx_notifications_type ON (type)
+  - idx_notifications_priority ON (priority)
+  - idx_notifications_read ON (is_read)
+  - idx_notifications_created ON (created_at DESC)
+
+RLS Policies:
+  - Users can read/update own notifications
+  - System can create notifications
+
+Real-time:
+  - Enable real-time subscriptions for live notifications
+
+================================================================================
+SECTION 8: AI FEATURES (ENHANCED - Thesis Requirements)
+================================================================================
+
+TABLE: ai_photo_analysis
+Purpose: AI-generated photo analysis and keyword suggestions
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - listing_draft_id: uuid NOT NULL REFERENCES listing_drafts(id) ON DELETE CASCADE
+  - photo_url: text NOT NULL
+
+  AI Analysis Results:
+  - detected_brand: text
+  - detected_model: text
+  - detected_year: integer
+  - detected_color: text
+  - detected_condition: text
+  - suggested_keywords: text[]
+  - confidence_score: decimal(3,2) CHECK (confidence_score >= 0 AND confidence_score <= 1)
+
+  Metadata:
+  - ai_model_version: text
+  - analysis_timestamp: timestamptz DEFAULT now()
+  - processing_time_ms: integer
+
+  Timestamps:
+  - created_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_ai_photo_analysis_listing ON (listing_draft_id)
+  - idx_ai_photo_analysis_timestamp ON (analysis_timestamp DESC)
+
+RLS Policies:
+  - Sellers can read AI analysis for own listings
+  - Only AI service can insert analysis
+
+--------------------------------------------------------------------------------
+
+TABLE: ai_price_recommendations
+Purpose: AI-generated price recommendations based on car condition
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - listing_draft_id: uuid NOT NULL REFERENCES listing_drafts(id) ON DELETE CASCADE
+
+  Car Details (snapshot for analysis):
+  - car_model_id: uuid NOT NULL REFERENCES car_models(id)
+  - year: integer NOT NULL
+  - mileage: integer
+  - condition: text
+  - modifications_count: integer DEFAULT 0
+
+  AI Recommendations:
+  - suggested_starting_price: decimal(12,2) NOT NULL
+  - suggested_reserve_price: decimal(12,2) NOT NULL
+  - price_range_min: decimal(12,2)
+  - price_range_max: decimal(12,2)
+  - confidence_score: decimal(3,2) CHECK (confidence_score >= 0 AND confidence_score <= 1)
+
+  Reasoning:
+  - factors_considered: jsonb
+  - comparable_sales: jsonb
+  - market_analysis: text
+
+  Metadata:
+  - ai_model_version: text
+  - analysis_timestamp: timestamptz DEFAULT now()
+
+  Timestamps:
+  - created_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_ai_price_recommendations_listing ON (listing_draft_id)
+  - idx_ai_price_recommendations_model ON (car_model_id)
+  - idx_ai_price_recommendations_timestamp ON (analysis_timestamp DESC)
+
+RLS Policies:
+  - Sellers can read price recommendations for own listings
+  - Only AI service can insert recommendations
+
+================================================================================
+SECTION 9: ADMIN MONITORING (ENHANCED - Thesis Requirements)
+================================================================================
+
+TABLE: admin_auction_monitoring
+Purpose: Admin dashboard for monitoring active auctions
+Columns:
+  - auction_id: uuid PRIMARY KEY REFERENCES auctions(id) ON DELETE CASCADE
+
+  Real-time Metrics:
+  - current_highest_bidder_id: uuid REFERENCES users(id)
+  - second_highest_bidder_id: uuid REFERENCES users(id)
+  - bid_activity_score: decimal(5,2) DEFAULT 0
+  - time_remaining_seconds: integer
+  - is_final_two_minutes: boolean DEFAULT false
+  - admin_notified_final_minutes: boolean DEFAULT false
+
+  Moderator Actions:
+  - monitored_by: uuid REFERENCES users(id)
+  - last_status_change: timestamptz
+  - admin_notes: text
+
+  Timestamps:
+  - updated_at: timestamptz DEFAULT now()
+
+Indexes:
+  - idx_admin_monitoring_time_remaining ON (time_remaining_seconds)
+  - idx_admin_monitoring_final_minutes ON (is_final_two_minutes) WHERE is_final_two_minutes = true
+
+RLS Policies:
+  - Only admins can access monitoring data
+
+Triggers:
+  - Update time_remaining_seconds every minute
+  - Set is_final_two_minutes when time_remaining_seconds <= 120
+  - Create notification for moderator when entering final 2 minutes
+
+================================================================================
+SECTION 10: HELPER FUNCTIONS & MATERIALIZED VIEWS
+================================================================================
+
+RPC FUNCTIONS:
+
+-- Token Management
+CREATE FUNCTION consume_bidding_token(p_user_id uuid, p_reference_id text)
+CREATE FUNCTION consume_listing_token(p_user_id uuid, p_reference_id text)
+CREATE FUNCTION add_tokens(p_user_id uuid, p_token_type text, p_amount integer, p_price decimal, p_transaction_type text)
+
+-- Deposit Management
+CREATE FUNCTION create_deposit(p_auction_id uuid, p_user_id uuid, p_amount decimal, p_payment_intent_id text)
+CREATE FUNCTION has_user_deposited(p_auction_id uuid, p_user_id uuid) RETURNS boolean
+CREATE FUNCTION get_user_deposit(p_auction_id uuid, p_user_id uuid)
+CREATE FUNCTION refund_deposit(p_auction_id uuid, p_user_id uuid)
+CREATE FUNCTION forfeit_deposit(p_auction_id uuid, p_user_id uuid)
+
+-- Auction Management
+CREATE FUNCTION submit_listing_from_draft(p_draft_id uuid)
+CREATE FUNCTION make_auction_live(p_auction_id uuid)
+CREATE FUNCTION end_auction(p_auction_id uuid)
+CREATE FUNCTION extend_auction_snipe_guard(p_auction_id uuid)
+
+-- Watchers
+CREATE FUNCTION increment_watchers(p_auction_id uuid)
+CREATE FUNCTION decrement_watchers(p_auction_id uuid)
+
+-- Bidding
+CREATE FUNCTION place_bid(p_auction_id uuid, p_bidder_id uuid, p_amount decimal, p_is_auto_bid boolean, p_max_auto_bid decimal)
+CREATE FUNCTION get_user_active_bids(p_user_id uuid)
+CREATE FUNCTION process_auto_bid(p_auction_id uuid, p_outbid_bidder_id uuid)
+
+-- Notifications
+CREATE FUNCTION get_unread_count(p_user_id uuid) RETURNS integer
+CREATE FUNCTION mark_notification_read(p_notification_id uuid)
+CREATE FUNCTION mark_all_notifications_read(p_user_id uuid)
+
+-- Support
+CREATE FUNCTION get_user_ticket_stats(p_user_id uuid)
+
+-- Admin Monitoring (ENHANCED - Thesis)
+CREATE FUNCTION get_active_auctions_dashboard()
+CREATE FUNCTION update_auction_monitoring_metrics()
+
+MATERIALIZED VIEWS:
+
+-- Popular car models
+CREATE MATERIALIZED VIEW popular_car_models AS
+SELECT
+  cm.id,
+  cb.name as brand,
+  cm.model_name,
+  COUNT(DISTINCT a.id) as auction_count,
+  AVG(a.current_bid) as avg_price,
+  MAX(a.updated_at) as last_activity
+FROM car_models cm
+JOIN car_brands cb ON cm.brand_id = cb.id
+LEFT JOIN auctions a ON a.car_model_id = cm.id
+GROUP BY cm.id, cb.name, cm.model_name
+ORDER BY auction_count DESC;
+
+-- Auction statistics
+CREATE MATERIALIZED VIEW auction_statistics AS
+SELECT
+  DATE(created_at) as date,
+  COUNT(*) as total_auctions,
+  COUNT(*) FILTER (WHERE status = 'active') as active_auctions,
+  COUNT(*) FILTER (WHERE status = 'sold') as sold_auctions,
+  AVG(current_bid) as avg_bid,
+  SUM(total_bids) as total_bids_count
+FROM auctions
+GROUP BY DATE(created_at);
+
+REFRESH SCHEDULE:
+- Refresh popular_car_models: Every 6 hours
+- Refresh auction_statistics: Every 1 hour
+
+================================================================================
+SECTION 11: STORAGE BUCKETS
+================================================================================
+
+BUCKETS:
+
+1. user-avatars
+   - Purpose: User profile photos
+   - RLS: Users can upload/update own avatar
+   - Max size: 5MB
+   - Allowed types: image/jpeg, image/png, image/webp
+
+2. user-covers
+   - Purpose: User cover photos
+   - RLS: Users can upload/update own cover
+   - Max size: 10MB
+   - Allowed types: image/jpeg, image/png, image/webp
+
+3. listing-photos
+   - Purpose: Vehicle listing photos (56 categories)
+   - RLS: Sellers can upload photos for own listings
+   - Max size: 5MB per photo
+   - Allowed types: image/jpeg, image/png, image/webp
+   - Organization: /listing_id/category/photo.jpg
+
+4. listing-documents
+   - Purpose: Legal documents (OR/CR, deeds, etc.)
+   - RLS: Sellers can upload for own listings, buyers of won auctions can read
+   - Max size: 20MB per document
+   - Allowed types: application/pdf, image/jpeg, image/png
+
+5. support-files
+   - Purpose: Support ticket attachments
+   - RLS: Ticket owner and support staff can read/write
+   - Max size: 10MB per file
+   - Allowed types: Any (images, documents, etc.)
+
+6. kyc-documents
+   - Purpose: KYC verification documents
+   - RLS: User can upload own documents, admins can read
+   - Max size: 10MB per document
+   - Allowed types: image/jpeg, image/png, application/pdf
+
+================================================================================
+SECTION 12: ROW LEVEL SECURITY (RLS) SUMMARY
+================================================================================
+
+GENERAL PRINCIPLES:
+- Enable RLS on ALL tables
+- No conflicting policies
+- Clear separation: public read vs authenticated write vs admin manage
+- Use service role for server-side operations (tokens, payments, etc.)
+
+KEY POLICIES:
+
+Users & Auth:
+- Users read own profile
+- Admins manage KYC approval
+- Public read basic info of approved users
+
+Auctions & Listings:
+- Public read active public auctions
+- Private auction participants only
+- Sellers CRUD own listings/auctions
+- Admins review and approve
+
+Bidding:
+- Public read bid amounts (anonymized) for public auctions
+- Bidders read own bids
+- Sellers read all bids on own auctions
+- Only server functions place bids (token consumption)
+
+Transactions:
+- Buyer and seller read/write own transaction
+- Admins manage all transactions
+
+Payments & Tokens:
+- Users read own records
+- Only server functions modify balances/transactions
+
+Support:
+- Users CRUD own tickets
+- Assigned staff manage assigned tickets
+- Admins manage all tickets
+
+Notifications:
+- Users read/update own notifications
+- System creates notifications
+
+================================================================================
+SECTION 13: TRIGGERS & AUTOMATED PROCESSES
+================================================================================
+
+KEY TRIGGERS:
+
+Auction Management:
+- Auto-extend end_time if bid within snipe guard window
+- Update current_bid to highest bid amount
+- Update is_reserve_met when bid >= reserve_price
+- Mark auction as 'ended' when end_time passes
+- Determine winner when auction ends
+
+Bid Processing:
+- Validate bid amount >= current_bid + minimum_increment
+- Process auto-bid if outbid and max_auto_bid not reached
+- Update bid statuses (active, outbid, winning)
+- Update auction metrics (total_bids, bidders_count)
+- Consume bidding token
+
+Counter Maintenance:
+- Increment/decrement watchers_count
+- Increment/decrement likes_count
+- Update total_bids count
+- Update bidders_count (distinct)
+
+Notifications:
+- Notify when outbid
+- Notify when auction ending soon
+- Notify seller when bid received
+- Notify admin when final 2 minutes
+- Notify when transaction status changes
+
+Token Economy:
+- Grant tokens on subscription activation
+- Grant tokens on successful payment
+- Deduct token on bid placement
+- Deduct token on listing creation
+
+Timestamps:
+- Auto-update updated_at on all tables
+
+================================================================================
+SECTION 14: ADMIN SYSTEM TABLES
+================================================================================
+
+TABLE: admin_roles
+Purpose: Define admin role hierarchy and permissions
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - role_name: text UNIQUE NOT NULL CHECK (role_name IN ('super_admin', 'moderator'))
+  - display_name: text NOT NULL
+  - description: text
+  - created_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_admin_roles_name ON (role_name)
+RLS:
+  - Only super_admin can manage roles
+Data:
+  INSERT INTO admin_roles (role_name, display_name, description) VALUES
+  ('super_admin', 'Super Admin', 'Full system access - KYC, payments, reports, settings'),
+  ('moderator', 'Moderator', 'Auction monitoring and content review');
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_permissions
+Purpose: Granular permission definitions
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - permission_name: text UNIQUE NOT NULL
+  - category: text NOT NULL CHECK (category IN ('dashboard', 'kyc', 'auction', 'payment', 'user', 'support', 'system', 'reports'))
+  - description: text
+  - created_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_admin_permissions_category ON (category)
+Examples:
+  - 'kyc.review' - Can review KYC submissions
+  - 'kyc.approve' - Can approve/reject KYC
+  - 'auction.monitor' - Can view live auction monitoring
+  - 'auction.cancel' - Can cancel auctions
+  - 'payment.verify' - Can verify payments
+  - 'payment.refund' - Can process refunds
+  - 'user.view' - Can view user profiles
+  - 'user.edit' - Can edit user data
+  - 'user.suspend' - Can suspend users
+  - 'support.view' - Can view support tickets
+  - 'support.reply' - Can reply to tickets
+  - 'system.config' - Can modify system settings
+  - 'reports.financial' - Can view financial reports
+  - 'audit.view' - Can view audit logs
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_role_permissions
+Purpose: Map permissions to roles (many-to-many)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - role_id: uuid REFERENCES admin_roles(id) ON DELETE CASCADE
+  - permission_id: uuid REFERENCES admin_permissions(id) ON DELETE CASCADE
+  - created_at: timestamptz DEFAULT now()
+Constraints:
+  - UNIQUE(role_id, permission_id)
+Indexes:
+  - idx_role_permissions_role ON (role_id)
+  - idx_role_permissions_permission ON (permission_id)
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_users
+Purpose: Admin user accounts (separate from regular users)
+Columns:
+  - id: uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE
+  - username: text UNIQUE NOT NULL
+  - email: text UNIQUE NOT NULL
+  - full_name: text NOT NULL
+  - role_id: uuid REFERENCES admin_roles(id) ON DELETE RESTRICT
+  - is_active: boolean DEFAULT true
+  - phone_number: text
+  - profile_photo_url: text
+  - two_factor_enabled: boolean DEFAULT false
+  - two_factor_secret: text
+  - last_login_at: timestamptz
+  - last_login_ip: inet
+  - created_by: uuid REFERENCES admin_users(id)
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_admin_users_role ON (role_id)
+  - idx_admin_users_email ON (email)
+  - idx_admin_users_active ON (is_active)
+RLS:
+  - Admins can view other admins
+  - Only super_admin can create/edit/delete admins
+Triggers:
+  - auto_update_updated_at
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_sessions
+Purpose: Track admin login sessions for security
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - admin_id: uuid REFERENCES admin_users(id) ON DELETE CASCADE
+  - session_token: text UNIQUE NOT NULL
+  - ip_address: inet NOT NULL
+  - user_agent: text
+  - device_type: text CHECK (device_type IN ('desktop', 'mobile', 'tablet'))
+  - location: text
+  - is_active: boolean DEFAULT true
+  - expires_at: timestamptz NOT NULL
+  - created_at: timestamptz DEFAULT now()
+  - ended_at: timestamptz
+Indexes:
+  - idx_admin_sessions_admin ON (admin_id, created_at DESC)
+  - idx_admin_sessions_token ON (session_token)
+  - idx_admin_sessions_active ON (is_active, expires_at)
+RLS:
+  - Admins can only view their own sessions
+  - Super_admin can view all sessions
+Cleanup:
+  - Delete sessions older than 90 days (scheduled job)
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_audit_log
+Purpose: Track ALL admin actions for compliance and security
+Columns:
+  - id: bigserial PRIMARY KEY
+  - admin_id: uuid REFERENCES admin_users(id) ON DELETE SET NULL
+  - action: text NOT NULL
+  - resource_type: text CHECK (resource_type IN ('user', 'auction', 'payment', 'transaction', 'support_ticket', 'kyc', 'system', 'admin'))
+  - resource_id: uuid
+  - details: jsonb
+  - ip_address: inet
+  - user_agent: text
+  - result: text CHECK (result IN ('success', 'failed')) DEFAULT 'success'
+  - error_message: text
+  - created_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_audit_log_admin ON (admin_id, created_at DESC)
+  - idx_audit_log_resource ON (resource_type, resource_id)
+  - idx_audit_log_action ON (action)
+  - idx_audit_log_created ON (created_at DESC)
+  - idx_audit_log_details_gin ON USING GIN(details)
+Partitioning:
+  - Partition by month (created_at) for performance
+Retention:
+  - Keep for 7 years (compliance requirement)
+RLS:
+  - Only super_admin can view audit logs
+
+Examples:
+  ```json
+  {
+    "action": "kyc.approved",
+    "resource_type": "user",
+    "resource_id": "user_123",
+    "details": {
+      "previous_status": "pending",
+      "new_status": "approved",
+      "review_notes": "All documents verified",
+      "documents_viewed": ["national_id", "secondary_id", "selfie"]
+    }
+  }
+  ```
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_auction_monitoring
+Purpose: Real-time auction monitoring data for admin dashboard
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - auction_id: uuid REFERENCES auctions(id) ON DELETE CASCADE
+  - monitored_by: uuid REFERENCES admin_users(id) ON DELETE SET NULL
+  - is_flagged: boolean DEFAULT false
+  - flag_reason: text
+  - is_final_two_minutes: boolean DEFAULT false
+  - admin_notified_final_minutes: boolean DEFAULT false
+  - time_remaining_seconds: integer
+  - current_highest_bid: decimal(12,2)
+  - bid_count: integer DEFAULT 0
+  - active_bidders_count: integer DEFAULT 0
+  - suspicious_activity_detected: boolean DEFAULT false
+  - suspicious_activity_details: jsonb
+  - notes: text
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_monitoring_auction ON (auction_id)
+  - idx_monitoring_final_two ON (is_final_two_minutes, admin_notified_final_minutes)
+  - idx_monitoring_flagged ON (is_flagged)
+RLS:
+  - All admins with 'auction.monitor' permission can view
+Triggers:
+  - auto_update_updated_at
+  - Auto-create when auction starts
+  - Auto-update time_remaining_seconds every 10 seconds
+  - Auto-flag when is_final_two_minutes = true
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_kyc_review_queue
+Purpose: Track KYC review assignments and progress
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - user_id: uuid REFERENCES users(id) ON DELETE CASCADE
+  - assigned_to: uuid REFERENCES admin_users(id) ON DELETE SET NULL
+  - priority: text CHECK (priority IN ('normal', 'medium', 'high')) DEFAULT 'normal'
+  - status: text CHECK (status IN ('pending', 'in_review', 'completed')) DEFAULT 'pending'
+  - review_started_at: timestamptz
+  - review_completed_at: timestamptz
+  - days_pending: integer GENERATED ALWAYS AS (EXTRACT(DAY FROM (COALESCE(review_completed_at, now()) - created_at))) STORED
+  - sla_breached: boolean DEFAULT false
+  - notes: text
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+Constraints:
+  - UNIQUE(user_id) -- One review per user at a time
+Indexes:
+  - idx_kyc_queue_status ON (status, created_at)
+  - idx_kyc_queue_assigned ON (assigned_to, status)
+  - idx_kyc_queue_priority ON (priority, created_at)
+  - idx_kyc_queue_sla ON (sla_breached)
+RLS:
+  - All admins with 'kyc.review' permission can view
+Triggers:
+  - auto_update_updated_at
+  - Auto-set priority to 'high' if days_pending > 7
+  - Auto-set sla_breached = true if days_pending > 2
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_payment_verification_queue
+Purpose: Track payment verification assignments
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - payment_transaction_id: uuid REFERENCES payment_transactions(id) ON DELETE CASCADE
+  - assigned_to: uuid REFERENCES admin_users(id) ON DELETE SET NULL
+  - status: text CHECK (status IN ('pending', 'in_review', 'completed')) DEFAULT 'pending'
+  - verification_result: text CHECK (verification_result IN ('approved', 'rejected', 'clarification_needed'))
+  - verification_notes: text
+  - review_started_at: timestamptz
+  - review_completed_at: timestamptz
+  - hours_pending: integer GENERATED ALWAYS AS (EXTRACT(HOUR FROM (COALESCE(review_completed_at, now()) - created_at))) STORED
+  - sla_breached: boolean DEFAULT false
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+Constraints:
+  - UNIQUE(payment_transaction_id)
+Indexes:
+  - idx_payment_queue_status ON (status, created_at)
+  - idx_payment_queue_assigned ON (assigned_to)
+  - idx_payment_queue_sla ON (sla_breached)
+RLS:
+  - Only super_admin can view
+Triggers:
+  - auto_update_updated_at
+  - Auto-set sla_breached = true if hours_pending > 24
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_notifications
+Purpose: Admin-specific notifications and alerts
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - admin_id: uuid REFERENCES admin_users(id) ON DELETE CASCADE
+  - type: text CHECK (type IN ('alert', 'warning', 'info', 'success')) DEFAULT 'info'
+  - category: text CHECK (category IN ('kyc', 'auction', 'payment', 'support', 'system', 'dispute'))
+  - title: text NOT NULL
+  - message: text NOT NULL
+  - link: text
+  - resource_type: text
+  - resource_id: uuid
+  - priority: text CHECK (priority IN ('low', 'medium', 'high', 'critical')) DEFAULT 'medium'
+  - is_read: boolean DEFAULT false
+  - read_at: timestamptz
+  - created_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_admin_notif_admin ON (admin_id, created_at DESC)
+  - idx_admin_notif_unread ON (admin_id, is_read, created_at DESC)
+  - idx_admin_notif_priority ON (priority, created_at DESC)
+RLS:
+  - Admins can only view their own notifications
+Cleanup:
+  - Delete read notifications older than 30 days
+
+Examples:
+  - Type: 'alert', Category: 'auction', Title: 'Auction Ending Soon', Message: 'Auction auct_456 ending in 2 minutes'
+  - Type: 'warning', Category: 'kyc', Title: 'KYC Queue High', Message: 'Pending KYC reviews: 52 (threshold: 50)'
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_dashboard_metrics
+Purpose: Cache dashboard metrics for performance (materialized view alternative)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - metric_date: date NOT NULL
+  - total_users: integer DEFAULT 0
+  - active_users_30d: integer DEFAULT 0
+  - pending_kyc: integer DEFAULT 0
+  - approved_users: integer DEFAULT 0
+  - total_auctions: integer DEFAULT 0
+  - active_auctions: integer DEFAULT 0
+  - completed_auctions_30d: integer DEFAULT 0
+  - total_bids_today: integer DEFAULT 0
+  - active_bidders: integer DEFAULT 0
+  - revenue_today: decimal(12,2) DEFAULT 0
+  - revenue_this_month: decimal(12,2) DEFAULT 0
+  - revenue_all_time: decimal(12,2) DEFAULT 0
+  - pending_payments: integer DEFAULT 0
+  - active_transactions: integer DEFAULT 0
+  - open_support_tickets: integer DEFAULT 0
+  - unassigned_support_tickets: integer DEFAULT 0
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+Constraints:
+  - UNIQUE(metric_date)
+Indexes:
+  - idx_dashboard_metrics_date ON (metric_date DESC)
+RLS:
+  - All admins can view
+Refresh:
+  - Updated every 30 seconds via scheduled function
+  - Historical data kept for reporting
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_reports
+Purpose: Store generated admin reports
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - report_type: text CHECK (report_type IN ('daily_revenue', 'monthly_revenue', 'commission', 'token_sales', 'refund', 'reconciliation', 'user_growth', 'auction_activity', 'kyc_performance'))
+  - generated_by: uuid REFERENCES admin_users(id) ON DELETE SET NULL
+  - date_from: date NOT NULL
+  - date_to: date NOT NULL
+  - parameters: jsonb
+  - file_url: text
+  - file_format: text CHECK (file_format IN ('pdf', 'csv', 'xlsx'))
+  - status: text CHECK (status IN ('generating', 'completed', 'failed')) DEFAULT 'generating'
+  - error_message: text
+  - created_at: timestamptz DEFAULT now()
+  - expires_at: timestamptz DEFAULT (now() + interval '30 days')
+Indexes:
+  - idx_reports_type ON (report_type, created_at DESC)
+  - idx_reports_generated_by ON (generated_by)
+  - idx_reports_status ON (status)
+RLS:
+  - Admins can view their own reports
+  - Super_admin can view all reports
+Cleanup:
+  - Delete expired reports (expires_at < now())
+
+--------------------------------------------------------------------------------
+
+TABLE: encryption_keys
+Purpose: Track encryption key versions for key rotation
+Columns:
+  - id: serial PRIMARY KEY
+  - key_version: integer UNIQUE NOT NULL
+  - algorithm: text NOT NULL DEFAULT 'AES-256-GCM'
+  - created_at: timestamptz DEFAULT now()
+  - rotated_at: timestamptz
+  - is_active: boolean DEFAULT true
+  - notes: text
+Indexes:
+  - idx_encryption_keys_version ON (key_version)
+  - idx_encryption_keys_active ON (is_active)
+RLS:
+  - Only super_admin can view/manage
+
+--------------------------------------------------------------------------------
+
+TABLE: encryption_audit_log
+Purpose: Track access to encrypted sensitive data
+Columns:
+  - id: bigserial PRIMARY KEY
+  - user_id: uuid REFERENCES auth.users(id) ON DELETE SET NULL
+  - action: text NOT NULL CHECK (action IN ('encrypt', 'decrypt', 'access', 'delete'))
+  - field_name: text NOT NULL
+  - accessed_by: uuid REFERENCES auth.users(id) ON DELETE SET NULL
+  - accessed_by_admin: uuid REFERENCES admin_users(id) ON DELETE SET NULL
+  - ip_address: inet
+  - user_agent: text
+  - created_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_encryption_audit_user ON (user_id, created_at DESC)
+  - idx_encryption_audit_accessed_by ON (accessed_by, created_at DESC)
+  - idx_encryption_audit_admin ON (accessed_by_admin, created_at DESC)
+  - idx_encryption_audit_action ON (action, created_at DESC)
+Partitioning:
+  - Partition by month for performance
+Retention:
+  - Keep for 7 years (compliance)
+RLS:
+  - Only super_admin can view
+
+--------------------------------------------------------------------------------
+
+TABLE: system_settings
+Purpose: Global system configuration (key-value store)
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - setting_key: text UNIQUE NOT NULL
+  - setting_value: jsonb NOT NULL
+  - category: text CHECK (category IN ('platform', 'auction', 'payment', 'token', 'kyc', 'notification', 'storage', 'security', 'email'))
+  - description: text
+  - is_editable: boolean DEFAULT true
+  - updated_by: uuid REFERENCES admin_users(id)
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+Indexes:
+  - idx_system_settings_key ON (setting_key)
+  - idx_system_settings_category ON (category)
+RLS:
+  - All admins can view
+  - Only super_admin can edit
+Triggers:
+  - auto_update_updated_at
+
+Examples:
+  ```json
+  {
+    "setting_key": "platform.commission_rate",
+    "setting_value": {"rate": 0.12, "type": "percentage"},
+    "category": "platform"
+  }
+  {
+    "setting_key": "auction.default_duration_days",
+    "setting_value": {"days": 7},
+    "category": "auction"
+  }
+  {
+    "setting_key": "kyc.auto_approve_enabled",
+    "setting_value": {"enabled": false},
+    "category": "kyc"
+  }
+  ```
+
+--------------------------------------------------------------------------------
+
+TABLE: admin_activity_summary
+Purpose: Daily summary of admin activity for reporting
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - admin_id: uuid REFERENCES admin_users(id) ON DELETE CASCADE
+  - activity_date: date NOT NULL
+  - kyc_reviews_completed: integer DEFAULT 0
+  - payments_verified: integer DEFAULT 0
+  - support_tickets_resolved: integer DEFAULT 0
+  - auctions_monitored: integer DEFAULT 0
+  - users_edited: integer DEFAULT 0
+  - reports_generated: integer DEFAULT 0
+  - total_actions: integer DEFAULT 0
+  - average_kyc_review_time_minutes: decimal(8,2)
+  - average_payment_verification_time_minutes: decimal(8,2)
+  - average_ticket_response_time_minutes: decimal(8,2)
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+Constraints:
+  - UNIQUE(admin_id, activity_date)
+Indexes:
+  - idx_admin_activity_admin ON (admin_id, activity_date DESC)
+  - idx_admin_activity_date ON (activity_date DESC)
+RLS:
+  - Admins can view their own activity
+  - Super_admin can view all
+Refresh:
+  - Calculated daily at midnight via scheduled function
+
+--------------------------------------------------------------------------------
+
+================================================================================
+SECTION 15: INDEXES STRATEGY
+================================================================================
+
+PRIMARY INDEXES (Already included in CREATE TABLE):
+- All primary keys (uuid)
+- All foreign keys
+- Status fields
+- Timestamp fields (created_at DESC)
+
+COMPOSITE INDEXES:
+- (auction_id, created_at DESC) on bids for bid history
+- (user_id, status) on bids for user bid tracking
+- (status, end_time) on auctions for active auction queries
+- (car_model_id, year) for car search
+- (province, city) on addresses for location search
+
+PARTIAL INDEXES:
+- WHERE deleted_at IS NULL (soft delete tables)
+- WHERE status = 'active' (active records)
+- WHERE is_public = true (public visibility)
+
+GIN INDEXES:
+- ai_suggested_keywords (array search)
+- features arrays
+- JSONB metadata fields
+
+TEXT SEARCH:
+- CREATE INDEX idx_auction_search ON auctions USING GIN(to_tsvector('english', description))
+
+================================================================================
+SECTION 15: DATA MIGRATION NOTES
+================================================================================
+
+MIGRATION FROM CURRENT SCHEMA:
+
+Phase 1: Create new 3NF tables
+- Create addresses table and migrate location data
+- Create car_brands and car_models tables
+- Create listing_photos table from JSONB
+- Create listing_features table from TEXT[]
+
+Phase 2: Migrate existing data
+- Extract unique addresses from users and listings
+- Extract unique brands and models from listings
+- Flatten photo_urls JSONB to listing_photos rows
+- Flatten features arrays to listing_features rows
+
+Phase 3: Update foreign keys
+- Update users.address_id
+- Update listing_drafts.car_model_id
+- Update auctions.car_model_id
+
+Phase 4: Drop old columns
+- Drop location columns from users and listings
+- Drop photo_urls JSONB column
+- Drop features array column
+
+Phase 5: Consolidate redundant tables
+- Migrate vehicles -> listings
+- Merge user_profiles -> users
+- Consolidate duplicate bids table definitions
+
+================================================================================
+END OF DATABASE SCHEMA
+================================================================================
+
+NOTES:
+- All tables use UUID primary keys for security and distribution
+- All tables have created_at timestamp
+- Most tables have updated_at with auto-update trigger
+- Soft delete pattern (deleted_at) used where appropriate
+- All foreign keys use CASCADE or RESTRICT appropriately
+- All monetary values use decimal(12,2) for precision
+- All status fields use CHECK constraints
+- RLS enabled on all tables with clear policies
+- Triggers maintain denormalized counters for performance
+- Indexes optimized for common query patterns
+
+THESIS ENHANCEMENTS IMPLEMENTED:
+✅ Minimum bid increment per auction
+✅ Rebid/next bidder options
+✅ Incremental bidding configuration
+✅ Private vs public bidding
+✅ Snipe guard with configurable delay
+✅ Separate photo and document uploads
+✅ Deed of sale document support
+✅ Enhanced vehicle history fields
+✅ Admin monitoring dashboard
+✅ Moving timer tracking
+✅ Bid status management
+✅ Final 2-minute moderator notifications
+✅ Highest bid highlighting data
+✅ AI photo keyword suggestions
+✅ AI price recommendations
+
+TOTAL TABLES: 51 core tables (3NF normalized)
+  - 35 application tables
+  - 16 admin system tables
+STORAGE BUCKETS: 6 buckets
+RPC FUNCTIONS: 30+ functions
+MATERIALIZED VIEWS: 2 views
+
+ADMIN TABLES ADDED:
+✅ admin_roles (2 roles: super_admin, moderator)
+✅ admin_permissions (granular RBAC permissions)
+✅ admin_role_permissions (role-permission mapping)
+✅ admin_users (separate from regular users)
+✅ admin_sessions (session tracking with 2FA support)
+✅ admin_audit_log (7-year retention, partitioned by month)
+✅ admin_auction_monitoring (real-time monitoring data)
+✅ admin_kyc_review_queue (SLA tracking, auto-priority)
+✅ admin_payment_verification_queue (24-hour SLA)
+✅ admin_notifications (real-time alerts)
+✅ admin_dashboard_metrics (cached metrics, 30s refresh)
+✅ admin_reports (PDF/CSV/Excel exports, 30-day retention)
+✅ encryption_keys (key rotation support)
+✅ encryption_audit_log (7-year retention, compliance)
+✅ system_settings (global config key-value store)
+✅ admin_activity_summary (daily performance metrics)
+
+ENCRYPTION IMPLEMENTED:
+✅ Supabase Vault for national_id_number, secondary_gov_id_number
+✅ pgcrypto for phone_number, date_of_birth (searchable encrypted)
+✅ Application-level AES-256-GCM for KYC documents (photos)
+✅ Encryption audit logging for compliance
+✅ Key rotation mechanism with versioning

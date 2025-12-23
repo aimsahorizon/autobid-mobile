@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../app/core/constants/color_constants.dart';
-import '../../domain/entities/buyer_transaction_entity.dart';
-import '../../data/datasources/buyer_transaction_mock_datasource.dart';
+import '../../data/datasources/buyer_transaction_supabase_datasource.dart';
 import '../controllers/buyer_transaction_controller.dart';
 import '../controllers/transaction_demo_controller.dart';
 import '../widgets/won_bid/transaction_header.dart';
@@ -13,10 +13,7 @@ import '../widgets/won_bid/transaction_progress_tab.dart';
 class WonBidDetailPage extends StatefulWidget {
   final String auctionId;
 
-  const WonBidDetailPage({
-    super.key,
-    required this.auctionId,
-  });
+  const WonBidDetailPage({super.key, required this.auctionId});
 
   @override
   State<WonBidDetailPage> createState() => _WonBidDetailPageState();
@@ -31,10 +28,16 @@ class _WonBidDetailPageState extends State<WonBidDetailPage>
   @override
   void initState() {
     super.initState();
-    _controller = BuyerTransactionController(BuyerTransactionMockDataSource());
+    final supabase = Supabase.instance.client;
+    _controller = BuyerTransactionController(
+      BuyerTransactionSupabaseDataSource(supabase),
+    );
     _demoController = TransactionDemoController(_controller);
     _tabController = TabController(length: 4, vsync: this);
-    _controller.loadTransaction(widget.auctionId, 'buyer_current');
+
+    // Get current user ID from Supabase auth
+    final currentUserId = supabase.auth.currentUser?.id ?? 'buyer_current';
+    _controller.loadTransaction(widget.auctionId, currentUserId);
   }
 
   @override
@@ -59,7 +62,9 @@ class _WonBidDetailPageState extends State<WonBidDetailPage>
             listenable: _demoController,
             builder: (context, _) {
               return IconButton(
-                onPressed: _demoController.isPlaying ? null : () => _demoController.startDemo(),
+                onPressed: _demoController.isPlaying
+                    ? null
+                    : () => _demoController.startDemo(),
                 icon: _demoController.isPlaying
                     ? const SizedBox(
                         width: 20,
@@ -67,7 +72,9 @@ class _WonBidDetailPageState extends State<WonBidDetailPage>
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.play_circle_outline),
-                tooltip: _demoController.isPlaying ? _demoController.currentStep : 'Demo Auto-Play',
+                tooltip: _demoController.isPlaying
+                    ? _demoController.currentStep
+                    : 'Demo Auto-Play',
               );
             },
           ),
@@ -85,9 +92,16 @@ class _WonBidDetailPageState extends State<WonBidDetailPage>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: ColorConstants.error),
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: ColorConstants.error,
+                  ),
                   const SizedBox(height: 16),
-                  Text('Transaction not found', style: theme.textTheme.titleLarge),
+                  Text(
+                    'Transaction not found',
+                    style: theme.textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: () => Navigator.pop(context),

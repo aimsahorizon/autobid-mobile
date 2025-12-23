@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../app/core/constants/color_constants.dart';
+import '../../../../../app/core/services/ai_service.dart';
 
 class AiPricePredictor extends StatefulWidget {
   final String? brand;
@@ -24,6 +25,7 @@ class AiPricePredictor extends StatefulWidget {
 }
 
 class _AiPricePredictorState extends State<AiPricePredictor> {
+  final PricePredictionService _aiService = PricePredictionService(useEdgeModel: true);
   bool _isLoading = false;
   double? _predictedPrice;
   Map<String, dynamic>? _priceBreakdown;
@@ -46,7 +48,9 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
     }
   }
 
+  // Calls AI service to predict vehicle price
   Future<void> _predictPrice() async {
+    // Check if all required fields are filled
     if (widget.brand == null ||
         widget.model == null ||
         widget.year == null ||
@@ -61,84 +65,38 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
 
     setState(() => _isLoading = true);
 
-    // TODO: Replace with actual AI pricing API integration
-    // Example integration:
-    // final response = await http.post(
-    //   Uri.parse('https://api.yourservice.com/predict-price'),
-    //   body: json.encode({
-    //     'brand': widget.brand,
-    //     'model': widget.model,
-    //     'year': widget.year,
-    //     'mileage': widget.mileage,
-    //     'condition': widget.condition,
-    //   }),
-    // );
-    // final data = json.decode(response.body);
-    // _predictedPrice = data['predicted_price'];
-    // _priceBreakdown = data['breakdown'];
-
-    // Simulate AI prediction delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Mock prediction logic based on vehicle data
-    final basePrice = _getBasePriceForBrand(widget.brand!);
-    final yearDepreciation = _calculateYearDepreciation(widget.year!);
-    final mileageDepreciation = _calculateMileageDepreciation(widget.mileage!);
-    final conditionMultiplier = _getConditionMultiplier(widget.condition!);
-
-    final predicted = basePrice * yearDepreciation * mileageDepreciation * conditionMultiplier;
-
-    setState(() {
-      _predictedPrice = predicted;
-      _priceBreakdown = {
-        'base_price': basePrice,
-        'year_factor': yearDepreciation,
-        'mileage_factor': mileageDepreciation,
-        'condition_factor': conditionMultiplier,
+    try {
+      // Prepare vehicle data for AI service
+      final vehicleData = {
+        'brand': widget.brand!,
+        'model': widget.model!,
+        'year': widget.year!,
+        'mileage': widget.mileage!,
+        'condition': widget.condition!,
       };
-      _isLoading = false;
-    });
-  }
 
-  double _getBasePriceForBrand(String brand) {
-    final prices = {
-      'toyota': 800000.0,
-      'honda': 750000.0,
-      'ford': 700000.0,
-      'mitsubishi': 650000.0,
-      'nissan': 720000.0,
-      'hyundai': 680000.0,
-      'mazda': 730000.0,
-      'suzuki': 600000.0,
-    };
-    return prices[brand.toLowerCase()] ?? 700000.0;
-  }
+      // Call AI service to predict price
+      final result = await _aiService.predictPrice(vehicleData);
 
-  double _calculateYearDepreciation(int year) {
-    final age = DateTime.now().year - year;
-    if (age <= 0) return 1.0;
-    if (age <= 3) return 0.85;
-    if (age <= 5) return 0.70;
-    if (age <= 8) return 0.55;
-    return 0.40;
-  }
+      setState(() {
+        _predictedPrice = result['predicted_price'];
+        _priceBreakdown = result['factors'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      // Handle prediction error
+      setState(() {
+        _predictedPrice = null;
+        _priceBreakdown = null;
+        _isLoading = false;
+      });
 
-  double _calculateMileageDepreciation(int mileage) {
-    if (mileage < 30000) return 1.0;
-    if (mileage < 60000) return 0.95;
-    if (mileage < 100000) return 0.85;
-    if (mileage < 150000) return 0.70;
-    return 0.55;
-  }
-
-  double _getConditionMultiplier(String condition) {
-    final multipliers = {
-      'excellent': 1.0,
-      'good': 0.90,
-      'fair': 0.75,
-      'needs work': 0.60,
-    };
-    return multipliers[condition.toLowerCase()] ?? 0.80;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Price prediction failed: $e')),
+        );
+      }
+    }
   }
 
   @override

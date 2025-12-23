@@ -28,6 +28,11 @@ class MainNavigation extends StatelessWidget {
           label: 'Bids',
         ),
         NavigationDestination(
+          icon: Icon(Icons.handshake_outlined),
+          selectedIcon: Icon(Icons.handshake),
+          label: 'Transactions',
+        ),
+        NavigationDestination(
           icon: Icon(Icons.list_alt_outlined),
           selectedIcon: Icon(Icons.list_alt),
           label: 'Lists',

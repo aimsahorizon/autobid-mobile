@@ -22,6 +22,9 @@ class SellerListingEntity {
   /// Starting price set by seller
   final double startingPrice;
 
+  /// Scheduled start time (for scheduled listings)
+  final DateTime? startTime;
+
   /// Current highest bid (null if no bids yet)
   final double? currentBid;
 
@@ -49,6 +52,13 @@ class SellerListingEntity {
   /// Transaction amount (for Sold status)
   final double? soldPrice;
 
+  /// Seller ID (owner of the listing)
+  final String? sellerId;
+
+  /// Transaction ID if this listing has an associated transaction
+  /// Used for cancelled listings that came from failed transactions
+  final String? transactionId;
+
   const SellerListingEntity({
     required this.id,
     required this.imageUrl,
@@ -57,6 +67,7 @@ class SellerListingEntity {
     required this.model,
     required this.status,
     required this.startingPrice,
+    this.startTime,
     this.currentBid,
     this.reservePrice,
     this.totalBids = 0,
@@ -66,6 +77,8 @@ class SellerListingEntity {
     this.endTime,
     this.winnerName,
     this.soldPrice,
+    this.sellerId,
+    this.transactionId,
   });
 
   /// Get formatted car name
@@ -73,11 +86,17 @@ class SellerListingEntity {
 
   /// Check if reserve price has been met
   bool get isReserveMet =>
-      reservePrice != null && currentBid != null && currentBid! >= reservePrice!;
+      reservePrice != null &&
+      currentBid != null &&
+      currentBid! >= reservePrice!;
 
   /// Get time remaining (for active listings)
   Duration? get timeRemaining =>
       endTime != null ? endTime!.difference(DateTime.now()) : null;
+
+  /// Time until auction starts (for scheduled listings)
+  Duration? get timeUntilStart =>
+      startTime != null ? startTime!.difference(DateTime.now()) : null;
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);
@@ -91,17 +110,29 @@ enum ListingStatus {
   /// Listing is awaiting admin approval
   pending,
 
-  /// Auction ended, in discussion with winner
-  inTransaction,
+  /// Listing approved by admin, waiting for seller to make live
+  approved,
+
+  /// Listing scheduled to go live at a specific time
+  scheduled,
+
+  /// Auction ended, awaiting seller decision (proceed or cancel)
+  ended,
 
   /// Listing saved but not submitted
   draft,
 
-  /// Transaction completed successfully
+  /// Listing was cancelled by seller or admin (pre-auction or post-auction)
+  cancelled,
+
+  /// Auction in active transaction phase (seller negotiating with buyer)
+  inTransaction,
+
+  /// Auction sold and completed
   sold,
 
-  /// Listing was cancelled by seller or admin
-  cancelled,
+  /// Transaction failed after auction ended
+  dealFailed,
 }
 
 /// Extension to get display properties for each status
@@ -113,14 +144,22 @@ extension ListingStatusExtension on ListingStatus {
         return 'Active';
       case ListingStatus.pending:
         return 'Pending';
-      case ListingStatus.inTransaction:
-        return 'In Transaction';
+      case ListingStatus.approved:
+        return 'Approved';
+      case ListingStatus.scheduled:
+        return 'Scheduled';
+      case ListingStatus.ended:
+        return 'Ended';
       case ListingStatus.draft:
         return 'Draft';
-      case ListingStatus.sold:
-        return 'Sold';
       case ListingStatus.cancelled:
         return 'Cancelled';
+      case ListingStatus.inTransaction:
+        return 'In Transaction';
+      case ListingStatus.sold:
+        return 'Sold';
+      case ListingStatus.dealFailed:
+        return 'Deal Failed';
     }
   }
 
@@ -131,14 +170,22 @@ extension ListingStatusExtension on ListingStatus {
         return 'Active';
       case ListingStatus.pending:
         return 'Pending';
-      case ListingStatus.inTransaction:
-        return 'In Trans.';
+      case ListingStatus.approved:
+        return 'Approved';
+      case ListingStatus.scheduled:
+        return 'Scheduled';
+      case ListingStatus.ended:
+        return 'Ended';
       case ListingStatus.draft:
         return 'Drafts';
-      case ListingStatus.sold:
-        return 'Sold';
       case ListingStatus.cancelled:
         return 'Cancelled';
+      case ListingStatus.inTransaction:
+        return 'In Transaction';
+      case ListingStatus.sold:
+        return 'Sold';
+      case ListingStatus.dealFailed:
+        return 'Failed';
     }
   }
 }

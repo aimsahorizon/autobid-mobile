@@ -7,6 +7,8 @@ class AuctionDetailModel extends AuctionDetailEntity {
     required super.carImageUrl,
     required super.currentBid,
     required super.minimumBid,
+    required super.minBidIncrement,
+    required super.enableIncrementalBidding,
     super.reservePrice,
     required super.isReserveMet,
     required super.showReservePrice,
@@ -17,6 +19,9 @@ class AuctionDetailModel extends AuctionDetailEntity {
     required super.status,
     required super.photos,
     required super.hasUserDeposited,
+    super.snipeGuardEnabled,
+    super.snipeGuardThresholdSeconds,
+    super.snipeGuardExtendSeconds,
     required super.brand,
     required super.model,
     super.variant,
@@ -66,11 +71,43 @@ class AuctionDetailModel extends AuctionDetailEntity {
 
   /// Create model from JSON (Supabase response)
   factory AuctionDetailModel.fromJson(Map<String, dynamic> json) {
+    num _numOrZero(dynamic value, [num fallback = 0]) {
+      if (value == null) return fallback;
+      return (value as num);
+    }
+
+    final currentBidValue = _numOrZero(
+      json['current_bid'],
+      _numOrZero(json['starting_price'], 0),
+    );
+
+    final minimumBidValue = _numOrZero(
+      json['minimum_bid'],
+      _numOrZero(json['starting_price'], 0),
+    );
+
+    final minBidIncrementValue = _numOrZero(
+      json['min_bid_increment'],
+      _numOrZero(json['bid_increment'], 1000),
+    );
+
+    final snipeGuardEnabled = json['snipe_guard_enabled'] as bool? ?? true;
+    final snipeGuardThresholdSeconds =
+        (json['snipe_guard_threshold_seconds'] as int?) ?? 300;
+    final snipeGuardExtendSeconds =
+        (json['snipe_guard_extend_seconds'] as int?) ??
+        snipeGuardThresholdSeconds;
+
+    final enableIncrementalBiddingValue =
+        (json['enable_incremental_bidding'] as bool?) ?? true;
+
     return AuctionDetailModel(
       id: json['id'] as String,
       carImageUrl: json['car_image_url'] as String? ?? '',
-      currentBid: (json['current_bid'] as num).toDouble(),
-      minimumBid: (json['minimum_bid'] as num).toDouble(),
+      currentBid: currentBidValue.toDouble(),
+      minimumBid: minimumBidValue.toDouble(),
+      minBidIncrement: minBidIncrementValue.toDouble(),
+      enableIncrementalBidding: enableIncrementalBiddingValue,
       reservePrice: json['reserve_price'] != null
           ? (json['reserve_price'] as num).toDouble()
           : null,
@@ -81,12 +118,17 @@ class AuctionDetailModel extends AuctionDetailEntity {
       totalBids: json['total_bids'] as int? ?? 0,
       endTime: DateTime.parse(json['end_time'] as String),
       status: json['status'] as String? ?? 'active',
-      photos: CarPhotosModel.fromJson(json['photos'] as Map<String, dynamic>? ?? {}),
+      photos: CarPhotosModel.fromJson(
+        json['photos'] as Map<String, dynamic>? ?? {},
+      ),
       hasUserDeposited: json['has_user_deposited'] as bool? ?? false,
-      brand: json['brand'] as String? ?? json['make'] as String,
-      model: json['model'] as String,
+      snipeGuardEnabled: snipeGuardEnabled,
+      snipeGuardThresholdSeconds: snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds: snipeGuardExtendSeconds,
+      brand: (json['brand'] as String?) ?? (json['make'] as String?) ?? '',
+      model: (json['model'] as String?) ?? '',
       variant: json['variant'] as String?,
-      year: json['year'] as int,
+      year: json['year'] as int? ?? 0,
       engineType: json['engine_type'] as String?,
       engineDisplacement: json['engine_displacement'] != null
           ? (json['engine_displacement'] as num).toDouble()
@@ -97,10 +139,16 @@ class AuctionDetailModel extends AuctionDetailEntity {
       transmission: json['transmission'] as String?,
       fuelType: json['fuel_type'] as String?,
       driveType: json['drive_type'] as String?,
-      length: json['length'] != null ? (json['length'] as num).toDouble() : null,
+      length: json['length'] != null
+          ? (json['length'] as num).toDouble()
+          : null,
       width: json['width'] != null ? (json['width'] as num).toDouble() : null,
-      height: json['height'] != null ? (json['height'] as num).toDouble() : null,
-      wheelbase: json['wheelbase'] != null ? (json['wheelbase'] as num).toDouble() : null,
+      height: json['height'] != null
+          ? (json['height'] as num).toDouble()
+          : null,
+      wheelbase: json['wheelbase'] != null
+          ? (json['wheelbase'] as num).toDouble()
+          : null,
       groundClearance: json['ground_clearance'] != null
           ? (json['ground_clearance'] as num).toDouble()
           : null,
@@ -122,7 +170,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       tireSize: json['tire_size'] as String?,
       tireBrand: json['tire_brand'] as String?,
       condition: json['condition'] as String?,
-      mileage: json['mileage'] as int?,
+      mileage: json['mileage'] as int? ?? json['vehicle_mileage'] as int?,
       previousOwners: json['previous_owners'] as int?,
       hasModifications: json['has_modifications'] as bool?,
       modificationsDetails: json['modifications_details'] as String?,
@@ -152,6 +200,8 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'car_image_url': carImageUrl,
       'current_bid': currentBid,
       'minimum_bid': minimumBid,
+      'min_bid_increment': minBidIncrement,
+      'enable_incremental_bidding': enableIncrementalBidding,
       'reserve_price': reservePrice,
       'is_reserve_met': isReserveMet,
       'show_reserve_price': showReservePrice,
@@ -162,6 +212,9 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'status': status,
       'photos': (photos as CarPhotosModel).toJson(),
       'has_user_deposited': hasUserDeposited,
+      'snipe_guard_enabled': snipeGuardEnabled,
+      'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
+      'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
       'brand': brand,
       'make': brand, // backwards compatibility
       'model': model,

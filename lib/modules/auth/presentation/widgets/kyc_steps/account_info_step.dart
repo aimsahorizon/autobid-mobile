@@ -16,6 +16,7 @@ class AccountInfoStep extends StatefulWidget {
 }
 
 class _AccountInfoStepState extends State<AccountInfoStep> {
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -23,10 +24,15 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable;
 
   @override
   void initState() {
     super.initState();
+    if (widget.controller.username != null) {
+      _usernameController.text = widget.controller.username!;
+    }
     if (widget.controller.email != null) {
       _emailController.text = widget.controller.email!;
     }
@@ -38,6 +44,10 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
       _confirmPasswordController.text = widget.controller.password!;
     }
 
+    _usernameController.addListener(() {
+      widget.controller.setUsername(_usernameController.text);
+      _checkUsernameAvailability();
+    });
     _emailController.addListener(() {
       widget.controller.setEmail(_emailController.text);
     });
@@ -51,11 +61,41 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  // Check username availability in database
+  void _checkUsernameAvailability() async {
+    final username = _usernameController.text.trim();
+
+    // Only check if username has at least 3 characters
+    if (username.length < 3) {
+      setState(() {
+        _isUsernameAvailable = null;
+        _isCheckingUsername = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isCheckingUsername = true;
+      _isUsernameAvailable = null;
+    });
+
+    // TODO: Call checkUsernameAvailable usecase
+    // For now, simulate API call
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    setState(() {
+      _isCheckingUsername = false;
+      // Mock: username available if doesn't contain 'admin' or 'test'
+      _isUsernameAvailable = !username.contains('admin') && !username.contains('test');
+    });
   }
 
   @override
@@ -83,6 +123,44 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
             ),
           ),
           const SizedBox(height: 32),
+          TextFormField(
+            controller: _usernameController,
+            decoration: InputDecoration(
+              labelText: 'Username',
+              hintText: 'Choose a unique username',
+              prefixIcon: const Icon(Icons.person_outline),
+              suffixIcon: _isCheckingUsername
+                  ? const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : _isUsernameAvailable == null
+                      ? null
+                      : Icon(
+                          _isUsernameAvailable!
+                              ? Icons.check_circle
+                              : Icons.cancel,
+                          color: _isUsernameAvailable!
+                              ? ColorConstants.success
+                              : ColorConstants.error,
+                        ),
+              helperText: _isUsernameAvailable == false
+                  ? 'Username is already taken'
+                  : _isUsernameAvailable == true
+                      ? 'Username is available'
+                      : null,
+              helperStyle: TextStyle(
+                color: _isUsernameAvailable == false
+                    ? ColorConstants.error
+                    : ColorConstants.success,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,

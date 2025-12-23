@@ -61,16 +61,24 @@ class ListingDraftEntity {
   final String? province;
   final String? cityMunicipality;
 
-  // Step 7: Photos (56 categories)
+  // Step 7: Photos (56 categories) & Documents
   final Map<String, List<String>>? photoUrls; // category -> list of URLs
+  final List<String>? tags; // AI-generated tags for search/filter
+  final String? deedOfSaleUrl; // Deed of sale document URL (PDF/image)
 
-  // Step 8: Final Details & Pricing
+  // Step 8: Final Details, Pricing & Bidding Configuration
   final String? description;
   final String? knownIssues;
   final List<String>? features;
   final double? startingPrice;
   final double? reservePrice;
   final DateTime? auctionEndDate;
+  // Bidding Configuration (Step 8)
+  final String? biddingType; // 'public' or 'private'
+  final double? bidIncrement; // Minimum increment for bids
+  final double? minBidIncrement; // Alias for bidIncrement for clarity
+  final double? depositAmount; // Required deposit to bid
+  final bool? enableIncrementalBidding; // Allow price-based increments
 
   const ListingDraftEntity({
     required this.id,
@@ -121,12 +129,19 @@ class ListingDraftEntity {
     this.province,
     this.cityMunicipality,
     this.photoUrls,
+    this.tags,
+    this.deedOfSaleUrl,
     this.description,
     this.knownIssues,
     this.features,
     this.startingPrice,
     this.reservePrice,
     this.auctionEndDate,
+    this.biddingType,
+    this.bidIncrement,
+    this.minBidIncrement,
+    this.depositAmount,
+    this.enableIncrementalBidding,
   });
 
   /// Get car name from basic info
@@ -140,28 +155,45 @@ class ListingDraftEntity {
     return parts.isEmpty ? 'Untitled Listing' : parts.join(' ');
   }
 
-  /// Check if step is completed
+  /// Check if step is completed (NEW ORDER)
   bool isStepComplete(int step) {
     switch (step) {
       case 1:
-        return brand != null && model != null && variant != null && year != null;
-      case 2:
-        return engineType != null && transmission != null && fuelType != null;
-      case 3:
-        return length != null && width != null && height != null;
-      case 4:
-        return exteriorColor != null && paintType != null;
-      case 5:
-        return condition != null && mileage != null && previousOwners != null;
-      case 6:
-        return plateNumber != null && orcrStatus != null && province != null;
-      case 7:
+        // Step 1: Photos (at least 1 photo required to proceed)
         return photoUrls != null && photoUrls!.isNotEmpty;
+      case 2:
+        // Step 2: Basic Info (AI-prefilled from photos)
+        return brand != null &&
+            model != null &&
+            variant != null &&
+            year != null;
+      case 3:
+        // Step 3: Mechanical Specification
+        return engineType != null && transmission != null && fuelType != null;
+      case 4:
+        // Step 4: Dimensions & Capacity
+        return length != null && width != null && height != null;
+      case 5:
+        // Step 5: Exterior Details
+        return exteriorColor != null && paintType != null;
+      case 6:
+        // Step 6: Condition & History
+        return condition != null && mileage != null && previousOwners != null;
+      case 7:
+        // Step 7: Documentation & Location
+        return plateNumber != null && orcrStatus != null && province != null;
       case 8:
-        return description != null && description!.length >= 50 &&
-               startingPrice != null && auctionEndDate != null;
+        // Step 8: Final Details, Pricing & Bidding
+        return description != null &&
+            description!.length >= 50 &&
+            startingPrice != null &&
+            auctionEndDate != null &&
+            bidIncrement != null &&
+            depositAmount != null &&
+            biddingType != null;
       case 9:
-        return true; // Summary step - always complete if reached
+        // Step 9: Summary - always complete if reached
+        return true;
       default:
         return false;
     }

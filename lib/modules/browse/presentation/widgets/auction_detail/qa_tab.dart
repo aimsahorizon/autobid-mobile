@@ -86,7 +86,7 @@ class _CategoryChips extends StatelessWidget {
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
               selected: isSelected,
-              label: Text(category),
+              label: Text(QACategory.formatForDisplay(category)),
               onSelected: (_) => onCategorySelected(category),
               selectedColor: ColorConstants.primary.withValues(alpha: 0.2),
               checkmarkColor: ColorConstants.primary,
@@ -323,7 +323,7 @@ class _CategoryBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        category,
+        QACategory.formatForDisplay(category),
         style: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w500,
@@ -426,7 +426,7 @@ class _AskQuestionSheetState extends State<_AskQuestionSheet> {
               children: QACategory.categories
                   .where((c) => c != QACategory.all)
                   .map((cat) => ChoiceChip(
-                        label: Text(cat),
+                        label: Text(QACategory.formatForDisplay(cat)),
                         selected: _selectedCategory == cat,
                         onSelected: (_) => setState(() => _selectedCategory = cat),
                       ))

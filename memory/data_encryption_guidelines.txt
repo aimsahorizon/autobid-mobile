@@ -1,0 +1,692 @@
+================================================================================
+AUTOBID MOBILE - DATA ENCRYPTION & SECURITY GUIDELINES
+================================================================================
+Version: 1.0
+Purpose: Professional encryption strategy for sensitive registration/KYC data
+Compliance: GDPR Article 32, Philippine Data Privacy Act 2012
+================================================================================
+
+================================================================================
+SECTION 1: ENCRYPTION STRATEGY OVERVIEW
+================================================================================
+
+3-Layer Approach:
+1. Supabase Vault - For highly sensitive PII (national IDs, government IDs)
+2. pgcrypto Extension - For searchable encrypted fields (phone, DOB)
+3. Application-Level - For document/photo file encryption
+
+================================================================================
+SECTION 2: FIELD-BY-FIELD ENCRYPTION CLASSIFICATION
+================================================================================
+
+HIGH PRIORITY - Use Supabase Vault
+--------------------------------------------------------------------------------
+Field: national_id_number
+Reason: Philippine National ID number is highly sensitive PII
+Method: vault.create_secret('user_{user_id}_national_id', value)
+Access: Only via RLS-protected vault.decrypted_secrets view
+Encryption: AES-256 at rest (Supabase managed keys)
+
+Field: secondary_gov_id_number
+Reason: Driver's license, passport, UMID, etc. are sensitive identifiers
+Method: vault.create_secret('user_{user_id}_secondary_id', value)
+Access: Only authorized user + admin with proper RLS
+Encryption: AES-256 at rest
+
+Field: national_id_front_url (file contents)
+Reason: Government ID photos contain sensitive visual data
+Method: Encrypt file before uploading to storage bucket
+Access: Signed URLs with 1-hour expiration
+Encryption: AES-256-GCM with user-specific key
+
+Field: national_id_back_url (file contents)
+Reason: Same as front
+Method: Same as front
+Encryption: AES-256-GCM
+
+Field: secondary_gov_id_front_url (file contents)
+Field: secondary_gov_id_back_url (file contents)
+Reason: Government ID photos
+Method: Encrypt file before upload
+Encryption: AES-256-GCM
+
+Field: selfie_with_id_url (file contents)
+Reason: Contains face + ID in same photo
+Method: Encrypt file before upload
+Encryption: AES-256-GCM
+
+--------------------------------------------------------------------------------
+
+MEDIUM PRIORITY - Use pgcrypto Extension
+--------------------------------------------------------------------------------
+Field: phone_number
+Reason: Used for SMS verification, partial search needed
+Method: pgp_sym_encrypt(phone_number, encryption_key)
+Storage: bytea column phone_number_encrypted
+Search: Decrypt in application, or use deterministic encryption for exact match
+Keep plaintext: Store hash for lookup: sha256(phone_number)
+
+Field: date_of_birth
+Reason: Age verification needed, but full date is sensitive
+Method: Store encrypted full date + plaintext year for age calculations
+Storage: pgp_sym_encrypt(date_of_birth, key) + birth_year integer
+Access: Decrypt only when absolutely needed
+
+Field: proof_of_address_url (file contents)
+Reason: Utility bills contain address + account numbers
+Method: Encrypt file before upload
+Encryption: AES-256-GCM
+
+--------------------------------------------------------------------------------
+
+LOW PRIORITY - RLS Policies Sufficient (No Encryption)
+--------------------------------------------------------------------------------
+Field: first_name, middle_name, last_name
+Reason: Not highly sensitive, needed for display
+Protection: Strong RLS policies
+
+Field: email
+Reason: Handled by Supabase Auth (already encrypted)
+Protection: auth.users table encryption
+
+Field: username
+Reason: Public identifier
+Protection: RLS policies
+
+Field: user_type (buyer/seller)
+Reason: Not PII
+Protection: RLS policies
+
+Field: account_status
+Reason: Not PII
+Protection: RLS policies
+
+Field: profile_photo_url, cover_photo_url
+Reason: User-chosen public photos
+Protection: Storage bucket policies
+
+Field: address_id (reference to addresses table)
+Reason: Address can be masked, not critical encryption target
+Protection: RLS + optional masking (show city/province only)
+
+================================================================================
+SECTION 3: IMPLEMENTATION PATTERNS
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 SUPABASE VAULT IMPLEMENTATION
+--------------------------------------------------------------------------------
+
+Database Setup:
+```sql
+-- Enable Vault extension
+CREATE EXTENSION IF NOT EXISTS supabase_vault;
+
+-- Create RPC function to store encrypted national ID
+CREATE OR REPLACE FUNCTION store_encrypted_national_id(
+  p_user_id uuid,
+  p_national_id_value text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Only allow user to store their own ID or admin
+  IF auth.uid() != p_user_id AND NOT is_admin() THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  -- Store in vault
+  PERFORM vault.create_secret(
+    'user_' || p_user_id::text || '_national_id',
+    p_national_id_value,
+    'National ID for user ' || p_user_id::text
+  );
+END;
+$$;
+
+-- Create RPC function to retrieve encrypted national ID
+CREATE OR REPLACE FUNCTION get_encrypted_national_id(
+  p_user_id uuid
+)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_secret text;
+BEGIN
+  -- Only allow user to retrieve their own ID or admin
+  IF auth.uid() != p_user_id AND NOT is_admin() THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  -- Retrieve from vault
+  SELECT decrypted_secret INTO v_secret
+  FROM vault.decrypted_secrets
+  WHERE name = 'user_' || p_user_id::text || '_national_id';
+
+  RETURN v_secret;
+END;
+$$;
+```
+
+Flutter/Dart Implementation:
+```dart
+class VaultEncryptionService {
+  final SupabaseClient supabase;
+
+  VaultEncryptionService(this.supabase);
+
+  Future<void> storeNationalId({
+    required String userId,
+    required String nationalId,
+  }) async {
+    await supabase.rpc('store_encrypted_national_id', {
+      'p_user_id': userId,
+      'p_national_id_value': nationalId,
+    });
+  }
+
+  Future<String?> getNationalId({
+    required String userId,
+  }) async {
+    final result = await supabase.rpc('get_encrypted_national_id', {
+      'p_user_id': userId,
+    });
+    return result as String?;
+  }
+}
+```
+
+--------------------------------------------------------------------------------
+3.2 PGCRYPTO IMPLEMENTATION (Searchable Fields)
+--------------------------------------------------------------------------------
+
+Database Setup:
+```sql
+-- Enable pgcrypto extension
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Update users table to add encrypted columns
+ALTER TABLE users
+ADD COLUMN phone_number_encrypted bytea,
+ADD COLUMN phone_number_hash text UNIQUE,
+ADD COLUMN date_of_birth_encrypted bytea,
+ADD COLUMN birth_year integer;
+
+-- Function to encrypt phone number
+CREATE OR REPLACE FUNCTION encrypt_phone_number(p_phone text)
+RETURNS bytea
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN pgp_sym_encrypt(p_phone, current_setting('app.encryption_key'));
+END;
+$$;
+
+-- Function to decrypt phone number
+CREATE OR REPLACE FUNCTION decrypt_phone_number(p_encrypted bytea)
+RETURNS text
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN pgp_sym_decrypt(p_encrypted, current_setting('app.encryption_key'));
+END;
+$$;
+
+-- Store hash for lookup
+CREATE OR REPLACE FUNCTION hash_phone_number(p_phone text)
+RETURNS text
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN encode(digest(p_phone, 'sha256'), 'hex');
+END;
+$$;
+```
+
+Flutter/Dart Implementation:
+```dart
+class PgCryptoService {
+  final SupabaseClient supabase;
+
+  PgCryptoService(this.supabase);
+
+  Future<void> storeEncryptedPhone({
+    required String userId,
+    required String phoneNumber,
+  }) async {
+    // Encrypt in database
+    await supabase.rpc('store_encrypted_phone', {
+      'p_user_id': userId,
+      'p_phone': phoneNumber,
+    });
+  }
+
+  Future<String?> getDecryptedPhone({
+    required String userId,
+  }) async {
+    final result = await supabase.rpc('get_decrypted_phone', {
+      'p_user_id': userId,
+    });
+    return result as String?;
+  }
+
+  // For phone lookup (exact match only)
+  Future<String?> findUserByPhone(String phoneNumber) async {
+    final hash = _hashPhone(phoneNumber);
+    final result = await supabase
+      .from('users')
+      .select('id')
+      .eq('phone_number_hash', hash)
+      .maybeSingle();
+    return result?['id'];
+  }
+
+  String _hashPhone(String phone) {
+    // SHA-256 hash on client side
+    return sha256.convert(utf8.encode(phone)).toString();
+  }
+}
+```
+
+--------------------------------------------------------------------------------
+3.3 APPLICATION-LEVEL FILE ENCRYPTION
+--------------------------------------------------------------------------------
+
+Flutter/Dart Implementation:
+```dart
+import 'package:encrypt/encrypt.dart' as encrypt;
+
+class FileEncryptionService {
+  // Generate user-specific encryption key from master key + user ID
+  encrypt.Key _getUserKey(String userId) {
+    final masterKey = Env.masterEncryptionKey; // From secure storage
+    final userSalt = userId.substring(0, 16); // Use user ID as salt
+    final combinedKey = '$masterKey$userSalt';
+    return encrypt.Key.fromUtf8(combinedKey.padRight(32).substring(0, 32));
+  }
+
+  Future<Uint8List> encryptFile({
+    required Uint8List fileBytes,
+    required String userId,
+  }) async {
+    final key = _getUserKey(userId);
+    final iv = encrypt.IV.fromSecureRandom(16);
+    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.gcm));
+
+    final encrypted = encrypter.encryptBytes(fileBytes, iv: iv);
+
+    // Prepend IV to encrypted data
+    final result = Uint8List.fromList([...iv.bytes, ...encrypted.bytes]);
+    return result;
+  }
+
+  Future<Uint8List> decryptFile({
+    required Uint8List encryptedBytes,
+    required String userId,
+  }) async {
+    final key = _getUserKey(userId);
+
+    // Extract IV (first 16 bytes)
+    final iv = encrypt.IV(Uint8List.fromList(encryptedBytes.sublist(0, 16)));
+    final encryptedData = encryptedBytes.sublist(16);
+
+    final encrypter = encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.gcm));
+    final decrypted = encrypter.decryptBytes(
+      encrypt.Encrypted(encryptedData),
+      iv: iv,
+    );
+
+    return Uint8List.fromList(decrypted);
+  }
+
+  Future<String> uploadEncryptedFile({
+    required Uint8List fileBytes,
+    required String userId,
+    required String bucket,
+    required String path,
+  }) async {
+    // Encrypt file
+    final encrypted = await encryptFile(fileBytes: fileBytes, userId: userId);
+
+    // Upload to Supabase Storage
+    final response = await supabase.storage
+      .from(bucket)
+      .uploadBinary(path, encrypted);
+
+    return response;
+  }
+
+  Future<Uint8List> downloadAndDecryptFile({
+    required String userId,
+    required String bucket,
+    required String path,
+  }) async {
+    // Download from Supabase Storage
+    final encryptedBytes = await supabase.storage
+      .from(bucket)
+      .download(path);
+
+    // Decrypt file
+    final decrypted = await decryptFile(
+      encryptedBytes: encryptedBytes,
+      userId: userId,
+    );
+
+    return decrypted;
+  }
+}
+```
+
+Storage Bucket Organization:
+```
+kyc-documents/ (Private bucket with RLS)
+  └── {user_id}/
+      ├── national_id_front.enc
+      ├── national_id_back.enc
+      ├── secondary_id_front.enc
+      ├── secondary_id_back.enc
+      ├── selfie_with_id.enc
+      └── proof_of_address.enc
+```
+
+================================================================================
+SECTION 4: KEY MANAGEMENT
+================================================================================
+
+Master Encryption Key Storage:
+- NEVER hardcode in source code
+- Store in environment variables (Supabase Dashboard > Project Settings > Edge Functions > Secrets)
+- Use different keys for development, staging, production
+- Rotate keys annually (implement key versioning)
+
+Key Versioning:
+```sql
+CREATE TABLE encryption_keys (
+  id serial PRIMARY KEY,
+  key_version integer UNIQUE NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  rotated_at timestamptz,
+  is_active boolean DEFAULT true
+);
+
+-- Store which key version was used for each encryption
+ALTER TABLE users
+ADD COLUMN phone_encryption_key_version integer REFERENCES encryption_keys(key_version);
+```
+
+Key Rotation Process:
+1. Generate new key, mark as active
+2. Re-encrypt all data with new key in background job
+3. Mark old key as rotated
+4. Keep old key for 90 days for audit/recovery
+5. Securely delete old key after retention period
+
+================================================================================
+SECTION 5: RLS POLICIES FOR ENCRYPTED DATA
+================================================================================
+
+Vault Access Policies:
+```sql
+-- Only user or admin can access their own vault secrets
+CREATE POLICY "Users can access own vault secrets"
+ON vault.decrypted_secrets
+FOR SELECT
+USING (
+  name LIKE 'user_' || auth.uid()::text || '_%'
+  OR
+  is_admin()
+);
+```
+
+Storage Bucket Policies:
+```sql
+-- KYC documents bucket RLS
+CREATE POLICY "Users can upload own KYC documents"
+ON storage.objects
+FOR INSERT
+WITH CHECK (
+  bucket_id = 'kyc-documents'
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+CREATE POLICY "Users can view own KYC documents"
+ON storage.objects
+FOR SELECT
+USING (
+  bucket_id = 'kyc-documents'
+  AND (
+    (storage.foldername(name))[1] = auth.uid()::text
+    OR is_admin()
+  )
+);
+
+CREATE POLICY "Admins can view all KYC documents for review"
+ON storage.objects
+FOR SELECT
+USING (
+  bucket_id = 'kyc-documents'
+  AND is_admin()
+);
+```
+
+================================================================================
+SECTION 6: COMPLIANCE & AUDIT
+================================================================================
+
+Data Privacy Act 2012 (Philippines):
+- ✅ Section 20: Security measures (encryption satisfies this)
+- ✅ Section 16: Right to access (decryption available on request)
+- ✅ Section 17: Right to erasure (vault.delete_secret)
+- ✅ Section 21: Notification of data breach (audit logs)
+
+GDPR Compliance (if applicable):
+- ✅ Article 32: Encryption of personal data
+- ✅ Article 17: Right to erasure (secure deletion from vault)
+- ✅ Article 15: Right of access (decryption available)
+- ✅ Article 25: Data protection by design
+
+Audit Logging:
+```sql
+CREATE TABLE encryption_audit_log (
+  id bigserial PRIMARY KEY,
+  user_id uuid REFERENCES auth.users(id),
+  action text NOT NULL CHECK (action IN ('encrypt', 'decrypt', 'access', 'delete')),
+  field_name text NOT NULL,
+  accessed_by uuid REFERENCES auth.users(id),
+  ip_address inet,
+  user_agent text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Trigger on vault access
+CREATE OR REPLACE FUNCTION log_vault_access()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO encryption_audit_log (
+    user_id,
+    action,
+    field_name,
+    accessed_by,
+    ip_address
+  ) VALUES (
+    (regexp_match(NEW.name, 'user_([0-9a-f-]+)_'))[1]::uuid,
+    'access',
+    NEW.name,
+    auth.uid(),
+    inet_client_addr()
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+Data Retention:
+- Encrypted KYC documents: Retain for 5 years after account closure (legal requirement)
+- Vault secrets: Delete immediately upon user deletion request
+- Audit logs: Retain for 7 years (compliance requirement)
+
+================================================================================
+SECTION 7: MIGRATION STRATEGY
+================================================================================
+
+Phase 1: Add Encrypted Columns (No Disruption)
+```sql
+-- Add new encrypted columns alongside existing plaintext
+ALTER TABLE users
+ADD COLUMN national_id_number_vault_key text,
+ADD COLUMN phone_number_encrypted bytea,
+ADD COLUMN phone_number_hash text;
+```
+
+Phase 2: Encrypt Existing Data (Background Job)
+```sql
+-- Migrate existing plaintext to encrypted
+DO $$
+DECLARE
+  user_record RECORD;
+BEGIN
+  FOR user_record IN SELECT id, national_id_number, phone_number FROM users
+  LOOP
+    -- Store in vault
+    PERFORM vault.create_secret(
+      'user_' || user_record.id::text || '_national_id',
+      user_record.national_id_number
+    );
+
+    -- Encrypt phone
+    UPDATE users
+    SET
+      phone_number_encrypted = pgp_sym_encrypt(user_record.phone_number, current_setting('app.encryption_key')),
+      phone_number_hash = encode(digest(user_record.phone_number, 'sha256'), 'hex')
+    WHERE id = user_record.id;
+  END LOOP;
+END $$;
+```
+
+Phase 3: Update Application Code
+- Deploy new code that reads from encrypted columns
+- Test thoroughly in staging
+- Monitor for decryption errors
+
+Phase 4: Drop Plaintext Columns (After Verification)
+```sql
+-- After confirming encrypted data works
+ALTER TABLE users
+DROP COLUMN national_id_number,
+DROP COLUMN phone_number;
+
+-- Rename encrypted columns
+ALTER TABLE users
+RENAME COLUMN phone_number_encrypted TO phone_number_enc;
+```
+
+================================================================================
+SECTION 8: PERFORMANCE CONSIDERATIONS
+================================================================================
+
+Encryption Overhead:
+- Vault access: ~5-10ms per secret retrieval
+- pgcrypto decrypt: ~2-5ms per field
+- File encryption (1MB): ~50-100ms
+- File decryption (1MB): ~50-100ms
+
+Optimization Strategies:
+1. Cache decrypted values in memory (cleared on session end)
+2. Decrypt only when displayed, not on every query
+3. Use materialized views for frequently accessed encrypted data
+4. Batch vault.decrypted_secrets queries
+5. Lazy load encrypted photos (decrypt on-demand)
+
+Caching Pattern:
+```dart
+class EncryptedDataCache {
+  final Map<String, CachedValue> _cache = {};
+
+  Future<String?> getCachedOrDecrypt({
+    required String key,
+    required Future<String?> Function() decryptFn,
+    Duration ttl = const Duration(minutes: 5),
+  }) async {
+    final cached = _cache[key];
+    if (cached != null && !cached.isExpired) {
+      return cached.value;
+    }
+
+    final value = await decryptFn();
+    _cache[key] = CachedValue(value, DateTime.now().add(ttl));
+    return value;
+  }
+
+  void clearCache() => _cache.clear();
+}
+```
+
+================================================================================
+SECTION 9: TESTING & VALIDATION
+================================================================================
+
+Unit Tests:
+```dart
+test('should encrypt and decrypt national ID correctly', () async {
+  final service = VaultEncryptionService(supabase);
+  final userId = 'test-user-id';
+  final nationalId = '1234-5678-9012';
+
+  await service.storeNationalId(userId: userId, nationalId: nationalId);
+  final decrypted = await service.getNationalId(userId: userId);
+
+  expect(decrypted, equals(nationalId));
+});
+
+test('should encrypt file and decrypt successfully', () async {
+  final service = FileEncryptionService();
+  final userId = 'test-user-id';
+  final originalBytes = Uint8List.fromList([1, 2, 3, 4, 5]);
+
+  final encrypted = await service.encryptFile(fileBytes: originalBytes, userId: userId);
+  final decrypted = await service.decryptFile(encryptedBytes: encrypted, userId: userId);
+
+  expect(decrypted, equals(originalBytes));
+});
+```
+
+Integration Tests:
+```dart
+test('should upload encrypted KYC document and retrieve it', () async {
+  final fileService = FileEncryptionService();
+  final userId = 'test-user-id';
+  final mockIdPhoto = await File('test_assets/national_id.jpg').readAsBytes();
+
+  // Upload encrypted
+  await fileService.uploadEncryptedFile(
+    fileBytes: mockIdPhoto,
+    userId: userId,
+    bucket: 'kyc-documents',
+    path: '$userId/national_id_front.enc',
+  );
+
+  // Download and decrypt
+  final decrypted = await fileService.downloadAndDecryptFile(
+    userId: userId,
+    bucket: 'kyc-documents',
+    path: '$userId/national_id_front.enc',
+  );
+
+  expect(decrypted, equals(mockIdPhoto));
+});
+```
+
+Security Penetration Tests:
+1. Attempt to access other users' vault secrets
+2. Attempt to download other users' KYC documents
+3. Verify RLS prevents unauthorized access
+4. Test key rotation without data loss
+5. Verify audit logs capture all access
+
+================================================================================
+END OF ENCRYPTION GUIDELINES
+================================================================================

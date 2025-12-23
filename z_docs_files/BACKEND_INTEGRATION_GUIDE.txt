@@ -1,0 +1,545 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║          AUTOBID MOBILE - SUPABASE BACKEND INTEGRATION GUIDE             ║
+║                    Complete Implementation Roadmap                       ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+IMPLEMENTATION STATUS: ✓ Database schema designed, ready for implementation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1: DATABASE SETUP IN SUPABASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1.1: Run Schema SQL
+─────────────────────────────────────────────────────────────────────────
+
+1. Go to Supabase Dashboard: https://supabase.com/dashboard
+2. Select your project
+3. Navigate to: SQL Editor (left sidebar)
+4. Create new query
+5. Copy entire content from: supabase_schema.sql
+6. Click "Run" to execute
+
+This creates:
+  • 12 tables (user_profiles, vehicles, bids, transactions, etc.)
+  • Indexes for optimized queries
+  • Triggers for automatic updates
+  • Business logic functions
+
+
+STEP 1.2: Apply Row Level Security Policies
+─────────────────────────────────────────────────────────────────────────
+
+1. In SQL Editor, create new query
+2. Copy entire content from: supabase_rls_policies.sql
+3. Click "Run" to execute
+
+This sets up:
+  • User data privacy (users see only their data)
+  • Seller/buyer access control
+  • Public/private data separation
+  • Secure transaction access
+
+
+STEP 1.3: Configure Storage Buckets
+─────────────────────────────────────────────────────────────────────────
+
+1. In SQL Editor, create new query
+2. Copy entire content from: supabase_storage_setup.sql
+3. Click "Run" to execute
+
+Alternatively, create buckets manually:
+  → Storage (left sidebar) > "New bucket"
+  → Create 5 buckets:
+     • vehicle-photos (public)
+     • user-avatars (public)
+     • user-covers (public)
+     • user-documents (private)
+     • transaction-attachments (private)
+
+
+STEP 1.4: Verify Database Setup
+─────────────────────────────────────────────────────────────────────────
+
+1. Navigate to: Table Editor
+2. Confirm all 12 tables exist:
+   ✓ user_profiles
+   ✓ vehicles
+   ✓ vehicle_photos
+   ✓ bids
+   ✓ deposits
+   ✓ transactions
+   ✓ transaction_forms
+   ✓ chat_messages
+   ✓ transaction_timeline
+   ✓ qa_entries
+   ✓ watchlist
+   ✓ support_tickets
+
+3. Navigate to: Storage
+4. Confirm all 5 buckets exist
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2: FLUTTER APP IMPLEMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPLEMENTATION ORDER (by module priority):
+
+1. Profile Module (HIGHEST PRIORITY)
+   → User profiles must work first for user context
+
+2. Browse Module
+   → Viewing auctions and placing bids
+
+3. Lists Module (Seller)
+   → Creating and managing listings
+
+4. Bids Module (Buyer)
+   → Managing won bids and buyer transactions
+
+5. Transactions (Both)
+   → Complete transaction flow with chat
+
+
+STEP 2.1: Implement Profile Module
+─────────────────────────────────────────────────────────────────────────
+
+FILES TO CREATE/UPDATE:
+  lib/modules/profile/data/datasources/profile_supabase_datasource.dart
+  lib/modules/profile/data/repositories/profile_repository_supabase_impl.dart
+  lib/modules/profile/profile_module.dart
+
+IMPLEMENTATION TASKS:
+
+A) Create ProfileSupabaseDataSource
+   • Get user profile: .from('user_profiles').select()
+   • Update profile: .from('user_profiles').update()
+   • Upload avatar: storage.from('user-avatars').upload()
+   • Upload cover: storage.from('user-covers').upload()
+
+B) Create ProfileRepositorySupabaseImpl
+   • Implement ProfileRepository interface
+   • Use ProfileSupabaseDataSource
+   • Convert Supabase JSON to UserProfileModel
+
+C) Update ProfileModule DI
+   • Replace ProfileMockDataSource with ProfileSupabaseDataSource
+   • Inject SupabaseConfig.client
+
+D) Handle User Profile Creation
+   • After Google/email sign up, create profile row
+   • Store username, full_name in user_profiles table
+   • Use auth.uid() as profile id
+
+
+STEP 2.2: Implement Browse Module (Auctions)
+─────────────────────────────────────────────────────────────────────────
+
+FILES TO CREATE/UPDATE:
+  lib/modules/browse/data/datasources/auction_supabase_datasource.dart
+  lib/modules/browse/data/datasources/bid_supabase_datasource.dart
+  lib/modules/browse/data/datasources/qa_supabase_datasource.dart
+  lib/modules/browse/data/repositories/auction_repository_supabase_impl.dart
+  lib/modules/browse/browse_module.dart
+
+IMPLEMENTATION TASKS:
+
+A) Create AuctionSupabaseDataSource
+   • Get active auctions:
+     .from('vehicles')
+     .select('*, vehicle_photos(*)')
+     .eq('status', 'active')
+     .order('end_time')
+
+   • Get auction details:
+     .from('vehicles')
+     .select('*, vehicle_photos(*), bids(*), qa_entries(*)')
+     .eq('id', vehicleId)
+     .single()
+
+   • Watch auction:
+     .from('watchlist')
+     .insert({'user_id': userId, 'vehicle_id': vehicleId})
+
+   • Check deposit:
+     .from('deposits')
+     .select()
+     .eq('user_id', userId)
+     .eq('vehicle_id', vehicleId)
+     .maybeSingle()
+
+B) Create BidSupabaseDataSource
+   • Place bid:
+     .from('bids')
+     .insert({'vehicle_id': x, 'bidder_id': y, 'amount': z})
+
+   • Get bid history:
+     .from('bids')
+     .select('*, user_profiles(username, profile_photo_url)')
+     .eq('vehicle_id', vehicleId)
+     .order('created_at', descending: true)
+
+   • Get user bids:
+     .from('bids')
+     .select('*, vehicles(*)')
+     .eq('bidder_id', userId)
+
+C) Create QASupabaseDataSource
+   • Get Q&A:
+     .from('qa_entries')
+     .select('*, user_profiles(username, profile_photo_url)')
+     .eq('vehicle_id', vehicleId)
+     .eq('is_public', true)
+
+   • Ask question:
+     .from('qa_entries')
+     .insert({'vehicle_id': x, 'asker_id': y, 'question': z})
+
+   • Answer question (seller):
+     .from('qa_entries')
+     .update({'answer': text, 'answered_at': now})
+     .eq('id', qaId)
+
+
+STEP 2.3: Implement Lists Module (Seller Listings)
+─────────────────────────────────────────────────────────────────────────
+
+FILES TO CREATE/UPDATE:
+  lib/modules/lists/data/datasources/listing_supabase_datasource.dart
+  lib/modules/lists/data/datasources/transaction_supabase_datasource.dart
+  lib/modules/lists/data/repositories/listing_repository_supabase_impl.dart
+  lib/modules/lists/lists_module.dart
+
+IMPLEMENTATION TASKS:
+
+A) Create ListingSupabaseDataSource
+   • Get seller listings:
+     .from('vehicles')
+     .select('*, vehicle_photos(photo_url).eq(category, exterior).limit(1)')
+     .eq('seller_id', sellerId)
+     .order('created_at', descending: true)
+
+   • Create draft:
+     .from('vehicles')
+     .insert({'seller_id': userId, 'status': 'draft', ...})
+
+   • Update listing:
+     .from('vehicles')
+     .update({...})
+     .eq('id', vehicleId)
+
+   • Upload photos:
+     storage.from('vehicle-photos').upload('${userId}/${vehicleId}/${filename}', file)
+     Then insert to vehicle_photos table
+
+   • Submit for approval:
+     .from('vehicles')
+     .update({'status': 'pending'})
+     .eq('id', vehicleId)
+
+B) Create TransactionSupabaseDataSource (Seller Side)
+   • Get transactions:
+     .from('transactions')
+     .select('*, vehicles(*), user_profiles!buyer_id(*)')
+     .eq('seller_id', sellerId)
+
+   • Submit seller form:
+     .from('transaction_forms')
+     .insert({'transaction_id': x, 'role': 'seller', ...})
+     Then update transactions.seller_form_submitted = true
+
+   • Update delivery status:
+     .from('transactions')
+     .update({'delivery_status': status})
+     .eq('id', transactionId)
+
+
+STEP 2.4: Implement Bids Module (Buyer Transactions)
+─────────────────────────────────────────────────────────────────────────
+
+FILES TO CREATE/UPDATE:
+  lib/modules/bids/data/datasources/buyer_transaction_supabase_datasource.dart
+  lib/modules/bids/data/repositories/buyer_transaction_repository_supabase_impl.dart
+  lib/modules/bids/bids_module.dart
+
+IMPLEMENTATION TASKS:
+
+A) Create BuyerTransactionSupabaseDataSource
+   • Get buyer transactions:
+     .from('transactions')
+     .select('*, vehicles(*), user_profiles!seller_id(*)')
+     .eq('buyer_id', buyerId)
+
+   • Submit buyer form:
+     .from('transaction_forms')
+     .insert({'transaction_id': x, 'role': 'buyer', ...})
+     Then update transactions.buyer_form_submitted = true
+
+   • Confirm form:
+     .from('transactions')
+     .update({'buyer_confirmed': true})
+     .eq('id', transactionId)
+
+
+STEP 2.5: Implement Chat & Timeline
+─────────────────────────────────────────────────────────────────────────
+
+FILES TO CREATE/UPDATE:
+  lib/modules/lists/data/datasources/chat_supabase_datasource.dart
+  lib/modules/lists/data/datasources/timeline_supabase_datasource.dart
+
+IMPLEMENTATION TASKS:
+
+A) Create ChatSupabaseDataSource
+   • Get messages:
+     .from('chat_messages')
+     .select()
+     .eq('transaction_id', transactionId)
+     .order('created_at')
+
+   • Send message:
+     .from('chat_messages')
+     .insert({'transaction_id': x, 'sender_id': y, 'message': z})
+
+   • Mark as read:
+     .from('chat_messages')
+     .update({'is_read': true})
+     .eq('transaction_id', transactionId)
+     .neq('sender_id', currentUserId)
+
+   • Real-time subscription:
+     supabase.from('chat_messages')
+       .stream(primaryKey: ['id'])
+       .eq('transaction_id', transactionId)
+       .listen((data) { ... })
+
+B) Create TimelineSupabaseDataSource
+   • Get timeline:
+     .from('transaction_timeline')
+     .select()
+     .eq('transaction_id', transactionId)
+     .order('created_at', descending: true)
+
+   • Add event:
+     .from('transaction_timeline')
+     .insert({'transaction_id': x, 'title': y, 'description': z, ...})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3: CODE PATTERNS & BEST PRACTICES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DATASOURCE TEMPLATE
+─────────────────────────────────────────────────────────────────────────
+
+class MySupabaseDataSource implements MyDataSource {
+  final SupabaseClient _supabase;
+
+  MySupabaseDataSource(this._supabase);
+
+  @override
+  Future<List<MyModel>> getItems() async {
+    try {
+      // Query Supabase
+      final response = await _supabase
+          .from('table_name')
+          .select()
+          .order('created_at');
+
+      // Convert to models
+      return (response as List)
+          .map((json) => MyModel.fromJson(json))
+          .toList();
+
+    } on PostgrestException catch (e) {
+      // Handle Supabase errors
+      throw Exception('Database error: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to get items: $e');
+    }
+  }
+}
+
+
+MODEL JSON CONVERSION TEMPLATE
+─────────────────────────────────────────────────────────────────────────
+
+// Add to existing UserModel, AuctionModel, etc.
+
+factory MyModel.fromJson(Map<String, dynamic> json) {
+  return MyModel(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    // Handle nullable fields
+    description: json['description'] as String?,
+    // Handle enums
+    status: MyStatus.values.firstWhere(
+      (e) => e.name == json['status'],
+      orElse: () => MyStatus.pending,
+    ),
+  );
+}
+
+Map<String, dynamic> toJson() {
+  return {
+    'id': id,
+    'name': name,
+    'created_at': createdAt.toIso8601String(),
+    'description': description,
+    'status': status.name,
+  };
+}
+
+
+FILE UPLOAD PATTERN
+─────────────────────────────────────────────────────────────────────────
+
+Future<String> uploadImage(File file, String userId) async {
+  try {
+    // Generate unique filename
+    final filename = '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+    final filepath = '$userId/$filename';
+
+    // Upload to Supabase Storage
+    await _supabase.storage
+        .from('bucket-name')
+        .upload(filepath, file);
+
+    // Get public URL
+    final url = _supabase.storage
+        .from('bucket-name')
+        .getPublicUrl(filepath);
+
+    return url;
+
+  } on StorageException catch (e) {
+    throw Exception('Upload failed: ${e.message}');
+  }
+}
+
+
+REAL-TIME SUBSCRIPTION PATTERN
+─────────────────────────────────────────────────────────────────────────
+
+StreamSubscription? _subscription;
+
+void listenToMessages(String transactionId) {
+  _subscription = _supabase
+      .from('chat_messages')
+      .stream(primaryKey: ['id'])
+      .eq('transaction_id', transactionId)
+      .listen((data) {
+        // Handle new messages
+        final messages = data.map((json) => ChatMessage.fromJson(json)).toList();
+        // Update UI
+      });
+}
+
+@override
+void dispose() {
+  _subscription?.cancel();
+  super.dispose();
+}
+
+
+ERROR HANDLING PATTERN
+─────────────────────────────────────────────────────────────────────────
+
+try {
+  final result = await _supabase.from('table').select();
+  return result;
+
+} on PostgrestException catch (e) {
+  // Database/query errors
+  if (e.code == '23505') {
+    throw Exception('Duplicate entry');
+  }
+  throw Exception('Database error: ${e.message}');
+
+} on StorageException catch (e) {
+  // Storage errors
+  throw Exception('Storage error: ${e.message}');
+
+} on AuthException catch (e) {
+  // Auth errors
+  throw Exception('Auth error: ${e.message}');
+
+} catch (e) {
+  // Generic errors
+  throw Exception('Operation failed: $e');
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4: TESTING STRATEGY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MODULE TESTING ORDER
+─────────────────────────────────────────────────────────────────────────
+
+1. Auth Module
+   ✓ Already implemented - verify Google sign-in works
+
+2. Profile Module
+   • Sign in → check profile created in Supabase
+   • Update profile → verify in Table Editor
+   • Upload avatar → check Storage bucket
+
+3. Browse Module
+   • View auctions → verify vehicles fetched
+   • Place bid → check bids table
+   • Watch auction → check watchlist table
+
+4. Lists Module (Seller)
+   • Create draft → verify in vehicles table
+   • Upload photos → check Storage + vehicle_photos
+   • Submit listing → status changes to 'pending'
+
+5. Transactions
+   • Complete transaction flow end-to-end
+   • Submit forms → verify transaction_forms table
+   • Send chat → check chat_messages table
+   • Check timeline → verify transaction_timeline
+
+
+DEBUGGING TIPS
+─────────────────────────────────────────────────────────────────────────
+
+1. Use Supabase Dashboard Table Editor to inspect data
+2. Check Logs in Supabase Dashboard for errors
+3. Enable verbose logging in SupabaseConfig
+4. Use PostgrestException error codes for specific issues
+5. Test RLS policies with different user accounts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5: DEPLOYMENT CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BEFORE GOING LIVE:
+
+□ All SQL scripts executed successfully
+□ All RLS policies active and tested
+□ Storage buckets configured with correct policies
+□ All modules using Supabase datasources (no mock data)
+□ .env file contains production Supabase credentials
+□ Google OAuth configured for production
+□ Test with multiple user accounts (buyer/seller scenarios)
+□ Real-time features tested (chat, notifications)
+□ File uploads tested on all platforms (Android/iOS/Web)
+□ Error handling tested for network failures
+□ Database indexes verified for performance
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUMMARY OF FILES CREATED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ supabase_schema.sql              - Complete database schema
+✓ supabase_rls_policies.sql        - Row Level Security policies
+✓ supabase_storage_setup.sql       - Storage buckets configuration
+✓ BACKEND_INTEGRATION_GUIDE.txt    - This guide
+
+NEXT STEPS:
+1. Run SQL scripts in Supabase Dashboard
+2. Begin implementation with Profile Module
+3. Follow testing strategy for each module
+4. Remove mock datasources as you implement real ones
+
+Good luck with the backend integration! 🚀

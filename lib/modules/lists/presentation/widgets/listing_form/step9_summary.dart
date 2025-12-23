@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../../app/core/config/supabase_config.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
 
@@ -13,13 +14,22 @@ class Step9Summary extends StatelessWidget {
   });
 
   Future<void> _submitListing(BuildContext context) async {
-    final success = await controller.submitListing();
+    // Get current user ID from Supabase
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+
+    final success = await controller.submitListing(userId);
+
+    // Check if widget is still mounted before using context
+    if (!context.mounted) return;
+
     if (success) {
       onSubmitSuccess();
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all required fields')),
-      );
+    } else {
+      final errorMessage =
+          controller.errorMessage ?? 'Please complete all required fields';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     }
   }
 
@@ -89,7 +99,8 @@ class Step9Summary extends StatelessWidget {
             }),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: controller.isSubmitting || draft.completionPercentage < 100
+              onPressed:
+                  controller.isSubmitting || draft.completionPercentage < 100
                   ? null
                   : () => _submitListing(context),
               style: ElevatedButton.styleFrom(
@@ -111,7 +122,10 @@ class Step9Summary extends StatelessWidget {
                     )
                   : const Text(
                       'Submit Listing',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
             ),
           ],

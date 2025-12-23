@@ -39,6 +39,15 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
     });
   }
 
+  @override
+  void didUpdateWidget(BiddingInfoSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If endTime changed (due to snipe guard extension), recalculate immediately
+    if (oldWidget.endTime != widget.endTime) {
+      _updateTimeRemaining();
+    }
+  }
+
   void _updateTimeRemaining() {
     setState(() {
       _timeRemaining = widget.endTime.difference(DateTime.now());
@@ -60,10 +69,14 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
         boxShadow: [
           BoxShadow(
@@ -94,7 +107,8 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
   }
 
   Widget _buildTimerHeader(ThemeData theme, bool isDark) {
-    final isUrgent = _timeRemaining.inMinutes < 10 && _timeRemaining.inSeconds > 0;
+    final isUrgent =
+        _timeRemaining.inMinutes < 10 && _timeRemaining.inSeconds > 0;
     final hasEnded = _timeRemaining.inSeconds <= 0;
 
     return Container(
@@ -103,22 +117,20 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
         color: hasEnded
             ? ColorConstants.textSecondaryLight.withValues(alpha: 0.1)
             : isUrgent
-                ? ColorConstants.error.withValues(alpha: 0.1)
-                : ColorConstants.primary.withValues(alpha: 0.1),
+            ? ColorConstants.error.withValues(alpha: 0.1)
+            : ColorConstants.primary.withValues(alpha: 0.1),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Row(
         children: [
           Icon(
-            hasEnded
-                ? Icons.timer_off_outlined
-                : Icons.timer_outlined,
+            hasEnded ? Icons.timer_off_outlined : Icons.timer_outlined,
             size: 22,
             color: hasEnded
                 ? ColorConstants.textSecondaryLight
                 : isUrgent
-                    ? ColorConstants.error
-                    : ColorConstants.primary,
+                ? ColorConstants.error
+                : ColorConstants.primary,
           ),
           const SizedBox(width: 10),
           Text(
@@ -127,8 +139,8 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
               color: hasEnded
                   ? ColorConstants.textSecondaryLight
                   : isUrgent
-                      ? ColorConstants.error
-                      : ColorConstants.primary,
+                  ? ColorConstants.error
+                  : ColorConstants.primary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -183,10 +195,7 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
         ),
         Padding(
           padding: const EdgeInsets.only(bottom: 2),
-          child: Text(
-            unit,
-            style: TextStyle(fontSize: 12, color: color),
-          ),
+          child: Text(unit, style: TextStyle(fontSize: 12, color: color)),
         ),
       ],
     );
@@ -195,7 +204,10 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
   Widget _buildTimeSeparator(Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Text(':', style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+      child: Text(
+        ':',
+        style: TextStyle(fontWeight: FontWeight.bold, color: color),
+      ),
     );
   }
 
@@ -356,7 +368,9 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
     if (number >= 1000000) {
       return '${(number / 1000000).toStringAsFixed(1)}M';
     } else if (number >= 1000) {
-      return number.toStringAsFixed(0).replaceAllMapped(
+      return number
+          .toStringAsFixed(0)
+          .replaceAllMapped(
             RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
             (m) => '${m[1]},',
           );

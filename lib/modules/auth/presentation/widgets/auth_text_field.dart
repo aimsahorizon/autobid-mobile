@@ -24,10 +24,19 @@ class AuthTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Disable autocorrect and capitalization for username fields
+    final isUsernameField = keyboardType == TextInputType.text &&
+                            !obscureText &&
+                            (label.toLowerCase().contains('username') ||
+                             hint.toLowerCase().contains('username'));
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      autocorrect: isUsernameField ? false : true,
+      enableSuggestions: isUsernameField ? false : true,
+      textCapitalization: isUsernameField ? TextCapitalization.none : TextCapitalization.none,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

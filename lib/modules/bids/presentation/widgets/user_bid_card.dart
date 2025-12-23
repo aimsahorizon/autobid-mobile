@@ -17,11 +17,7 @@ class UserBidCard extends StatefulWidget {
   final UserBidEntity bid;
   final Function(UserBidEntity)? onTap;
 
-  const UserBidCard({
-    super.key,
-    required this.bid,
-    this.onTap,
-  });
+  const UserBidCard({super.key, required this.bid, this.onTap});
 
   @override
   State<UserBidCard> createState() => _UserBidCardState();
@@ -37,7 +33,10 @@ class _UserBidCardState extends State<UserBidCard> {
     // Only start timer for active auctions
     if (widget.bid.status == UserBidStatus.active) {
       _updateTimeRemaining();
-      _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTimeRemaining());
+      _timer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _updateTimeRemaining(),
+      );
     }
   }
 
@@ -63,11 +62,18 @@ class _UserBidCardState extends State<UserBidCard> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final isBlocked =
+        widget.bid.status == UserBidStatus.won && !widget.bid.canAccess;
+
     return GestureDetector(
-      onTap: widget.onTap != null ? () => widget.onTap!(widget.bid) : null,
+      onTap: isBlocked || widget.onTap == null
+          ? null
+          : () => widget.onTap!(widget.bid),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+          color: isDark
+              ? ColorConstants.surfaceDark
+              : ColorConstants.surfaceLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: _getBorderColor(isDark),
@@ -81,6 +87,7 @@ class _UserBidCardState extends State<UserBidCard> {
               imageUrl: widget.bid.carImageUrl,
               status: widget.bid.status,
               isHighestBidder: widget.bid.isHighestBidder,
+              isBlocked: isBlocked,
             ),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -111,7 +118,10 @@ class _UserBidCardState extends State<UserBidCard> {
                   if (widget.bid.status == UserBidStatus.active)
                     _TimeRemainingChip(timeRemaining: _timeRemaining)
                   else
-                    _StatusChip(status: widget.bid.status),
+                    _StatusChip(
+                      status: widget.bid.status,
+                      awaitingSeller: widget.bid.awaitingSellerDecision,
+                    ),
                 ],
               ),
             ),
@@ -122,7 +132,7 @@ class _UserBidCardState extends State<UserBidCard> {
   }
 
   /// Determines border color based on bid status and position
-  /// Green: Winning or Won | Orange: Outbid | Red: Lost
+  /// Green: Winning or Won | Orange: Outbid | Red: Lost | Gray: Cancelled
   Color _getBorderColor(bool isDark) {
     switch (widget.bid.status) {
       case UserBidStatus.active:
@@ -130,9 +140,13 @@ class _UserBidCardState extends State<UserBidCard> {
             ? ColorConstants.success
             : ColorConstants.warning;
       case UserBidStatus.won:
-        return ColorConstants.success;
+        return widget.bid.awaitingSellerDecision
+            ? ColorConstants.warning
+            : ColorConstants.success;
       case UserBidStatus.lost:
         return ColorConstants.error.withValues(alpha: 0.5);
+      case UserBidStatus.cancelled:
+        return Colors.grey.withValues(alpha: 0.5);
     }
   }
 }
@@ -142,11 +156,13 @@ class _CardImage extends StatelessWidget {
   final String imageUrl;
   final UserBidStatus status;
   final bool isHighestBidder;
+  final bool isBlocked;
 
   const _CardImage({
     required this.imageUrl,
     required this.status,
     required this.isHighestBidder,
+    required this.isBlocked,
   });
 
   @override
@@ -177,6 +193,8 @@ class _CardImage extends StatelessWidget {
               right: 8,
               child: _BidPositionBadge(isHighestBidder: isHighestBidder),
             ),
+          if (status == UserBidStatus.won && isBlocked)
+            Positioned(top: 8, right: 8, child: _PendingBadge()),
         ],
       ),
     );
@@ -194,7 +212,9 @@ class _BidPositionBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isHighestBidder ? ColorConstants.success : ColorConstants.warning,
+        color: isHighestBidder
+            ? ColorConstants.success
+            : ColorConstants.warning,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -209,6 +229,35 @@ class _BidPositionBadge extends StatelessWidget {
           Text(
             isHighestBidder ? 'Winning' : 'Outbid',
             style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Badge indicating seller action pending after winning
+class _PendingBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: ColorConstants.warning,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.hourglass_bottom, size: 12, color: Colors.white),
+          SizedBox(width: 4),
+          Text(
+            'Awaiting seller',
+            style: TextStyle(
               color: Colors.white,
               fontSize: 10,
               fontWeight: FontWeight.w600,
@@ -265,7 +314,9 @@ class _BidAmountRow extends StatelessWidget {
     if (amount >= 1000000) {
       return '${(amount / 1000000).toStringAsFixed(2)}M';
     }
-    return amount.toStringAsFixed(0).replaceAllMapped(
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );
@@ -324,36 +375,41 @@ class _TimeRemainingChip extends StatelessWidget {
 /// Status chip for ended auctions showing Won or Lost
 class _StatusChip extends StatelessWidget {
   final UserBidStatus status;
+  final bool awaitingSeller;
 
-  const _StatusChip({required this.status});
+  const _StatusChip({required this.status, this.awaitingSeller = false});
 
   @override
   Widget build(BuildContext context) {
     final isWon = status == UserBidStatus.won;
+    final isAwaiting = isWon && awaitingSeller;
+    final color = isWon
+        ? (isAwaiting ? ColorConstants.warning : ColorConstants.success)
+        : ColorConstants.error;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isWon
-            ? ColorConstants.success.withValues(alpha: 0.1)
-            : ColorConstants.error.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isWon ? Icons.emoji_events : Icons.close,
+            isAwaiting
+                ? Icons.hourglass_bottom
+                : (isWon ? Icons.emoji_events : Icons.close),
             size: 14,
-            color: isWon ? ColorConstants.success : ColorConstants.error,
+            color: color,
           ),
           const SizedBox(width: 4),
           Text(
-            isWon ? 'Won' : 'Lost',
+            isWon ? (isAwaiting ? 'Awaiting seller' : 'Won') : 'Lost',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isWon ? ColorConstants.success : ColorConstants.error,
+              color: color,
             ),
           ),
         ],

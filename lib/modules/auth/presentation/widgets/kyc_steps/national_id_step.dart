@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
 import '../image_picker_card.dart';
@@ -6,10 +8,7 @@ import '../image_picker_card.dart';
 class NationalIdStep extends StatefulWidget {
   final KYCRegistrationController controller;
 
-  const NationalIdStep({
-    super.key,
-    required this.controller,
-  });
+  const NationalIdStep({super.key, required this.controller});
 
   @override
   State<NationalIdStep> createState() => _NationalIdStepState();
@@ -17,6 +16,7 @@ class NationalIdStep extends StatefulWidget {
 
 class _NationalIdStepState extends State<NationalIdStep> {
   final _idNumberController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -36,27 +36,29 @@ class _NationalIdStepState extends State<NationalIdStep> {
   }
 
   void _pickImage(String type) async {
-    // Mock image picker - in production, use image_picker package
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Image Picker'),
-        content: Text('Image picker for $type would open here'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              // Mock: Create a placeholder file
-              Navigator.pop(context);
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final File imageFile = File(image.path);
+        if (type == 'front') {
+          widget.controller.setNationalIdFront(imageFile);
+        } else {
+          widget.controller.setNationalIdBack(imageFile);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+      }
+    }
   }
 
   @override

@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../app/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
 import '../image_picker_card.dart';
@@ -6,35 +8,35 @@ import '../image_picker_card.dart';
 class ProofOfAddressStep extends StatefulWidget {
   final KYCRegistrationController controller;
 
-  const ProofOfAddressStep({
-    super.key,
-    required this.controller,
-  });
+  const ProofOfAddressStep({super.key, required this.controller});
 
   @override
   State<ProofOfAddressStep> createState() => _ProofOfAddressStepState();
 }
 
 class _ProofOfAddressStepState extends State<ProofOfAddressStep> {
+  final ImagePicker _picker = ImagePicker();
+
   void _pickDocument() async {
-    // Mock document picker
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Upload Document'),
-        content: const Text('Document picker would open here'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final File imageFile = File(image.path);
+        widget.controller.setProofOfAddress(imageFile);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+      }
+    }
   }
 
   @override
@@ -148,9 +150,9 @@ class _ProofOfAddressStepState extends State<ProofOfAddressStep> {
         const SizedBox(width: 8),
         Text(
           text,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: ColorConstants.info,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: ColorConstants.info),
         ),
       ],
     );

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../../browse/presentation/pages/auction_detail_page.dart';
+import '../../../browse/browse_module.dart';
+import '../../../notifications/notifications_module.dart';
+import '../../../notifications/presentation/pages/notifications_page.dart';
+import '../../bids_module.dart';
 import '../controllers/bids_controller.dart';
 import '../widgets/user_bids_list.dart';
 import '../../domain/entities/user_bid_entity.dart';
-import 'active_bid_detail_page.dart';
 import 'won_bid_detail_page.dart';
 import 'lost_bid_detail_page.dart';
 
@@ -20,10 +24,7 @@ import 'lost_bid_detail_page.dart';
 class BidsPage extends StatefulWidget {
   final BidsController controller;
 
-  const BidsPage({
-    super.key,
-    required this.controller,
-  });
+  const BidsPage({super.key, required this.controller});
 
   @override
   State<BidsPage> createState() => _BidsPageState();
@@ -32,14 +33,17 @@ class BidsPage extends StatefulWidget {
 class _BidsPageState extends State<BidsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isGridView = true; // Toggle between grid and list view
+
+  BidsController get _controller => BidsModule.instance.controller;
 
   @override
   void initState() {
     super.initState();
-    // Initialize tab controller for 3 tabs
-    _tabController = TabController(length: 3, vsync: this);
+    // Initialize tab controller for 4 tabs
+    _tabController = TabController(length: 4, vsync: this);
     // Load bids on page init
-    widget.controller.loadUserBids();
+    _controller.loadUserBids();
   }
 
   @override
@@ -50,19 +54,52 @@ class _BidsPageState extends State<BidsPage>
 
   /// Handles pull-to-refresh action
   Future<void> _handleRefresh() async {
-    await widget.controller.loadUserBids();
+    await _controller.loadUserBids();
   }
 
   void _navigateToActiveBid(BuildContext context, UserBidEntity bid) {
+    print(
+      '[BidsPage] _navigateToActiveBid called with auctionId=${bid.auctionId}',
+    );
+
+    // Ensure Browse module uses same data mode as Bids module
+    // If Bids is using real data, Browse should too
+    if (BrowseModule.useMockData != BidsModule.useMockData) {
+      print(
+        '[BidsPage] Syncing data mode: BidsModule.useMockData=${BidsModule.useMockData}, BrowseModule.useMockData=${BrowseModule.useMockData}',
+      );
+      BrowseModule.toggleDemoMode();
+    }
+
+    // Navigate to auction detail page from browse module
+    // This shows the actual auction with live bidding functionality
+    final controller = BrowseModule.instance.createAuctionDetailController();
+    print(
+      '[BidsPage] Created AuctionDetailController, navigating to AuctionDetailPage',
+    );
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ActiveBidDetailPage(auctionId: bid.auctionId),
+        builder: (context) =>
+            AuctionDetailPage(auctionId: bid.auctionId, controller: controller),
       ),
     );
   }
 
   void _navigateToWonBid(BuildContext context, UserBidEntity bid) {
+    if (!bid.canAccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Waiting for seller to proceed to transaction.'),
+          backgroundColor: ColorConstants.warning,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    print(
+      '[BidsPage] _navigateToWonBid called with auctionId=${bid.auctionId}',
+    );
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -72,10 +109,34 @@ class _BidsPageState extends State<BidsPage>
   }
 
   void _navigateToLostBid(BuildContext context, UserBidEntity bid) {
+    print(
+      '[BidsPage] _navigateToLostBid called with auctionId=${bid.auctionId}',
+    );
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => LostBidDetailPage(auctionId: bid.auctionId),
+      ),
+    );
+  }
+
+  void _toggleDemoMode(BuildContext context) {
+    // Toggle both modules to keep them in sync
+    BrowseModule.toggleDemoMode();
+    BidsModule.toggleDemoMode();
+
+    // Force rebuild to get new controller
+    setState(() {});
+    _controller.loadUserBids();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          BidsModule.useMockData
+              ? 'Switched to Mock Data'
+              : 'Switched to Database',
+        ),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -87,14 +148,106 @@ class _BidsPageState extends State<BidsPage>
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('My Bids'),
         centerTitle: true,
+        actions: [
+          // Notification bell with unread count badge
+          ListenableBuilder(
+            listenable: NotificationsModule.instance.controller,
+            builder: (context, _) {
+              final notificationController =
+                  NotificationsModule.instance.controller;
+              final unreadCount = notificationController.unreadCount;
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsPage(),
+                        ),
+                      );
+                    },
+                    tooltip: 'Notifications',
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => _controller.loadUserBids(),
+            tooltip: 'Refresh',
+          ),
+          IconButton(
+            icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
+            onPressed: () => setState(() => _isGridView = !_isGridView),
+            tooltip: _isGridView ? 'List View' : 'Grid View',
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'toggle_demo') {
+                _toggleDemoMode(context);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'toggle_demo',
+                child: Row(
+                  children: [
+                    Icon(
+                      BidsModule.useMockData
+                          ? Icons.cloud_outlined
+                          : Icons.storage_outlined,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      BidsModule.useMockData
+                          ? 'Switch to Database'
+                          : 'Switch to Mock Data',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: ListenableBuilder(
-        listenable: widget.controller,
+        listenable: _controller,
         builder: (context, _) {
           // Show error state with retry button
-          if (widget.controller.hasError && widget.controller.totalBidsCount == 0) {
+          if (_controller.hasError && _controller.totalBidsCount == 0) {
             return _buildErrorState();
           }
 
@@ -135,18 +288,23 @@ class _BidsPageState extends State<BidsPage>
                   tabs: [
                     _TabWithBadge(
                       label: 'Active',
-                      count: widget.controller.activeBids.length,
+                      count: _controller.activeBids.length,
                       color: ColorConstants.primary,
                     ),
                     _TabWithBadge(
                       label: 'Won',
-                      count: widget.controller.wonBids.length,
+                      count: _controller.wonBids.length,
                       color: ColorConstants.success,
                     ),
                     _TabWithBadge(
                       label: 'Lost',
-                      count: widget.controller.lostBids.length,
+                      count: _controller.lostBids.length,
                       color: ColorConstants.error,
+                    ),
+                    _TabWithBadge(
+                      label: 'Cancelled',
+                      count: _controller.cancelledBids.length,
+                      color: ColorConstants.warning,
                     ),
                   ],
                 ),
@@ -160,30 +318,48 @@ class _BidsPageState extends State<BidsPage>
                     children: [
                       // Active bids tab
                       UserBidsList(
-                        bids: widget.controller.activeBids,
-                        isLoading: widget.controller.isLoading,
+                        bids: _controller.activeBids,
+                        isLoading: _controller.isLoading,
                         emptyTitle: 'No Active Bids',
-                        emptySubtitle: 'Browse auctions and place a bid to get started!',
+                        emptySubtitle:
+                            'Browse auctions and place a bid to get started!',
                         emptyIcon: Icons.gavel_rounded,
                         onBidTap: (bid) => _navigateToActiveBid(context, bid),
+                        isGridView: _isGridView,
                       ),
                       // Won bids tab
                       UserBidsList(
-                        bids: widget.controller.wonBids,
-                        isLoading: widget.controller.isLoading,
+                        bids: _controller.wonBids,
+                        isLoading: _controller.isLoading,
                         emptyTitle: 'No Won Auctions',
-                        emptySubtitle: 'Keep bidding to win your first auction!',
+                        emptySubtitle:
+                            'Keep bidding to win your first auction!',
                         emptyIcon: Icons.emoji_events_outlined,
                         onBidTap: (bid) => _navigateToWonBid(context, bid),
+                        isGridView: _isGridView,
                       ),
                       // Lost bids tab
                       UserBidsList(
-                        bids: widget.controller.lostBids,
-                        isLoading: widget.controller.isLoading,
+                        bids: _controller.lostBids,
+                        isLoading: _controller.isLoading,
                         emptyTitle: 'No Lost Auctions',
-                        emptySubtitle: 'You haven\'t lost any auctions yet. Good luck!',
+                        emptySubtitle:
+                            'You haven\'t lost any auctions yet. Good luck!',
                         emptyIcon: Icons.sentiment_neutral_outlined,
                         onBidTap: (bid) => _navigateToLostBid(context, bid),
+                        isGridView: _isGridView,
+                      ),
+                      // Cancelled bids tab
+                      UserBidsList(
+                        bids: _controller.cancelledBids,
+                        isLoading: _controller.isLoading,
+                        emptyTitle: 'No Cancelled Deals',
+                        emptySubtitle:
+                            'Deals you\'ve cancelled will appear here.',
+                        emptyIcon: Icons.cancel_outlined,
+                        onBidTap: (bid) =>
+                            _navigateToCancelledBid(context, bid),
+                        isGridView: _isGridView,
                       ),
                     ],
                   ),
@@ -192,6 +368,19 @@ class _BidsPageState extends State<BidsPage>
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _navigateToCancelledBid(BuildContext context, UserBidEntity bid) {
+    // Cancelled bids are read-only - just show auction details
+    print(
+      '[BidsPage] _navigateToCancelledBid called with auctionId=${bid.auctionId}',
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LostBidDetailPage(auctionId: bid.auctionId),
       ),
     );
   }
@@ -223,11 +412,13 @@ class _BidsPageState extends State<BidsPage>
             const SizedBox(height: 24),
             Text(
               'Failed to Load Bids',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              widget.controller.errorMessage ?? 'Something went wrong',
+              _controller.errorMessage ?? 'Something went wrong',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: isDark
@@ -237,7 +428,7 @@ class _BidsPageState extends State<BidsPage>
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: widget.controller.loadUserBids,
+              onPressed: _controller.loadUserBids,
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
             ),

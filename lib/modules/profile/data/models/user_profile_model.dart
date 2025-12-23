@@ -12,15 +12,25 @@ class UserProfileModel extends UserProfileEntity {
     required super.email,
   });
 
-  /// Create model from JSON (Supabase response)
+  /// Create model from JSON (Supabase response from users table)
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
+    // Build full name from first, middle, last name fields
+    final firstName = json['first_name'] as String? ?? '';
+    final middleName = json['middle_name'] as String? ?? '';
+    final lastName = json['last_name'] as String? ?? '';
+
+    // Combine names with proper spacing
+    final fullName = middleName.isNotEmpty
+        ? '$firstName $middleName $lastName'
+        : '$firstName $lastName';
+
     return UserProfileModel(
       id: json['id'] as String,
       coverPhotoUrl: json['cover_photo_url'] as String? ?? '',
       profilePhotoUrl: json['profile_photo_url'] as String? ?? '',
-      fullName: json['full_name'] as String,
+      fullName: fullName.trim(),
       username: json['username'] as String,
-      contactNumber: json['contact_number'] as String,
+      contactNumber: json['phone_number'] as String? ?? '',
       email: json['email'] as String,
     );
   }

@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../domain/entities/user_profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
+import '../../data/datasources/profile_supabase_datasource.dart';
 
 class ProfileController extends ChangeNotifier {
   final ProfileRepository _repository;
+  final ProfileSupabaseDataSource _dataSource;
 
-  ProfileController(this._repository);
+  ProfileController(this._repository, this._dataSource);
 
   UserProfileEntity? _profile;
   bool _isLoading = false;
@@ -25,7 +28,9 @@ class ProfileController extends ChangeNotifier {
       _profile = await _repository.getUserProfile();
       _errorMessage = null;
     } catch (e) {
-      _errorMessage = 'Failed to load profile';
+      // Log actual error for debugging
+      print('Profile load error: $e');
+      _errorMessage = 'Failed to load profile: $e';
       _profile = null;
     } finally {
       _isLoading = false;
@@ -51,5 +56,63 @@ class ProfileController extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Upload and update profile photo
+  Future<void> updateProfilePhoto(File imageFile) async {
+    if (_profile == null) return;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Upload to storage
+      final photoUrl = await _dataSource.uploadProfilePhoto(_profile!.id, imageFile);
+
+      // Update in database
+      final updatedProfile = await _dataSource.updateProfile(
+        userId: _profile!.id,
+        profilePhotoUrl: photoUrl,
+      );
+
+      _profile = updatedProfile;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Failed to update profile photo: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Upload and update cover photo
+  Future<void> updateCoverPhoto(File imageFile) async {
+    if (_profile == null) return;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // Upload to storage
+      final photoUrl = await _dataSource.uploadCoverPhoto(_profile!.id, imageFile);
+
+      // Update in database
+      final updatedProfile = await _dataSource.updateProfile(
+        userId: _profile!.id,
+        coverPhotoUrl: photoUrl,
+      );
+
+      _profile = updatedProfile;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = 'Failed to update cover photo: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

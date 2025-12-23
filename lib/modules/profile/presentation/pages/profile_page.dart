@@ -1,25 +1,38 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../../../app/core/controllers/theme_controller.dart';
+import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/utils/dev_admin_auth.dart';
+import '../../../admin/admin_module.dart';
+import '../../../admin/presentation/pages/admin_main_page.dart';
+import '../controllers/pricing_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../widgets/pricing_section.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_section.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/account_settings_section.dart';
 import '../widgets/support_section.dart';
+import 'subscription_page.dart';
+import 'token_purchase_page.dart';
 import 'update_email_page.dart';
 import 'update_phone_page.dart';
 import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
+import 'notifications_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ProfileController controller;
+  final PricingController pricingController;
   final ThemeController themeController;
 
   const ProfilePage({
     super.key,
     required this.controller,
+    required this.pricingController,
     required this.themeController,
   });
 
@@ -34,6 +47,12 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     widget.controller.loadProfile();
+
+    // Load pricing data
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId != null) {
+      widget.pricingController.loadUserPricing(userId);
+    }
   }
 
   void _handleCoverPhotoTap() {
@@ -58,7 +77,9 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Text(
                 isCover ? 'Update Cover Photo' : 'Update Profile Photo',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
               ListTile(
@@ -94,22 +115,71 @@ class _ProfilePageState extends State<ProfilePage> {
         imageQuality: 85,
       );
 
-      if (image != null && mounted) {
-        // TODO: Upload to Supabase Storage:
-        // final bytes = await image.readAsBytes();
-        // final path = '${userId}/${isCover ? 'cover' : 'profile'}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        // await supabase.storage.from('profiles').uploadBinary(path, bytes);
-        // final url = supabase.storage.from('profiles').getPublicUrl(path);
-        // await widget.controller.updatePhoto(url, isCover);
+      if (image == null) return;
+      if (!mounted) return;
+
+      // Show uploading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text('Uploading ${isCover ? 'cover' : 'profile'} photo...'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      try {
+        final imageFile = File(image.path);
+
+        // Upload and update
+        if (isCover) {
+          await widget.controller.updateCoverPhoto(imageFile);
+        } else {
+          await widget.controller.updateProfilePhoto(imageFile);
+        }
+
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${isCover ? 'Cover' : 'Profile'} photo selected: ${image.name}')),
+          SnackBar(
+            content: Text(
+              '${isCover ? 'Cover' : 'Profile'} photo updated successfully',
+            ),
+            backgroundColor: ColorConstants.success,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        Navigator.pop(context); // Close loading
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to pick image')),
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
         );
       }
     }
@@ -146,7 +216,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _navigateToCustomerSupport() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerSupportPage()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CustomerSupportPage()),
+    );
   }
 
   void _navigateToFAQ() {
@@ -156,14 +229,96 @@ class _ProfilePageState extends State<ProfilePage> {
   void _navigateToTerms() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const LegalPage(title: 'Terms & Conditions', type: 'terms')),
+      MaterialPageRoute(
+        builder: (_) =>
+            const LegalPage(title: 'Terms & Conditions', type: 'terms'),
+      ),
     );
   }
 
   void _navigateToPrivacy() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const LegalPage(title: 'Privacy Policy', type: 'privacy')),
+      MaterialPageRoute(
+        builder: (_) =>
+            const LegalPage(title: 'Privacy Policy', type: 'privacy'),
+      ),
+    );
+  }
+
+  void _navigateToTokenPurchase() {
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TokenPurchasePage(
+          userId: userId,
+          controller: widget.pricingController,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAdminDashboard() async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // Quick admin login
+    final success = await DevAdminAuth.quickAdminLogin();
+
+    if (!mounted) return;
+
+    Navigator.pop(context); // Close loading
+
+    if (success) {
+      // Initialize admin module
+      AdminModule.instance.initialize();
+
+      // Navigate to admin dashboard
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AdminMainPage(
+            controller: AdminModule.instance.controller,
+            kycController: AdminModule.instance.kycController,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to access admin dashboard'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
+  }
+
+  void _navigateToSubscription() {
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SubscriptionPage(
+          userId: userId,
+          controller: widget.pricingController,
+        ),
+      ),
+    );
+  }
+
+  void _navigateToNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationsPage()),
     );
   }
 
@@ -190,7 +345,9 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirm == true && mounted) {
       await widget.controller.signOut();
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/login', (route) => false);
       }
     }
   }
@@ -198,10 +355,23 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: _navigateToNotifications,
+            tooltip: 'Notifications',
+          ),
+        ],
+      ),
+      extendBodyBehindAppBar: true,
       body: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, _) {
-          if (widget.controller.isLoading && widget.controller.profile == null) {
+          if (widget.controller.isLoading &&
+              widget.controller.profile == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -212,7 +382,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   const Icon(Icons.error_outline, size: 64),
                   const SizedBox(height: 16),
-                  Text(widget.controller.errorMessage ?? 'Error loading profile'),
+                  Text(
+                    widget.controller.errorMessage ?? 'Error loading profile',
+                  ),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: widget.controller.loadProfile,
@@ -246,6 +418,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     email: profile.email,
                   ),
                   const SizedBox(height: 16),
+                  PricingSection(
+                    pricingController: widget.pricingController,
+                    onManageTokens: _navigateToTokenPurchase,
+                    onManageSubscription: _navigateToSubscription,
+                  ),
+                  const SizedBox(height: 16),
                   AccountSettingsSection(
                     email: profile.email,
                     phone: profile.contactNumber,
@@ -260,6 +438,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     onPrivacyPolicy: _navigateToPrivacy,
                   ),
                   const SizedBox(height: 16),
+                  // DEV ONLY: Admin Quick Access
+                  _buildAdminQuickAccess(),
+                  const SizedBox(height: 16),
                   SettingsSection(
                     themeController: widget.themeController,
                     onSignOut: _handleSignOut,
@@ -270,6 +451,46 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// DEV ONLY: Admin quick access button
+  Widget _buildAdminQuickAccess() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: ColorConstants.warning.withValues(alpha: 0.1),
+        border: Border.all(color: ColorConstants.warning, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: ColorConstants.warning,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(
+            Icons.admin_panel_settings,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
+        title: const Text(
+          'Admin Dashboard',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Text(
+          'DEV ONLY: Quick Access',
+          style: TextStyle(
+            color: ColorConstants.warning,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: _navigateToAdminDashboard,
       ),
     );
   }

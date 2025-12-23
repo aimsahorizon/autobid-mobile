@@ -1,25 +1,60 @@
 import 'package:flutter/material.dart';
 import '../../../../app/core/constants/color_constants.dart';
+import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
+import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import '../controllers/listing_draft_controller.dart';
 import 'create_listing_page.dart';
 
-class CancelledListingDetailPage extends StatelessWidget {
+class CancelledListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
-  final ListingDraftController controller;
-  final String sellerId;
+  final ListingDraftController? controller;
+  final String? sellerId;
 
   const CancelledListingDetailPage({
     super.key,
     required this.listing,
-    required this.controller,
-    required this.sellerId,
+    this.controller,
+    this.sellerId,
   });
 
-  void _editListing(BuildContext context) {
-    showDialog(
+  /// Check if edit actions are available (requires controller and sellerId)
+  bool get canPerformActions => controller != null && sellerId != null;
+
+  @override
+  State<CancelledListingDetailPage> createState() =>
+      _CancelledListingDetailPageState();
+}
+
+class _CancelledListingDetailPageState
+    extends State<CancelledListingDetailPage> {
+  bool _isProcessing = false;
+  late final ListingSupabaseDataSource _datasource;
+  late final String? _effectiveSellerId;
+
+  @override
+  void initState() {
+    super.initState();
+    _datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+    // Use provided sellerId or try to get from current user
+    _effectiveSellerId =
+        widget.sellerId ?? SupabaseConfig.client.auth.currentUser?.id;
+  }
+
+  Future<void> _editListing(BuildContext context) async {
+    if (_effectiveSellerId == null || widget.controller == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to edit: Please log in first'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Edit Listing'),
@@ -28,61 +63,173 @@ class CancelledListingDetailPage extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Create new draft from cancelled listing
-              Navigator.pop(context); // Close dialog
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CreateListingPage(
-                    controller: controller,
-                    sellerId: sellerId,
-                    draftId: listing.id,
-                  ),
-                ),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Edit'),
           ),
         ],
       ),
     );
+
+    if (confirmed != true || !mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Copy the cancelled listing to a new draft
+      final draftId = await _datasource.copyListingToDraft(
+        widget.listing.id,
+        _effectiveSellerId!,
+      );
+
+      // Remove the old cancelled listing so it disappears from the tab
+      try {
+        await _datasource.deleteListing(widget.listing.id, _effectiveSellerId!);
+      } catch (e) {
+        // Non-fatal: continue even if delete fails
+        debugPrint(
+          'Warning: failed to delete cancelled listing after copy: $e',
+        );
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Navigate to create listing page with the copied draft
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CreateListingPage(
+            controller: widget.controller!,
+            sellerId: _effectiveSellerId!,
+            draftId: draftId,
+          ),
+        ),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Draft created successfully. Edit and resubmit for approval.',
+          ),
+          backgroundColor: ColorConstants.success,
+        ),
+      );
+
+      // Inform parent to refresh lists and remove the cancelled card
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create draft: $e'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
   }
 
-  void _reAuction(BuildContext context) {
-    showDialog(
+  Future<void> _reAuction(BuildContext context) async {
+    if (_effectiveSellerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to re-auction: Please log in first'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Re-auction Listing'),
         content: const Text(
-          'This will create a new auction with the same details. You can adjust the starting price and auction duration.',
+          'This will create a new auction with the same details. '
+          'The new auction will be pending admin approval before going live.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Create new auction from cancelled listing
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('New auction created')),
-              );
-            },
-            child: const Text('Continue'),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Create New Auction'),
           ),
         ],
       ),
     );
+
+    if (confirmed != true || !mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Create new auction from the cancelled listing
+      final newAuctionId = await _datasource.createAuctionFromCancelled(
+        widget.listing.id,
+        _effectiveSellerId!,
+        null, // Use original starting price
+        null, // Use default 7-day auction duration
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Pop back to listing view
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'New auction created (ID: $newAuctionId). It is pending admin approval.',
+          ),
+          backgroundColor: ColorConstants.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create new auction: $e'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
   }
 
-  void _deleteListing(BuildContext context) {
-    showDialog(
+  Future<void> _deleteListing(BuildContext context) async {
+    if (_effectiveSellerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to delete: Please log in first'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Listing'),
@@ -91,24 +238,54 @@ class CancelledListingDetailPage extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              // TODO: Delete listing permanently
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to list
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Listing deleted')),
-              );
-            },
+            onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+
+    if (confirmed != true || !mounted) return;
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Delete the listing
+      await _datasource.deleteListing(widget.listing.id, _effectiveSellerId!);
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Return to listing view with result to trigger refresh
+      Navigator.pop(context, true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Listing deleted successfully'),
+          backgroundColor: ColorConstants.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete listing: $e'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+    }
   }
 
   @override
@@ -117,22 +294,22 @@ class CancelledListingDetailPage extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cancelled Listing'),
-      ),
-      backgroundColor: isDark ? ColorConstants.backgroundDark : ColorConstants.backgroundLight,
+      appBar: AppBar(title: const Text('Cancelled Listing')),
+      backgroundColor: isDark
+          ? ColorConstants.backgroundDark
+          : ColorConstants.backgroundLight,
       body: Column(
         children: [
           Expanded(
             child: ListView(
               children: [
-                ListingCoverSection(listing: listing),
+                ListingCoverSection(listing: widget.listing),
                 const SizedBox(height: 16),
                 _buildCancelledStatusCard(context, isDark),
                 const SizedBox(height: 16),
                 _buildActionOptionsCard(context, isDark),
                 const SizedBox(height: 16),
-                ListingInfoSection(listing: listing),
+                ListingInfoSection(listing: widget.listing),
                 const SizedBox(height: 16),
               ],
             ),
@@ -143,7 +320,8 @@ class CancelledListingDetailPage extends StatelessWidget {
   }
 
   Widget _buildCancelledStatusCard(BuildContext context, bool isDark) {
-    final reserveNotMet = listing.reservePrice != null && !listing.isReserveMet;
+    final reserveNotMet =
+        widget.listing.reservePrice != null && !widget.listing.isReserveMet;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -166,11 +344,7 @@ class CancelledListingDetailPage extends StatelessWidget {
               color: Colors.red.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.cancel,
-              size: 48,
-              color: Colors.red,
-            ),
+            child: const Icon(Icons.cancel, size: 48, color: Colors.red),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -185,7 +359,7 @@ class CancelledListingDetailPage extends StatelessWidget {
           Text(
             reserveNotMet
                 ? 'Reserve price was not met'
-                : 'Ended on ${_formatDate(listing.endTime ?? listing.createdAt)}',
+                : 'Ended on ${_formatDate(widget.listing.endTime ?? widget.listing.createdAt)}',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -210,17 +384,20 @@ class CancelledListingDetailPage extends StatelessWidget {
                   children: [
                     _StatColumn(
                       label: 'Total Bids',
-                      value: '${listing.totalBids}',
+                      value: '${widget.listing.totalBids}',
                       isDark: isDark,
                     ),
                     Container(
                       height: 40,
                       width: 1,
-                      color: isDark ? ColorConstants.surfaceLight : Colors.grey.shade300,
+                      color: isDark
+                          ? ColorConstants.surfaceLight
+                          : Colors.grey.shade300,
                     ),
                     _StatColumn(
                       label: reserveNotMet ? 'Highest Bid' : 'Starting Price',
-                      value: '₱${(listing.currentBid ?? listing.startingPrice).toStringAsFixed(0)}',
+                      value:
+                          '₱${(widget.listing.currentBid ?? widget.listing.startingPrice).toStringAsFixed(0)}',
                       isDark: isDark,
                     ),
                   ],
@@ -232,15 +409,21 @@ class CancelledListingDetailPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.info_outline, size: 18, color: Colors.orange),
+                        const Icon(
+                          Icons.info_outline,
+                          size: 18,
+                          color: Colors.orange,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Reserve price of ₱${listing.reservePrice!.toStringAsFixed(0)} was not reached',
+                            'Reserve price of ₱${widget.listing.reservePrice!.toStringAsFixed(0)} was not reached',
                             style: const TextStyle(fontSize: 13),
                           ),
                         ),
@@ -340,10 +523,7 @@ class _StatColumn extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ],
     );
