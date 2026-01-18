@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../../data/datasources/seller_listings_mock_datasource.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 
 /// Controller for managing seller listings across all tabs
 /// Supports both mock and Supabase datasources

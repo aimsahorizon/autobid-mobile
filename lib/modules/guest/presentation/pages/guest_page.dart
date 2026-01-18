@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/controllers/theme_controller.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import '../controllers/guest_controller.dart';
 import '../widgets/guest_browse_tab.dart';
 import '../widgets/account_status_tab.dart';

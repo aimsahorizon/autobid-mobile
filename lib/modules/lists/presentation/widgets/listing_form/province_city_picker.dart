@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/data/philippines_locations.dart';
+import 'package:autobid_mobile/core/data/philippines_locations.dart';
 
 class ProvinceCityPicker extends StatefulWidget {
   final String? province;

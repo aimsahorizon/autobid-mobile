@@ -1,4 +1,4 @@
-import '../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'data/datasources/notification_mock_datasource.dart';
 import 'data/datasources/notification_supabase_datasource.dart';
 import 'presentation/controllers/notification_controller.dart';

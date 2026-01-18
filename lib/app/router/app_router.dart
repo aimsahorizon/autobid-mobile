@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/controllers/theme_controller.dart';
+import '../../core/controllers/theme_controller.dart';
 import '../presentation/pages/home_page.dart';
 import '../../modules/auth/auth_module.dart';
 import '../../modules/auth/auth_routes.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../controllers/pricing_controller.dart';
 import 'stripe_payment_page.dart';

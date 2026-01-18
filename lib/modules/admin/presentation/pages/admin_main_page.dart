@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/admin_controller.dart';
 import '../controllers/kyc_controller.dart';
 import '../controllers/admin_transaction_controller.dart';

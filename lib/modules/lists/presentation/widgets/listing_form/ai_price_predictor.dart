@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
-import '../../../../../app/core/services/ai_service.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/services/ai_service.dart';
 
 class AiPricePredictor extends StatefulWidget {
   final String? brand;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide TokenType;
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/services/stripe_service.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/services/stripe_service.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/deposit_supabase_datasource.dart';
 
 /// Deposit payment page for auction participation

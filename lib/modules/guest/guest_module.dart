@@ -1,4 +1,4 @@
-import '../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'data/datasources/guest_supabase_datasource.dart';
 import 'presentation/controllers/guest_controller.dart';
 

@@ -7,7 +7,7 @@ import '../../domain/usecases/verify_phone_otp_usecase.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/models/kyc_registration_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../app/core/services/ai_id_extraction_service.dart';
+import 'package:autobid_mobile/core/services/ai_id_extraction_service.dart';
 import '../../data/datasources/demo_data_generator.dart';
 
 enum KYCStep {

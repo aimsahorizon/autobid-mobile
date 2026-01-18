@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app/app.dart';
-import 'app/core/config/supabase_config.dart';
-import 'app/core/services/stripe_service.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/services/stripe_service.dart';
 import 'modules/transactions/transactions_module.dart';
 
 void main() async {

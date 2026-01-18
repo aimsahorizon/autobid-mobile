@@ -1,4 +1,4 @@
-import '../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../profile/data/datasources/pricing_supabase_datasource.dart';
 import '../profile/data/repositories/pricing_repository_impl.dart';
 import '../profile/domain/usecases/consume_bidding_token_usecase.dart';

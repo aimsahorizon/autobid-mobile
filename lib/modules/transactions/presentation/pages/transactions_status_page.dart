@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/transaction_status_entity.dart';
 import '../controllers/buyer_seller_transactions_controller.dart';
 import '../pages/pre_transaction_realtime_page.dart';

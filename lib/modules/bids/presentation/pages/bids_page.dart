@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/presentation/pages/auction_detail_page.dart';
 import '../../../browse/browse_module.dart';
 import '../../../notifications/notifications_module.dart';

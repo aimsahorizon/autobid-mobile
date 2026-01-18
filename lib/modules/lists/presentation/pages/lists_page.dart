@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../../notifications/notifications_module.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../../domain/entities/seller_listing_entity.dart';

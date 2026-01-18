@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../auth_module.dart';
 import '../controllers/kyc_registration_controller.dart';
 import '../widgets/kyc_steps/national_id_step.dart';

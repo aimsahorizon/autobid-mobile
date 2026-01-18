@@ -76,7 +76,7 @@ This document details the deviations between the current codebase and the engine
 ## 4. Refactoring Roadmap (Step-by-Step)
 
 ### Phase 1: Foundation (Global Structure)
-1.  [ ] **Move Core:** Relocate `lib/app/core` to `lib/core`.
+1.  [x] **Move Core:** Relocate `lib/app/core` to `lib/core`.
 2.  [ ] **Setup Failure:** Create `lib/core/error/failures.dart`.
 3.  [ ] **Setup DI:** Initialize `get_it` in `lib/app/di/`.
 

@@ -10,9 +10,9 @@ import '../../../modules/lists/presentation/pages/lists_page.dart';
 import '../../../modules/notifications/notifications_module.dart';
 import '../../../modules/profile/profile_module.dart';
 import '../../../modules/profile/presentation/pages/profile_page.dart';
-import '../../core/config/supabase_config.dart';
-import '../../core/controllers/theme_controller.dart';
-import '../../core/widgets/main_navigation.dart';
+import '../../../core/config/supabase_config.dart';
+import '../../../core/controllers/theme_controller.dart';
+import '../../../core/widgets/main_navigation.dart';
 
 class HomePage extends StatefulWidget {
   final ThemeController themeController;
