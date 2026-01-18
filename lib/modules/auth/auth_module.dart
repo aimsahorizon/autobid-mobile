@@ -1,5 +1,5 @@
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../profile/data/datasources/profile_supabase_datasource.dart';
+import '../profile/profile_module.dart';
 import 'data/datasources/auth_remote_datasource.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'domain/repositories/auth_repository.dart';
@@ -13,6 +13,9 @@ import 'domain/usecases/verify_email_otp_usecase.dart';
 import 'domain/usecases/verify_otp_usecase.dart';
 import 'domain/usecases/verify_phone_otp_usecase.dart';
 import 'domain/usecases/reset_password_usecase.dart';
+import '../profile/domain/usecases/check_email_exists_usecase.dart';
+import '../profile/domain/usecases/get_user_profile_by_email_usecase.dart';
+
 import 'presentation/controllers/forgot_password_controller.dart';
 import 'presentation/controllers/kyc_registration_controller.dart';
 import 'presentation/controllers/login_controller.dart';
@@ -24,7 +27,6 @@ class AuthModule {
 
   // Datasources
   late final AuthRemoteDataSource _remoteDataSource;
-  late final ProfileSupabaseDataSource _profileDataSource;
 
   // Repositories
   late final AuthRepository _authRepository;
@@ -41,6 +43,11 @@ class AuthModule {
   late final VerifyEmailOtpUseCase _verifyEmailOtpUseCase;
   late final VerifyPhoneOtpUseCase _verifyPhoneOtpUseCase;
 
+  // Profile Use Cases (Cross-module)
+  late final CheckEmailExistsUseCase _checkEmailExistsUseCase;
+  late final GetUserProfileByEmailUseCase _getUserProfileByEmailUseCase;
+
+
   AuthModule._() {
     _initializeDependencies();
   }
@@ -53,10 +60,10 @@ class AuthModule {
   void _initializeDependencies() {
     // Datasources - inject Supabase client
     _remoteDataSource = AuthRemoteDataSourceImpl(SupabaseConfig.client);
-    _profileDataSource = ProfileSupabaseDataSource(SupabaseConfig.client);
 
     // Repositories
     _authRepository = AuthRepositoryImpl(_remoteDataSource);
+    final profileRepository = ProfileModule.instance.repository;
 
     // Use cases
     _signInUseCase = SignInUseCase(_authRepository);
@@ -69,6 +76,10 @@ class AuthModule {
     _sendPhoneOtpUseCase = SendPhoneOtpUseCase(_authRepository);
     _verifyEmailOtpUseCase = VerifyEmailOtpUseCase(_authRepository);
     _verifyPhoneOtpUseCase = VerifyPhoneOtpUseCase(_authRepository);
+    
+    // Profile Use Cases
+    _checkEmailExistsUseCase = CheckEmailExistsUseCase(profileRepository);
+    _getUserProfileByEmailUseCase = GetUserProfileByEmailUseCase(profileRepository);
   }
 
   // Controllers
@@ -76,7 +87,8 @@ class AuthModule {
     return LoginController(
       signInUseCase: _signInUseCase,
       signInWithGoogleUseCase: _signInWithGoogleUseCase,
-      profileDataSource: _profileDataSource,
+      checkEmailExistsUseCase: _checkEmailExistsUseCase,
+      getUserProfileByEmailUseCase: _getUserProfileByEmailUseCase,
     );
   }
 
@@ -98,7 +110,9 @@ class AuthModule {
   }
 
   RegistrationController createRegistrationController() {
-    return RegistrationController();
+    return RegistrationController(
+      signUpUseCase: _signUpUseCase,
+    );
   }
 
   /// Create KYC registration controller with Supabase integration

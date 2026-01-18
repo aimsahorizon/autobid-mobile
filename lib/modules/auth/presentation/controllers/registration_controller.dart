@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../domain/usecases/sign_up_usecase.dart';
 
 class RegistrationController extends ChangeNotifier {
-  // TODO: Inject SignUpUseCase when implementing registration
+  final SignUpUseCase signUpUseCase;
+
+  RegistrationController({
+    required this.signUpUseCase,
+  });
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -23,13 +28,12 @@ class RegistrationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> signUp({
+  Future<bool> signUp({
     required String email,
     required String username,
     required String password,
     required String confirmPassword,
   }) async {
-    // TODO: Implement registration logic
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -39,28 +43,42 @@ class RegistrationController extends ChangeNotifier {
       _errorMessage = 'Please fill in all fields';
       _isLoading = false;
       notifyListeners();
-      return;
+      return false;
     }
 
     if (password != confirmPassword) {
       _errorMessage = 'Passwords do not match';
       _isLoading = false;
       notifyListeners();
-      return;
+      return false;
     }
 
     if (password.length < 8) {
       _errorMessage = 'Password must be at least 8 characters';
       _isLoading = false;
       notifyListeners();
-      return;
+      return false;
     }
 
-    // TODO: Call SignUpUseCase
-    await Future.delayed(const Duration(seconds: 2));
+    final result = await signUpUseCase.call(
+      email: email,
+      username: username,
+      password: password,
+    );
 
-    _isLoading = false;
-    notifyListeners();
+    return result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      },
+      (user) {
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      },
+    );
   }
 
   void clearError() {

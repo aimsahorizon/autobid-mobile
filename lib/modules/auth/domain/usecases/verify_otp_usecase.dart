@@ -1,3 +1,5 @@
+import 'package:fpdart/fpdart.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
 import '../repositories/auth_repository.dart';
 
 class VerifyOtpUseCase {
@@ -5,7 +7,7 @@ class VerifyOtpUseCase {
 
   VerifyOtpUseCase(this.repository);
 
-  Future<bool> call(String username, String otp) {
+  Future<Either<Failure, bool>> call(String username, String otp) {
     return repository.verifyOtp(username, otp);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import 'package:autobid_mobile/core/error/exceptions.dart';
 import '../models/user_model.dart';
 import '../models/kyc_registration_model.dart';
 
@@ -28,7 +29,7 @@ abstract class AuthRemoteDataSource {
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  final SupabaseClient _supabase;
+  final supabase.SupabaseClient _supabase;
   final GoogleSignIn _googleSignIn;
 
   /// Constructor with Supabase client injection
@@ -56,17 +57,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         photoUrl: user.userMetadata?['avatar_url'] as String?,
       );
     } catch (e) {
-      throw Exception('Failed to get current user: $e');
+      throw ServerException('Failed to get current user: $e');
     }
   }
 
   @override
   Future<UserModel> signInWithUsername(String username, String password) async {
     try {
-      print('[AUTH] Attempting login for username: "$username"');
-      print('[AUTH] Username length: ${username.length}');
-      print('[AUTH] Username trimmed: "${username.trim()}"');
-
       // Step 1: Look up user by username and check account status
       final userRecord = await _supabase
           .from('users')
@@ -74,13 +71,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           .eq('username', username)
           .maybeSingle();
 
-      print('[AUTH] Query result: ${userRecord != null ? "Found" : "Not found"}');
-
       // Check if user exists
       if (userRecord == null) {
-        print('[AUTH] Username not found: "$username"');
-        print('[AUTH] Trying case-insensitive search...');
-
         // Try case-insensitive search to help debug
         final debugRecord = await _supabase
             .from('users')
@@ -89,11 +81,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             .maybeSingle();
 
         if (debugRecord != null) {
-          print('[AUTH] Found similar username: "${debugRecord['username']}" (case mismatch!)');
-          throw AuthException('Invalid username or password. Note: Username is case-sensitive.');
+          throw const AuthException('Invalid username or password. Note: Username is case-sensitive.');
         }
 
-        throw AuthException('Invalid username or password');
+        throw const AuthException('Invalid username or password');
       }
 
       final emailToUse = userRecord['email'] as String;
@@ -101,19 +92,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final displayName = userRecord['display_name'] as String?;
       final isActive = userRecord['is_active'] as bool? ?? true;
 
-      print('[AUTH] Found user record - email: $emailToUse, active: $isActive');
-
       // Check if account is active (not suspended/banned)
       if (!isActive) {
-        print('[AUTH] Account is not active');
-        throw AuthException(
+        throw const AuthException(
           'Your account has been suspended or deactivated. Please contact support.',
         );
       }
-
-      // Note: is_verified is checked separately if needed for feature gating
-      // Users can login even if KYC not approved (is_verified = false)
-      // but may have limited features until KYC is approved
 
       // Step 2: Authenticate with Supabase Auth using email and password
       try {
@@ -123,7 +107,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
 
         if (response.user == null) {
-          throw AuthException('Invalid username or password');
+          throw const AuthException('Invalid username or password');
         }
 
         // Convert to UserModel with phone number from users table
@@ -135,25 +119,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           photoUrl: response.user!.userMetadata?['avatar_url'] as String?,
           phoneNumber: phoneNumber,
         );
-      } on AuthException catch (authError) {
+      } on supabase.AuthException catch (authError) {
         // Provide more specific error messages for auth failures
         if (authError.message.contains('Invalid login credentials')) {
-          throw AuthException(
+          throw const AuthException(
             'Invalid username or password. If you registered via OTP, please use "Forgot Password" to set a password first.',
           );
         } else if (authError.message.contains('Email not confirmed')) {
-          throw AuthException('Email not verified. Please verify your email first.');
+          throw const AuthException('Email not verified. Please verify your email first.');
         } else {
-          throw authError;
+          throw AuthException(authError.message);
         }
       }
     } on AuthException catch (e) {
-      // Re-throw AuthException with proper message
-      throw Exception(e.message);
-    } on PostgrestException catch (e) {
-      throw Exception('Database error: ${e.message}');
+      rethrow;
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException('Database error: ${e.message}');
     } catch (e) {
-      throw Exception('Sign in failed: $e');
+      throw ServerException('Sign in failed: $e');
     }
   }
 
@@ -164,25 +147,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        throw Exception('Google sign in was cancelled');
+        throw const AuthException('Google sign in was cancelled');
       }
 
       // Step 2: Get Google authentication tokens
       final googleAuth = await googleUser.authentication;
 
       if (googleAuth.idToken == null) {
-        throw Exception('Failed to get Google ID token');
+        throw const AuthException('Failed to get Google ID token');
       }
 
       // Step 3: Sign in to Supabase with Google ID token
       final response = await _supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
+        provider: supabase.OAuthProvider.google,
         idToken: googleAuth.idToken!,
         accessToken: googleAuth.accessToken,
       );
 
       if (response.user == null) {
-        throw Exception('Google sign in failed: No user returned');
+        throw const AuthException('Google sign in failed: No user returned');
       }
 
       // Step 4: Convert to UserModel
@@ -196,8 +179,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             response.user!.userMetadata?['avatar_url'] as String? ??
             googleUser.photoUrl,
       );
+    } on supabase.AuthException catch (e) {
+      throw AuthException(e.message);
     } catch (e) {
-      throw Exception('Google sign in failed: $e');
+      throw ServerException('Google sign in failed: $e');
     }
   }
 
@@ -207,17 +192,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // Sign out from both Google and Supabase
       await Future.wait([_googleSignIn.signOut(), _supabase.auth.signOut()]);
     } catch (e) {
-      throw Exception('Sign out failed: $e');
+      throw ServerException('Sign out failed: $e');
     }
   }
 
   @override
   Future<void> sendPasswordResetRequest(String username) async {
     try {
-      print('[AUTH] Looking up user with username: "$username"');
-      print('[AUTH] Username length: ${username.length}');
-      print('[AUTH] Username trimmed: "${username.trim()}"');
-
       // Look up the actual email associated with the username from users table
       final userRecord = await _supabase
           .from('users')
@@ -225,12 +206,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           .eq('username', username)
           .maybeSingle();
 
-      print('[AUTH] Password reset query result: ${userRecord != null ? "Found" : "Not found"}');
-
       // Check if user exists
       if (userRecord == null) {
-        print('[AUTH] Username not found: "$username"');
-
         // Try case-insensitive search to help debug
         final debugRecord = await _supabase
             .from('users')
@@ -239,15 +216,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             .maybeSingle();
 
         if (debugRecord != null) {
-          print('[AUTH] Found similar username: "${debugRecord['username']}" (case mismatch!)');
-          throw Exception('Username "${debugRecord['username']}" found but with different case. Usernames are case-sensitive. Please use: "${debugRecord['username']}"');
+          throw const AuthException('Username found but with different case. Usernames are case-sensitive.');
         }
 
-        throw Exception('Username "$username" not found. Please check your username and try again.');
+        throw const AuthException('Username not found. Please check your username and try again.');
       }
 
       final email = userRecord['email'] as String;
-      print('[AUTH] Found email for username: $email');
 
       // Send password reset email via Supabase to the actual email
       try {
@@ -255,30 +230,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           email,
           redirectTo: 'io.supabase.autobid://reset-password',
         );
-        print('[AUTH] Password reset email sent successfully to: $email');
-      } on AuthException catch (authError) {
-        print('[AUTH] Supabase Auth error: ${authError.message}');
+      } on supabase.AuthException catch (authError) {
         // Check if email sending is configured
         if (authError.message.contains('Email') || authError.message.contains('SMTP')) {
-          throw Exception(
+          throw const ServerException(
             'Email service not configured. Please contact support or use OTP verification instead.',
           );
         } else {
-          throw Exception('Failed to send reset email: ${authError.message}');
+          throw ServerException('Failed to send reset email: ${authError.message}');
         }
       }
-    } on PostgrestException catch (e) {
-      print('[AUTH] Database error: ${e.message}');
-      throw Exception('Database error: ${e.message}');
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException('Database error: ${e.message}');
     } on AuthException catch (e) {
-      print('[AUTH] Auth error: ${e.message}');
-      throw Exception('Authentication error: ${e.message}');
+      rethrow;
     } catch (e) {
-      print('[AUTH] Unexpected error: $e');
-      if (e.toString().contains('Exception:')) {
-        rethrow;
-      }
-      throw Exception('Password reset failed: $e');
+      if (e is ServerException || e is AuthException) rethrow;
+      throw ServerException('Password reset failed: $e');
     }
   }
 
@@ -294,26 +262,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Check if user exists
       if (userRecord == null) {
-        throw Exception('Username not found');
+        throw const AuthException('Username not found');
       }
 
       final email = userRecord['email'] as String;
 
       // Verify OTP with Supabase using the actual email
       final response = await _supabase.auth.verifyOTP(
-        type: OtpType.email,
+        type: supabase.OtpType.email,
         email: email,
         token: otp,
       );
 
       // Return true if verification successful
       return response.user != null;
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to find user: ${e.message}');
-    } on AuthException catch (e) {
-      throw Exception('OTP verification failed: ${e.message}');
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException('Failed to find user: ${e.message}');
+    } on supabase.AuthException catch (e) {
+      throw AuthException('OTP verification failed: ${e.message}');
     } catch (e) {
-      throw Exception('OTP verification failed: $e');
+      throw ServerException('OTP verification failed: $e');
     }
   }
 
@@ -329,25 +297,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Check if user exists
       if (userRecord == null) {
-        throw Exception('Username not found');
+        throw const AuthException('Username not found');
       }
 
       final email = userRecord['email'] as String;
 
       // Update password for the authenticated user
-      // Note: User must be authenticated (via OTP verification) to update password
       await _supabase.auth.updateUser(
-        UserAttributes(
+        supabase.UserAttributes(
           email: email,
           password: newPassword,
         ),
       );
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to find user: ${e.message}');
-    } on AuthException catch (e) {
-      throw Exception('Password reset failed: ${e.message}');
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException('Failed to find user: ${e.message}');
+    } on supabase.AuthException catch (e) {
+      throw AuthException('Password reset failed: ${e.message}');
     } catch (e) {
-      throw Exception('Password reset failed: $e');
+      throw ServerException('Password reset failed: $e');
     }
   }
 
@@ -366,7 +333,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       if (response.user == null) {
-        throw Exception('Sign up failed: No user returned');
+        throw const AuthException('Sign up failed: No user returned');
       }
 
       // Convert to UserModel
@@ -376,10 +343,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         username: username,
         displayName: username,
       );
-    } on AuthException catch (e) {
-      throw Exception('Sign up failed: ${e.message}');
+    } on supabase.AuthException catch (e) {
+      throw AuthException('Sign up failed: ${e.message}');
     } catch (e) {
-      throw Exception('Sign up failed: $e');
+      throw ServerException('Sign up failed: $e');
     }
   }
 
@@ -387,35 +354,29 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void> sendEmailOtp(String email) async {
     try {
       // Send OTP to email using Supabase
-      // shouldCreateUser: true allows OTP sending even if user doesn't exist
-      // This is needed for registration flow where user hasn't signed up yet
       await _supabase.auth.signInWithOtp(email: email, shouldCreateUser: true);
-    } on AuthException catch (e) {
-      throw Exception('Failed to send email OTP: ${e.message}');
+    } on supabase.AuthException catch (e) {
+      throw AuthException('Failed to send email OTP: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to send email OTP: $e');
+      throw ServerException('Failed to send email OTP: $e');
     }
   }
 
   @override
   Future<void> sendPhoneOtp(String phoneNumber) async {
     try {
-      // Format phone number with country code if not present
-      // Philippine phone numbers: +63 followed by 10 digits
       final formattedPhone = phoneNumber.startsWith('+')
           ? phoneNumber
           : '+63$phoneNumber';
 
-      // Send OTP to phone using Supabase
-      // shouldCreateUser: true allows OTP sending for registration flow
       await _supabase.auth.signInWithOtp(
         phone: formattedPhone,
         shouldCreateUser: true,
       );
-    } on AuthException catch (e) {
-      throw Exception('Failed to send phone OTP: ${e.message}');
+    } on supabase.AuthException catch (e) {
+      throw AuthException('Failed to send phone OTP: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to send phone OTP: $e');
+      throw ServerException('Failed to send phone OTP: $e');
     }
   }
 
@@ -424,55 +385,53 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       // Verify email OTP with Supabase
       final response = await _supabase.auth.verifyOTP(
-        type: OtpType.email,
+        type: supabase.OtpType.email,
         email: email,
         token: otp,
       );
 
       // Return true if verification successful
       return response.user != null;
-    } on AuthException catch (e) {
-      throw Exception('Email OTP verification failed: ${e.message}');
+    } on supabase.AuthException catch (e) {
+      throw AuthException('Email OTP verification failed: ${e.message}');
     } catch (e) {
-      throw Exception('Email OTP verification failed: $e');
+      throw ServerException('Email OTP verification failed: $e');
     }
   }
 
   @override
   Future<bool> verifyPhoneOtp(String phoneNumber, String otp) async {
     try {
-      // Format phone number with country code if not present
       final formattedPhone = phoneNumber.startsWith('+')
           ? phoneNumber
           : '+63$phoneNumber';
 
       // Verify phone OTP with Supabase
       final response = await _supabase.auth.verifyOTP(
-        type: OtpType.sms,
+        type: supabase.OtpType.sms,
         phone: formattedPhone,
         token: otp,
       );
 
       // Return true if verification successful
       return response.user != null;
-    } on AuthException catch (e) {
-      throw Exception('Phone OTP verification failed: ${e.message}');
+    } on supabase.AuthException catch (e) {
+      throw AuthException('Phone OTP verification failed: ${e.message}');
     } catch (e) {
-      throw Exception('Phone OTP verification failed: $e');
+      throw ServerException('Phone OTP verification failed: $e');
     }
   }
 
   @override
   Future<void> submitKycRegistration(KycRegistrationModel kycData) async {
     try {
-      // Get current authenticated user (must be authenticated after OTP verification)
+      // Get current authenticated user
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        throw Exception('User not authenticated. Please verify OTP first.');
+        throw const AuthException('User not authenticated. Please verify OTP first.');
       }
 
-      // Use RPC function to atomically insert across users, user_addresses, and kyc_documents tables
-      // This handles normalized 3-table structure properly
+      // Use RPC function
       final result = await _supabase.rpc('register_user_with_kyc', params: {
         'p_user_id': kycData.id,
         'p_email': kycData.email,
@@ -480,9 +439,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'p_phone_number': kycData.phoneNumber,
         'p_first_name': kycData.firstName,
         'p_last_name': kycData.lastName,
-        'p_middle_name': kycData.middleName ?? '', // Handle null middle name
+        'p_middle_name': kycData.middleName ?? '',
         'p_date_of_birth': kycData.dateOfBirth.toIso8601String().split('T')[0],
-        'p_sex': kycData.sex.toLowerCase(), // Convert 'M'/'F' to 'male'/'female'
+        'p_sex': kycData.sex.toLowerCase(),
         'p_region': kycData.region,
         'p_province': kycData.province,
         'p_city': kycData.city,
@@ -492,11 +451,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'p_national_id_number': kycData.nationalIdNumber,
         'p_national_id_front_url': kycData.nationalIdFrontUrl,
         'p_national_id_back_url': kycData.nationalIdBackUrl,
-        'p_secondary_gov_id_type': kycData.secondaryGovIdType.toLowerCase().replaceAll(' ', '_'), // Normalize format
+        'p_secondary_gov_id_type': kycData.secondaryGovIdType.toLowerCase().replaceAll(' ', '_'),
         'p_secondary_gov_id_number': kycData.secondaryGovIdNumber,
         'p_secondary_gov_id_front_url': kycData.secondaryGovIdFrontUrl,
         'p_secondary_gov_id_back_url': kycData.secondaryGovIdBackUrl,
-        'p_proof_of_address_type': kycData.proofOfAddressType.toLowerCase().replaceAll(' ', '_'), // Normalize format
+        'p_proof_of_address_type': kycData.proofOfAddressType.toLowerCase().replaceAll(' ', '_'),
         'p_proof_of_address_url': kycData.proofOfAddressUrl,
         'p_selfie_with_id_url': kycData.selfieWithIdUrl,
         'p_accepted_terms_at': kycData.acceptedTermsAt.toIso8601String(),
@@ -505,73 +464,67 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Check if registration was successful
       if (result['success'] != true) {
-        throw Exception(result['error'] ?? 'Failed to submit KYC registration');
+        throw ServerException(result['error'] ?? 'Failed to submit KYC registration');
       }
-    } on PostgrestException catch (e) {
-      // Handle database errors (e.g., duplicate username, constraint violations)
-      throw Exception('Failed to submit KYC registration: ${e.message}');
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException('Failed to submit KYC registration: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to submit KYC registration: $e');
+      if (e is ServerException || e is AuthException) rethrow;
+      throw ServerException('Failed to submit KYC registration: $e');
     }
   }
 
-  /// Set password for OTP-authenticated user
-  /// This enables password-based login after OTP registration
   @override
   Future<void> setPasswordForOtpUser(String password) async {
     try {
       // Update the current user's password in Supabase Auth
       final response = await _supabase.auth.updateUser(
-        UserAttributes(password: password),
+        supabase.UserAttributes(password: password),
       );
 
       if (response.user == null) {
-        throw Exception('Failed to set password');
+        throw const AuthException('Failed to set password');
       }
-    } on AuthException catch (e) {
-      throw Exception('Failed to set password: ${e.message}');
+    } on supabase.AuthException catch (e) {
+      throw AuthException('Failed to set password: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to set password: $e');
+      throw ServerException('Failed to set password: $e');
     }
   }
 
   @override
   Future<KycRegistrationModel?> getKycRegistrationStatus(String userId) async {
     try {
-      // Query users table for the user's KYC registration status
       final response = await _supabase
           .from('users')
           .select()
           .eq('id', userId)
           .maybeSingle();
 
-      // Return null if no registration found, otherwise convert to model
       if (response == null) return null;
 
       return KycRegistrationModel.fromJson(response);
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to get KYC registration status: ${e.message}');
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException('Failed to get KYC registration status: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to get KYC registration status: $e');
+      throw ServerException('Failed to get KYC registration status: $e');
     }
   }
 
   @override
   Future<bool> checkUsernameAvailable(String username) async {
     try {
-      // Check if username exists in users table (all users: pending, approved, rejected)
       final response = await _supabase
           .from('users')
           .select('username')
           .eq('username', username)
           .maybeSingle();
 
-      // Username is available if it doesn't exist
       return response == null;
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to check username availability: ${e.message}');
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException('Failed to check username availability: ${e.message}');
     } catch (e) {
-      throw Exception('Failed to check username availability: $e');
+      throw ServerException('Failed to check username availability: $e');
     }
   }
 }

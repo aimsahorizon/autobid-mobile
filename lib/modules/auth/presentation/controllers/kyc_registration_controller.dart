@@ -278,7 +278,11 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      await _sendPhoneOtpUseCase!.call(_phoneNumber!);
+      final result = await _sendPhoneOtpUseCase!.call(_phoneNumber!);
+      result.fold(
+        (l) => throw Exception(l.message),
+        (r) => null,
+      );
     } catch (e) {
       throw Exception('Failed to send phone OTP: $e');
     }
@@ -290,7 +294,11 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      await _sendEmailOtpUseCase!.call(_email!);
+      final result = await _sendEmailOtpUseCase!.call(_email!);
+      result.fold(
+        (l) => throw Exception(l.message),
+        (r) => null,
+      );
     } catch (e) {
       throw Exception('Failed to send email OTP: $e');
     }
@@ -302,11 +310,16 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      final isVerified = await _verifyPhoneOtpUseCase!.call(_phoneNumber!, otp);
-      if (isVerified) {
-        setPhoneOtpVerified(true);
-      }
-      return isVerified;
+      final result = await _verifyPhoneOtpUseCase!.call(_phoneNumber!, otp);
+      return result.fold(
+        (l) => throw Exception(l.message),
+        (isVerified) {
+          if (isVerified) {
+            setPhoneOtpVerified(true);
+          }
+          return isVerified;
+        },
+      );
     } catch (e) {
       throw Exception('Phone OTP verification failed: $e');
     }
@@ -318,11 +331,16 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      final isVerified = await _verifyEmailOtpUseCase!.call(_email!, otp);
-      if (isVerified) {
-        setEmailOtpVerified(true);
-      }
-      return isVerified;
+      final result = await _verifyEmailOtpUseCase!.call(_email!, otp);
+      return result.fold(
+        (l) => throw Exception(l.message),
+        (isVerified) {
+          if (isVerified) {
+            setEmailOtpVerified(true);
+          }
+          return isVerified;
+        },
+      );
     } catch (e) {
       throw Exception('Email OTP verification failed: $e');
     }
@@ -659,7 +677,7 @@ class KYCRegistrationController extends ChangeNotifier {
         // Step 0: Set password for the OTP-authenticated user
         // This enables password-based login after registration
         if (_password != null && _password!.isNotEmpty) {
-          await _authDataSource.setPasswordForOtpUser(_password!);
+          await _authDataSource!.setPasswordForOtpUser(_password!);
         }
 
         // Step 1: Upload all KYC documents to kyc-documents bucket

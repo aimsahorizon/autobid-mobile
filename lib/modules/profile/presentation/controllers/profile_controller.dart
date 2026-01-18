@@ -24,33 +24,40 @@ class ProfileController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      _profile = await _repository.getUserProfile();
-      _errorMessage = null;
-    } catch (e) {
-      // Log actual error for debugging
-      print('Profile load error: $e');
-      _errorMessage = 'Failed to load profile: $e';
-      _profile = null;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    final result = await _repository.getUserProfile();
+    
+    result.fold(
+      (failure) {
+        _errorMessage = 'Failed to load profile: ${failure.message}';
+        _profile = null;
+      },
+      (profileData) {
+        _profile = profileData;
+        _errorMessage = null;
+      },
+    );
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> signOut() async {
     _isLoading = true;
     notifyListeners();
 
-    try {
-      await _repository.signOut();
-      _profile = null;
-    } catch (e) {
-      _errorMessage = 'Failed to sign out';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    final result = await _repository.signOut();
+    
+    result.fold(
+      (failure) {
+        _errorMessage = 'Failed to sign out: ${failure.message}';
+      },
+      (_) {
+        _profile = null;
+      },
+    );
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   void clearError() {

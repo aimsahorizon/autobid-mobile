@@ -1,3 +1,5 @@
+import 'package:fpdart/fpdart.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
 import '../entities/kyc_registration_entity.dart';
 import '../repositories/auth_repository.dart';
 
@@ -6,7 +8,7 @@ class SubmitKycRegistrationUseCase {
 
   SubmitKycRegistrationUseCase(this.repository);
 
-  Future<void> call(KycRegistrationEntity kycData) async {
-    return await repository.submitKycRegistration(kycData);
+  Future<Either<Failure, void>> call(KycRegistrationEntity kycData) {
+    return repository.submitKycRegistration(kycData);
   }
 }

@@ -61,6 +61,9 @@ class ProfileModule {
     }
     return _repositoryInstance!;
   }
+  
+  /// Expose repository for other modules (e.g. Auth)
+  ProfileRepository get repository => _getOrCreateRepository();
 
   /// Get or create profile controller (singleton)
   ProfileController get controller {
