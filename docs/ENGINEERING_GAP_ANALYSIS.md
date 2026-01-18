@@ -77,8 +77,8 @@ This document details the deviations between the current codebase and the engine
 
 ### Phase 1: Foundation (Global Structure)
 1.  [x] **Move Core:** Relocate `lib/app/core` to `lib/core`.
-2.  [ ] **Setup Failure:** Create `lib/core/error/failures.dart`.
-3.  [ ] **Setup DI:** Initialize `get_it` in `lib/app/di/`.
+2.  [x] **Setup Failure:** Create `lib/core/error/failures.dart`.
+3.  [x] **Setup DI:** Initialize `get_it` in `lib/app/di/`.
 
 ### Phase 2: Module Refactoring (One by One)
 *Start with `Auth` as it has the most dependencies.*
