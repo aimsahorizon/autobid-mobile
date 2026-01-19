@@ -1,17 +1,29 @@
 import 'package:get_it/get_it.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/config/supabase_config.dart';
+import '../../core/services/file_encryption_service.dart';
+// Import module initializers
+import '../../modules/auth/auth_module.dart';
+import '../../modules/profile/profile_module.dart';
 
 final sl = GetIt.instance;
 
 /// Initialize all application dependencies.
 /// This method should be called in main.dart before runApp.
 Future<void> initDependencies() async {
-  // 1. External Dependencies (Supabase, SharedPreferences, etc.)
-  // TODO: Move SupabaseConfig and StripeService init here if possible/appropriate
-  
+  // 1. External Dependencies
+  final sharedPreferences = await SharedPreferences.getInstance();
+  sl.registerLazySingleton(() => sharedPreferences);
+
+  // SupabaseClient - Lazy registration
+  // Note: SupabaseConfig.initialize() is called in main.dart
+  sl.registerLazySingleton<SupabaseClient>(() => SupabaseConfig.client);
+
   // 2. Core Dependencies
-  // sl.registerLazySingleton(() => ...);
+  sl.registerLazySingleton(() => FileEncryptionService(sl()));
 
   // 3. Feature Modules
-  // Call initialization methods for each module
-  // await AuthModule.init();
+  await initProfileModule();
+  await initAuthModule();
 }

@@ -1,3 +1,4 @@
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'data/datasources/pricing_supabase_datasource.dart';
 import 'data/datasources/profile_mock_datasource.dart';
@@ -20,9 +21,32 @@ import 'domain/usecases/add_ticket_message_usecase.dart';
 import 'domain/usecases/purchase_token_package_usecase.dart';
 import 'domain/usecases/subscribe_to_plan_usecase.dart';
 import 'domain/usecases/update_ticket_status_usecase.dart';
+import 'domain/usecases/check_email_exists_usecase.dart';
+import 'domain/usecases/get_user_profile_by_email_usecase.dart';
 import 'presentation/controllers/pricing_controller.dart';
 import 'presentation/controllers/profile_controller.dart';
 import 'presentation/controllers/support_controller.dart';
+
+/// Initialize Profile module dependencies
+Future<void> initProfileModule() async {
+  final sl = GetIt.instance;
+
+  // Datasources
+  sl.registerLazySingleton<ProfileSupabaseDataSource>(
+    () => ProfileSupabaseDataSource(sl()),
+  );
+
+  // Repositories
+  sl.registerLazySingleton<ProfileRepository>(
+    () => ProfileRepositorySupabaseImpl(sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => CheckEmailExistsUseCase(sl()));
+  sl.registerLazySingleton(() => GetUserProfileByEmailUseCase(sl()));
+  
+  // Note: Other Profile usecases and controllers can be added here
+}
 
 /// Dependency injection container for Profile module
 class ProfileModule {

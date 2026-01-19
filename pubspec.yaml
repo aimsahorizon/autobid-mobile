@@ -61,6 +61,7 @@ dependencies:
   fpdart: ^1.2.0
   equatable: ^2.0.8
   get_it: ^9.2.0
+  encrypt: ^5.0.3
 
 dev_dependencies:
   flutter_test:

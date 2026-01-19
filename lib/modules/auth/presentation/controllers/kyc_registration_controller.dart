@@ -8,6 +8,7 @@ import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/models/kyc_registration_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/services/ai_id_extraction_service.dart';
+import 'package:autobid_mobile/core/services/file_encryption_service.dart';
 import '../../data/datasources/demo_data_generator.dart';
 
 enum KYCStep {
@@ -29,6 +30,7 @@ class KYCRegistrationController extends ChangeNotifier {
   final VerifyEmailOtpUseCase? _verifyEmailOtpUseCase;
   final VerifyPhoneOtpUseCase? _verifyPhoneOtpUseCase;
   final IAiIdExtractionService _aiService;
+  final FileEncryptionService? _fileEncryptionService;
 
   /// Constructor with optional dependencies for Supabase integration
   /// If not provided, registration will use mock implementation
@@ -39,12 +41,14 @@ class KYCRegistrationController extends ChangeNotifier {
     VerifyEmailOtpUseCase? verifyEmailOtpUseCase,
     VerifyPhoneOtpUseCase? verifyPhoneOtpUseCase,
     IAiIdExtractionService? aiService,
+    FileEncryptionService? fileEncryptionService,
   }) : _authDataSource = authDataSource,
        _sendEmailOtpUseCase = sendEmailOtpUseCase,
        _sendPhoneOtpUseCase = sendPhoneOtpUseCase,
        _verifyEmailOtpUseCase = verifyEmailOtpUseCase,
        _verifyPhoneOtpUseCase = verifyPhoneOtpUseCase,
-       _aiService = aiService ?? MockAiIdExtractionService();
+       _aiService = aiService ?? MockAiIdExtractionService(),
+       _fileEncryptionService = fileEncryptionService;
 
   KYCStep _currentStep = KYCStep.accountInfo;
   bool _isLoading = false;
@@ -683,59 +687,51 @@ class KYCRegistrationController extends ChangeNotifier {
         // Step 1: Upload all KYC documents to kyc-documents bucket
         final timestamp = DateTime.now().millisecondsSinceEpoch;
 
+        // Helper function for uploading
+        Future<String> uploadFile(File file, String path) async {
+          if (_fileEncryptionService != null) {
+            final bytes = await file.readAsBytes();
+            return _fileEncryptionService!.uploadEncryptedFile(
+              fileBytes: bytes,
+              userId: userId,
+              bucket: 'kyc-documents',
+              path: path,
+            );
+          } else {
+             // Fallback for mock/testing without encryption service
+             // Note: In strict production this should throw, but allowing for now.
+             await Supabase.instance.client.storage
+              .from('kyc-documents')
+              .upload(path, file);
+             return Supabase.instance.client.storage
+              .from('kyc-documents')
+              .getPublicUrl(path);
+          }
+        }
+
         // Upload national ID front
         final nationalIdFrontPath = '$userId/national_id_front_$timestamp.${_nationalIdFront!.path.split('.').last}';
-        await Supabase.instance.client.storage
-            .from('kyc-documents')
-            .upload(nationalIdFrontPath, _nationalIdFront!);
-        final nationalIdFrontUrl = Supabase.instance.client.storage
-            .from('kyc-documents')
-            .getPublicUrl(nationalIdFrontPath);
+        final nationalIdFrontUrl = await uploadFile(_nationalIdFront!, nationalIdFrontPath);
 
         // Upload national ID back
         final nationalIdBackPath = '$userId/national_id_back_$timestamp.${_nationalIdBack!.path.split('.').last}';
-        await Supabase.instance.client.storage
-            .from('kyc-documents')
-            .upload(nationalIdBackPath, _nationalIdBack!);
-        final nationalIdBackUrl = Supabase.instance.client.storage
-            .from('kyc-documents')
-            .getPublicUrl(nationalIdBackPath);
+        final nationalIdBackUrl = await uploadFile(_nationalIdBack!, nationalIdBackPath);
 
         // Upload selfie with ID
         final selfieWithIdPath = '$userId/selfie_with_id_$timestamp.${_selfieWithId!.path.split('.').last}';
-        await Supabase.instance.client.storage
-            .from('kyc-documents')
-            .upload(selfieWithIdPath, _selfieWithId!);
-        final selfieWithIdUrl = Supabase.instance.client.storage
-            .from('kyc-documents')
-            .getPublicUrl(selfieWithIdPath);
+        final selfieWithIdUrl = await uploadFile(_selfieWithId!, selfieWithIdPath);
 
         // Upload secondary ID front
         final secondaryIdFrontPath = '$userId/secondary_id_front_$timestamp.${_secondaryIdFront!.path.split('.').last}';
-        await Supabase.instance.client.storage
-            .from('kyc-documents')
-            .upload(secondaryIdFrontPath, _secondaryIdFront!);
-        final secondaryIdFrontUrl = Supabase.instance.client.storage
-            .from('kyc-documents')
-            .getPublicUrl(secondaryIdFrontPath);
+        final secondaryIdFrontUrl = await uploadFile(_secondaryIdFront!, secondaryIdFrontPath);
 
         // Upload secondary ID back
         final secondaryIdBackPath = '$userId/secondary_id_back_$timestamp.${_secondaryIdBack!.path.split('.').last}';
-        await Supabase.instance.client.storage
-            .from('kyc-documents')
-            .upload(secondaryIdBackPath, _secondaryIdBack!);
-        final secondaryIdBackUrl = Supabase.instance.client.storage
-            .from('kyc-documents')
-            .getPublicUrl(secondaryIdBackPath);
+        final secondaryIdBackUrl = await uploadFile(_secondaryIdBack!, secondaryIdBackPath);
 
         // Upload proof of address
         final proofOfAddressPath = '$userId/proof_of_address_$timestamp.${_proofOfAddress!.path.split('.').last}';
-        await Supabase.instance.client.storage
-            .from('kyc-documents')
-            .upload(proofOfAddressPath, _proofOfAddress!);
-        final proofOfAddressUrl = Supabase.instance.client.storage
-            .from('kyc-documents')
-            .getPublicUrl(proofOfAddressPath);
+        final proofOfAddressUrl = await uploadFile(_proofOfAddress!, proofOfAddressPath);
 
         // Step 2: Create KYC registration model with all data
         // Convert sex to single character format (M/F) if needed

@@ -1,3 +1,4 @@
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../profile/profile_module.dart';
 import 'data/datasources/auth_remote_datasource.dart';
@@ -21,6 +22,66 @@ import 'presentation/controllers/kyc_registration_controller.dart';
 import 'presentation/controllers/login_controller.dart';
 import 'presentation/controllers/login_otp_controller.dart';
 import 'presentation/controllers/registration_controller.dart';
+
+/// Initialize Auth module dependencies
+Future<void> initAuthModule() async {
+  final sl = GetIt.instance;
+
+  // Datasources
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(sl()),
+  );
+
+  // Repositories
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => SignInUseCase(sl()));
+  sl.registerLazySingleton(() => SignInWithGoogleUseCase(sl()));
+  sl.registerLazySingleton(() => SendPasswordResetUseCase(sl()));
+  sl.registerLazySingleton(() => VerifyOtpUseCase(sl()));
+  sl.registerLazySingleton(() => ResetPasswordUseCase(sl()));
+  sl.registerLazySingleton(() => SignUpUseCase(sl()));
+  sl.registerLazySingleton(() => SendEmailOtpUseCase(sl()));
+  sl.registerLazySingleton(() => SendPhoneOtpUseCase(sl()));
+  sl.registerLazySingleton(() => VerifyEmailOtpUseCase(sl()));
+  sl.registerLazySingleton(() => VerifyPhoneOtpUseCase(sl()));
+
+  // Controllers (Factory)
+  sl.registerFactory(() => LoginController(
+    signInUseCase: sl(),
+    signInWithGoogleUseCase: sl(),
+    checkEmailExistsUseCase: sl(), // Registered in initProfileModule
+    getUserProfileByEmailUseCase: sl(), // Registered in initProfileModule
+  ));
+
+  sl.registerFactory(() => LoginOtpController(
+    sendEmailOtpUseCase: sl(),
+    sendPhoneOtpUseCase: sl(),
+    verifyEmailOtpUseCase: sl(),
+    verifyPhoneOtpUseCase: sl(),
+  ));
+
+  sl.registerFactory(() => ForgotPasswordController(
+    sendPasswordResetUseCase: sl(),
+    verifyOtpUseCase: sl(),
+    resetPasswordUseCase: sl(),
+  ));
+
+  sl.registerFactory(() => RegistrationController(
+    signUpUseCase: sl(),
+  ));
+
+  sl.registerFactory(() => KYCRegistrationController(
+    authDataSource: sl(), // Needs AuthRemoteDataSource
+    sendEmailOtpUseCase: sl(),
+    sendPhoneOtpUseCase: sl(),
+    verifyEmailOtpUseCase: sl(),
+    verifyPhoneOtpUseCase: sl(),
+  ));
+}
 
 class AuthModule {
   static AuthModule? _instance;
