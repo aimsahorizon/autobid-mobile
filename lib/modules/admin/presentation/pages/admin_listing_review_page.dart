@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/admin_listing_entity.dart';
+import '../../domain/entities/admin_enums.dart';
 import '../controllers/admin_controller.dart';
 
 /// Admin page for reviewing listing details
@@ -140,7 +141,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
     }
   }
 
-  Future<void> _changeStatus(String newStatus) async {
+  Future<void> _changeStatus(AdminListingStatus newStatus) async {
     setState(() => _isProcessing = true);
 
     final success = await widget.controller.changeStatus(
@@ -155,7 +156,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Status changed to $newStatus'),
+          content: Text('Status changed to ${newStatus.name}'),
           backgroundColor: ColorConstants.success,
         ),
       );
@@ -178,18 +179,14 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
         backgroundColor: ColorConstants.primary,
         foregroundColor: Colors.white,
         actions: [
-          PopupMenuButton<String>(
+          PopupMenuButton<AdminListingStatus>(
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
-              if (value == 'live') {
-                _changeStatus('live');
-              } else if (value == 'cancelled') {
-                _changeStatus('cancelled');
-              }
+              _changeStatus(value);
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
-                value: 'live',
+                value: AdminListingStatus.live,
                 child: Row(
                   children: [
                     Icon(Icons.play_arrow, size: 20),
@@ -199,7 +196,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
                 ),
               ),
               const PopupMenuItem(
-                value: 'cancelled',
+                value: AdminListingStatus.cancelled,
                 child: Row(
                   children: [
                     Icon(Icons.cancel, size: 20),
@@ -360,16 +357,19 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
     Color color;
     IconData icon;
 
-    switch (widget.listing.status) {
-      case 'pending_approval':
+    // Convert string status to Enum for switching
+    final status = AdminListingStatus.fromString(widget.listing.status);
+
+    switch (status) {
+      case AdminListingStatus.pendingApproval:
         color = ColorConstants.warning;
         icon = Icons.pending;
         break;
-      case 'scheduled':
+      case AdminListingStatus.scheduled:
         color = ColorConstants.info;
         icon = Icons.schedule;
         break;
-      case 'live':
+      case AdminListingStatus.live:
         color = ColorConstants.success;
         icon = Icons.check_circle;
         break;
