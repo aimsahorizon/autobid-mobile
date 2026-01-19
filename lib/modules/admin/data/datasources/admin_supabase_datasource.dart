@@ -180,7 +180,7 @@ class AdminSupabaseDataSource {
 
       final adminUserId = adminUserResponse['id'] as String;
       // Approval should keep listing in 'approved' status; seller will schedule/go live later
-      final statusId = await _getStatusId('approved');
+      final statusId = await _getStatusId('scheduled');
 
       await _supabase
           .from('auctions')
