@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../../notifications/notifications_module.dart';
+import 'package:autobid_mobile/app/di/app_module.dart';
+import '../../../notifications/presentation/controllers/notification_controller.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../controllers/lists_controller.dart';
+import '../controllers/listing_draft_controller.dart';
 import '../widgets/listings_grid.dart';
-import '../../lists_module.dart';
 import 'create_listing_page.dart';
 
 class ListsPage extends StatefulWidget {
@@ -32,9 +33,6 @@ class _ListsPageState extends State<ListsPage>
     ListingStatus.cancelled,
   ];
 
-  // Get controller from module directly to handle toggling
-  ListsController get _controller => ListsModule.controller;
-
   @override
   void initState() {
     super.initState();
@@ -48,6 +46,8 @@ class _ListsPageState extends State<ListsPage>
     super.dispose();
   }
 
+  ListsController get _controller => widget.controller ?? sl<ListsController>();
+
   void _navigateToCreateListing(BuildContext context) {
     final userId = SupabaseConfig.client.auth.currentUser?.id;
     if (userId == null) {
@@ -57,7 +57,7 @@ class _ListsPageState extends State<ListsPage>
       return;
     }
 
-    final controller = ListsModule.createListingDraftController();
+    final controller = sl<ListingDraftController>();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -74,52 +74,6 @@ class _ListsPageState extends State<ListsPage>
         _tabController.animateTo(1); // Index 1 is Pending tab
       }
     });
-  }
-
-  void _toggleDemoMode(BuildContext context) {
-    final wasUsingMock = ListsModule.useMockData;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Switch Data Source'),
-        content: Text(
-          wasUsingMock
-              ? 'Switch to Supabase database?\n\nThis will show real data from your backend.'
-              : 'Switch to mock data?\n\nThis will show demo data for testing.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Toggle mode - this disposes old controller and creates new one
-              ListsModule.toggleDemoMode();
-
-              // Trigger rebuild and load data from new controller
-              setState(() {
-                _controller.loadListings();
-              });
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    ListsModule.useMockData
-                        ? 'Switched to mock data'
-                        : 'Switched to database',
-                  ),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
-            child: const Text('Switch'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -146,10 +100,9 @@ class _ListsPageState extends State<ListsPage>
         actions: [
           // Notification bell with unread count badge
           ListenableBuilder(
-            listenable: NotificationsModule.instance.controller,
+            listenable: sl<NotificationController>(),
             builder: (context, _) {
-              final notificationController =
-                  NotificationsModule.instance.controller;
+              final notificationController = sl<NotificationController>();
               final unreadCount = notificationController.unreadCount;
 
               return Stack(
@@ -212,35 +165,6 @@ class _ListsPageState extends State<ListsPage>
               tooltip: _controller.isGridView ? 'List view' : 'Grid view',
             ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'toggle_demo') {
-                _toggleDemoMode(context);
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'toggle_demo',
-                child: Row(
-                  children: [
-                    Icon(
-                      ListsModule.useMockData
-                          ? Icons.cloud_outlined
-                          : Icons.storage_outlined,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      ListsModule.useMockData
-                          ? 'Switch to Database'
-                          : 'Switch to Mock Data',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
@@ -301,7 +225,7 @@ class _ListsPageState extends State<ListsPage>
                 emptyIcon: _getEmptyIcon(status),
                 enableNavigation: true,
                 draftController: needsController
-                    ? ListsModule.createListingDraftController()
+                    ? sl<ListingDraftController>()
                     : null,
                 sellerId: needsSellerId ? userId : null,
                 onListingUpdated: () => _controller.loadListings(),
@@ -449,7 +373,7 @@ class _TabWithBadge extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                '$count',
+                count.toString(),
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,

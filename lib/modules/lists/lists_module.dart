@@ -10,6 +10,13 @@ import '../transactions/data/datasources/seller_transaction_supabase_datasource.
 import '../transactions/data/datasources/chat_supabase_datasource.dart';
 import '../transactions/data/datasources/timeline_supabase_datasource.dart';
 
+import 'domain/usecases/draft_management_usecases.dart';
+import 'domain/usecases/submission_usecases.dart';
+import 'domain/usecases/media_management_usecases.dart';
+import 'data/repositories/seller_repository_impl.dart';
+import 'domain/repositories/seller_repository.dart';
+import 'domain/usecases/get_seller_listings_usecase.dart';
+
 /// Initialize Lists module dependencies
 Future<void> initListsModule() async {
   final sl = GetIt.instance;
@@ -17,8 +24,37 @@ Future<void> initListsModule() async {
   // Datasources
   sl.registerLazySingleton(() => ListingSupabaseDataSource(sl()));
 
+  // Repositories
+  sl.registerLazySingleton<SellerRepository>(
+    () => SellerRepositoryImpl(sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetSellerListingsUseCase(sl()));
+  sl.registerLazySingleton(() => GetSellerDraftsUseCase(sl()));
+  sl.registerLazySingleton(() => GetDraftUseCase(sl()));
+  sl.registerLazySingleton(() => CreateDraftUseCase(sl()));
+  sl.registerLazySingleton(() => SaveDraftUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteDraftUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitListingUseCase(sl()));
+  sl.registerLazySingleton(() => CancelListingUseCase(sl()));
+  sl.registerLazySingleton(() => UploadListingPhotoUseCase(sl()));
+  sl.registerLazySingleton(() => UploadDeedOfSaleUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteDeedOfSaleUseCase(sl()));
+
   // Controllers (Factory)
-  sl.registerFactory(() => ListsController.supabase());
+  sl.registerFactory(() => ListsController(sl(), sl()));
+  sl.registerFactory(() => ListingDraftController(
+    getSellerDraftsUseCase: sl(),
+    getDraftUseCase: sl(),
+    createDraftUseCase: sl(),
+    saveDraftUseCase: sl(),
+    deleteDraftUseCase: sl(),
+    submitListingUseCase: sl(),
+    uploadListingPhotoUseCase: sl(),
+    uploadDeedOfSaleUseCase: sl(),
+    deleteDeedOfSaleUseCase: sl(),
+  ));
 }
 
 /// Lists module dependency injection (Legacy)
@@ -30,84 +66,6 @@ class ListsModule {
   static ListsController? _listsController;
   static TransactionController? _transactionController;
   static ListingDraftController? _listingDraftController;
-
-  /// Data sources
-  static TransactionMockDataSource? _transactionDataSource;
-  static ListingDraftMockDataSource? _listingDraftDataSource;
-  static ListingSupabaseDataSource? _listingSupabaseDataSource;
-  static SellerTransactionSupabaseDataSource?
-  _sellerTransactionSupabaseDataSource;
-  static ChatSupabaseDataSource? _chatSupabaseDataSource;
-  static TimelineSupabaseDataSource? _timelineSupabaseDataSource;
-
-  /// Create Supabase datasources
-  static ListingSupabaseDataSource _createListingSupabaseDataSource() {
-    return ListingSupabaseDataSource(SupabaseConfig.client);
-  }
-
-  static SellerTransactionSupabaseDataSource
-  _createSellerTransactionSupabaseDataSource() {
-    return SellerTransactionSupabaseDataSource(SupabaseConfig.client);
-  }
-
-  static ChatSupabaseDataSource _createChatSupabaseDataSource() {
-    return ChatSupabaseDataSource(SupabaseConfig.client);
-  }
-
-  static TimelineSupabaseDataSource _createTimelineSupabaseDataSource() {
-    return TimelineSupabaseDataSource(SupabaseConfig.client);
-  }
-
-  // Note: Token consumption moved to RPC function for atomicity
-  // Removed _createConsumeListingTokenUsecase() and _createPricingSupabaseDataSource()
-  // Token is now consumed inside submit_listing_from_draft() RPC atomically
-
-  /// Get or create the lists controller (based on useMockData flag)
-  static ListsController get controller {
-    if (_listsController == null) {
-      _listsController = useMockData
-          ? ListsController.mock()
-          : ListsController.supabase();
-    }
-    return _listsController!;
-  }
-
-  /// Create transaction controller for specific transaction
-  static TransactionController createTransactionController() {
-    if (useMockData) {
-      _transactionDataSource ??= TransactionMockDataSource();
-      return TransactionController(_transactionDataSource!);
-    } else {
-      _transactionDataSource ??=
-          TransactionMockDataSource(); // Fallback to mock for now
-      _sellerTransactionSupabaseDataSource ??=
-          _createSellerTransactionSupabaseDataSource();
-      _chatSupabaseDataSource ??= _createChatSupabaseDataSource();
-      _timelineSupabaseDataSource ??= _createTimelineSupabaseDataSource();
-      // TODO: Update TransactionController to accept Supabase datasources
-      return TransactionController(_transactionDataSource!);
-    }
-  }
-
-  /// Create listing draft controller for creating/editing listings
-  static ListingDraftController createListingDraftController() {
-    if (useMockData) {
-      _listingDraftDataSource ??= ListingDraftMockDataSource();
-      return ListingDraftController.mock(_listingDraftDataSource!);
-    } else {
-      _listingSupabaseDataSource ??= _createListingSupabaseDataSource();
-      return ListingDraftController.supabase(
-        _listingSupabaseDataSource!,
-      );
-    }
-  }
-
-  /// Toggle demo mode (switch between mock and Supabase)
-  static void toggleDemoMode() {
-    useMockData = !useMockData;
-    // Dispose existing controllers to force recreation with new datasources
-    dispose();
-  }
 
   /// Dispose resources when module is no longer needed
   static void dispose() {
