@@ -23,6 +23,7 @@ import 'domain/usecases/subscribe_to_plan_usecase.dart';
 import 'domain/usecases/update_ticket_status_usecase.dart';
 import 'domain/usecases/check_email_exists_usecase.dart';
 import 'domain/usecases/get_user_profile_by_email_usecase.dart';
+import 'domain/usecases/consume_bidding_token_usecase.dart';
 import 'presentation/controllers/pricing_controller.dart';
 import 'presentation/controllers/profile_controller.dart';
 import 'presentation/controllers/support_controller.dart';
@@ -35,17 +36,59 @@ Future<void> initProfileModule() async {
   sl.registerLazySingleton<ProfileSupabaseDataSource>(
     () => ProfileSupabaseDataSource(sl()),
   );
+  sl.registerLazySingleton<SupportSupabaseDatasource>(
+    () => SupportSupabaseDatasource(sl()),
+  );
+  sl.registerLazySingleton<PricingSupabaseDatasource>(
+    () => PricingSupabaseDatasource(supabase: sl()),
+  );
 
   // Repositories
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositorySupabaseImpl(sl()),
   );
+  sl.registerLazySingleton<SupportRepository>(
+    () => SupportRepositorySupabaseImpl(sl()),
+  );
+  sl.registerLazySingleton<PricingRepositoryImpl>(
+    () => PricingRepositoryImpl(datasource: sl()),
+  );
 
   // Use Cases
   sl.registerLazySingleton(() => CheckEmailExistsUseCase(sl()));
   sl.registerLazySingleton(() => GetUserProfileByEmailUseCase(sl()));
+  sl.registerLazySingleton(() => GetTokenBalanceUsecase(repository: sl()));
+  sl.registerLazySingleton(() => GetUserSubscriptionUsecase(repository: sl()));
+  sl.registerLazySingleton(() => GetTokenPackagesUsecase(repository: sl()));
+  sl.registerLazySingleton(() => PurchaseTokenPackageUsecase(repository: sl()));
+  sl.registerLazySingleton(() => SubscribeToPlanUsecase(repository: sl()));
+  sl.registerLazySingleton(() => ConsumeBiddingTokenUsecase(repository: sl()));
   
-  // Note: Other Profile usecases and controllers can be added here
+  // Support Use Cases
+  sl.registerLazySingleton(() => GetSupportCategoriesUsecase(sl()));
+  sl.registerLazySingleton(() => GetUserTicketsUsecase(sl()));
+  sl.registerLazySingleton(() => GetTicketByIdUsecase(sl()));
+  sl.registerLazySingleton(() => CreateSupportTicketUsecase(sl()));
+  sl.registerLazySingleton(() => AddTicketMessageUsecase(sl()));
+  sl.registerLazySingleton(() => UpdateTicketStatusUsecase(sl()));
+
+  // Controllers (Factory)
+  sl.registerFactory(() => ProfileController(sl(), sl()));
+  sl.registerFactory(() => PricingController(
+    getTokenBalanceUsecase: sl(),
+    getUserSubscriptionUsecase: sl(),
+    getTokenPackagesUsecase: sl(),
+    purchaseTokenPackageUsecase: sl(),
+    subscribeToPlanUsecase: sl(),
+  ));
+  sl.registerFactory(() => SupportController(
+    getSupportCategoriesUsecase: sl(),
+    getUserTicketsUsecase: sl(),
+    getTicketByIdUsecase: sl(),
+    createSupportTicketUsecase: sl(),
+    addTicketMessageUsecase: sl(),
+    updateTicketStatusUsecase: sl(),
+  ));
 }
 
 /// Dependency injection container for Profile module

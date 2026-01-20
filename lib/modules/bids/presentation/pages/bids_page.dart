@@ -4,7 +4,6 @@ import '../../../browse/presentation/pages/auction_detail_page.dart';
 import '../../../browse/browse_module.dart';
 import '../../../notifications/notifications_module.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
-import '../../bids_module.dart';
 import '../controllers/bids_controller.dart';
 import '../widgets/user_bids_list.dart';
 import '../../domain/entities/user_bid_entity.dart';
@@ -13,14 +12,6 @@ import 'lost_bid_detail_page.dart';
 
 /// Main page for Bids module displaying user's auction participation
 /// Features three tabs: Active, Won, and Lost bids
-///
-/// Architecture:
-/// - Uses BidsController for state management (ChangeNotifier pattern)
-/// - ListenableBuilder for reactive UI updates
-/// - Pull-to-refresh for manual data sync
-/// - Tab badges showing count of each category
-///
-/// Navigation: Accessed from bottom navigation bar in HomePage
 class BidsPage extends StatefulWidget {
   final BidsController controller;
 
@@ -35,15 +26,13 @@ class _BidsPageState extends State<BidsPage>
   late TabController _tabController;
   bool _isGridView = true; // Toggle between grid and list view
 
-  BidsController get _controller => BidsModule.instance.controller;
-
   @override
   void initState() {
     super.initState();
     // Initialize tab controller for 4 tabs
     _tabController = TabController(length: 4, vsync: this);
     // Load bids on page init
-    _controller.loadUserBids();
+    widget.controller.loadUserBids();
   }
 
   @override
@@ -54,22 +43,13 @@ class _BidsPageState extends State<BidsPage>
 
   /// Handles pull-to-refresh action
   Future<void> _handleRefresh() async {
-    await _controller.loadUserBids();
+    await widget.controller.loadUserBids();
   }
 
   void _navigateToActiveBid(BuildContext context, UserBidEntity bid) {
     print(
       '[BidsPage] _navigateToActiveBid called with auctionId=${bid.auctionId}',
     );
-
-    // Ensure Browse module uses same data mode as Bids module
-    // If Bids is using real data, Browse should too
-    if (BrowseModule.useMockData != BidsModule.useMockData) {
-      print(
-        '[BidsPage] Syncing data mode: BidsModule.useMockData=${BidsModule.useMockData}, BrowseModule.useMockData=${BrowseModule.useMockData}',
-      );
-      BrowseModule.toggleDemoMode();
-    }
 
     // Navigate to auction detail page from browse module
     // This shows the actual auction with live bidding functionality
@@ -116,27 +96,6 @@ class _BidsPageState extends State<BidsPage>
       context,
       MaterialPageRoute(
         builder: (context) => LostBidDetailPage(auctionId: bid.auctionId),
-      ),
-    );
-  }
-
-  void _toggleDemoMode(BuildContext context) {
-    // Toggle both modules to keep them in sync
-    BrowseModule.toggleDemoMode();
-    BidsModule.toggleDemoMode();
-
-    // Force rebuild to get new controller
-    setState(() {});
-    _controller.loadUserBids();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          BidsModule.useMockData
-              ? 'Switched to Mock Data'
-              : 'Switched to Database',
-        ),
-        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -205,7 +164,7 @@ class _BidsPageState extends State<BidsPage>
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => _controller.loadUserBids(),
+            onPressed: () => widget.controller.loadUserBids(),
             tooltip: 'Refresh',
           ),
           IconButton(
@@ -213,41 +172,13 @@ class _BidsPageState extends State<BidsPage>
             onPressed: () => setState(() => _isGridView = !_isGridView),
             tooltip: _isGridView ? 'List View' : 'Grid View',
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'toggle_demo') {
-                _toggleDemoMode(context);
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'toggle_demo',
-                child: Row(
-                  children: [
-                    Icon(
-                      BidsModule.useMockData
-                          ? Icons.cloud_outlined
-                          : Icons.storage_outlined,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      BidsModule.useMockData
-                          ? 'Switch to Database'
-                          : 'Switch to Mock Data',
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ],
       ),
       body: ListenableBuilder(
-        listenable: _controller,
+        listenable: widget.controller,
         builder: (context, _) {
           // Show error state with retry button
-          if (_controller.hasError && _controller.totalBidsCount == 0) {
+          if (widget.controller.hasError && widget.controller.totalBidsCount == 0) {
             return _buildErrorState();
           }
 
@@ -288,22 +219,22 @@ class _BidsPageState extends State<BidsPage>
                   tabs: [
                     _TabWithBadge(
                       label: 'Active',
-                      count: _controller.activeBids.length,
+                      count: widget.controller.activeBids.length,
                       color: ColorConstants.primary,
                     ),
                     _TabWithBadge(
                       label: 'Won',
-                      count: _controller.wonBids.length,
+                      count: widget.controller.wonBids.length,
                       color: ColorConstants.success,
                     ),
                     _TabWithBadge(
                       label: 'Lost',
-                      count: _controller.lostBids.length,
+                      count: widget.controller.lostBids.length,
                       color: ColorConstants.error,
                     ),
                     _TabWithBadge(
                       label: 'Cancelled',
-                      count: _controller.cancelledBids.length,
+                      count: widget.controller.cancelledBids.length,
                       color: ColorConstants.warning,
                     ),
                   ],
@@ -318,8 +249,8 @@ class _BidsPageState extends State<BidsPage>
                     children: [
                       // Active bids tab
                       UserBidsList(
-                        bids: _controller.activeBids,
-                        isLoading: _controller.isLoading,
+                        bids: widget.controller.activeBids,
+                        isLoading: widget.controller.isLoading,
                         emptyTitle: 'No Active Bids',
                         emptySubtitle:
                             'Browse auctions and place a bid to get started!',
@@ -329,8 +260,8 @@ class _BidsPageState extends State<BidsPage>
                       ),
                       // Won bids tab
                       UserBidsList(
-                        bids: _controller.wonBids,
-                        isLoading: _controller.isLoading,
+                        bids: widget.controller.wonBids,
+                        isLoading: widget.controller.isLoading,
                         emptyTitle: 'No Won Auctions',
                         emptySubtitle:
                             'Keep bidding to win your first auction!',
@@ -340,8 +271,8 @@ class _BidsPageState extends State<BidsPage>
                       ),
                       // Lost bids tab
                       UserBidsList(
-                        bids: _controller.lostBids,
-                        isLoading: _controller.isLoading,
+                        bids: widget.controller.lostBids,
+                        isLoading: widget.controller.isLoading,
                         emptyTitle: 'No Lost Auctions',
                         emptySubtitle:
                             'You haven\'t lost any auctions yet. Good luck!',
@@ -351,8 +282,8 @@ class _BidsPageState extends State<BidsPage>
                       ),
                       // Cancelled bids tab
                       UserBidsList(
-                        bids: _controller.cancelledBids,
-                        isLoading: _controller.isLoading,
+                        bids: widget.controller.cancelledBids,
+                        isLoading: widget.controller.isLoading,
                         emptyTitle: 'No Cancelled Deals',
                         emptySubtitle:
                             'Deals you\'ve cancelled will appear here.',
@@ -418,7 +349,7 @@ class _BidsPageState extends State<BidsPage>
             ),
             const SizedBox(height: 8),
             Text(
-              _controller.errorMessage ?? 'Something went wrong',
+              widget.controller.errorMessage ?? 'Something went wrong',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: isDark
@@ -428,7 +359,7 @@ class _BidsPageState extends State<BidsPage>
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: _controller.loadUserBids,
+              onPressed: widget.controller.loadUserBids,
               icon: const Icon(Icons.refresh),
               label: const Text('Try Again'),
             ),
@@ -438,6 +369,8 @@ class _BidsPageState extends State<BidsPage>
     );
   }
 }
+
+
 
 /// Tab widget with badge showing count
 /// Badge only appears when count > 0

@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import 'package:autobid_mobile/core/utils/dev_admin_auth.dart';
-import '../../auth_module.dart';
+import 'package:autobid_mobile/app/di/app_module.dart';
 import '../../auth_routes.dart';
-import '../../../admin/admin_module.dart';
 import '../../../admin/presentation/pages/admin_main_page.dart';
+import '../../../admin/presentation/controllers/admin_controller.dart';
+import '../../../admin/presentation/controllers/kyc_controller.dart';
 import '../../../guest/guest_routes.dart';
 import '../controllers/login_controller.dart';
 import '../controllers/login_otp_controller.dart';
@@ -37,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _otpController = AuthModule.instance.createLoginOtpController();
+    _otpController = sl<LoginOtpController>();
   }
 
   @override
@@ -295,16 +296,13 @@ class _LoginPageState extends State<LoginPage> {
     Navigator.pop(context); // Close loading
 
     if (success) {
-      // Initialize admin module
-      AdminModule.instance.initialize();
-
       // Navigate to admin dashboard
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => AdminMainPage(
-            controller: AdminModule.instance.controller,
-            kycController: AdminModule.instance.kycController,
+            controller: sl<AdminController>(),
+            kycController: sl<KycController>(),
           ),
         ),
       );

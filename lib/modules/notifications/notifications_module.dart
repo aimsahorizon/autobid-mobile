@@ -1,9 +1,23 @@
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'data/datasources/notification_mock_datasource.dart';
 import 'data/datasources/notification_supabase_datasource.dart';
 import 'presentation/controllers/notification_controller.dart';
 
-/// Notifications module dependency injection
+/// Initialize Notifications module dependencies
+Future<void> initNotificationsModule() async {
+  final sl = GetIt.instance;
+
+  // Datasources
+  sl.registerLazySingleton<INotificationDataSource>(
+    () => NotificationSupabaseDataSource(supabase: sl()),
+  );
+
+  // Controllers (Factory)
+  sl.registerFactory(() => NotificationController(sl()));
+}
+
+/// Notifications module dependency injection (Legacy)
 class NotificationsModule {
   static final NotificationsModule _instance = NotificationsModule._internal();
   static NotificationsModule get instance => _instance;

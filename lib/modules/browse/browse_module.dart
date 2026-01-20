@@ -1,3 +1,5 @@
+import 'package:get_it/get_it.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../profile/data/datasources/pricing_supabase_datasource.dart';
 import '../profile/data/repositories/pricing_repository_impl.dart';
@@ -13,7 +15,32 @@ import 'domain/repositories/auction_repository.dart';
 import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
 
-/// Dependency injection container for Browse module
+/// Initialize Browse module dependencies
+Future<void> initBrowseModule() async {
+  final sl = GetIt.instance;
+
+  // Datasources
+  sl.registerLazySingleton(() => AuctionSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => BidSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => QASupabaseDataSource(sl()));
+
+  // Repositories
+  sl.registerLazySingleton<AuctionRepository>(
+    () => AuctionRepositorySupabaseImpl(sl()),
+  );
+
+  // Controllers (Factory)
+  sl.registerFactory(() => BrowseController(sl()));
+  sl.registerFactory(() => AuctionDetailController.supabase(
+    auctionDataSource: sl(),
+    bidDataSource: sl(),
+    qaDataSource: sl(),
+    consumeBiddingTokenUsecase: sl(),
+    userId: sl<SupabaseClient>().auth.currentUser?.id,
+  ));
+}
+
+/// Dependency injection container for Browse module (Legacy)
 class BrowseModule {
   static BrowseModule? _instance;
   static BrowseModule get instance => _instance ??= BrowseModule._();

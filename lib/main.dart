@@ -18,8 +18,5 @@ void main() async {
   // Initialize Stripe
   await StripeService.init();
 
-  // Initialize Transactions module
-  TransactionsModule.instance.initialize();
-
   runApp(const App());
 }

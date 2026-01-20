@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../auth_module.dart';
+import 'package:autobid_mobile/app/di/app_module.dart';
 import '../controllers/kyc_registration_controller.dart';
 import '../widgets/kyc_steps/national_id_step.dart';
 import '../widgets/kyc_steps/selfie_with_id_step.dart';
@@ -27,8 +27,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   @override
   void initState() {
     super.initState();
-    // Use AuthModule factory to create controller with Supabase integration
-    _controller = AuthModule.instance.createKYCRegistrationController();
+    // Use GetIt to create controller
+    _controller = sl<KYCRegistrationController>();
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/datasources/transaction_mock_datasource.dart';
 import 'data/datasources/transaction_supabase_datasource.dart';
@@ -9,11 +10,36 @@ import 'presentation/controllers/transaction_controller.dart';
 import 'presentation/controllers/transaction_realtime_controller.dart';
 import 'presentation/controllers/transactions_status_controller.dart';
 import 'presentation/controllers/seller_transaction_demo_controller.dart';
+import 'presentation/controllers/buyer_seller_transactions_controller.dart';
 
-/// Transactions Module - Manages buyer-seller transactions
-///
-/// Handles the complete transaction lifecycle from initial discussion
-/// through form submissions, admin approval, and delivery tracking.
+/// Initialize Transactions module dependencies
+Future<void> initTransactionsModule() async {
+  final sl = GetIt.instance;
+
+  // Datasources
+  sl.registerLazySingleton(() => TransactionMockDataSource());
+  sl.registerLazySingleton(() => TransactionSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => SellerTransactionSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => ChatSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => TimelineSupabaseDataSource(sl()));
+
+  // Controllers (Factory)
+  sl.registerFactory(() => TransactionController(sl<TransactionMockDataSource>()));
+  sl.registerFactory(() => TransactionRealtimeController(
+    TransactionRealtimeDataSource(sl()),
+  ));
+  sl.registerFactory(() => TransactionsStatusController(
+    sl(), // TransactionSupabaseDataSource
+    sl<SupabaseClient>().auth.currentUser?.id ?? '',
+  ));
+  sl.registerFactory(() => BuyerSellerTransactionsController(
+    sl<TransactionSupabaseDataSource>(),
+    null,
+    sl<SupabaseClient>().auth.currentUser?.id ?? '',
+  ));
+}
+
+/// Transactions Module - Manages buyer-seller transactions (Legacy)
 class TransactionsModule {
   static final TransactionsModule _instance = TransactionsModule._internal();
   static TransactionsModule get instance => _instance;

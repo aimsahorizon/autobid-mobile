@@ -1,3 +1,4 @@
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'presentation/controllers/lists_controller.dart';
 import 'presentation/controllers/listing_draft_controller.dart';
@@ -9,8 +10,18 @@ import '../transactions/data/datasources/seller_transaction_supabase_datasource.
 import '../transactions/data/datasources/chat_supabase_datasource.dart';
 import '../transactions/data/datasources/timeline_supabase_datasource.dart';
 
-/// Lists module dependency injection
-/// Handles seller listing management, transactions, and draft creation
+/// Initialize Lists module dependencies
+Future<void> initListsModule() async {
+  final sl = GetIt.instance;
+
+  // Datasources
+  sl.registerLazySingleton(() => ListingSupabaseDataSource(sl()));
+
+  // Controllers (Factory)
+  sl.registerFactory(() => ListsController.supabase());
+}
+
+/// Lists module dependency injection (Legacy)
 class ListsModule {
   /// Toggle for mock data vs real Supabase backend
   static bool useMockData = true;

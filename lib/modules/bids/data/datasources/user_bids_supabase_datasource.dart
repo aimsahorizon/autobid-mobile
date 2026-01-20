@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_bid_model.dart';
 import '../../domain/entities/user_bid_entity.dart';
-import '../../presentation/controllers/bids_controller.dart';
+import 'bids_remote_datasource.dart';
 
 /// Supabase datasource for user's bid history
 /// Fetches user's active, won, lost, and cancelled bids from database
-class UserBidsSupabaseDataSource implements IUserBidsDataSource {
+class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
   final SupabaseClient _supabase;
 
   UserBidsSupabaseDataSource(this._supabase);
