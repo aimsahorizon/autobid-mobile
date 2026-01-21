@@ -41,10 +41,12 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
   }
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 
   Future<void> _processPayment() async {
@@ -87,9 +89,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       await Stripe.instance.presentPaymentSheet();
 
       // Step 4: Record deposit in database
-      final datasource = DepositSupabaseDatasource(
-        supabase: SupabaseConfig.client,
-      );
+      final datasource = DepositSupabaseDataSource(SupabaseConfig.client);
 
       final depositId = await datasource.createDeposit(
         auctionId: widget.auctionId,
@@ -106,7 +106,9 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Deposit payment successful! You can now participate in this auction.'),
+            content: Text(
+              'Deposit payment successful! You can now participate in this auction.',
+            ),
             backgroundColor: ColorConstants.success,
             duration: const Duration(seconds: 4),
           ),
@@ -152,9 +154,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Auction Deposit'),
-      ),
+      appBar: AppBar(title: const Text('Auction Deposit')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -166,10 +166,14 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+                  color: isDark
+                      ? ColorConstants.surfaceDark
+                      : ColorConstants.surfaceLight,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+                    color: isDark
+                        ? ColorConstants.borderDark
+                        : ColorConstants.borderLight,
                   ),
                 ),
                 child: Column(
@@ -180,7 +184,9 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: ColorConstants.primary.withValues(alpha: 0.1),
+                            color: ColorConstants.primary.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Icon(
@@ -217,7 +223,11 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Divider(color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+                    Divider(
+                      color: isDark
+                          ? ColorConstants.borderDark
+                          : ColorConstants.borderLight,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'Deposit Terms',
@@ -226,11 +236,20 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildInfoRow(Icons.check_circle_outline, 'Fully refundable if you don\'t win'),
+                    _buildInfoRow(
+                      Icons.check_circle_outline,
+                      'Fully refundable if you don\'t win',
+                    ),
                     const SizedBox(height: 4),
-                    _buildInfoRow(Icons.check_circle_outline, 'Applied to purchase if you win'),
+                    _buildInfoRow(
+                      Icons.check_circle_outline,
+                      'Applied to purchase if you win',
+                    ),
                     const SizedBox(height: 4),
-                    _buildInfoRow(Icons.warning_amber_rounded, 'Forfeited if winner doesn\'t complete purchase'),
+                    _buildInfoRow(
+                      Icons.warning_amber_rounded,
+                      'Forfeited if winner doesn\'t complete purchase',
+                    ),
                   ],
                 ),
               ),
@@ -312,11 +331,23 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildTestCardRow('✅ Success:', '4242 4242 4242 4242', theme),
+                    _buildTestCardRow(
+                      '✅ Success:',
+                      '4242 4242 4242 4242',
+                      theme,
+                    ),
                     const SizedBox(height: 4),
-                    _buildTestCardRow('🔐 3D Secure:', '4000 0025 0000 3155', theme),
+                    _buildTestCardRow(
+                      '🔐 3D Secure:',
+                      '4000 0025 0000 3155',
+                      theme,
+                    ),
                     const SizedBox(height: 4),
-                    _buildTestCardRow('❌ Declined:', '4000 0000 0000 0002', theme),
+                    _buildTestCardRow(
+                      '❌ Declined:',
+                      '4000 0000 0000 0002',
+                      theme,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'Any future expiry (12/34), any CVC (123)',
@@ -359,10 +390,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                   children: [
                     const Icon(Icons.lock_outline, size: 16),
                     const SizedBox(width: 8),
-                    Text(
-                      'Secured by Stripe',
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    Text('Secured by Stripe', style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -379,10 +407,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         Icon(icon, size: 16, color: ColorConstants.success),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          child: Text(text, style: Theme.of(context).textTheme.bodySmall),
         ),
       ],
     );
@@ -404,9 +429,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
           flex: 3,
           child: Text(
             number,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontFamily: 'monospace',
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
           ),
         ),
       ],
