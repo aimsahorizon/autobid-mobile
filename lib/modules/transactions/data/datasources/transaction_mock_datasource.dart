@@ -1,4 +1,5 @@
 import '../../domain/entities/transaction_entity.dart';
+import 'transaction_remote_datasource.dart';
 
 /// Mock datasource for transaction-related data
 /// TODO: Replace with Supabase implementation
@@ -7,7 +8,7 @@ import '../../domain/entities/transaction_entity.dart';
 /// - Use supabase.from('transaction_forms') for form data
 /// - Use supabase.from('transaction_timeline') for timeline events
 /// - Implement real-time subscriptions for chat and status updates
-class TransactionMockDataSource {
+class TransactionMockDataSource implements TransactionRemoteDataSource {
   // Toggle to switch between mock and real backend
   // Set to true for mock data, false when backend is ready
   static const bool useMockData = true;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../data/datasources/buyer_transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/buyer_transaction_supabase_datasource.dart';
 import '../controllers/buyer_transaction_controller.dart';
 import '../controllers/transaction_demo_controller.dart';
 import '../widgets/won_bid/transaction_header.dart';

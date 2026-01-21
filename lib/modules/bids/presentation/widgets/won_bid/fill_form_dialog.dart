@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../../domain/entities/buyer_transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/buyer_transaction_entity.dart';
 import '../../controllers/buyer_transaction_controller.dart';
 
 class FillFormDialog extends StatefulWidget {

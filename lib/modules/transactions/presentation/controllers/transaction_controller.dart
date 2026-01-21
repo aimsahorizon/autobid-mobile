@@ -1,13 +1,46 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/transaction_entity.dart';
-import '../../data/datasources/transaction_mock_datasource.dart';
+import '../../domain/usecases/get_transaction_usecases.dart';
+import '../../domain/usecases/manage_transaction_usecases.dart';
 
 /// Controller for managing transaction state and actions
 /// Handles chat, forms, timeline, and transaction lifecycle
 class TransactionController extends ChangeNotifier {
-  final TransactionMockDataSource _dataSource;
+  final GetTransactionUseCase _getTransactionUseCase;
+  final GetChatMessagesUseCase _getChatMessagesUseCase;
+  final GetTransactionFormUseCase _getTransactionFormUseCase;
+  final GetTimelineUseCase _getTimelineUseCase;
+  final SendMessageUseCase _sendMessageUseCase;
+  final SubmitFormUseCase _submitFormUseCase;
+  final ConfirmFormUseCase _confirmFormUseCase;
+  final SubmitToAdminUseCase _submitToAdminUseCase;
+  final UpdateDeliveryStatusUseCase _updateDeliveryStatusUseCase;
+  final AcceptVehicleUseCase _acceptVehicleUseCase;
+  final RejectVehicleUseCase _rejectVehicleUseCase;
 
-  TransactionController(this._dataSource);
+  TransactionController({
+    required GetTransactionUseCase getTransactionUseCase,
+    required GetChatMessagesUseCase getChatMessagesUseCase,
+    required GetTransactionFormUseCase getTransactionFormUseCase,
+    required GetTimelineUseCase getTimelineUseCase,
+    required SendMessageUseCase sendMessageUseCase,
+    required SubmitFormUseCase submitFormUseCase,
+    required ConfirmFormUseCase confirmFormUseCase,
+    required SubmitToAdminUseCase submitToAdminUseCase,
+    required UpdateDeliveryStatusUseCase updateDeliveryStatusUseCase,
+    required AcceptVehicleUseCase acceptVehicleUseCase,
+    required RejectVehicleUseCase rejectVehicleUseCase,
+  }) : _getTransactionUseCase = getTransactionUseCase,
+       _getChatMessagesUseCase = getChatMessagesUseCase,
+       _getTransactionFormUseCase = getTransactionFormUseCase,
+       _getTimelineUseCase = getTimelineUseCase,
+       _sendMessageUseCase = sendMessageUseCase,
+       _submitFormUseCase = submitFormUseCase,
+       _confirmFormUseCase = confirmFormUseCase,
+       _submitToAdminUseCase = submitToAdminUseCase,
+       _updateDeliveryStatusUseCase = updateDeliveryStatusUseCase,
+       _acceptVehicleUseCase = acceptVehicleUseCase,
+       _rejectVehicleUseCase = rejectVehicleUseCase;
 
   // State
   TransactionEntity? _transaction;
@@ -38,111 +71,97 @@ class TransactionController extends ChangeNotifier {
 
   /// Load transaction and all related data
   Future<void> loadTransaction(String transactionId, String userId) async {
-    print(
-      'DEBUG [TransactionController]: ========================================',
-    );
-    print('DEBUG [TransactionController]: Loading transaction: $transactionId');
-
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _transaction = await _dataSource.getTransaction(transactionId);
-      if (_transaction == null) {
-        _errorMessage = 'Transaction not found';
-        print('ERROR [TransactionController]: Transaction not found');
-        return;
-      }
+      final result = await _getTransactionUseCase.call(transactionId);
+      
+      await result.fold(
+        (failure) async {
+          _errorMessage = failure.message;
+        },
+        (transaction) async {
+          _transaction = transaction;
+          if (_transaction == null) {
+            _errorMessage = 'Transaction not found';
+            return;
+          }
 
-      print(
-        'DEBUG [TransactionController]: Transaction status: ${_transaction!.status.label}',
-      );
-      print(
-        'DEBUG [TransactionController]: Delivery status: ${_transaction!.deliveryStatus}',
-      );
-      print(
-        'DEBUG [TransactionController]: Seller form submitted: ${_transaction!.sellerFormSubmitted}',
-      );
-      print(
-        'DEBUG [TransactionController]: Buyer form submitted: ${_transaction!.buyerFormSubmitted}',
-      );
-      print(
-        'DEBUG [TransactionController]: Admin approved: ${_transaction!.adminApproved}',
-      );
+          final role = getUserRole(userId);
+          final otherRole = role == FormRole.seller ? FormRole.buyer : FormRole.seller;
 
-      final role = getUserRole(userId);
-      final otherRole = role == FormRole.seller
-          ? FormRole.buyer
-          : FormRole.seller;
-
-      // Load all data in parallel
-      await Future.wait([
-        _loadChatMessages(transactionId),
-        _loadMyForm(transactionId, role),
-        _loadOtherPartyForm(transactionId, otherRole),
-        _loadTimeline(transactionId),
-      ]);
-
-      print(
-        'DEBUG [TransactionController]: Loaded ${_chatMessages.length} messages',
+          // Load all data in parallel
+          await Future.wait([
+            _loadChatMessages(transactionId),
+            _loadMyForm(transactionId, role),
+            _loadOtherPartyForm(transactionId, otherRole),
+            _loadTimeline(transactionId),
+          ]);
+        }
       );
-      print(
-        'DEBUG [TransactionController]: Loaded ${_timeline.length} timeline events',
-      );
-      print('DEBUG [TransactionController]: ✅ Transaction loaded successfully');
-      print('DEBUG [TransactionController]: Notifying listeners...');
-    } catch (e, stackTrace) {
-      _errorMessage = 'Failed to load transaction';
-      print('ERROR [TransactionController]: Failed to load transaction: $e');
-      print('STACK [TransactionController]: $stackTrace');
+    } catch (e) {
+      _errorMessage = 'Failed to load transaction: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
-      print(
-        'DEBUG [TransactionController]: ========================================',
-      );
     }
   }
 
   Future<void> _loadChatMessages(String transactionId) async {
-    _chatMessages = await _dataSource.getChatMessages(transactionId);
+    final result = await _getChatMessagesUseCase.call(transactionId);
+    result.fold(
+      (failure) => null,
+      (messages) => _chatMessages = messages,
+    );
   }
 
   Future<void> _loadMyForm(String transactionId, FormRole role) async {
-    _myForm = await _dataSource.getTransactionForm(transactionId, role);
+    final result = await _getTransactionFormUseCase.call(transactionId, role);
+    result.fold(
+      (failure) => null,
+      (form) => _myForm = form,
+    );
   }
 
   Future<void> _loadOtherPartyForm(String transactionId, FormRole role) async {
-    _otherPartyForm = await _dataSource.getTransactionForm(transactionId, role);
+    final result = await _getTransactionFormUseCase.call(transactionId, role);
+    result.fold(
+      (failure) => null,
+      (form) => _otherPartyForm = form,
+    );
   }
 
   Future<void> _loadTimeline(String transactionId) async {
-    _timeline = await _dataSource.getTimeline(transactionId);
+    final result = await _getTimelineUseCase.call(transactionId);
+    result.fold(
+      (failure) => null,
+      (timeline) => _timeline = timeline,
+    );
   }
 
   /// Send chat message
-  Future<void> sendMessage(
-    String userId,
-    String userName,
-    String message,
-  ) async {
+  Future<void> sendMessage(String userId, String userName, String message) async {
     if (_transaction == null || message.trim().isEmpty) return;
 
     _isProcessing = true;
     notifyListeners();
 
     try {
-      final success = await _dataSource.sendMessage(
+      final result = await _sendMessageUseCase.call(
         _transaction!.id,
         userId,
         userName,
         message,
       );
-
-      if (success) {
-        await _loadChatMessages(_transaction!.id);
-      }
+      
+      result.fold(
+        (failure) => _errorMessage = failure.message,
+        (success) {
+          if (success) _loadChatMessages(_transaction!.id);
+        }
+      );
     } catch (e) {
       _errorMessage = 'Failed to send message';
     } finally {
@@ -159,16 +178,22 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _dataSource.submitForm(form);
-      if (success) {
-        await loadTransaction(
-          _transaction!.id,
-          form.role == FormRole.seller
-              ? _transaction!.sellerId
-              : _transaction!.buyerId,
-        );
-      }
-      return success;
+      final result = await _submitFormUseCase.call(form);
+      return await result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (success) async {
+          if (success) {
+            await loadTransaction(
+              _transaction!.id,
+              form.role == FormRole.seller ? _transaction!.sellerId : _transaction!.buyerId,
+            );
+          }
+          return success;
+        }
+      );
     } catch (e) {
       _errorMessage = 'Failed to submit form';
       return false;
@@ -186,18 +211,20 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _dataSource.confirmForm(
-        _transaction!.id,
-        otherPartyRole,
+      final result = await _confirmFormUseCase.call(_transaction!.id, otherPartyRole);
+      return await result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (success) async {
+          if (success) {
+            final userId = otherPartyRole == FormRole.buyer ? _transaction!.sellerId : _transaction!.buyerId;
+            await loadTransaction(_transaction!.id, userId);
+          }
+          return success;
+        }
       );
-      if (success) {
-        // Reload transaction to update status
-        final userId = otherPartyRole == FormRole.buyer
-            ? _transaction!.sellerId
-            : _transaction!.buyerId;
-        await loadTransaction(_transaction!.id, userId);
-      }
-      return success;
     } catch (e) {
       _errorMessage = 'Failed to confirm form';
       return false;
@@ -209,19 +236,25 @@ class TransactionController extends ChangeNotifier {
 
   /// Submit to admin for approval
   Future<bool> submitToAdmin() async {
-    if (_transaction == null || !_transaction!.readyForAdminReview) {
-      return false;
-    }
+    if (_transaction == null || !_transaction!.readyForAdminReview) return false;
 
     _isProcessing = true;
     notifyListeners();
 
     try {
-      final success = await _dataSource.submitToAdmin(_transaction!.id);
-      if (success) {
-        await loadTransaction(_transaction!.id, _transaction!.sellerId);
-      }
-      return success;
+      final result = await _submitToAdminUseCase.call(_transaction!.id);
+      return await result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (success) async {
+          if (success) {
+            await loadTransaction(_transaction!.id, _transaction!.sellerId);
+          }
+          return success;
+        }
+      );
     } catch (e) {
       _errorMessage = 'Failed to submit to admin';
       return false;
@@ -232,7 +265,6 @@ class TransactionController extends ChangeNotifier {
   }
 
   /// Update delivery status (seller only)
-  /// Progresses through: preparing -> inTransit -> delivered -> completed
   Future<bool> updateDeliveryStatus(DeliveryStatus status) async {
     if (_transaction == null) return false;
 
@@ -240,15 +272,23 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _dataSource.updateDeliveryStatus(
+      final result = await _updateDeliveryStatusUseCase.call(
         _transaction!.id,
         _transaction!.sellerId,
         status,
       );
-      if (success) {
-        await loadTransaction(_transaction!.id, _transaction!.sellerId);
-      }
-      return success;
+      return await result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (success) async {
+          if (success) {
+            await loadTransaction(_transaction!.id, _transaction!.sellerId);
+          }
+          return success;
+        }
+      );
     } catch (e) {
       _errorMessage = 'Failed to update delivery status';
       return false;
@@ -258,7 +298,7 @@ class TransactionController extends ChangeNotifier {
     }
   }
 
-  /// Buyer accepts the vehicle - transaction successful
+  /// Buyer accepts the vehicle
   Future<bool> acceptVehicle(String buyerId) async {
     if (_transaction == null) return false;
     if (!_transaction!.canBuyerRespond) {
@@ -270,14 +310,19 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _dataSource.acceptVehicle(
-        _transaction!.id,
-        buyerId,
+      final result = await _acceptVehicleUseCase.call(_transaction!.id, buyerId);
+      return await result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (success) async {
+          if (success) {
+            await loadTransaction(_transaction!.id, _transaction!.sellerId);
+          }
+          return success;
+        }
       );
-      if (success) {
-        await loadTransaction(_transaction!.id, _transaction!.sellerId);
-      }
-      return success;
     } catch (e) {
       _errorMessage = 'Failed to accept vehicle';
       return false;
@@ -287,7 +332,7 @@ class TransactionController extends ChangeNotifier {
     }
   }
 
-  /// Buyer rejects the vehicle - deal failed
+  /// Buyer rejects the vehicle
   Future<bool> rejectVehicle(String buyerId, String reason) async {
     if (_transaction == null) return false;
     if (!_transaction!.canBuyerRespond) {
@@ -299,15 +344,19 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _dataSource.rejectVehicle(
-        _transaction!.id,
-        buyerId,
-        reason,
+      final result = await _rejectVehicleUseCase.call(_transaction!.id, buyerId, reason);
+      return await result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (success) async {
+          if (success) {
+            await loadTransaction(_transaction!.id, _transaction!.sellerId);
+          }
+          return success;
+        }
       );
-      if (success) {
-        await loadTransaction(_transaction!.id, _transaction!.sellerId);
-      }
-      return success;
     } catch (e) {
       _errorMessage = 'Failed to reject vehicle';
       return false;
@@ -317,7 +366,6 @@ class TransactionController extends ChangeNotifier {
     }
   }
 
-  /// Clear error message
   void clearError() {
     _errorMessage = null;
     notifyListeners();
