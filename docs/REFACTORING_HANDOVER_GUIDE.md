@@ -126,9 +126,67 @@ The Browse module has been successfully refactored to follow Clean Architecture 
 ## 4. Future Phases (Roadmap)
 
 ### Phase 4: Remaining Modules
-*   **Guest Module:** Check `GuestController`. Ensure it uses `GuestRepository`.
-*   **Notifications Module:** Check `NotificationsController`.
-*   **Profile Module:** Check `ProfileController` and `Auth` dependencies.
+
+#### A. Guest Module (`lib/modules/guest/`)
+**Status:** ✅ Fully Refactored & Error-Free
+**Completed:** January 21, 2026
+
+**Summary:** Guest module refactored to Clean Architecture with UseCases and proper DI.
+
+**Domain Layer:**
+- Created `GuestRepository` interface
+- Created 2 UseCases: `CheckAccountStatusUseCase`, `GetGuestAuctionListingsUseCase`
+
+**Data Layer:**
+- Created `GuestRemoteDataSource` interface
+- Updated `GuestSupabaseDataSource` to implement interface
+- Created `GuestRepositoryImpl`
+
+**Presentation Layer:**
+- Refactored `GuestController` to use UseCases only
+- Removed direct DataSource dependencies
+- Removed mock data toggle (handled by DI now)
+
+**Dependency Injection:**
+- Created `initGuestModule()` following GetIt pattern
+- Deprecated legacy `GuestModule` class methods
+
+---
+
+#### C. Notifications Module
+**Status:** ✅ Fully Refactored & Error-Free
+**Completed:** January 21, 2026
+
+**Domain Layer:**
+- Created `NotificationRepository` interface with 6 methods
+- Created 6 UseCases:
+  - `GetNotificationsUseCase` - Fetch notifications for user
+  - `GetUnreadCountUseCase` - Get count of unread notifications
+  - `MarkAsReadUseCase` - Mark notification as read
+  - `MarkAllAsReadUseCase` - Mark all notifications as read
+  - `DeleteNotificationUseCase` - Delete a notification
+  - `GetUnreadNotificationsUseCase` - Fetch only unread notifications
+
+**Data Layer:**
+- Created `INotificationDataSource` interface in separate file
+- Created `NotificationRepositoryImpl` using existing datasource
+- Updated imports in all datasource files to use new interface
+
+**Presentation Layer:**
+- Refactored `NotificationController` to use UseCases only
+- Removed `INotificationDataSource` dependency
+- All methods now use UseCases with proper Either<Failure, T> handling
+
+**Dependency Injection:**
+- Updated `initNotificationsModule()` to register Repository and all 6 UseCases
+- Updated controller factory to inject all UseCases
+- Deprecated legacy `NotificationsModule` class methods
+
+---
+
+#### D. Profile Module
+**Status:** ⏳ Pending
+*   Check `ProfileController` and `Auth` dependencies.
 
 ### Phase 5: Cleanup & Optimization
 *   **Remove Mock DataSources:** Delete `TransactionMockDataSource`, `ListingDetailMockDataSource` once confirmed unused.

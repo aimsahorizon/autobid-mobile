@@ -40,7 +40,9 @@ class _HomePageState extends State<HomePage> {
     _pages = [
       BrowsePage(controller: sl<BrowseController>()),
       BidsPage(controller: sl<BidsController>()),
-      TransactionsStatusPage(controller: sl<BuyerSellerTransactionsController>()),
+      TransactionsStatusPage(
+        controller: sl<BuyerSellerTransactionsController>(),
+      ),
       ListsPage(controller: sl<ListsController>()),
       ProfilePage(
         controller: sl<ProfileController>(),
@@ -56,7 +58,6 @@ class _HomePageState extends State<HomePage> {
     if (userId != null) {
       final notificationController = sl<NotificationController>();
       notificationController.loadNotifications(userId);
-      notificationController.loadUnreadCount(userId);
     }
   }
 

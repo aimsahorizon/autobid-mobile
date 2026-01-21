@@ -19,7 +19,8 @@ class GuestPage extends StatefulWidget {
   State<GuestPage> createState() => _GuestPageState();
 }
 
-class _GuestPageState extends State<GuestPage> with SingleTickerProviderStateMixin {
+class _GuestPageState extends State<GuestPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -48,7 +49,9 @@ class _GuestPageState extends State<GuestPage> with SingleTickerProviderStateMix
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0A0E27) : const Color(0xFFF8F9FE),
+      backgroundColor: isDark
+          ? const Color(0xFF0A0E27)
+          : const Color(0xFFF8F9FE),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -83,23 +86,29 @@ class _GuestPageState extends State<GuestPage> with SingleTickerProviderStateMix
                   ),
                 ],
               ),
-              child: const Icon(Icons.remove_red_eye_outlined, size: 20, color: Colors.white),
+              child: const Icon(
+                Icons.remove_red_eye_outlined,
+                size: 20,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(width: 12),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Guest Mode', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('Explore AutoBid', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400)),
+                Text(
+                  'Guest Mode',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Explore AutoBid',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+                ),
               ],
             ),
           ],
         ),
-        actions: [
-          _buildDataSourceMenu(),
-          _buildThemeToggle(),
-          const SizedBox(width: 8),
-        ],
+        actions: [_buildThemeToggle(), const SizedBox(width: 8)],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
           child: Container(
@@ -161,79 +170,6 @@ class _GuestPageState extends State<GuestPage> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _buildDataSourceMenu() {
-    return ListenableBuilder(
-      listenable: widget.controller,
-      builder: (context, _) {
-        return PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert),
-          tooltip: 'Data Source Options',
-          onSelected: (value) {
-            if (value == 'toggle') {
-              widget.controller.toggleDataSource();
-              final dataSource = widget.controller.useMockData ? 'Mock Data' : 'Database';
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Switched to $dataSource'),
-                  duration: const Duration(seconds: 2),
-                  backgroundColor: widget.controller.useMockData
-                      ? Colors.orange
-                      : Colors.green,
-                ),
-              );
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem<String>(
-              value: 'toggle',
-              child: Row(
-                children: [
-                  Icon(
-                    widget.controller.useMockData
-                        ? Icons.cloud_outlined
-                        : Icons.dataset_outlined,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    widget.controller.useMockData
-                        ? 'Switch to Database'
-                        : 'Switch to Mock Data',
-                  ),
-                ],
-              ),
-            ),
-            PopupMenuItem<String>(
-              enabled: false,
-              child: Row(
-                children: [
-                  Icon(
-                    widget.controller.useMockData
-                        ? Icons.info_outline
-                        : Icons.check_circle_outline,
-                    size: 16,
-                    color: widget.controller.useMockData
-                        ? Colors.orange
-                        : Colors.green,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Current: ${widget.controller.useMockData ? "Mock" : "Database"}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: widget.controller.useMockData
-                          ? Colors.orange
-                          : Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildThemeToggle() {
     return ListenableBuilder(
       listenable: widget.themeController,
@@ -275,7 +211,10 @@ class _GuestPageState extends State<GuestPage> with SingleTickerProviderStateMix
         elevation: 0,
         backgroundColor: Colors.transparent,
         icon: const Icon(Icons.login_rounded, color: Colors.white),
-        label: const Text('Sign In', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        label: const Text(
+          'Sign In',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
