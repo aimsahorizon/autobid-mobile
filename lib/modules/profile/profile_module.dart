@@ -8,6 +8,7 @@ import 'data/repositories/pricing_repository_impl.dart';
 import 'data/repositories/profile_repository_mock_impl.dart';
 import 'data/repositories/profile_repository_supabase_impl.dart';
 import 'data/repositories/support_repository_supabase_impl.dart';
+import 'domain/repositories/pricing_repository.dart';
 import 'domain/repositories/profile_repository.dart';
 import 'domain/repositories/support_repository.dart';
 import 'domain/usecases/get_support_categories_usecase.dart';
@@ -50,7 +51,7 @@ Future<void> initProfileModule() async {
   sl.registerLazySingleton<SupportRepository>(
     () => SupportRepositorySupabaseImpl(sl()),
   );
-  sl.registerLazySingleton<PricingRepositoryImpl>(
+  sl.registerLazySingleton<PricingRepository>(
     () => PricingRepositoryImpl(datasource: sl()),
   );
 
@@ -63,7 +64,7 @@ Future<void> initProfileModule() async {
   sl.registerLazySingleton(() => PurchaseTokenPackageUsecase(repository: sl()));
   sl.registerLazySingleton(() => SubscribeToPlanUsecase(repository: sl()));
   sl.registerLazySingleton(() => ConsumeBiddingTokenUsecase(repository: sl()));
-  
+
   // Support Use Cases
   sl.registerLazySingleton(() => GetSupportCategoriesUsecase(sl()));
   sl.registerLazySingleton(() => GetUserTicketsUsecase(sl()));
@@ -74,21 +75,25 @@ Future<void> initProfileModule() async {
 
   // Controllers (Factory)
   sl.registerFactory(() => ProfileController(sl(), sl()));
-  sl.registerFactory(() => PricingController(
-    getTokenBalanceUsecase: sl(),
-    getUserSubscriptionUsecase: sl(),
-    getTokenPackagesUsecase: sl(),
-    purchaseTokenPackageUsecase: sl(),
-    subscribeToPlanUsecase: sl(),
-  ));
-  sl.registerFactory(() => SupportController(
-    getSupportCategoriesUsecase: sl(),
-    getUserTicketsUsecase: sl(),
-    getTicketByIdUsecase: sl(),
-    createSupportTicketUsecase: sl(),
-    addTicketMessageUsecase: sl(),
-    updateTicketStatusUsecase: sl(),
-  ));
+  sl.registerFactory(
+    () => PricingController(
+      getTokenBalanceUsecase: sl(),
+      getUserSubscriptionUsecase: sl(),
+      getTokenPackagesUsecase: sl(),
+      purchaseTokenPackageUsecase: sl(),
+      subscribeToPlanUsecase: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => SupportController(
+      getSupportCategoriesUsecase: sl(),
+      getUserTicketsUsecase: sl(),
+      getTicketByIdUsecase: sl(),
+      createSupportTicketUsecase: sl(),
+      addTicketMessageUsecase: sl(),
+      updateTicketStatusUsecase: sl(),
+    ),
+  );
 }
 
 /// Dependency injection container for Profile module
@@ -124,17 +129,22 @@ class ProfileModule {
     if (useMockData) {
       _repositoryInstance = ProfileRepositoryMockImpl(_createMockDataSource());
     } else {
-      _repositoryInstance = ProfileRepositorySupabaseImpl(_getOrCreateDataSource());
+      _repositoryInstance = ProfileRepositorySupabaseImpl(
+        _getOrCreateDataSource(),
+      );
     }
     return _repositoryInstance!;
   }
-  
+
   /// Expose repository for other modules (e.g. Auth)
   ProfileRepository get repository => _getOrCreateRepository();
 
   /// Get or create profile controller (singleton)
   ProfileController get controller {
-    _controllerInstance ??= ProfileController(_getOrCreateRepository(), _getOrCreateDataSource());
+    _controllerInstance ??= ProfileController(
+      _getOrCreateRepository(),
+      _getOrCreateDataSource(),
+    );
     return _controllerInstance!;
   }
 
