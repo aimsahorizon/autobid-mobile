@@ -1,14 +1,8 @@
 import 'package:get_it/get_it.dart';
-import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'presentation/controllers/lists_controller.dart';
 import 'presentation/controllers/listing_draft_controller.dart';
-import 'data/datasources/listing_draft_mock_datasource.dart';
 import 'data/datasources/listing_supabase_datasource.dart';
 import '../transactions/presentation/controllers/transaction_controller.dart';
-import '../transactions/data/datasources/transaction_mock_datasource.dart';
-import '../transactions/data/datasources/seller_transaction_supabase_datasource.dart';
-import '../transactions/data/datasources/chat_supabase_datasource.dart';
-import '../transactions/data/datasources/timeline_supabase_datasource.dart';
 
 import 'domain/usecases/draft_management_usecases.dart';
 import 'domain/usecases/submission_usecases.dart';

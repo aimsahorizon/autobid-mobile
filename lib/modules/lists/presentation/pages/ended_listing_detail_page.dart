@@ -267,7 +267,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
                               Container(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.surfaceVariant,
+                                ).colorScheme.surfaceContainerHighest,
                                 child: const Center(
                                   child: Icon(Icons.directions_car, size: 64),
                                 ),

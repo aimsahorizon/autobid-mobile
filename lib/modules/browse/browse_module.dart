@@ -1,7 +1,5 @@
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../profile/domain/usecases/consume_bidding_token_usecase.dart';
 import 'data/datasources/auction_supabase_datasource.dart';
 import 'data/datasources/bid_supabase_datasource.dart';
 import 'data/datasources/qa_supabase_datasource.dart';

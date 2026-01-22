@@ -43,7 +43,6 @@ Future<void> initNotificationsModule() async {
       markAsReadUseCase: sl(),
       markAllAsReadUseCase: sl(),
       deleteNotificationUseCase: sl(),
-      getUnreadNotificationsUseCase: sl(),
     ),
   );
 }
@@ -91,28 +90,23 @@ class NotificationsModule {
       return GetIt.instance<NotificationController>();
     }
     // Fallback to legacy implementation
-    if (_notificationController == null) {
-      _notificationController = NotificationController(
-        getNotificationsUseCase: GetNotificationsUseCase(
-          NotificationRepositoryImpl(dataSource: _getDataSource()),
-        ),
-        getUnreadCountUseCase: GetUnreadCountUseCase(
-          NotificationRepositoryImpl(dataSource: _getDataSource()),
-        ),
-        markAsReadUseCase: MarkAsReadUseCase(
-          NotificationRepositoryImpl(dataSource: _getDataSource()),
-        ),
-        markAllAsReadUseCase: MarkAllAsReadUseCase(
-          NotificationRepositoryImpl(dataSource: _getDataSource()),
-        ),
-        deleteNotificationUseCase: DeleteNotificationUseCase(
-          NotificationRepositoryImpl(dataSource: _getDataSource()),
-        ),
-        getUnreadNotificationsUseCase: GetUnreadNotificationsUseCase(
-          NotificationRepositoryImpl(dataSource: _getDataSource()),
-        ),
-      );
-    }
+    _notificationController ??= NotificationController(
+      getNotificationsUseCase: GetNotificationsUseCase(
+        NotificationRepositoryImpl(dataSource: _getDataSource()),
+      ),
+      getUnreadCountUseCase: GetUnreadCountUseCase(
+        NotificationRepositoryImpl(dataSource: _getDataSource()),
+      ),
+      markAsReadUseCase: MarkAsReadUseCase(
+        NotificationRepositoryImpl(dataSource: _getDataSource()),
+      ),
+      markAllAsReadUseCase: MarkAllAsReadUseCase(
+        NotificationRepositoryImpl(dataSource: _getDataSource()),
+      ),
+      deleteNotificationUseCase: DeleteNotificationUseCase(
+        NotificationRepositoryImpl(dataSource: _getDataSource()),
+      ),
+    );
     return _notificationController!;
   }
 
@@ -134,9 +128,6 @@ class NotificationsModule {
         NotificationRepositoryImpl(dataSource: _getDataSource()),
       ),
       deleteNotificationUseCase: DeleteNotificationUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
-      ),
-      getUnreadNotificationsUseCase: GetUnreadNotificationsUseCase(
         NotificationRepositoryImpl(dataSource: _getDataSource()),
       ),
     );

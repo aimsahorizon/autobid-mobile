@@ -248,7 +248,7 @@ class _SellerFormTabState extends State<SellerFormTab> {
 
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _fuelLevel,
+                  initialValue: _fuelLevel,
                   decoration: InputDecoration(
                     labelText: 'Fuel Level at Handover',
                     prefixIcon: const Icon(Icons.local_gas_station),
@@ -337,8 +337,9 @@ class _SellerFormTabState extends State<SellerFormTab> {
                               const Duration(days: 30),
                             ),
                           );
-                          if (date != null)
+                          if (date != null) {
                             setState(() => _preferredDate = date);
+                          }
                         },
                   child: InputDecorator(
                     decoration: InputDecoration(
@@ -356,7 +357,7 @@ class _SellerFormTabState extends State<SellerFormTab> {
 
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _handoverTimeSlot,
+                  initialValue: _handoverTimeSlot,
                   decoration: InputDecoration(
                     labelText: 'Preferred Time',
                     prefixIcon: const Icon(Icons.access_time),

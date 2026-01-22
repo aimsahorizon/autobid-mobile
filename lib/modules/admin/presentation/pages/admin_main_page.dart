@@ -70,19 +70,6 @@ class _AdminMainPageState extends State<AdminMainPage>
     super.dispose();
   }
 
-  void _handleBackNavigation() {
-    final supabase = Supabase.instance.client;
-    final isAuthenticated = supabase.auth.currentUser != null;
-
-    if (isAuthenticated) {
-      // User is authenticated, navigate back to home/main screen
-      Navigator.pop(context);
-    } else {
-      // User is not authenticated, navigate to login
-      Navigator.popUntil(context, (route) => route.isFirst);
-    }
-  }
-
   void _handleLogout() async {
     try {
       // Show confirmation dialog

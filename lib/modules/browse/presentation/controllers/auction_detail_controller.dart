@@ -109,20 +109,19 @@ class AuctionDetailController extends ChangeNotifier {
         userId: _userId,
       );
 
-      result.fold(
-        (failure) => throw Exception(failure?.message ?? 'Unknown error'),
-        (auctionDetail) {
-          _auction = auctionDetail;
-          // Sync bid increment with seller-configured minimum
-          _bidIncrement = auctionDetail.minBidIncrement;
-        },
-      );
+      result.fold((failure) => throw Exception(failure.message), (
+        auctionDetail,
+      ) {
+        _auction = auctionDetail;
+        // Sync bid increment with seller-configured minimum
+        _bidIncrement = auctionDetail.minBidIncrement;
+      });
 
       // Load any saved user preference (persisted increment) if available
       if (_userId != null) {
         final incrementResult = await _getBidIncrementUseCase(
           auctionId: id,
-          userId: _userId!,
+          userId: _userId,
         );
 
         incrementResult.fold(
@@ -176,9 +175,7 @@ class AuctionDetailController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          print(
-            'ERROR: Failed to load bid history: ${failure?.message ?? "Unknown error"}',
-          );
+          print('ERROR: Failed to load bid history: ${failure.message}');
           _bidHistory = [];
         },
         (bids) {
@@ -190,7 +187,7 @@ class AuctionDetailController extends ChangeNotifier {
               amount: bid.amount,
               bidderName: bid.bidderName,
               timestamp: bid.timestamp,
-              isCurrentUser: _userId != null && bid.id.contains(_userId!),
+              isCurrentUser: _userId != null && bid.id.contains(_userId),
               isWinning: bid.isWinning,
             );
           }).toList();
@@ -223,9 +220,7 @@ class AuctionDetailController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          print(
-            'ERROR [Controller]: Failed to load Q&A: ${failure?.message ?? "Unknown error"}',
-          );
+          print('ERROR [Controller]: Failed to load Q&A: ${failure.message}');
           _questions = [];
         },
         (questions) {
@@ -286,7 +281,7 @@ class AuctionDetailController extends ChangeNotifier {
       // Post question using UseCase
       final result = await _postQuestionUseCase(
         auctionId: _auction!.id,
-        userId: _userId!,
+        userId: _userId,
         category: category,
         question: question,
       );
@@ -294,7 +289,7 @@ class AuctionDetailController extends ChangeNotifier {
       result.fold(
         (failure) {
           print(
-            'ERROR [Controller]: ❌ Failed to post question: ${failure?.message ?? "Unknown error"}',
+            'ERROR [Controller]: ❌ Failed to post question: ${failure.message}',
           );
         },
         (qa) {
@@ -327,23 +322,21 @@ class AuctionDetailController extends ChangeNotifier {
       if (q.isLikedByUser) {
         final result = await _unlikeQuestionUseCase(
           questionId: questionId,
-          userId: _userId!,
+          userId: _userId,
         );
         result.fold(
-          (failure) => print(
-            'ERROR: Failed to unlike question: ${failure?.message ?? "Unknown error"}',
-          ),
+          (failure) =>
+              print('ERROR: Failed to unlike question: ${failure.message}'),
           (_) {},
         );
       } else {
         final result = await _likeQuestionUseCase(
           questionId: questionId,
-          userId: _userId!,
+          userId: _userId,
         );
         result.fold(
-          (failure) => print(
-            'ERROR: Failed to like question: ${failure?.message ?? "Unknown error"}',
-          ),
+          (failure) =>
+              print('ERROR: Failed to like question: ${failure.message}'),
           (_) {},
         );
       }
@@ -438,7 +431,7 @@ class AuctionDetailController extends ChangeNotifier {
       }
 
       // Place bid using UseCase
-      print('[AuctionDetailController] Placing bid: \$${amount}');
+      print('[AuctionDetailController] Placing bid: \$$amount');
       final result = await _placeBidUseCase(
         auctionId: _auction!.id,
         bidderId: effectiveUserId,
@@ -450,7 +443,7 @@ class AuctionDetailController extends ChangeNotifier {
 
       return result.fold(
         (failure) {
-          _errorMessage = failure?.message ?? 'Unknown error';
+          _errorMessage = failure.message;
           return false;
         },
         (_) {
@@ -500,7 +493,7 @@ class AuctionDetailController extends ChangeNotifier {
     if (_userId != null && _auction != null) {
       _upsertBidIncrementUseCase(
         auctionId: _auction!.id,
-        userId: _userId!,
+        userId: _userId,
         increment: _bidIncrement,
       );
     }

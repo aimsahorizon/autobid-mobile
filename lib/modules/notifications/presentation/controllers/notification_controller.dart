@@ -5,7 +5,6 @@ import '../../domain/usecases/get_unread_count_usecase.dart';
 import '../../domain/usecases/mark_as_read_usecase.dart';
 import '../../domain/usecases/mark_all_as_read_usecase.dart';
 import '../../domain/usecases/delete_notification_usecase.dart';
-import '../../domain/usecases/get_unread_notifications_usecase.dart';
 
 /// Controller for managing notification state
 /// Refactored to use Clean Architecture with UseCases
@@ -15,7 +14,6 @@ class NotificationController extends ChangeNotifier {
   final MarkAsReadUseCase _markAsReadUseCase;
   final MarkAllAsReadUseCase _markAllAsReadUseCase;
   final DeleteNotificationUseCase _deleteNotificationUseCase;
-  final GetUnreadNotificationsUseCase _getUnreadNotificationsUseCase;
 
   NotificationController({
     required GetNotificationsUseCase getNotificationsUseCase,
@@ -23,13 +21,11 @@ class NotificationController extends ChangeNotifier {
     required MarkAsReadUseCase markAsReadUseCase,
     required MarkAllAsReadUseCase markAllAsReadUseCase,
     required DeleteNotificationUseCase deleteNotificationUseCase,
-    required GetUnreadNotificationsUseCase getUnreadNotificationsUseCase,
   }) : _getNotificationsUseCase = getNotificationsUseCase,
        _getUnreadCountUseCase = getUnreadCountUseCase,
        _markAsReadUseCase = markAsReadUseCase,
        _markAllAsReadUseCase = markAllAsReadUseCase,
-       _deleteNotificationUseCase = deleteNotificationUseCase,
-       _getUnreadNotificationsUseCase = getUnreadNotificationsUseCase;
+       _deleteNotificationUseCase = deleteNotificationUseCase;
 
   List<NotificationEntity> _notifications = [];
   int _unreadCount = 0;
@@ -57,8 +53,7 @@ class NotificationController extends ChangeNotifier {
       final unreadCountResult = await _getUnreadCountUseCase(userId: userId);
 
       notificationsResult.fold(
-        (failure) =>
-            _errorMessage = failure?.message ?? 'Failed to load notifications',
+        (failure) => _errorMessage = failure.message,
         (notifications) => _notifications = notifications,
       );
 
@@ -81,7 +76,7 @@ class NotificationController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          _errorMessage = failure?.message ?? 'Failed to mark as read';
+          _errorMessage = failure.message;
           notifyListeners();
         },
         (_) {
@@ -111,7 +106,7 @@ class NotificationController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          _errorMessage = failure?.message ?? 'Failed to mark all as read';
+          _errorMessage = failure.message;
           notifyListeners();
         },
         (_) {
@@ -138,7 +133,7 @@ class NotificationController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          _errorMessage = failure?.message ?? 'Failed to delete notification';
+          _errorMessage = failure.message;
           notifyListeners();
         },
         (_) {

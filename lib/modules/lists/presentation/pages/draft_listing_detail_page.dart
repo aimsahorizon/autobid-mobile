@@ -162,11 +162,13 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
     if (widget.listing.exteriorColor != null) filledFields++;
     if (widget.listing.condition != null) filledFields++;
     if (widget.listing.description != null &&
-        widget.listing.description!.isNotEmpty)
+        widget.listing.description!.isNotEmpty) {
       filledFields++;
+    }
     if (widget.listing.photoUrls != null &&
-        widget.listing.photoUrls!.isNotEmpty)
+        widget.listing.photoUrls!.isNotEmpty) {
       filledFields++;
+    }
 
     // Estimate: 11 key fields, calculate percentage (max 100)
     final percentage = ((filledFields / 11) * 100).clamp(0, 100).toInt();

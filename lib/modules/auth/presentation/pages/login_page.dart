@@ -117,25 +117,6 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildThemeToggle() {
-    return Align(
-      alignment: Alignment.topRight,
-      child: ListenableBuilder(
-        listenable: widget.themeController,
-        builder: (context, _) {
-          return IconButton(
-            icon: Icon(
-              widget.themeController.isDarkMode
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-            onPressed: widget.themeController.toggleTheme,
-          );
-        },
-      ),
-    );
-  }
-
   Widget _buildHeader(ThemeData theme, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -185,8 +185,33 @@ The Browse module has been successfully refactored to follow Clean Architecture 
 ---
 
 #### D. Profile Module
-**Status:** ⏳ Pending
-*   Check `ProfileController` and `Auth` dependencies.
+**Status:** ✅ Fully Refactored & Error-Free
+**Completed:** January 22, 2026
+
+**Domain Layer:**
+- Added `uploadProfilePhoto` and `uploadCoverPhoto` methods to ProfileRepository interface
+- Created 3 new UseCases:
+  - `UploadProfilePhotoUseCase` - Upload profile photo to storage
+  - `UploadCoverPhotoUseCase` - Upload cover photo to storage
+  - `UpdateProfileWithPhotoUseCase` - Update profile with new photo URLs
+
+**Data Layer:**
+- Implemented photo upload methods in `ProfileRepositorySupabaseImpl`
+- Methods return Either<Failure, String> with photo URLs
+- Proper error handling with Failure types
+
+**Presentation Layer:**
+- Refactored `ProfileController` to remove datasource dependency
+- Now uses UseCases only via constructor injection
+- Updated `updateProfilePhoto()` and `updateCoverPhoto()` methods to use UseCases
+- Proper Either<Failure, T> handling in all methods
+
+**Dependency Injection:**
+- Updated `initProfileModule()` to register 3 new UseCases
+- Updated ProfileController factory with proper constructor parameters
+- All dependencies injected via GetIt
+
+---
 
 ### Phase 5: Cleanup & Optimization
 *   **Remove Mock DataSources:** Delete `TransactionMockDataSource`, `ListingDetailMockDataSource` once confirmed unused.

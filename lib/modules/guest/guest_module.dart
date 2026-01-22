@@ -1,5 +1,4 @@
 import 'package:get_it/get_it.dart';
-import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'data/datasources/guest_supabase_datasource.dart';
 import 'data/datasources/guest_remote_datasource.dart';
 import 'data/repositories/guest_repository_impl.dart';
@@ -41,8 +40,6 @@ Future<void> initGuestModule() async {
 class GuestModule {
   static GuestModule? _instance;
 
-  late final GuestSupabaseDataSource _dataSource;
-
   GuestModule._() {
     _initializeDependencies();
   }
@@ -53,7 +50,7 @@ class GuestModule {
   }
 
   void _initializeDependencies() {
-    _dataSource = GuestSupabaseDataSource(SupabaseConfig.client);
+    // Dependencies are now managed via GetIt in initGuestModule()
   }
 
   /// @deprecated - Use GetIt.instance.get<GuestController>() instead

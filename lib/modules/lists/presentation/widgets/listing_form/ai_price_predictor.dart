@@ -25,10 +25,11 @@ class AiPricePredictor extends StatefulWidget {
 }
 
 class _AiPricePredictorState extends State<AiPricePredictor> {
-  final PricePredictionService _aiService = PricePredictionService(useEdgeModel: true);
+  final PricePredictionService _aiService = PricePredictionService(
+    useEdgeModel: true,
+  );
   bool _isLoading = false;
   double? _predictedPrice;
-  Map<String, dynamic>? _priceBreakdown;
 
   @override
   void initState() {
@@ -58,7 +59,6 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
         widget.condition == null) {
       setState(() {
         _predictedPrice = null;
-        _priceBreakdown = null;
       });
       return;
     }
@@ -80,21 +80,19 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
 
       setState(() {
         _predictedPrice = result['predicted_price'];
-        _priceBreakdown = result['factors'];
         _isLoading = false;
       });
     } catch (e) {
       // Handle prediction error
       setState(() {
         _predictedPrice = null;
-        _priceBreakdown = null;
         _isLoading = false;
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Price prediction failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Price prediction failed: $e')));
       }
     }
   }
@@ -174,7 +172,9 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: ColorConstants.primary.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
             ),
             child: Row(
               children: [
@@ -224,9 +224,7 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? ColorConstants.surfaceDark
-                        : Colors.white,
+                    color: isDark ? ColorConstants.surfaceDark : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: ColorConstants.primary.withValues(alpha: 0.2),
@@ -274,9 +272,7 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? ColorConstants.surfaceDark
-                        : Colors.white,
+                    color: isDark ? ColorConstants.surfaceDark : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: Colors.green.withValues(alpha: 0.3),
@@ -334,15 +330,20 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: (isDark
-                            ? ColorConstants.surfaceDark
-                            : ColorConstants.backgroundSecondaryLight)
-                        .withValues(alpha: 0.5),
+                    color:
+                        (isDark
+                                ? ColorConstants.surfaceDark
+                                : ColorConstants.backgroundSecondaryLight)
+                            .withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                      const Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -368,13 +369,18 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                     icon: const Icon(Icons.check_circle, size: 22),
                     label: const Text(
                       'Use AI Suggestions',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ColorConstants.primary,
                       foregroundColor: Colors.white,
                       elevation: 4,
-                      shadowColor: ColorConstants.primary.withValues(alpha: 0.4),
+                      shadowColor: ColorConstants.primary.withValues(
+                        alpha: 0.4,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -390,7 +396,9 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
   }
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
@@ -398,8 +406,8 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
 
   String _formatNumber(int number) {
     return number.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
 }

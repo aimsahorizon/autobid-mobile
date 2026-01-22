@@ -131,7 +131,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           throw AuthException(authError.message);
         }
       }
-    } on AuthException catch (e) {
+    } on AuthException {
       rethrow;
     } on supabase.PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
@@ -242,7 +242,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
     } on supabase.PostgrestException catch (e) {
       throw ServerException('Database error: ${e.message}');
-    } on AuthException catch (e) {
+    } on AuthException {
       rethrow;
     } catch (e) {
       if (e is ServerException || e is AuthException) rethrow;

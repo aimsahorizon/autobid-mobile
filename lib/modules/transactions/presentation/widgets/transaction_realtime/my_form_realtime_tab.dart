@@ -135,15 +135,11 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
         final myForm = widget.controller.myForm;
         final isSubmitted = myForm != null && myForm.status != FormStatus.draft;
-        final role = widget.controller.getUserRole(widget.userId);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
@@ -19,7 +20,9 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
       // Check if user is authenticated
       final currentUser = SupabaseConfig.currentUser;
       if (currentUser == null) {
-        return const Left(AuthFailure('No authenticated user found. Please login first.'));
+        return const Left(
+          AuthFailure('No authenticated user found. Please login first.'),
+        );
       }
 
       // Fetch profile data from users table
@@ -27,7 +30,11 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
 
       // Check if profile exists
       if (profile == null) {
-        return const Left(GeneralFailure('Profile not found. Please ensure you have completed KYC registration.'));
+        return const Left(
+          GeneralFailure(
+            'Profile not found. Please ensure you have completed KYC registration.',
+          ),
+        );
       }
 
       return Right(profile);
@@ -37,7 +44,9 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
   }
 
   @override
-  Future<Either<Failure, UserProfileEntity>> updateProfile(UserProfileEntity profile) async {
+  Future<Either<Failure, UserProfileEntity>> updateProfile(
+    UserProfileEntity profile,
+  ) async {
     try {
       // Convert entity to model for datasource
       final updated = await _dataSource.updateProfile(
@@ -66,7 +75,9 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
   }
 
   @override
-  Future<Either<Failure, UserProfileEntity?>> getUserProfileByEmail(String email) async {
+  Future<Either<Failure, UserProfileEntity?>> getUserProfileByEmail(
+    String email,
+  ) async {
     try {
       final profile = await _dataSource.getUserProfileByEmail(email);
       return Right(profile);
@@ -80,6 +91,32 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
     try {
       final exists = await _dataSource.checkEmailExists(email);
       return Right(exists);
+    } catch (e) {
+      return Left(GeneralFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadProfilePhoto(
+    String userId,
+    File imageFile,
+  ) async {
+    try {
+      final photoUrl = await _dataSource.uploadProfilePhoto(userId, imageFile);
+      return Right(photoUrl);
+    } catch (e) {
+      return Left(GeneralFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadCoverPhoto(
+    String userId,
+    File imageFile,
+  ) async {
+    try {
+      final photoUrl = await _dataSource.uploadCoverPhoto(userId, imageFile);
+      return Right(photoUrl);
     } catch (e) {
       return Left(GeneralFailure(e.toString()));
     }

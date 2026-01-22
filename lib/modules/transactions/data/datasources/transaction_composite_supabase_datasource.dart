@@ -1,4 +1,3 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/buyer_transaction_entity.dart' as buyer;
 import 'transaction_remote_datasource.dart';
@@ -8,7 +7,8 @@ import 'seller_transaction_supabase_datasource.dart';
 import 'buyer_transaction_supabase_datasource.dart';
 import 'timeline_supabase_datasource.dart';
 
-class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSource {
+class TransactionCompositeSupabaseDataSource
+    implements TransactionRemoteDataSource {
   final TransactionSupabaseDataSource transactionDataSource;
   final ChatSupabaseDataSource chatDataSource;
   final SellerTransactionSupabaseDataSource sellerDataSource;
@@ -33,12 +33,10 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
       }
 
       // Fallback: fetch as seller (returns JSON)
-      final sellerData = await sellerDataSource.getTransactionDetail(transactionId);
-      if (sellerData != null) {
-        return _mapSellerJsonToTransactionEntity(sellerData);
-      }
-      
-      return null;
+      final sellerData = await sellerDataSource.getTransactionDetail(
+        transactionId,
+      );
+      return _mapSellerJsonToTransactionEntity(sellerData);
     } catch (e) {
       print('[TransactionCompositeDS] Error fetching transaction: $e');
       return null;
@@ -48,22 +46,34 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
   @override
   Future<List<ChatMessageEntity>> getChatMessages(String transactionId) async {
     final messages = await chatDataSource.getMessages(transactionId);
-    return messages.map((m) => ChatMessageEntity(
-      id: m['id'],
-      transactionId: transactionId,
-      senderId: m['sender_id'],
-      senderName: m['user_profiles']?['username'] ?? 'Unknown',
-      message: m['message'],
-      timestamp: DateTime.parse(m['created_at']),
-      isRead: m['is_read'] ?? false,
-      type: m['message_type'] == 'system' ? MessageType.system : MessageType.text,
-    )).toList();
+    return messages
+        .map(
+          (m) => ChatMessageEntity(
+            id: m['id'],
+            transactionId: transactionId,
+            senderId: m['sender_id'],
+            senderName: m['user_profiles']?['username'] ?? 'Unknown',
+            message: m['message'],
+            timestamp: DateTime.parse(m['created_at']),
+            isRead: m['is_read'] ?? false,
+            type: m['message_type'] == 'system'
+                ? MessageType.system
+                : MessageType.text,
+          ),
+        )
+        .toList();
   }
 
   @override
-  Future<TransactionFormEntity?> getTransactionForm(String transactionId, FormRole role) async {
+  Future<TransactionFormEntity?> getTransactionForm(
+    String transactionId,
+    FormRole role,
+  ) async {
     if (role == FormRole.buyer) {
-      final form = await buyerDataSource.getTransactionForm(transactionId, buyer.FormRole.buyer);
+      final form = await buyerDataSource.getTransactionForm(
+        transactionId,
+        buyer.FormRole.buyer,
+      );
       if (form == null) return null;
       // Map BuyerTransactionFormEntity to TransactionFormEntity
       return TransactionFormEntity(
@@ -74,7 +84,9 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
         submittedAt: form.submittedAt ?? DateTime.now(),
         preferredDate: DateTime.now(), // Fallback
         paymentMethod: form.paymentMethod,
-        handoverLocation: form.deliveryMethod == 'Delivery' ? (form.deliveryAddress ?? '') : '',
+        handoverLocation: form.deliveryMethod == 'Delivery'
+            ? (form.deliveryAddress ?? '')
+            : '',
         // ... map other fields ...
       );
     } else {
@@ -85,7 +97,10 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
         id: form['id'],
         transactionId: form['transaction_id'],
         role: role,
-        status: FormStatus.values.firstWhere((e) => e.name == form['status'], orElse: () => FormStatus.submitted),
+        status: FormStatus.values.firstWhere(
+          (e) => e.name == form['status'],
+          orElse: () => FormStatus.submitted,
+        ),
         submittedAt: DateTime.parse(form['submitted_at']),
         preferredDate: DateTime.parse(form['delivery_date']),
         handoverLocation: form['delivery_location'] ?? '',
@@ -95,38 +110,55 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
   }
 
   @override
-  Future<List<TransactionTimelineEntity>> getTimeline(String transactionId) async {
+  Future<List<TransactionTimelineEntity>> getTimeline(
+    String transactionId,
+  ) async {
     try {
       final events = await buyerDataSource.getTimeline(transactionId);
-      return events.map((e) => TransactionTimelineEntity(
-        id: e.id,
-        transactionId: e.transactionId,
-        title: e.title,
-        description: e.description,
-        timestamp: e.timestamp,
-        type: _mapTimelineType(e.type),
-        actorName: e.actorName,
-      )).toList();
+      return events
+          .map(
+            (e) => TransactionTimelineEntity(
+              id: e.id,
+              transactionId: e.transactionId,
+              title: e.title,
+              description: e.description,
+              timestamp: e.timestamp,
+              type: _mapTimelineType(e.type),
+              actorName: e.actorName,
+            ),
+          )
+          .toList();
     } catch (e) {
       return [];
     }
   }
-  
+
   TimelineEventType _mapTimelineType(buyer.TimelineEventType type) {
     switch (type) {
-      case buyer.TimelineEventType.created: return TimelineEventType.created;
-      case buyer.TimelineEventType.formSubmitted: return TimelineEventType.formSubmitted;
-      case buyer.TimelineEventType.formConfirmed: return TimelineEventType.formConfirmed;
-      case buyer.TimelineEventType.adminReview: return TimelineEventType.adminReview;
-      case buyer.TimelineEventType.adminApproved: return TimelineEventType.adminApproved;
-      case buyer.TimelineEventType.completed: return TimelineEventType.completed;
-      case buyer.TimelineEventType.cancelled: return TimelineEventType.cancelled;
-      default: return TimelineEventType.created;
+      case buyer.TimelineEventType.created:
+        return TimelineEventType.created;
+      case buyer.TimelineEventType.formSubmitted:
+        return TimelineEventType.formSubmitted;
+      case buyer.TimelineEventType.formConfirmed:
+        return TimelineEventType.formConfirmed;
+      case buyer.TimelineEventType.adminReview:
+        return TimelineEventType.adminReview;
+      case buyer.TimelineEventType.adminApproved:
+        return TimelineEventType.adminApproved;
+      case buyer.TimelineEventType.completed:
+        return TimelineEventType.completed;
+      case buyer.TimelineEventType.cancelled:
+        return TimelineEventType.cancelled;
     }
   }
 
   @override
-  Future<bool> sendMessage(String transactionId, String userId, String userName, String message) async {
+  Future<bool> sendMessage(
+    String transactionId,
+    String userId,
+    String userName,
+    String message,
+  ) async {
     try {
       await chatDataSource.sendMessage(
         transactionId: transactionId,
@@ -145,7 +177,7 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
       await sellerDataSource.submitSellerForm(
         transactionId: form.transactionId,
         agreedPrice: form.agreedPrice,
-        paymentMethod: '', 
+        paymentMethod: '',
         deliveryDate: form.preferredDate,
         deliveryLocation: form.handoverLocation,
         orcrVerified: form.orCrOriginalAvailable,
@@ -184,14 +216,17 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
   }
 
   @override
-  Future<bool> confirmForm(String transactionId, FormRole otherPartyRole) async {
+  Future<bool> confirmForm(
+    String transactionId,
+    FormRole otherPartyRole,
+  ) async {
     if (otherPartyRole == FormRole.seller) {
-       await buyerDataSource.confirmBuyerForm(transactionId);
+      await buyerDataSource.confirmBuyerForm(transactionId);
     } else {
-       if (otherPartyRole == FormRole.buyer) {
-         await sellerDataSource.confirmSellerForm(transactionId);
+      if (otherPartyRole == FormRole.buyer) {
+        await sellerDataSource.confirmSellerForm(transactionId);
       } else {
-         await buyerDataSource.confirmBuyerForm(transactionId);
+        await buyerDataSource.confirmBuyerForm(transactionId);
       }
     }
     return true;
@@ -204,12 +239,16 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
   }
 
   @override
-  Future<bool> updateDeliveryStatus(String transactionId, String sellerId, DeliveryStatus status) async {
+  Future<bool> updateDeliveryStatus(
+    String transactionId,
+    String sellerId,
+    DeliveryStatus status,
+  ) async {
     String statusStr = 'pending';
     if (status == DeliveryStatus.preparing) statusStr = 'preparing';
     if (status == DeliveryStatus.inTransit) statusStr = 'in_transit';
     if (status == DeliveryStatus.delivered) statusStr = 'delivered';
-    
+
     await sellerDataSource.updateDeliveryStatus(
       transactionId: transactionId,
       sellerId: sellerId,
@@ -224,12 +263,18 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
   }
 
   @override
-  Future<bool> rejectVehicle(String transactionId, String buyerId, String reason) async {
+  Future<bool> rejectVehicle(
+    String transactionId,
+    String buyerId,
+    String reason,
+  ) async {
     return await buyerDataSource.rejectVehicle(transactionId, buyerId, reason);
   }
 
   // Helpers
-  TransactionEntity _mapBuyerEntityToTransactionEntity(buyer.BuyerTransactionEntity e) {
+  TransactionEntity _mapBuyerEntityToTransactionEntity(
+    buyer.BuyerTransactionEntity e,
+  ) {
     return TransactionEntity(
       id: e.id,
       listingId: e.auctionId,
@@ -258,45 +303,62 @@ class TransactionCompositeSupabaseDataSource implements TransactionRemoteDataSou
 
   TransactionStatus _mapStatus(buyer.TransactionStatus s) {
     switch (s) {
-      case buyer.TransactionStatus.discussion: return TransactionStatus.discussion;
-      case buyer.TransactionStatus.formReview: return TransactionStatus.formReview;
-      case buyer.TransactionStatus.pendingApproval: return TransactionStatus.pendingApproval;
-      case buyer.TransactionStatus.approved: return TransactionStatus.approved;
-      case buyer.TransactionStatus.completed: return TransactionStatus.completed;
-      case buyer.TransactionStatus.cancelled: return TransactionStatus.cancelled;
-      default: return TransactionStatus.discussion;
+      case buyer.TransactionStatus.discussion:
+        return TransactionStatus.discussion;
+      case buyer.TransactionStatus.formReview:
+        return TransactionStatus.formReview;
+      case buyer.TransactionStatus.pendingApproval:
+        return TransactionStatus.pendingApproval;
+      case buyer.TransactionStatus.approved:
+        return TransactionStatus.approved;
+      case buyer.TransactionStatus.completed:
+        return TransactionStatus.completed;
+      case buyer.TransactionStatus.cancelled:
+        return TransactionStatus.cancelled;
+      default:
+        return TransactionStatus.discussion;
     }
   }
 
   DeliveryStatus _mapDeliveryStatus(buyer.DeliveryStatus s) {
     switch (s) {
-      case buyer.DeliveryStatus.pending: return DeliveryStatus.pending;
-      case buyer.DeliveryStatus.preparing: return DeliveryStatus.preparing;
-      case buyer.DeliveryStatus.inTransit: return DeliveryStatus.inTransit;
-      case buyer.DeliveryStatus.delivered: return DeliveryStatus.delivered;
-      case buyer.DeliveryStatus.completed: return DeliveryStatus.completed;
+      case buyer.DeliveryStatus.pending:
+        return DeliveryStatus.pending;
+      case buyer.DeliveryStatus.preparing:
+        return DeliveryStatus.preparing;
+      case buyer.DeliveryStatus.inTransit:
+        return DeliveryStatus.inTransit;
+      case buyer.DeliveryStatus.delivered:
+        return DeliveryStatus.delivered;
+      case buyer.DeliveryStatus.completed:
+        return DeliveryStatus.completed;
     }
   }
 
   BuyerAcceptanceStatus _mapAcceptanceStatus(buyer.BuyerAcceptanceStatus s) {
-     switch (s) {
-       case buyer.BuyerAcceptanceStatus.pending: return BuyerAcceptanceStatus.pending;
-       case buyer.BuyerAcceptanceStatus.accepted: return BuyerAcceptanceStatus.accepted;
-       case buyer.BuyerAcceptanceStatus.rejected: return BuyerAcceptanceStatus.rejected;
-     }
+    switch (s) {
+      case buyer.BuyerAcceptanceStatus.pending:
+        return BuyerAcceptanceStatus.pending;
+      case buyer.BuyerAcceptanceStatus.accepted:
+        return BuyerAcceptanceStatus.accepted;
+      case buyer.BuyerAcceptanceStatus.rejected:
+        return BuyerAcceptanceStatus.rejected;
+    }
   }
 
-  TransactionEntity _mapSellerJsonToTransactionEntity(Map<String, dynamic> json) {
-     return TransactionEntity(
-       id: json['id'],
-       listingId: json['auction_id'] ?? '',
-       sellerId: json['seller_id'] ?? '',
-       buyerId: json['buyer_id'] ?? '',
-       carName: 'Vehicle', 
-       carImageUrl: '',
-       agreedPrice: (json['agreed_price'] as num?)?.toDouble() ?? 0,
-       status: TransactionStatus.discussion,
-       createdAt: DateTime.parse(json['created_at']),
-     );
+  TransactionEntity _mapSellerJsonToTransactionEntity(
+    Map<String, dynamic> json,
+  ) {
+    return TransactionEntity(
+      id: json['id'],
+      listingId: json['auction_id'] ?? '',
+      sellerId: json['seller_id'] ?? '',
+      buyerId: json['buyer_id'] ?? '',
+      carName: 'Vehicle',
+      carImageUrl: '',
+      agreedPrice: (json['agreed_price'] as num?)?.toDouble() ?? 0,
+      status: TransactionStatus.discussion,
+      createdAt: DateTime.parse(json['created_at']),
+    );
   }
 }

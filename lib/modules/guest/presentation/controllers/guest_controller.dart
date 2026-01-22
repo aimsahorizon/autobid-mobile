@@ -48,7 +48,7 @@ class GuestController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          _errorMessage = failure?.message ?? 'Failed to check account status';
+          _errorMessage = failure.message;
           _accountStatus = null;
         },
         (status) {
@@ -77,7 +77,7 @@ class GuestController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          _errorMessage = failure?.message ?? 'Failed to load auctions';
+          _errorMessage = failure.message;
           _auctions = [];
         },
         (auctions) {

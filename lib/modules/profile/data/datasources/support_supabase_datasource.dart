@@ -115,7 +115,7 @@ class SupportSupabaseDatasource {
       // Build messages with attachments
       final messages = messagesResponse.map((msgJson) {
         final messageId = msgJson['id'] as String;
-        final messageAttachments = (attachmentsResponse as List)
+        final messageAttachments = (attachmentsResponse)
             .where((a) => a['message_id'] == messageId)
             .map((a) => SupportAttachmentModel.fromJson(a))
             .toList();

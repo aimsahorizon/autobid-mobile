@@ -25,6 +25,9 @@ import 'domain/usecases/update_ticket_status_usecase.dart';
 import 'domain/usecases/check_email_exists_usecase.dart';
 import 'domain/usecases/get_user_profile_by_email_usecase.dart';
 import 'domain/usecases/consume_bidding_token_usecase.dart';
+import 'domain/usecases/upload_profile_photo_usecase.dart';
+import 'domain/usecases/upload_cover_photo_usecase.dart';
+import 'domain/usecases/update_profile_with_photo_usecase.dart';
 import 'presentation/controllers/pricing_controller.dart';
 import 'presentation/controllers/profile_controller.dart';
 import 'presentation/controllers/support_controller.dart';
@@ -58,6 +61,9 @@ Future<void> initProfileModule() async {
   // Use Cases
   sl.registerLazySingleton(() => CheckEmailExistsUseCase(sl()));
   sl.registerLazySingleton(() => GetUserProfileByEmailUseCase(sl()));
+  sl.registerLazySingleton(() => UploadProfilePhotoUseCase(sl()));
+  sl.registerLazySingleton(() => UploadCoverPhotoUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateProfileWithPhotoUseCase(sl()));
   sl.registerLazySingleton(() => GetTokenBalanceUsecase(repository: sl()));
   sl.registerLazySingleton(() => GetUserSubscriptionUsecase(repository: sl()));
   sl.registerLazySingleton(() => GetTokenPackagesUsecase(repository: sl()));
@@ -74,7 +80,14 @@ Future<void> initProfileModule() async {
   sl.registerLazySingleton(() => UpdateTicketStatusUsecase(sl()));
 
   // Controllers (Factory)
-  sl.registerFactory(() => ProfileController(sl(), sl()));
+  sl.registerFactory(
+    () => ProfileController(
+      repository: sl(),
+      uploadProfilePhotoUseCase: sl(),
+      uploadCoverPhotoUseCase: sl(),
+      updateProfileWithPhotoUseCase: sl(),
+    ),
+  );
   sl.registerFactory(
     () => PricingController(
       getTokenBalanceUsecase: sl(),
@@ -140,10 +153,25 @@ class ProfileModule {
   ProfileRepository get repository => _getOrCreateRepository();
 
   /// Get or create profile controller (singleton)
+  /// @deprecated Use GetIt.instance.get<ProfileController>() instead
+  @Deprecated('Use GetIt.instance.get<ProfileController>()')
   ProfileController get controller {
+    // Return GetIt controller if available
+    if (GetIt.instance.isRegistered<ProfileController>()) {
+      return GetIt.instance<ProfileController>();
+    }
+    // Fallback to legacy implementation
     _controllerInstance ??= ProfileController(
-      _getOrCreateRepository(),
-      _getOrCreateDataSource(),
+      repository: _getOrCreateRepository(),
+      uploadProfilePhotoUseCase: UploadProfilePhotoUseCase(
+        _getOrCreateRepository(),
+      ),
+      uploadCoverPhotoUseCase: UploadCoverPhotoUseCase(
+        _getOrCreateRepository(),
+      ),
+      updateProfileWithPhotoUseCase: UpdateProfileWithPhotoUseCase(
+        _getOrCreateRepository(),
+      ),
     );
     return _controllerInstance!;
   }

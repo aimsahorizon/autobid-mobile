@@ -221,8 +221,4 @@ class AdminTransactionController extends ChangeNotifier {
     }
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }

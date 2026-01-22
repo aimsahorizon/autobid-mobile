@@ -77,7 +77,7 @@ class _ProvinceCityPickerState extends State<ProvinceCityPicker> {
     return Column(
       children: [
         DropdownButtonFormField<String>(
-          value: _selectedProvince,
+          initialValue: _selectedProvince,
           decoration: InputDecoration(
             labelText: 'Province *',
             border: OutlineInputBorder(
@@ -92,7 +92,7 @@ class _ProvinceCityPickerState extends State<ProvinceCityPicker> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _selectedCity,
+          initialValue: _selectedCity,
           decoration: InputDecoration(
             labelText: 'City/Municipality',
             border: OutlineInputBorder(

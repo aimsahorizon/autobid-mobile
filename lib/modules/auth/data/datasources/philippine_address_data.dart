@@ -85,7 +85,7 @@ class PhilippineAddressData {
       return cities;
     }
     // Return mock cities if not in our data
-    return ['${province} City', '$province Capital', 'San Jose', 'Santa Cruz'];
+    return ['$province City', '$province Capital', 'San Jose', 'Santa Cruz'];
   }
 
   static List<String> getBarangays(String city) {

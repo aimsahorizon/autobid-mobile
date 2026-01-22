@@ -16,7 +16,6 @@ import 'domain/usecases/manage_transaction_usecases.dart';
 import 'presentation/controllers/transaction_controller.dart';
 import 'presentation/controllers/transaction_realtime_controller.dart';
 import 'presentation/controllers/transactions_status_controller.dart';
-import 'presentation/controllers/seller_transaction_demo_controller.dart';
 import 'presentation/controllers/buyer_seller_transactions_controller.dart';
 
 /// Initialize Transactions module dependencies

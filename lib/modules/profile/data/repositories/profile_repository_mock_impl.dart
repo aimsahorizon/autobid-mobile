@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import '../../domain/entities/user_profile_entity.dart';
@@ -22,7 +23,9 @@ class ProfileRepositoryMockImpl implements ProfileRepository {
   }
 
   @override
-  Future<Either<Failure, UserProfileEntity>> updateProfile(UserProfileEntity profile) async {
+  Future<Either<Failure, UserProfileEntity>> updateProfile(
+    UserProfileEntity profile,
+  ) async {
     try {
       final model = UserProfileModel(
         id: profile.id,
@@ -52,7 +55,9 @@ class ProfileRepositoryMockImpl implements ProfileRepository {
   }
 
   @override
-  Future<Either<Failure, UserProfileEntity?>> getUserProfileByEmail(String email) async {
+  Future<Either<Failure, UserProfileEntity?>> getUserProfileByEmail(
+    String email,
+  ) async {
     try {
       final profile = await _mockDataSource.getUserProfile();
       if (profile.email == email) {
@@ -69,6 +74,38 @@ class ProfileRepositoryMockImpl implements ProfileRepository {
     try {
       final profile = await _mockDataSource.getUserProfile();
       return Right(profile.email == email);
+    } catch (e) {
+      return Left(GeneralFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadProfilePhoto(
+    String userId,
+    File imageFile,
+  ) async {
+    try {
+      // Mock photo upload - return a fake URL
+      await Future.delayed(const Duration(milliseconds: 500));
+      final mockUrl =
+          'https://mock-storage.example.com/profiles/$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      return Right(mockUrl);
+    } catch (e) {
+      return Left(GeneralFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadCoverPhoto(
+    String userId,
+    File imageFile,
+  ) async {
+    try {
+      // Mock photo upload - return a fake URL
+      await Future.delayed(const Duration(milliseconds: 500));
+      final mockUrl =
+          'https://mock-storage.example.com/profiles/$userId/cover_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      return Right(mockUrl);
     } catch (e) {
       return Left(GeneralFailure(e.toString()));
     }

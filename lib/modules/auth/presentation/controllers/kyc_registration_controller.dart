@@ -282,7 +282,7 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      final result = await _sendPhoneOtpUseCase!.call(_phoneNumber!);
+      final result = await _sendPhoneOtpUseCase.call(_phoneNumber!);
       result.fold(
         (l) => throw Exception(l.message),
         (r) => null,
@@ -298,7 +298,7 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      final result = await _sendEmailOtpUseCase!.call(_email!);
+      final result = await _sendEmailOtpUseCase.call(_email!);
       result.fold(
         (l) => throw Exception(l.message),
         (r) => null,
@@ -314,7 +314,7 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      final result = await _verifyPhoneOtpUseCase!.call(_phoneNumber!, otp);
+      final result = await _verifyPhoneOtpUseCase.call(_phoneNumber!, otp);
       return result.fold(
         (l) => throw Exception(l.message),
         (isVerified) {
@@ -335,7 +335,7 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      final result = await _verifyEmailOtpUseCase!.call(_email!, otp);
+      final result = await _verifyEmailOtpUseCase.call(_email!, otp);
       return result.fold(
         (l) => throw Exception(l.message),
         (isVerified) {
@@ -681,7 +681,7 @@ class KYCRegistrationController extends ChangeNotifier {
         // Step 0: Set password for the OTP-authenticated user
         // This enables password-based login after registration
         if (_password != null && _password!.isNotEmpty) {
-          await _authDataSource!.setPasswordForOtpUser(_password!);
+          await _authDataSource.setPasswordForOtpUser(_password!);
         }
 
         // Step 1: Upload all KYC documents to kyc-documents bucket
@@ -691,7 +691,7 @@ class KYCRegistrationController extends ChangeNotifier {
         Future<String> uploadFile(File file, String path) async {
           if (_fileEncryptionService != null) {
             final bytes = await file.readAsBytes();
-            return _fileEncryptionService!.uploadEncryptedFile(
+            return _fileEncryptionService.uploadEncryptedFile(
               fileBytes: bytes,
               userId: userId,
               bucket: 'kyc-documents',
@@ -777,7 +777,7 @@ class KYCRegistrationController extends ChangeNotifier {
         );
 
         // Step 3: Submit KYC registration to database
-        await _authDataSource!.submitKycRegistration(kycModel);
+        await _authDataSource.submitKycRegistration(kycModel);
       } else {
         // Mock implementation - just delay
         await Future.delayed(const Duration(seconds: 2));

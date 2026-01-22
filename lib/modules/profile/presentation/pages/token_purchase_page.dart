@@ -54,15 +54,6 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
     }
   }
 
-  String _formatPrice(double price) {
-    return price
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
