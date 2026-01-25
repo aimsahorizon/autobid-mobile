@@ -16,45 +16,82 @@ class SellerRepositoryImpl implements SellerRepository {
     try {
       final Map<ListingStatus, List<SellerListingEntity>> result = {};
 
+      // Load each status independently - if one fails, others can still load
+      
       // 1. Drafts
-      final drafts = await dataSource.getSellerDrafts(sellerId);
-      result[ListingStatus.draft] = drafts.map((d) => SellerListingEntity(
-        id: d.id,
-        imageUrl: d.photoUrls?.values.firstOrNull?.firstOrNull ?? '',
-        year: d.year ?? 0,
-        make: d.brand ?? 'Unknown',
-        model: d.model ?? 'Unknown',
-        status: ListingStatus.draft,
-        startingPrice: d.startingPrice ?? 0,
-        totalBids: 0,
-        watchersCount: 0,
-        viewsCount: 0,
-        createdAt: d.lastSaved,
-      )).toList();
+      try {
+        final drafts = await dataSource.getSellerDrafts(sellerId);
+        result[ListingStatus.draft] = drafts.map((d) => SellerListingEntity(
+          id: d.id,
+          imageUrl: d.photoUrls?.values.firstOrNull?.firstOrNull ?? '',
+          year: d.year ?? 0,
+          make: d.brand ?? 'Unknown',
+          model: d.model ?? 'Unknown',
+          status: ListingStatus.draft,
+          startingPrice: d.startingPrice ?? 0,
+          totalBids: 0,
+          watchersCount: 0,
+          viewsCount: 0,
+          createdAt: d.lastSaved,
+        )).toList();
+      } catch (e) {
+        print('Error loading drafts: $e');
+        result[ListingStatus.draft] = [];
+      }
 
       // 2. Pending
-      final pending = await dataSource.getPendingListings(sellerId);
-      result[ListingStatus.pending] = pending.map((l) => l.toSellerListingEntity()).toList();
+      try {
+        final pending = await dataSource.getPendingListings(sellerId);
+        result[ListingStatus.pending] = pending.map((l) => l.toSellerListingEntity()).toList();
+      } catch (e) {
+        print('Error loading pending listings: $e');
+        result[ListingStatus.pending] = [];
+      }
 
       // 3. Approved
-      final approved = await dataSource.getApprovedListings(sellerId);
-      result[ListingStatus.approved] = approved.map((l) => l.toSellerListingEntity()).toList();
+      try {
+        final approved = await dataSource.getApprovedListings(sellerId);
+        result[ListingStatus.approved] = approved.map((l) => l.toSellerListingEntity()).toList();
+      } catch (e) {
+        print('Error loading approved listings: $e');
+        result[ListingStatus.approved] = [];
+      }
 
       // 4. Scheduled
-      final scheduled = await dataSource.getScheduledListings(sellerId);
-      result[ListingStatus.scheduled] = scheduled.map((l) => l.toSellerListingEntity()).toList();
+      try {
+        final scheduled = await dataSource.getScheduledListings(sellerId);
+        result[ListingStatus.scheduled] = scheduled.map((l) => l.toSellerListingEntity()).toList();
+      } catch (e) {
+        print('Error loading scheduled listings: $e');
+        result[ListingStatus.scheduled] = [];
+      }
 
       // 5. Active
-      final active = await dataSource.getActiveListings(sellerId);
-      result[ListingStatus.active] = active.map((l) => l.toSellerListingEntity()).toList();
+      try {
+        final active = await dataSource.getActiveListings(sellerId);
+        result[ListingStatus.active] = active.map((l) => l.toSellerListingEntity()).toList();
+      } catch (e) {
+        print('Error loading active listings: $e');
+        result[ListingStatus.active] = [];
+      }
 
       // 6. Ended
-      final ended = await dataSource.getEndedListings(sellerId);
-      result[ListingStatus.ended] = ended.map((l) => l.toSellerListingEntity()).toList();
+      try {
+        final ended = await dataSource.getEndedListings(sellerId);
+        result[ListingStatus.ended] = ended.map((l) => l.toSellerListingEntity()).toList();
+      } catch (e) {
+        print('Error loading ended listings: $e');
+        result[ListingStatus.ended] = [];
+      }
 
       // 7. Cancelled
-      final cancelled = await dataSource.getCancelledListings(sellerId);
-      result[ListingStatus.cancelled] = cancelled.map((l) => l.toSellerListingEntity()).toList();
+      try {
+        final cancelled = await dataSource.getCancelledListings(sellerId);
+        result[ListingStatus.cancelled] = cancelled.map((l) => l.toSellerListingEntity()).toList();
+      } catch (e) {
+        print('Error loading cancelled listings: $e');
+        result[ListingStatus.cancelled] = [];
+      }
 
       return Right(result);
     } catch (e) {

@@ -365,29 +365,15 @@ class ListingSupabaseDataSource {
   }
 
   /// Get approved listings (waiting for seller to make live)
+  /// NOTE: There is no 'approved' status in the database workflow.
+  /// Listings go: pending_approval → scheduled → live
+  /// This method returns an empty list for now. Consider removing this tab or
+  /// repurposing it to show scheduled listings that haven't started yet.
   Future<List<ListingModel>> getApprovedListings(String sellerId) async {
     try {
-      // Get approved status ID first
-      final approvedStatusId = await _getStatusId('approved');
-
-      // Query with status_id directly
-      final response = await _supabase
-          .from('auctions')
-          .select('''
-            *,
-            auction_statuses(status_name),
-            auction_vehicles(*),
-            auction_photos(photo_url, category, display_order, is_primary)
-          ''')
-          .eq('seller_id', sellerId)
-          .eq('status_id', approvedStatusId)
-          .order('reviewed_at', ascending: false);
-
-      return (response as List)
-          .map((json) => _mergeAuctionWithVehicleData(json))
-          .toList();
-    } on PostgrestException catch (e) {
-      throw Exception('Failed to fetch approved listings: ${e.message}');
+      // Return empty list - 'approved' status doesn't exist in current workflow
+      // If needed in future, add 'approved' status to auction_statuses seed data
+      return [];
     } catch (e) {
       throw Exception('Failed to fetch approved listings: $e');
     }
