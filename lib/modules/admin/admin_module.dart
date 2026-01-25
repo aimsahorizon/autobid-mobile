@@ -1,3 +1,4 @@
+import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/datasources/admin_supabase_datasource.dart';
 import 'data/datasources/kyc_supabase_datasource.dart';
@@ -16,8 +17,39 @@ import 'presentation/controllers/kyc_controller.dart';
 import 'presentation/controllers/auction_monitor_controller.dart';
 import 'presentation/controllers/admin_transaction_controller.dart';
 
-/// Admin Module - Manages admin dashboard and listing reviews
-/// DEV ONLY: For testing and simulating admin functionalities
+/// Initialize Admin module dependencies
+Future<void> initAdminModule() async {
+  final sl = GetIt.instance;
+
+  // Datasources
+  sl.registerLazySingleton(() => AdminSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => KycSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => AuctionMonitorSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => AdminTransactionDataSource(sl()));
+
+  // Repositories
+  sl.registerLazySingleton<KycRepository>(
+    () => KycRepositoryImpl(sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(() => GetKycStatsUseCase(sl()));
+  sl.registerLazySingleton(() => GetKycSubmissionsUseCase(sl()));
+  sl.registerLazySingleton(() => GetKycDocumentUseCase(sl()));
+  sl.registerLazySingleton(() => ApproveKycUseCase(sl()));
+  sl.registerLazySingleton(() => RejectKycUseCase(sl()));
+  sl.registerLazySingleton(() => GetDocumentUrlUseCase(sl()));
+
+  // Controllers (Factory)
+  sl.registerFactory(() => AdminController(sl()));
+  sl.registerFactory(() => KycController(
+    sl(), sl(), sl(), sl(), sl(), sl(),
+  ));
+  sl.registerFactory(() => AuctionMonitorController(sl()));
+  sl.registerFactory(() => AdminTransactionController(sl()));
+}
+
+/// Admin Module - Manages admin dashboard and listing reviews (Legacy)
 class AdminModule {
   static final AdminModule _instance = AdminModule._internal();
   static AdminModule get instance => _instance;

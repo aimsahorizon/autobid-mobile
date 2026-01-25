@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
@@ -162,11 +162,13 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
     if (widget.listing.exteriorColor != null) filledFields++;
     if (widget.listing.condition != null) filledFields++;
     if (widget.listing.description != null &&
-        widget.listing.description!.isNotEmpty)
+        widget.listing.description!.isNotEmpty) {
       filledFields++;
+    }
     if (widget.listing.photoUrls != null &&
-        widget.listing.photoUrls!.isNotEmpty)
+        widget.listing.photoUrls!.isNotEmpty) {
       filledFields++;
+    }
 
     // Estimate: 11 key fields, calculate percentage (max 100)
     final percentage = ((filledFields / 11) * 100).clamp(0, 100).toInt();

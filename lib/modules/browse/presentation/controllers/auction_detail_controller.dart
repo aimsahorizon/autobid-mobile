@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/auction_detail_entity.dart';
 import '../../domain/entities/bid_history_entity.dart';
 import '../../domain/entities/qa_entity.dart';
-import '../../data/datasources/auction_detail_mock_datasource.dart';
-import '../../data/datasources/auction_supabase_datasource.dart';
-import '../../data/datasources/user_preferences_supabase_datasource.dart';
-import '../../data/datasources/bid_history_mock_datasource.dart';
-import '../../data/datasources/bid_supabase_datasource.dart';
-import '../../data/datasources/qa_mock_datasource.dart';
-import '../../data/datasources/qa_supabase_datasource.dart';
+import '../../domain/usecases/get_auction_detail_usecase.dart';
+import '../../domain/usecases/get_bid_history_usecase.dart';
+import '../../domain/usecases/place_bid_usecase.dart';
+import '../../domain/usecases/get_questions_usecase.dart';
+import '../../domain/usecases/post_question_usecase.dart';
+import '../../domain/usecases/like_question_usecase.dart';
+import '../../domain/usecases/unlike_question_usecase.dart';
+import '../../domain/usecases/get_bid_increment_usecase.dart';
+import '../../domain/usecases/upsert_bid_increment_usecase.dart';
+import '../../domain/usecases/process_deposit_usecase.dart';
 import '../../../profile/domain/usecases/consume_bidding_token_usecase.dart';
 
 /// Controller for managing auction detail page state
@@ -17,67 +20,48 @@ import '../../../profile/domain/usecases/consume_bidding_token_usecase.dart';
 ///
 /// Note: User's global bids (Active/Won/Lost) are managed by BidsController
 /// This controller only handles auction-specific bid history (timeline)
+///
+/// Refactored to use Clean Architecture with UseCases and Dependency Injection
 class AuctionDetailController extends ChangeNotifier {
-  final AuctionDetailMockDataSource? _mockDataSource;
-  final AuctionSupabaseDataSource? _supabaseDataSource;
-  final BidHistoryMockDataSource? _mockBidHistoryDataSource;
-  final BidSupabaseDataSource? _supabaseBidHistoryDataSource;
-  final QAMockDataSource? _mockQADataSource;
-  final QASupabaseDataSource? _supabaseQADataSource;
-  final ConsumeBiddingTokenUsecase? _consumeBiddingTokenUsecase;
-  final bool _useMockData;
+  final GetAuctionDetailUseCase _getAuctionDetailUseCase;
+  final GetBidHistoryUseCase _getBidHistoryUseCase;
+  final PlaceBidUseCase _placeBidUseCase;
+  final GetQuestionsUseCase _getQuestionsUseCase;
+  final PostQuestionUseCase _postQuestionUseCase;
+  final LikeQuestionUseCase _likeQuestionUseCase;
+  final UnlikeQuestionUseCase _unlikeQuestionUseCase;
+  final GetBidIncrementUseCase _getBidIncrementUseCase;
+  final UpsertBidIncrementUseCase _upsertBidIncrementUseCase;
+  final ProcessDepositUseCase _processDepositUseCase;
+  final ConsumeBiddingTokenUsecase _consumeBiddingTokenUsecase;
   final String? _userId;
-  UserPreferencesSupabaseDatasource? _userPrefs;
 
-  /// Create controller with mock datasources
-  AuctionDetailController.mock(
-    AuctionDetailMockDataSource dataSource, {
-    ConsumeBiddingTokenUsecase? consumeBiddingTokenUsecase,
-  }) : _mockDataSource = dataSource,
-       _supabaseDataSource = null,
-       _mockBidHistoryDataSource = BidHistoryMockDataSource(),
-       _supabaseBidHistoryDataSource = null,
-       _mockQADataSource = QAMockDataSource(),
-       _supabaseQADataSource = null,
-       _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
-       _useMockData = true,
-       _userId = null;
-
-  /// Create controller with Supabase datasources
-  AuctionDetailController.supabase({
-    required AuctionSupabaseDataSource auctionDataSource,
-    required BidSupabaseDataSource bidDataSource,
-    required QASupabaseDataSource qaDataSource,
+  /// Create controller with UseCases via Dependency Injection
+  AuctionDetailController({
+    required GetAuctionDetailUseCase getAuctionDetailUseCase,
+    required GetBidHistoryUseCase getBidHistoryUseCase,
+    required PlaceBidUseCase placeBidUseCase,
+    required GetQuestionsUseCase getQuestionsUseCase,
+    required PostQuestionUseCase postQuestionUseCase,
+    required LikeQuestionUseCase likeQuestionUseCase,
+    required UnlikeQuestionUseCase unlikeQuestionUseCase,
+    required GetBidIncrementUseCase getBidIncrementUseCase,
+    required UpsertBidIncrementUseCase upsertBidIncrementUseCase,
+    required ProcessDepositUseCase processDepositUseCase,
     required ConsumeBiddingTokenUsecase consumeBiddingTokenUsecase,
     String? userId,
-  }) : _mockDataSource = null,
-       _supabaseDataSource = auctionDataSource,
-       _mockBidHistoryDataSource = null,
-       _supabaseBidHistoryDataSource = bidDataSource,
-       _mockQADataSource = null,
-       _supabaseQADataSource = qaDataSource,
+  }) : _getAuctionDetailUseCase = getAuctionDetailUseCase,
+       _getBidHistoryUseCase = getBidHistoryUseCase,
+       _placeBidUseCase = placeBidUseCase,
+       _getQuestionsUseCase = getQuestionsUseCase,
+       _postQuestionUseCase = postQuestionUseCase,
+       _likeQuestionUseCase = likeQuestionUseCase,
+       _unlikeQuestionUseCase = unlikeQuestionUseCase,
+       _getBidIncrementUseCase = getBidIncrementUseCase,
+       _upsertBidIncrementUseCase = upsertBidIncrementUseCase,
+       _processDepositUseCase = processDepositUseCase,
        _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
-       _useMockData = false,
-       _userId = userId {
-    // Initialize user preferences datasource
-    _userPrefs = UserPreferencesSupabaseDatasource(
-      supabase: auctionDataSource.client,
-    );
-  }
-
-  /// Legacy constructor for backward compatibility
-  AuctionDetailController(
-    AuctionDetailMockDataSource dataSource, {
-    ConsumeBiddingTokenUsecase? consumeBiddingTokenUsecase,
-  }) : _mockDataSource = dataSource,
-       _supabaseDataSource = null,
-       _mockBidHistoryDataSource = BidHistoryMockDataSource(),
-       _supabaseBidHistoryDataSource = null,
-       _mockQADataSource = QAMockDataSource(),
-       _supabaseQADataSource = null,
-       _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
-       _useMockData = true,
-       _userId = null;
+       _userId = userId;
 
   // State properties
   AuctionDetailEntity? _auction;
@@ -119,28 +103,37 @@ class AuctionDetailController extends ChangeNotifier {
     try {
       final previousBid = _auction?.currentBid;
 
-      if (_useMockData) {
-        _auction = await _mockDataSource!.getAuctionDetail(id);
-      } else {
-        final auctionDetailModel = await _supabaseDataSource!.getAuctionDetail(
-          id,
-          _userId,
-        );
-        _auction =
-            auctionDetailModel; // AuctionDetailModel extends AuctionDetailEntity
-        // Sync bid increment with seller-configured minimum
-        _bidIncrement = auctionDetailModel.minBidIncrement;
+      // Get auction detail using UseCase
+      final result = await _getAuctionDetailUseCase(
+        auctionId: id,
+        userId: _userId,
+      );
 
-        // Load any saved user preference (persisted increment) if available
-        if (_userId != null) {
-          final saved = await _userPrefs?.getBidIncrement(
-            auctionId: id,
-            userId: _userId!,
-          );
-          if (saved != null && saved >= _bidIncrement) {
-            _bidIncrement = saved;
-          }
-        }
+      result.fold((failure) => throw Exception(failure.message), (
+        auctionDetail,
+      ) {
+        _auction = auctionDetail;
+        // Sync bid increment with seller-configured minimum
+        _bidIncrement = auctionDetail.minBidIncrement;
+      });
+
+      // Load any saved user preference (persisted increment) if available
+      if (_userId != null) {
+        final incrementResult = await _getBidIncrementUseCase(
+          auctionId: id,
+          userId: _userId,
+        );
+
+        incrementResult.fold(
+          (failure) {
+            // Ignore failure, just use default
+          },
+          (saved) {
+            if (saved != null && saved >= _bidIncrement) {
+              _bidIncrement = saved;
+            }
+          },
+        );
       }
 
       // Load bid history and Q&A in parallel
@@ -175,54 +168,32 @@ class AuctionDetailController extends ChangeNotifier {
   Future<void> _loadBidHistory(String auctionId) async {
     _isLoadingBidHistory = true;
     try {
-      if (_useMockData) {
-        _bidHistory = await _mockBidHistoryDataSource!.getBidHistory(auctionId);
-        print('DEBUG: Loaded ${_bidHistory.length} bids from mock data');
-      } else {
-        print('DEBUG: Loading bid history for auction: $auctionId');
+      print('DEBUG: Loading bid history for auction: $auctionId');
 
-        // Get bid history from Supabase
-        final bidsData = await _supabaseBidHistoryDataSource!.getBidHistory(
-          auctionId,
-        );
-        print('DEBUG: Received ${bidsData.length} bids from Supabase');
-        print('DEBUG: Raw bids data: $bidsData');
+      // Get bid history using UseCase
+      final result = await _getBidHistoryUseCase(auctionId: auctionId);
 
-        // Convert to BidHistoryEntity
-        _bidHistory = bidsData.map((bidData) {
-          print(
-            'DEBUG: Processing bid - ID: ${bidData['id']}, Amount: ${bidData['bid_amount']}',
-          );
-
-          // Extract bidder username from nested users data
-          String bidderName = 'Bidder';
-          final bidderData = bidData['bidder'] as Map<String, dynamic>?;
-          if (bidderData != null) {
-            final displayName = bidderData['display_name'] as String?;
-            final username = bidderData['username'] as String?;
-            // Prefer display_name if available, fallback to username
-            if (displayName != null && displayName.isNotEmpty) {
-              bidderName = displayName;
-            } else if (username != null && username.isNotEmpty) {
-              bidderName = username;
-            }
-          }
-
-          return BidHistoryEntity(
-            id: bidData['id'] as String,
-            auctionId: auctionId,
-            amount: (bidData['bid_amount'] as num).toDouble(),
-            bidderName: bidderName,
-            timestamp: DateTime.parse(bidData['created_at'] as String),
-            isCurrentUser: _userId != null && bidData['bidder_id'] == _userId,
-            isWinning: false, // Will be set based on current auction state
-          );
-        }).toList();
-
-        print(
-          'DEBUG: Converted to ${_bidHistory.length} BidHistoryEntity objects',
-        );
-      }
+      result.fold(
+        (failure) {
+          print('ERROR: Failed to load bid history: ${failure.message}');
+          _bidHistory = [];
+        },
+        (bids) {
+          _bidHistory = bids.map((bid) {
+            // Set isCurrentUser flag based on userId
+            return BidHistoryEntity(
+              id: bid.id,
+              auctionId: bid.auctionId,
+              amount: bid.amount,
+              bidderName: bid.bidderName,
+              timestamp: bid.timestamp,
+              isCurrentUser: _userId != null && bid.id.contains(_userId),
+              isWinning: bid.isWinning,
+            );
+          }).toList();
+          print('DEBUG: Loaded ${_bidHistory.length} bids');
+        },
+      );
     } catch (e, stackTrace) {
       // Log the error instead of silent fail
       print('ERROR: Failed to load bid history: $e');
@@ -237,41 +208,43 @@ class AuctionDetailController extends ChangeNotifier {
   Future<void> _loadQuestions(String auctionId) async {
     _isLoadingQA = true;
     try {
-      if (_useMockData) {
-        _questions = await _mockQADataSource!.getQuestions(auctionId);
-      } else {
-        // Get questions from Supabase
-        print('DEBUG [Controller]: ========================================');
-        print('DEBUG [Controller]: Starting Q&A load for auction: $auctionId');
-        print('DEBUG [Controller]: User ID: $_userId');
-        print(
-          'DEBUG [Controller]: QA DataSource exists: ${_supabaseQADataSource != null}',
-        );
+      print('DEBUG [Controller]: ========================================');
+      print('DEBUG [Controller]: Starting Q&A load for auction: $auctionId');
+      print('DEBUG [Controller]: User ID: $_userId');
 
-        _questions = await _supabaseQADataSource!.getQuestions(
-          auctionId,
-          currentUserId: _userId,
-        );
+      // Get questions using UseCase
+      final result = await _getQuestionsUseCase(
+        auctionId: auctionId,
+        currentUserId: _userId,
+      );
 
-        print('DEBUG [Controller]: ========================================');
-        print('DEBUG [Controller]: Received response from datasource');
-        print('DEBUG [Controller]: Questions count: ${_questions.length}');
+      result.fold(
+        (failure) {
+          print('ERROR [Controller]: Failed to load Q&A: ${failure.message}');
+          _questions = [];
+        },
+        (questions) {
+          _questions = questions;
+          print('DEBUG [Controller]: Received response from UseCase');
+          print('DEBUG [Controller]: Questions count: ${_questions.length}');
 
-        if (_questions.isEmpty) {
-          print('DEBUG [Controller]: ⚠️ NO QUESTIONS FOUND IN DATABASE');
-          print('DEBUG [Controller]: This means:');
-          print(
-            'DEBUG [Controller]:   1. Q&A schema might not be run (migration 00045)',
-          );
-          print(
-            'DEBUG [Controller]:   2. No questions have been asked yet for this listing',
-          );
-          print(
-            'DEBUG [Controller]:   3. RLS policies might be blocking access',
-          );
-        }
-        print('DEBUG [Controller]: ========================================');
-      }
+          if (_questions.isEmpty) {
+            print('DEBUG [Controller]: ⚠️ NO QUESTIONS FOUND IN DATABASE');
+            print('DEBUG [Controller]: This means:');
+            print(
+              'DEBUG [Controller]:   1. Q&A schema might not be run (migration 00045)',
+            );
+            print(
+              'DEBUG [Controller]:   2. No questions have been asked yet for this listing',
+            );
+            print(
+              'DEBUG [Controller]:   3. RLS policies might be blocking access',
+            );
+          }
+        },
+      );
+
+      print('DEBUG [Controller]: ========================================');
     } catch (e, stackTrace) {
       print('ERROR [Controller]: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
       print('ERROR [Controller]: Failed to load Q&A: $e');
@@ -294,43 +267,39 @@ class AuctionDetailController extends ChangeNotifier {
     print('DEBUG [Controller]: Question: $question');
     print('DEBUG [Controller]: User ID: $_userId');
 
-    bool success = false;
     try {
-      if (_useMockData) {
-        success = await _mockQADataSource!.postQuestion(
-          _auction!.id,
-          category,
-          question,
-        );
-      } else {
-        // Post question to Supabase
-        if (_userId == null) {
-          print(
-            'ERROR [Controller]: ❌ User not authenticated, cannot ask question',
-          );
-          return;
-        }
-
-        print('DEBUG [Controller]: Calling datasource.postQuestion()...');
-        final qa = await _supabaseQADataSource!.postQuestion(
-          auctionId: _auction!.id,
-          userId: _userId!,
-          category: category,
-          question: question,
-        );
-        print('DEBUG [Controller]: Question posted successfully: ${qa.id}');
-        success = true;
-      }
-
-      if (success) {
+      // Check authentication
+      if (_userId == null) {
         print(
-          'DEBUG [Controller]: ✅ Question posted successfully, reloading Q&A...',
+          'ERROR [Controller]: ❌ User not authenticated, cannot ask question',
         );
-        await _loadQuestions(_auction!.id);
-        notifyListeners();
-      } else {
-        print('ERROR [Controller]: ❌ Failed to post question (returned false)');
+        return;
       }
+
+      print('DEBUG [Controller]: Calling UseCase.postQuestion()...');
+
+      // Post question using UseCase
+      final result = await _postQuestionUseCase(
+        auctionId: _auction!.id,
+        userId: _userId,
+        category: category,
+        question: question,
+      );
+
+      result.fold(
+        (failure) {
+          print(
+            'ERROR [Controller]: ❌ Failed to post question: ${failure.message}',
+          );
+        },
+        (qa) {
+          print('DEBUG [Controller]: Question posted successfully: ${qa.id}');
+          print(
+            'DEBUG [Controller]: ✅ Question posted successfully, reloading Q&A...',
+          );
+          _loadQuestions(_auction!.id).then((_) => notifyListeners());
+        },
+      );
     } catch (e, stackTrace) {
       print('ERROR [Controller]: ❌ Exception while asking question: $e');
       print('STACK [Controller]: $stackTrace');
@@ -341,27 +310,35 @@ class AuctionDetailController extends ChangeNotifier {
   /// Toggles like on a question
   Future<void> toggleQuestionLike(String questionId) async {
     try {
-      if (_useMockData) {
-        await _mockQADataSource!.toggleLike(questionId);
-      } else {
-        // Toggle like in Supabase
-        if (_userId == null) {
-          print('ERROR: User not authenticated, cannot like question');
-          return;
-        }
+      // Check authentication
+      if (_userId == null) {
+        print('ERROR: User not authenticated, cannot like question');
+        return;
+      }
 
-        final q = _questions.firstWhere((q) => q.id == questionId);
-        if (q.isLikedByUser) {
-          await _supabaseQADataSource!.unlikeQuestion(
-            questionId: questionId,
-            userId: _userId!,
-          );
-        } else {
-          await _supabaseQADataSource!.likeQuestion(
-            questionId: questionId,
-            userId: _userId!,
-          );
-        }
+      final q = _questions.firstWhere((q) => q.id == questionId);
+
+      // Call appropriate UseCase
+      if (q.isLikedByUser) {
+        final result = await _unlikeQuestionUseCase(
+          questionId: questionId,
+          userId: _userId,
+        );
+        result.fold(
+          (failure) =>
+              print('ERROR: Failed to unlike question: ${failure.message}'),
+          (_) {},
+        );
+      } else {
+        final result = await _likeQuestionUseCase(
+          questionId: questionId,
+          userId: _userId,
+        );
+        result.fold(
+          (failure) =>
+              print('ERROR: Failed to like question: ${failure.message}'),
+          (_) {},
+        );
       }
 
       // Optimistically update UI
@@ -395,17 +372,18 @@ class AuctionDetailController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      bool success;
-      if (_useMockData) {
-        success = await _mockDataSource!.processDeposit(_auction!.id);
-      } else {
-        // TODO: Implement deposit processing in Supabase
-        success = false;
-      }
-      if (success) {
-        // Reload auction to get updated deposit status
-        await loadAuctionDetail(_auction!.id);
-      }
+      // Process deposit using UseCase
+      final result = await _processDepositUseCase(auctionId: _auction!.id);
+
+      result.fold(
+        (failure) {
+          _errorMessage = 'Failed to process deposit';
+        },
+        (_) {
+          // Reload auction to get updated deposit status
+          loadAuctionDetail(_auction!.id);
+        },
+      );
     } catch (e) {
       _errorMessage = 'Failed to process deposit';
     } finally {
@@ -426,25 +404,21 @@ class AuctionDetailController extends ChangeNotifier {
       // Use provided userId or fallback to controller's userId
       final effectiveUserId = userId ?? _userId;
 
-      if (effectiveUserId == null && !_useMockData) {
+      if (effectiveUserId == null) {
         _errorMessage = 'User not authenticated';
         return false;
       }
 
-      // Consume bidding token if usecase is available (Supabase mode)
-      if (_consumeBiddingTokenUsecase != null &&
-          !_useMockData &&
-          effectiveUserId != null) {
-        final hasToken = await _consumeBiddingTokenUsecase.call(
-          userId: effectiveUserId,
-          referenceId: _auction!.id,
-        );
+      // Consume bidding token if available
+      final hasToken = await _consumeBiddingTokenUsecase.call(
+        userId: effectiveUserId,
+        referenceId: _auction!.id,
+      );
 
-        if (!hasToken) {
-          _errorMessage =
-              'Insufficient bidding tokens. Please purchase more tokens or upgrade your subscription.';
-          return false;
-        }
+      if (!hasToken) {
+        _errorMessage =
+            'Insufficient bidding tokens. Please purchase more tokens or upgrade your subscription.';
+        return false;
       }
 
       // Enforce server-side: amount must be at least currentBid + minBidIncrement
@@ -456,34 +430,35 @@ class AuctionDetailController extends ChangeNotifier {
         return false;
       }
 
-      bool success = true;
-      if (_useMockData) {
-        success = await _mockDataSource!.placeBid(_auction!.id, amount);
-      } else {
-        // Place bid in Supabase
-        print('[AuctionDetailController] Placing bid: \$${amount}');
-        await _supabaseBidHistoryDataSource!.placeBid(
-          auctionId: _auction!.id,
-          bidderId: effectiveUserId!,
-          amount: amount,
-          isAutoBid: _isAutoBidActive,
-          maxAutoBid: _maxAutoBid,
-          autoBidIncrement: _isAutoBidActive ? _bidIncrement : null,
-        );
-        print(
-          '[AuctionDetailController] Bid placed successfully, reloading auction data...',
-        );
-      }
+      // Place bid using UseCase
+      print('[AuctionDetailController] Placing bid: \$$amount');
+      final result = await _placeBidUseCase(
+        auctionId: _auction!.id,
+        bidderId: effectiveUserId,
+        amount: amount,
+        isAutoBid: _isAutoBidActive,
+        maxAutoBid: _maxAutoBid,
+        autoBidIncrement: _isAutoBidActive ? _bidIncrement : null,
+      );
 
-      if (success) {
-        // Reload auction to update current bid and bid history
-        // This will also get the potentially extended end_time from snipe guard
-        await loadAuctionDetail(_auction!.id);
-        print(
-          '[AuctionDetailController] Auction data reloaded. New end time: ${_auction!.endTime}',
-        );
-      }
-      return success;
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (_) {
+          print(
+            '[AuctionDetailController] Bid placed successfully, reloading auction data...',
+          );
+          // Reload auction to update current bid and bid history
+          // This will also get the potentially extended end_time from snipe guard
+          loadAuctionDetail(_auction!.id);
+          print(
+            '[AuctionDetailController] Auction data reloaded. New end time: ${_auction!.endTime}',
+          );
+          return true;
+        },
+      );
     } catch (e) {
       _errorMessage = e.toString().contains('Failed to place bid')
           ? e.toString().replaceFirst('Exception: ', '')
@@ -513,11 +488,12 @@ class AuctionDetailController extends ChangeNotifier {
     _isAutoBidActive = isActive;
     _maxAutoBid = maxBid;
     _bidIncrement = effectiveIncrement;
+
     // Persist user preference for this auction (increment)
-    if (_userId != null && !_useMockData) {
-      _userPrefs?.upsertBidIncrement(
+    if (_userId != null && _auction != null) {
+      _upsertBidIncrementUseCase(
         auctionId: _auction!.id,
-        userId: _userId!,
+        userId: _userId,
         increment: _bidIncrement,
       );
     }

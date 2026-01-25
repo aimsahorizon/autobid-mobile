@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/forgot_password_controller.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_error_message.dart';

@@ -1,8 +1,14 @@
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/admin_listing_entity.dart';
+import '../../domain/entities/admin_enums.dart';
 import '../../data/datasources/admin_supabase_datasource.dart';
 
-/// Admin controller for managing listings and dashboard
+/// Admin controller for managing listings and dashboard.
+/// 
+/// REFERENCE FOR NEXT.js:
+/// This controller coordinates admin actions. In Next.js, these methods 
+/// should be converted to Server Actions or API routes with proper 
+/// middleware-based role checks (Super Admin/Moderator).
 class AdminController extends ChangeNotifier {
   final AdminSupabaseDataSource _dataSource;
 
@@ -12,7 +18,9 @@ class AdminController extends ChangeNotifier {
   List<Map<String, dynamic>> _users = [];
   bool _isLoading = false;
   String? _error;
-  String _selectedStatus = 'pending_approval';
+  
+  // Use Enum for type safety and clarity
+  AdminListingStatus _selectedStatus = AdminListingStatus.pendingApproval;
 
   AdminController(this._dataSource);
 
@@ -23,9 +31,11 @@ class AdminController extends ChangeNotifier {
   List<Map<String, dynamic>> get users => _users;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  String get selectedStatus => _selectedStatus;
+  
+  /// Current filter for listings page
+  AdminListingStatus get selectedStatus => _selectedStatus;
 
-  /// Load admin dashboard data
+  /// Load admin dashboard data (Total auctions, active users, etc)
   Future<void> loadDashboard() async {
     _isLoading = true;
     _error = null;
@@ -43,15 +53,15 @@ class AdminController extends ChangeNotifier {
     }
   }
 
-  /// Load listings by status
-  Future<void> loadListingsByStatus(String status) async {
+  /// Load listings by status (Filtered view)
+  Future<void> loadListingsByStatus(AdminListingStatus status) async {
     _selectedStatus = status;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _allListings = await _dataSource.getListingsByStatus(status);
+      _allListings = await _dataSource.getListingsByStatus(status.dbValue);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -61,12 +71,12 @@ class AdminController extends ChangeNotifier {
     }
   }
 
-  /// Approve a listing
+  /// Approve a listing (Moves it from 'pending_approval' to 'scheduled')
   Future<bool> approveListing(String auctionId, {String? notes}) async {
     try {
       await _dataSource.approveListing(auctionId, notes: notes);
 
-      // Reload dashboard and current listings view
+      // Refresh data
       await loadDashboard();
       await loadListingsByStatus(_selectedStatus);
       return true;
@@ -77,12 +87,12 @@ class AdminController extends ChangeNotifier {
     }
   }
 
-  /// Reject a listing
+  /// Reject a listing (Moves it to 'cancelled' with a reason)
   Future<bool> rejectListing(String auctionId, String reason) async {
     try {
       await _dataSource.rejectListing(auctionId, reason);
 
-      // Reload dashboard and current listings view
+      // Refresh data
       await loadDashboard();
       await loadListingsByStatus(_selectedStatus);
       return true;
@@ -93,13 +103,13 @@ class AdminController extends ChangeNotifier {
     }
   }
 
-  /// Change listing status
-  Future<bool> changeStatus(String auctionId, String newStatus) async {
+  /// Change listing status manually
+  Future<bool> changeStatus(String auctionId, AdminListingStatus newStatus) async {
     try {
-      await _dataSource.changeListingStatus(auctionId, newStatus);
+      await _dataSource.changeListingStatus(auctionId, newStatus.dbValue);
 
-      // Reload current view
-      if (_selectedStatus == 'pending_approval') {
+      // Refresh current view
+      if (_selectedStatus == AdminListingStatus.pendingApproval) {
         await loadDashboard();
       } else {
         await loadListingsByStatus(_selectedStatus);
@@ -112,7 +122,7 @@ class AdminController extends ChangeNotifier {
     }
   }
 
-  /// Load all users
+  /// Load all users for the management tab
   Future<void> loadUsers() async {
     _isLoading = true;
     _error = null;
@@ -129,9 +139,9 @@ class AdminController extends ChangeNotifier {
     }
   }
 
-  /// Refresh current view
+  /// Refresh the current active view
   Future<void> refresh() async {
-    if (_selectedStatus == 'pending_approval') {
+    if (_selectedStatus == AdminListingStatus.pendingApproval) {
       await loadDashboard();
     } else {
       await loadListingsByStatus(_selectedStatus);

@@ -52,11 +52,11 @@ This document details the deviations between the current codebase and the engine
 ## 3. Module-Specific Audit
 
 ### A. Auth Module (`lib/modules/auth`)
-| Violation | Severity | Proposed Fix |
+| Violation | Severity | Status |
 | :--- | :--- | :--- |
-| **Controller -> Datasource** | 🔴 High | `LoginController` uses `ProfileSupabaseDataSource`. Refactor to use `GetProfileUseCase`. |
-| **State Management** | 🟡 Medium | Uses `ChangeNotifier`. Standard prefers `Bloc` for complex flows like Auth. Consider refactoring. |
-| **Error Handling** | 🔴 High | String manipulation for errors (`replaceAll('Exception: ', '')`). Implement `Failure` mapping. |
+| **Controller -> Datasource** | 🔴 High | ✅ Fixed: All controllers now use UseCases. |
+| **State Management** | 🟡 Medium | 🔄 Maintained: Kept ChangeNotifier for now. |
+| **Error Handling** | 🔴 High | ✅ Fixed: Implemented Either/Failure pattern. |
 
 ### B. Admin Module (`lib/modules/admin`)
 | Violation | Severity | Proposed Fix |
@@ -76,9 +76,9 @@ This document details the deviations between the current codebase and the engine
 ## 4. Refactoring Roadmap (Step-by-Step)
 
 ### Phase 1: Foundation (Global Structure)
-1.  [ ] **Move Core:** Relocate `lib/app/core` to `lib/core`.
-2.  [ ] **Setup Failure:** Create `lib/core/error/failures.dart`.
-3.  [ ] **Setup DI:** Initialize `get_it` in `lib/app/di/`.
+1.  [x] **Move Core:** Relocate `lib/app/core` to `lib/core`.
+2.  [x] **Setup Failure:** Create `lib/core/error/failures.dart`.
+3.  [x] **Setup DI:** Initialize `get_it` in `lib/app/di/`.
 
 ### Phase 2: Module Refactoring (One by One)
 *Start with `Auth` as it has the most dependencies.*

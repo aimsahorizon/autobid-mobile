@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/data/philippines_locations.dart';
+import 'package:autobid_mobile/core/data/philippines_locations.dart';
 
 class ProvinceCityPicker extends StatefulWidget {
   final String? province;
@@ -77,7 +77,7 @@ class _ProvinceCityPickerState extends State<ProvinceCityPicker> {
     return Column(
       children: [
         DropdownButtonFormField<String>(
-          value: _selectedProvince,
+          initialValue: _selectedProvince,
           decoration: InputDecoration(
             labelText: 'Province *',
             border: OutlineInputBorder(
@@ -92,7 +92,7 @@ class _ProvinceCityPickerState extends State<ProvinceCityPicker> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _selectedCity,
+          initialValue: _selectedCity,
           decoration: InputDecoration(
             labelText: 'City/Municipality',
             border: OutlineInputBorder(

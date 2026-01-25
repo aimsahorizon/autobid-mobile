@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../app/core/config/supabase_config.dart';
-import '../../../../app/core/controllers/theme_controller.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/utils/dev_admin_auth.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/controllers/theme_controller.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/dev_admin_auth.dart';
 import '../../../admin/admin_module.dart';
 import '../../../admin/presentation/pages/admin_main_page.dart';
 import '../controllers/pricing_controller.dart';

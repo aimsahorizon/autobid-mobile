@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../browse_module.dart';
 import '../../../lists/presentation/pages/active_listing_detail_page.dart';
 import '../../../lists/presentation/pages/approved_listing_detail_page.dart';

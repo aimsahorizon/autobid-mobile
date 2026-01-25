@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
@@ -135,15 +135,11 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, _) {
         final myForm = widget.controller.myForm;
         final isSubmitted = myForm != null && myForm.status != FormStatus.draft;
-        final role = widget.controller.getUserRole(widget.userId);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),

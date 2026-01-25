@@ -2,13 +2,27 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../domain/entities/user_profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
-import '../../data/datasources/profile_supabase_datasource.dart';
+import '../../domain/usecases/upload_profile_photo_usecase.dart';
+import '../../domain/usecases/upload_cover_photo_usecase.dart';
+import '../../domain/usecases/update_profile_with_photo_usecase.dart';
 
+/// Controller for managing profile state
+/// Refactored to use Clean Architecture with UseCases
 class ProfileController extends ChangeNotifier {
   final ProfileRepository _repository;
-  final ProfileSupabaseDataSource _dataSource;
+  final UploadProfilePhotoUseCase _uploadProfilePhotoUseCase;
+  final UploadCoverPhotoUseCase _uploadCoverPhotoUseCase;
+  final UpdateProfileWithPhotoUseCase _updateProfileWithPhotoUseCase;
 
-  ProfileController(this._repository, this._dataSource);
+  ProfileController({
+    required ProfileRepository repository,
+    required UploadProfilePhotoUseCase uploadProfilePhotoUseCase,
+    required UploadCoverPhotoUseCase uploadCoverPhotoUseCase,
+    required UpdateProfileWithPhotoUseCase updateProfileWithPhotoUseCase,
+  }) : _repository = repository,
+       _uploadProfilePhotoUseCase = uploadProfilePhotoUseCase,
+       _uploadCoverPhotoUseCase = uploadCoverPhotoUseCase,
+       _updateProfileWithPhotoUseCase = updateProfileWithPhotoUseCase;
 
   UserProfileEntity? _profile;
   bool _isLoading = false;
@@ -24,33 +38,40 @@ class ProfileController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      _profile = await _repository.getUserProfile();
-      _errorMessage = null;
-    } catch (e) {
-      // Log actual error for debugging
-      print('Profile load error: $e');
-      _errorMessage = 'Failed to load profile: $e';
-      _profile = null;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    final result = await _repository.getUserProfile();
+
+    result.fold(
+      (failure) {
+        _errorMessage = 'Failed to load profile: ${failure.message}';
+        _profile = null;
+      },
+      (profileData) {
+        _profile = profileData;
+        _errorMessage = null;
+      },
+    );
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> signOut() async {
     _isLoading = true;
     notifyListeners();
 
-    try {
-      await _repository.signOut();
-      _profile = null;
-    } catch (e) {
-      _errorMessage = 'Failed to sign out';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    final result = await _repository.signOut();
+
+    result.fold(
+      (failure) {
+        _errorMessage = 'Failed to sign out: ${failure.message}';
+      },
+      (_) {
+        _profile = null;
+      },
+    );
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   void clearError() {
@@ -67,17 +88,36 @@ class ProfileController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Upload to storage
-      final photoUrl = await _dataSource.uploadProfilePhoto(_profile!.id, imageFile);
-
-      // Update in database
-      final updatedProfile = await _dataSource.updateProfile(
+      // Upload photo using UseCase
+      final uploadResult = await _uploadProfilePhotoUseCase(
         userId: _profile!.id,
-        profilePhotoUrl: photoUrl,
+        imageFile: imageFile,
       );
 
-      _profile = updatedProfile;
-      _errorMessage = null;
+      await uploadResult.fold(
+        (failure) {
+          _errorMessage = 'Failed to upload profile photo: ${failure.message}';
+          throw Exception(_errorMessage);
+        },
+        (photoUrl) async {
+          // Update profile with new photo URL using UseCase
+          final updateResult = await _updateProfileWithPhotoUseCase(
+            profile: _profile!,
+            profilePhotoUrl: photoUrl,
+          );
+
+          updateResult.fold(
+            (failure) {
+              _errorMessage = 'Failed to update profile: ${failure.message}';
+              throw Exception(_errorMessage);
+            },
+            (updatedProfile) {
+              _profile = updatedProfile;
+              _errorMessage = null;
+            },
+          );
+        },
+      );
     } catch (e) {
       _errorMessage = 'Failed to update profile photo: $e';
       rethrow;
@@ -96,17 +136,36 @@ class ProfileController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Upload to storage
-      final photoUrl = await _dataSource.uploadCoverPhoto(_profile!.id, imageFile);
-
-      // Update in database
-      final updatedProfile = await _dataSource.updateProfile(
+      // Upload photo using UseCase
+      final uploadResult = await _uploadCoverPhotoUseCase(
         userId: _profile!.id,
-        coverPhotoUrl: photoUrl,
+        imageFile: imageFile,
       );
 
-      _profile = updatedProfile;
-      _errorMessage = null;
+      await uploadResult.fold(
+        (failure) {
+          _errorMessage = 'Failed to upload cover photo: ${failure.message}';
+          throw Exception(_errorMessage);
+        },
+        (photoUrl) async {
+          // Update profile with new photo URL using UseCase
+          final updateResult = await _updateProfileWithPhotoUseCase(
+            profile: _profile!,
+            coverPhotoUrl: photoUrl,
+          );
+
+          updateResult.fold(
+            (failure) {
+              _errorMessage = 'Failed to update profile: ${failure.message}';
+              throw Exception(_errorMessage);
+            },
+            (updatedProfile) {
+              _profile = updatedProfile;
+              _errorMessage = null;
+            },
+          );
+        },
+      );
     } catch (e) {
       _errorMessage = 'Failed to update cover photo: $e';
       rethrow;

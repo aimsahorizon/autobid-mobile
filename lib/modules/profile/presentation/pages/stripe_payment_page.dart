@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide TokenType;
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/services/stripe_service.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/services/stripe_service.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../../data/datasources/pricing_supabase_datasource.dart';
 

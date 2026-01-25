@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 
 /// Reusable progress step widget for transaction progress tracking
 /// Shows completion status with icon, title, and subtitle

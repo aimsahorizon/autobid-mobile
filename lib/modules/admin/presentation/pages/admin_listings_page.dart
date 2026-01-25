@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/admin_listing_entity.dart';
+import '../../domain/entities/admin_enums.dart';
 import '../controllers/admin_controller.dart';
 import 'admin_listing_review_page.dart';
 
@@ -16,17 +17,15 @@ class AdminListingsPage extends StatefulWidget {
 
 class _AdminListingsPageState extends State<AdminListingsPage>
     with AutomaticKeepAliveClientMixin {
-  final List<String> _statusFilters = [
-    'all',
-    'pending_approval',
-    'approved',
-    'scheduled',
-    'live',
-    'ended',
-    'cancelled',
-    'in_transaction',
-    'sold',
-    'deal_failed',
+  final List<AdminListingStatus> _statusFilters = [
+    AdminListingStatus.pendingApproval,
+    AdminListingStatus.scheduled,
+    AdminListingStatus.live,
+    AdminListingStatus.ended,
+    AdminListingStatus.inTransaction,
+    AdminListingStatus.sold,
+    AdminListingStatus.dealFailed,
+    AdminListingStatus.cancelled,
   ];
 
   @override
@@ -36,7 +35,7 @@ class _AdminListingsPageState extends State<AdminListingsPage>
   void initState() {
     super.initState();
     // Load all listings initially
-    widget.controller.loadListingsByStatus('pending_approval');
+    widget.controller.loadListingsByStatus(AdminListingStatus.pendingApproval);
   }
 
   @override
@@ -180,9 +179,8 @@ class _AdminListingsPageState extends State<AdminListingsPage>
     );
   }
 
-  String _formatStatusName(String status) {
-    if (status == 'all') return 'All';
-    return status
+  String _formatStatusName(AdminListingStatus status) {
+    return status.dbValue
         .replaceAll('_', ' ')
         .split(' ')
         .map((word) => word[0].toUpperCase() + word.substring(1))
@@ -248,8 +246,11 @@ class _AdminListingsPageState extends State<AdminListingsPage>
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color color = _getStatusColor(status);
+  Widget _buildStatusBadge(String statusString) {
+    Color color = _getStatusColor(statusString);
+    
+    // Convert for display formatting
+    final statusEnum = AdminListingStatus.fromString(statusString);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -259,7 +260,7 @@ class _AdminListingsPageState extends State<AdminListingsPage>
         border: Border.all(color: color, width: 1),
       ),
       child: Text(
-        _formatStatusName(status),
+        _formatStatusName(statusEnum),
         style: TextStyle(
           color: color,
           fontSize: 10,
@@ -269,23 +270,25 @@ class _AdminListingsPageState extends State<AdminListingsPage>
     );
   }
 
-  Color _getStatusColor(String status) {
+  Color _getStatusColor(String statusString) {
+    final status = AdminListingStatus.fromString(statusString);
+    
     switch (status) {
-      case 'pending_approval':
+      case AdminListingStatus.pendingApproval:
         return ColorConstants.warning;
-      case 'scheduled':
+      case AdminListingStatus.scheduled:
         return ColorConstants.info;
-      case 'live':
+      case AdminListingStatus.live:
         return ColorConstants.success;
-      case 'ended':
+      case AdminListingStatus.ended:
         return ColorConstants.primary;
-      case 'cancelled':
-      case 'deal_failed':
-        return ColorConstants.error;
-      case 'in_transaction':
+      case AdminListingStatus.inTransaction:
         return Colors.orange;
-      case 'sold':
+      case AdminListingStatus.sold:
         return Colors.green;
+      case AdminListingStatus.dealFailed:
+      case AdminListingStatus.cancelled:
+        return ColorConstants.error;
       default:
         return ColorConstants.textSecondaryLight;
     }
