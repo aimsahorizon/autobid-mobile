@@ -34,16 +34,18 @@ class LoginOtpController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      await sendEmailOtpUseCase.call(email);
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'Failed to send email OTP: $e';
-      notifyListeners();
-      rethrow;
-    }
+    final result = await sendEmailOtpUseCase.call(email);
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        _isLoading = false;
+        notifyListeners();
+      },
+      (_) {
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
   }
 
   Future<void> sendPhoneOtp(String phoneNumber) async {
@@ -51,16 +53,18 @@ class LoginOtpController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      await sendPhoneOtpUseCase.call(phoneNumber);
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'Failed to send phone OTP: $e';
-      notifyListeners();
-      rethrow;
-    }
+    final result = await sendPhoneOtpUseCase.call(phoneNumber);
+    result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        _isLoading = false;
+        notifyListeners();
+      },
+      (_) {
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
   }
 
   Future<bool> verifyEmailOtp(String email, String otp) async {
@@ -68,18 +72,22 @@ class LoginOtpController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      final isVerified = await verifyEmailOtpUseCase.call(email, otp);
-      _isEmailVerified = isVerified;
-      _isLoading = false;
-      notifyListeners();
-      return isVerified;
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'Email verification failed: $e';
-      notifyListeners();
-      return false;
-    }
+    final result = await verifyEmailOtpUseCase.call(email, otp);
+    
+    return result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      },
+      (isVerified) {
+        _isEmailVerified = isVerified;
+        _isLoading = false;
+        notifyListeners();
+        return isVerified;
+      },
+    );
   }
 
   Future<bool> verifyPhoneOtp(String phoneNumber, String otp) async {
@@ -87,18 +95,22 @@ class LoginOtpController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      final isVerified = await verifyPhoneOtpUseCase.call(phoneNumber, otp);
-      _isPhoneVerified = isVerified;
-      _isLoading = false;
-      notifyListeners();
-      return isVerified;
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'Phone verification failed: $e';
-      notifyListeners();
-      return false;
-    }
+    final result = await verifyPhoneOtpUseCase.call(phoneNumber, otp);
+
+    return result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      },
+      (isVerified) {
+        _isPhoneVerified = isVerified;
+        _isLoading = false;
+        notifyListeners();
+        return isVerified;
+      },
+    );
   }
 
   void reset() {

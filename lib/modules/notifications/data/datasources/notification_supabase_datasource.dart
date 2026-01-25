@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../presentation/controllers/notification_controller.dart';
+import 'notification_datasource.dart';
 import '../models/notification_model.dart';
 
 /// Supabase data source for notifications

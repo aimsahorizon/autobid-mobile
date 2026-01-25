@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
@@ -194,7 +194,7 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
                 const SizedBox(height: 12),
 
                 DropdownButtonFormField<String>(
-                  value: _paymentMethod,
+                  initialValue: _paymentMethod,
                   decoration: InputDecoration(
                     labelText: 'Payment Method *',
                     prefixIcon: const Icon(Icons.account_balance_wallet),
@@ -339,8 +339,9 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
                               const Duration(days: 30),
                             ),
                           );
-                          if (date != null)
+                          if (date != null) {
                             setState(() => _preferredDate = date);
+                          }
                         },
                   child: InputDecorator(
                     decoration: InputDecoration(
@@ -358,7 +359,7 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
 
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: _preferredTimeSlot,
+                  initialValue: _preferredTimeSlot,
                   decoration: InputDecoration(
                     labelText: 'Preferred Time',
                     prefixIcon: const Icon(Icons.access_time),

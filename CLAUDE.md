@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-autobid_mobile is a Flutter mobile application using Modular Clean Architecture with self-contained feature modules, and Supabase as the backend.
+*   **Flutter App:** Mobile application using Modular Clean Architecture with self-contained feature modules.
+*   **Next.js Admin Portal:** Web-based administrative portal located in `autobid_admin/` using App Router and RBAC.
+*   **Backend:** Supabase (Shared between Flutter and Next.js).
 
 ## Working Guidelines
 

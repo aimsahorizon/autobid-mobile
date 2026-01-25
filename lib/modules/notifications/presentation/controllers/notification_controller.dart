@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/notification_entity.dart';
-
-/// Abstract datasource interface for notifications
-abstract class INotificationDataSource {
-  Future<List<NotificationEntity>> getNotifications({
-    required String userId,
-    int? limit,
-    int? offset,
-  });
-  Future<int> getUnreadCount({required String userId});
-  Future<void> markAsRead({required String notificationId});
-  Future<int> markAllAsRead();
-  Future<void> deleteNotification({required String notificationId});
-  Future<List<NotificationEntity>> getUnreadNotifications({required String userId});
-}
+import '../../domain/usecases/get_notifications_usecase.dart';
+import '../../domain/usecases/get_unread_count_usecase.dart';
+import '../../domain/usecases/mark_as_read_usecase.dart';
+import '../../domain/usecases/mark_all_as_read_usecase.dart';
+import '../../domain/usecases/delete_notification_usecase.dart';
 
 /// Controller for managing notification state
+/// Refactored to use Clean Architecture with UseCases
 class NotificationController extends ChangeNotifier {
-  final INotificationDataSource _dataSource;
+  final GetNotificationsUseCase _getNotificationsUseCase;
+  final GetUnreadCountUseCase _getUnreadCountUseCase;
+  final MarkAsReadUseCase _markAsReadUseCase;
+  final MarkAllAsReadUseCase _markAllAsReadUseCase;
+  final DeleteNotificationUseCase _deleteNotificationUseCase;
 
-  NotificationController(this._dataSource);
+  NotificationController({
+    required GetNotificationsUseCase getNotificationsUseCase,
+    required GetUnreadCountUseCase getUnreadCountUseCase,
+    required MarkAsReadUseCase markAsReadUseCase,
+    required MarkAllAsReadUseCase markAllAsReadUseCase,
+    required DeleteNotificationUseCase deleteNotificationUseCase,
+  }) : _getNotificationsUseCase = getNotificationsUseCase,
+       _getUnreadCountUseCase = getUnreadCountUseCase,
+       _markAsReadUseCase = markAsReadUseCase,
+       _markAllAsReadUseCase = markAllAsReadUseCase,
+       _deleteNotificationUseCase = deleteNotificationUseCase;
 
   List<NotificationEntity> _notifications = [];
   int _unreadCount = 0;
@@ -40,8 +46,21 @@ class NotificationController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _notifications = await _dataSource.getNotifications(userId: userId);
-      _unreadCount = await _dataSource.getUnreadCount(userId: userId);
+      // Use UseCases to get notifications
+      final notificationsResult = await _getNotificationsUseCase(
+        userId: userId,
+      );
+      final unreadCountResult = await _getUnreadCountUseCase(userId: userId);
+
+      notificationsResult.fold(
+        (failure) => _errorMessage = failure.message,
+        (notifications) => _notifications = notifications,
+      );
+
+      unreadCountResult.fold(
+        (failure) {}, // Silent fail for unread count
+        (count) => _unreadCount = count,
+      );
     } catch (e) {
       _errorMessage = 'Failed to load notifications: $e';
     } finally {
@@ -50,28 +69,30 @@ class NotificationController extends ChangeNotifier {
     }
   }
 
-  /// Load only unread count (for badge)
-  Future<void> loadUnreadCount(String userId) async {
-    try {
-      _unreadCount = await _dataSource.getUnreadCount(userId: userId);
-      notifyListeners();
-    } catch (e) {
-      // Silent fail for unread count
-    }
-  }
-
   /// Mark a notification as read
   Future<void> markAsRead(String notificationId, String userId) async {
     try {
-      await _dataSource.markAsRead(notificationId: notificationId);
+      final result = await _markAsReadUseCase(notificationId: notificationId);
 
-      // Update local state
-      final index = _notifications.indexWhere((n) => n.id == notificationId);
-      if (index != -1 && !_notifications[index].isRead) {
-        _notifications[index] = _notifications[index].copyWith(isRead: true);
-        _unreadCount = (_unreadCount - 1).clamp(0, _notifications.length);
-        notifyListeners();
-      }
+      result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          notifyListeners();
+        },
+        (_) {
+          // Update local state
+          final index = _notifications.indexWhere(
+            (n) => n.id == notificationId,
+          );
+          if (index != -1 && !_notifications[index].isRead) {
+            _notifications[index] = _notifications[index].copyWith(
+              isRead: true,
+            );
+            _unreadCount = (_unreadCount - 1).clamp(0, _notifications.length);
+            notifyListeners();
+          }
+        },
+      );
     } catch (e) {
       _errorMessage = 'Failed to mark as read: $e';
       notifyListeners();
@@ -81,14 +102,22 @@ class NotificationController extends ChangeNotifier {
   /// Mark all notifications as read
   Future<void> markAllAsRead(String userId) async {
     try {
-      await _dataSource.markAllAsRead();
+      final result = await _markAllAsReadUseCase();
 
-      // Update local state
-      _notifications = _notifications
-          .map((n) => n.copyWith(isRead: true))
-          .toList();
-      _unreadCount = 0;
-      notifyListeners();
+      result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          notifyListeners();
+        },
+        (_) {
+          // Update local state
+          _notifications = _notifications
+              .map((n) => n.copyWith(isRead: true))
+              .toList();
+          _unreadCount = 0;
+          notifyListeners();
+        },
+      );
     } catch (e) {
       _errorMessage = 'Failed to mark all as read: $e';
       notifyListeners();
@@ -98,15 +127,27 @@ class NotificationController extends ChangeNotifier {
   /// Delete a notification
   Future<void> deleteNotification(String notificationId, String userId) async {
     try {
-      await _dataSource.deleteNotification(notificationId: notificationId);
+      final result = await _deleteNotificationUseCase(
+        notificationId: notificationId,
+      );
 
-      // Update local state
-      final notification = _notifications.firstWhere((n) => n.id == notificationId);
-      _notifications.removeWhere((n) => n.id == notificationId);
-      if (!notification.isRead) {
-        _unreadCount = (_unreadCount - 1).clamp(0, _notifications.length);
-      }
-      notifyListeners();
+      result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          notifyListeners();
+        },
+        (_) {
+          // Update local state
+          final notification = _notifications.firstWhere(
+            (n) => n.id == notificationId,
+          );
+          _notifications.removeWhere((n) => n.id == notificationId);
+          if (!notification.isRead) {
+            _unreadCount = (_unreadCount - 1).clamp(0, _notifications.length);
+          }
+          notifyListeners();
+        },
+      );
     } catch (e) {
       _errorMessage = 'Failed to delete notification: $e';
       notifyListeners();

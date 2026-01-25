@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
-import '../../../../../app/core/services/ai_service.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/services/ai_service.dart';
 
 /// Dialog that shows AI extraction progress and results
 /// Provides user option to accept or manually fill the data

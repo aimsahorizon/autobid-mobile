@@ -1,24 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../../app/core/config/supabase_config.dart';
 import '../../domain/entities/user_bid_entity.dart';
-
-/// Abstract data source interface for user bids
-/// Allows switching between mock and Supabase implementations
-abstract class IUserBidsDataSource {
-  Future<Map<String, List<UserBidEntity>>> getUserBids([String? userId]);
-}
+import '../../domain/usecases/get_user_bids_usecase.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 
 /// Controller for managing user's bid history state
 /// Handles loading and categorizing bids by status (active, won, lost)
-///
-/// State management pattern: ChangeNotifier for reactive UI updates
-/// Usage: Inject into BidsPage and listen for state changes
 class BidsController extends ChangeNotifier {
-  // Data source dependency - can be mock or Supabase implementation
-  final IUserBidsDataSource _dataSource;
+  final GetUserBidsUseCase _getUserBidsUseCase;
+  final AuthRepository _authRepository;
 
-  BidsController(this._dataSource);
+  BidsController(this._getUserBidsUseCase, this._authRepository);
 
   // State properties - private with public getters
   List<UserBidEntity> _activeBids = [];
@@ -50,29 +42,43 @@ class BidsController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Get current user ID for Supabase queries
-      final userId = SupabaseConfig.client.auth.currentUser?.id;
+      // Get current user ID
+      final userId = (await _authRepository.getCurrentUser()).fold((l) => null, (r) => r?.id);
 
-      // Fetch all bids grouped by status from data source
-      final bidsMap = await _dataSource.getUserBids(userId);
-
-      // Update state with categorized bids
-      _activeBids = bidsMap['active'] ?? [];
-      _wonBids = bidsMap['won'] ?? [];
-      _lostBids = bidsMap['lost'] ?? [];
-      _cancelledBids = bidsMap['cancelled'] ?? [];
-
-      // Start polling if there are active bids
-      if (_activeBids.isNotEmpty) {
-        _startPolling();
-      } else {
-        _stopPolling();
+      if (userId == null) {
+        _errorMessage = 'User not authenticated';
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
+
+      // Fetch all bids using UseCase
+      final result = await _getUserBidsUseCase.call(userId);
+
+      result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+        },
+        (bidsMap) {
+          // Update state with categorized bids
+          _activeBids = bidsMap['active'] ?? [];
+          _wonBids = bidsMap['won'] ?? [];
+          _lostBids = bidsMap['lost'] ?? [];
+          _cancelledBids = bidsMap['cancelled'] ?? [];
+
+          // Start polling if there are active bids
+          if (_activeBids.isNotEmpty) {
+            _startPolling();
+          } else {
+            _stopPolling();
+          }
+        },
+      );
     } catch (e) {
-      // Handle error - show user-friendly message
+      // Handle unexpected error
       _errorMessage = 'Failed to load your bids. Please try again.';
     } finally {
-      // Always set loading to false, even on error
+      // Always set loading to false
       _isLoading = false;
       notifyListeners();
     }
@@ -85,32 +91,38 @@ class BidsController extends ChangeNotifier {
 
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
       try {
-        final userId = SupabaseConfig.client.auth.currentUser?.id;
+        final userId = (await _authRepository.getCurrentUser()).fold((l) => null, (r) => r?.id);
         if (userId == null) return;
 
-        final bidsMap = await _dataSource.getUserBids(userId);
-        final newActiveBids = bidsMap['active'] ?? [];
-        final newWonBids = bidsMap['won'] ?? [];
-        final newLostBids = bidsMap['lost'] ?? [];
-        final newCancelledBids = bidsMap['cancelled'] ?? [];
+        final result = await _getUserBidsUseCase.call(userId);
+        
+        result.fold(
+          (failure) => null, // Silent fail on polling
+          (bidsMap) {
+            final newActiveBids = bidsMap['active'] ?? [];
+            final newWonBids = bidsMap['won'] ?? [];
+            final newLostBids = bidsMap['lost'] ?? [];
+            final newCancelledBids = bidsMap['cancelled'] ?? [];
 
-        // Only update if bids changed (avoid unnecessary rebuilds)
-        if (newActiveBids.length != _activeBids.length ||
-            newWonBids.length != _wonBids.length ||
-            newLostBids.length != _lostBids.length ||
-            newCancelledBids.length != _cancelledBids.length) {
-          print('[BidsController] Bids changed during polling - updating UI');
-          _activeBids = newActiveBids;
-          _wonBids = newWonBids;
-          _lostBids = newLostBids;
-          _cancelledBids = newCancelledBids;
-          notifyListeners();
+            // Only update if bids changed (avoid unnecessary rebuilds)
+            if (newActiveBids.length != _activeBids.length ||
+                newWonBids.length != _wonBids.length ||
+                newLostBids.length != _lostBids.length ||
+                newCancelledBids.length != _cancelledBids.length) {
+              print('[BidsController] Bids changed during polling - updating UI');
+              _activeBids = newActiveBids;
+              _wonBids = newWonBids;
+              _lostBids = newLostBids;
+              _cancelledBids = newCancelledBids;
+              notifyListeners();
 
-          // Stop polling if no more active bids
-          if (_activeBids.isEmpty) {
-            _stopPolling();
+              // Stop polling if no more active bids
+              if (_activeBids.isEmpty) {
+                _stopPolling();
+              }
+            }
           }
-        }
+        );
       } catch (e) {
         print('[BidsController] Polling error: $e');
         // Silent fail - don't interrupt user experience
@@ -131,21 +143,26 @@ class BidsController extends ChangeNotifier {
   }
 
   /// Refreshes only active bids for real-time updates
-  /// Useful for background polling without full reload
   Future<void> refreshActiveBids() async {
     try {
-      final userId = SupabaseConfig.client.auth.currentUser?.id;
-      final bidsMap = await _dataSource.getUserBids(userId);
-      _activeBids = bidsMap['active'] ?? [];
-      notifyListeners();
+      final userId = (await _authRepository.getCurrentUser()).fold((l) => null, (r) => r?.id);
+      if (userId == null) return;
+
+      final result = await _getUserBidsUseCase.call(userId);
+      
+      result.fold(
+        (failure) => null,
+        (bidsMap) {
+          _activeBids = bidsMap['active'] ?? [];
+          notifyListeners();
+        }
+      );
     } catch (e) {
-      // Silent fail - don't interrupt user experience
-      // Log error in production for debugging
+      // Silent fail
     }
   }
 
   /// Clears error message
-  /// Called when user dismisses error banner or retries
   void clearError() {
     _errorMessage = null;
     notifyListeners();

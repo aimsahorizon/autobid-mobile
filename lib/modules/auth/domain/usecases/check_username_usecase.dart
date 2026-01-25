@@ -1,3 +1,5 @@
+import 'package:fpdart/fpdart.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
 import '../repositories/auth_repository.dart';
 
 class CheckUsernameUseCase {
@@ -5,7 +7,7 @@ class CheckUsernameUseCase {
 
   CheckUsernameUseCase(this.repository);
 
-  Future<bool> call(String username) async {
-    return await repository.checkUsernameAvailable(username);
+  Future<Either<Failure, bool>> call(String username) {
+    return repository.checkUsernameAvailable(username);
   }
 }

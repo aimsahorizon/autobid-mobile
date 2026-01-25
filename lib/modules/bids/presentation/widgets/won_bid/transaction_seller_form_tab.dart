@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/buyer_transaction_controller.dart';
 
 class TransactionSellerFormTab extends StatelessWidget {

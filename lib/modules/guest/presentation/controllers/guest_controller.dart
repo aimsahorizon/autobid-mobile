@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
-import '../../data/datasources/guest_supabase_datasource.dart';
-import '../../data/datasources/guest_mock_datasource.dart';
 import '../../domain/entities/account_status_entity.dart';
+import '../../domain/usecases/check_account_status_usecase.dart';
+import '../../domain/usecases/get_guest_auction_listings_usecase.dart';
 
+/// Controller for guest mode operations
+/// Refactored to use Clean Architecture with UseCases
 class GuestController extends ChangeNotifier {
-  final GuestSupabaseDataSource dataSource;
-  final GuestMockDataSource mockDataSource = GuestMockDataSource();
+  final CheckAccountStatusUseCase _checkAccountStatusUseCase;
+  final GetGuestAuctionListingsUseCase _getGuestAuctionListingsUseCase;
 
-  GuestController({required this.dataSource});
+  GuestController({
+    required CheckAccountStatusUseCase checkAccountStatusUseCase,
+    required GetGuestAuctionListingsUseCase getGuestAuctionListingsUseCase,
+  }) : _checkAccountStatusUseCase = checkAccountStatusUseCase,
+       _getGuestAuctionListingsUseCase = getGuestAuctionListingsUseCase;
 
   int _currentTabIndex = 0;
   bool _isLoadingStatus = false;
@@ -16,7 +22,6 @@ class GuestController extends ChangeNotifier {
   List<Map<String, dynamic>> _auctions = [];
   String? _errorMessage;
   String? _statusEmail;
-  bool _useMockData = false; // Toggle between mock and real data
 
   int get currentTabIndex => _currentTabIndex;
   bool get isLoadingStatus => _isLoadingStatus;
@@ -25,7 +30,6 @@ class GuestController extends ChangeNotifier {
   List<Map<String, dynamic>> get auctions => _auctions;
   String? get errorMessage => _errorMessage;
   String? get statusEmail => _statusEmail;
-  bool get useMockData => _useMockData;
 
   void setTabIndex(int index) {
     _currentTabIndex = index;
@@ -39,12 +43,23 @@ class GuestController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _accountStatus = await dataSource.checkAccountStatus(email);
-      _isLoadingStatus = false;
-      notifyListeners();
+      // Use UseCase to check account status
+      final result = await _checkAccountStatusUseCase(email);
+
+      result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          _accountStatus = null;
+        },
+        (status) {
+          _accountStatus = status;
+          _errorMessage = null;
+        },
+      );
     } catch (e) {
-      _isLoadingStatus = false;
       _errorMessage = e.toString();
+    } finally {
+      _isLoadingStatus = false;
       notifyListeners();
     }
   }
@@ -55,29 +70,29 @@ class GuestController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_useMockData) {
-        print('DEBUG [GuestController]: Loading MOCK auction data');
-        _auctions = await mockDataSource.getGuestAuctionListings();
-      } else {
-        print('DEBUG [GuestController]: Loading DATABASE auction data');
-        _auctions = await dataSource.getGuestAuctionListings();
-      }
-      _isLoadingAuctions = false;
-      notifyListeners();
+      print('DEBUG [GuestController]: Loading guest auction listings');
+
+      // Use UseCase to get auction listings
+      final result = await _getGuestAuctionListingsUseCase();
+
+      result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          _auctions = [];
+        },
+        (auctions) {
+          _auctions = auctions;
+          _errorMessage = null;
+          print('DEBUG [GuestController]: Loaded ${auctions.length} auctions');
+        },
+      );
     } catch (e) {
-      _isLoadingAuctions = false;
       _errorMessage = e.toString();
+      _auctions = [];
+    } finally {
+      _isLoadingAuctions = false;
       notifyListeners();
     }
-  }
-
-  /// Toggle between mock and database data
-  void toggleDataSource() {
-    _useMockData = !_useMockData;
-    print('DEBUG [GuestController]: Data source toggled to ${_useMockData ? "MOCK" : "DATABASE"}');
-    notifyListeners();
-    // Reload auctions with new data source
-    loadGuestAuctions();
   }
 
   void clearError() {

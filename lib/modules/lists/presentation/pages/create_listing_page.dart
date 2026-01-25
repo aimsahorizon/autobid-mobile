@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/listing_draft_controller.dart';
 import '../widgets/listing_form/step1_basic_info.dart';
 import '../widgets/listing_form/step2_mechanical_spec.dart';

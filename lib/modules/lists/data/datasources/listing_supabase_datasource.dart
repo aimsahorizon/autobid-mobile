@@ -717,7 +717,7 @@ class ListingSupabaseDataSource {
             .limit(1);
 
         if ((bids as List).isNotEmpty) {
-          highestBid = bids[0] as Map<String, dynamic>;
+          highestBid = bids[0];
           print(
             '[ListingSupabaseDataSource] Found highest bid via query: ${highestBid['bid_amount']}',
           );
@@ -1233,7 +1233,7 @@ class ListingSupabaseDataSource {
       }
 
       // Delete related data in order of dependencies (ignore missing relations)
-      Future<void> _safeDelete(String table) async {
+      Future<void> safeDelete(String table) async {
         try {
           await _supabase.from(table).delete().eq('auction_id', auctionId);
         } on PostgrestException catch (e) {
@@ -1245,13 +1245,13 @@ class ListingSupabaseDataSource {
         }
       }
 
-      await _safeDelete('bids');
-      await _safeDelete('auction_watchers');
-      await _safeDelete('auction_photos');
-      await _safeDelete('transactions');
-      await _safeDelete('deposits');
-      await _safeDelete('payments');
-      await _safeDelete('seller_payouts');
+      await safeDelete('bids');
+      await safeDelete('auction_watchers');
+      await safeDelete('auction_photos');
+      await safeDelete('transactions');
+      await safeDelete('deposits');
+      await safeDelete('payments');
+      await safeDelete('seller_payouts');
 
       // 5. Delete the auction itself
       await _supabase.from('auctions').delete().eq('id', auctionId);
@@ -1610,9 +1610,9 @@ class ListingSupabaseDataSource {
           'sold',
         ]);
 
-    final conflict = (dupes is List)
-        ? dupes.any((row) => (row['id'] as String?) != excludeAuctionId)
-        : false;
+    final conflict = dupes.any(
+      (row) => (row['id'] as String?) != excludeAuctionId,
+    );
 
     if (conflict) {
       throw Exception(

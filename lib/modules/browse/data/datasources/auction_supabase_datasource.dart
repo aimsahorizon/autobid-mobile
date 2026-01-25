@@ -2,18 +2,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/auction_model.dart';
 import '../models/auction_detail_model.dart';
 import '../../domain/entities/auction_filter.dart';
-import 'deposit_supabase_datasource.dart' show DepositSupabaseDatasource;
+import 'deposit_supabase_datasource.dart' show DepositSupabaseDataSource;
 
 /// Supabase datasource for auction operations
 /// Handles fetching, filtering, and managing auctions from vehicles table
 class AuctionSupabaseDataSource {
   final SupabaseClient _supabase;
-  late final DepositSupabaseDatasource _depositDatasource;
+  late final DepositSupabaseDataSource _depositDatasource;
 
   SupabaseClient get client => _supabase;
 
   AuctionSupabaseDataSource(this._supabase) {
-    _depositDatasource = DepositSupabaseDatasource(supabase: _supabase);
+    _depositDatasource = DepositSupabaseDataSource(_supabase);
   }
 
   /// Get all live auctions with comprehensive filtering
