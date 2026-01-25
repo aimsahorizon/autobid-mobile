@@ -83,22 +83,31 @@ class _CreateListingPageState extends State<CreateListingPage> {
   }
 
   void _showSuccessModal() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ListingSuccessScreen(
-          onCreateAnother: () {
-            // Pop back to create new listing
-            Navigator.pop(context);
-            widget.controller.createNewDraft(widget.sellerId);
-          },
-          onViewListing: () {
-            // Pop and return with 'pending' to navigate to Pending tab
-            Navigator.pop(context, {'success': true, 'navigateTo': 'pending'});
-          },
+    // Use addPostFrameCallback to ensure navigation happens after current frame
+    // This prevents errors from controller state changes during navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ListingSuccessScreen(
+            onCreateAnother: () {
+              // Pop back to create new listing
+              Navigator.pop(context);
+              widget.controller.createNewDraft(widget.sellerId);
+            },
+            onViewListing: () {
+              // Pop and return with 'pending' to navigate to Pending tab
+              Navigator.pop(context, {
+                'success': true,
+                'navigateTo': 'pending',
+              });
+            },
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   @override

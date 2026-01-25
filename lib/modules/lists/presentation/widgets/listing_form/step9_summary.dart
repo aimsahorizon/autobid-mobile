@@ -41,6 +41,11 @@ class Step9Summary extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
+        // Guard against null draft (e.g., after successful submission)
+        if (controller.currentDraft == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         final draft = controller.currentDraft!;
 
         return ListView(
