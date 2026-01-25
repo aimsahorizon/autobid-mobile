@@ -30,3 +30,23 @@ class AuthFailure extends Failure {
 class GeneralFailure extends Failure {
   const GeneralFailure([super.message = 'Something went wrong']);
 }
+
+/// Represents a network connectivity failure.
+class NetworkFailure extends Failure {
+  const NetworkFailure([super.message = 'Network Failure']);
+}
+
+/// Represents a resource not found failure.
+class NotFoundFailure extends Failure {
+  const NotFoundFailure([super.message = 'Resource Not Found']);
+}
+
+/// Represents a storage or file system failure.
+class StorageFailure extends Failure {
+  const StorageFailure([super.message = 'Storage Failure']);
+}
+
+/// Represents a permission/authorization failure.
+class PermissionFailure extends Failure {
+  const PermissionFailure([super.message = 'Permission Denied']);
+}
