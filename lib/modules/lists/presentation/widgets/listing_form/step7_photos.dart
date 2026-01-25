@@ -978,6 +978,10 @@ class _Step7PhotosState extends State<Step7Photos> {
     int index,
     bool isDark,
   ) {
+    // Check if the URL is valid (has http/https scheme)
+    final isValidUrl =
+        photoUrl.startsWith('http://') || photoUrl.startsWith('https://');
+
     return Container(
       width: 100,
       height: 100,
@@ -994,31 +998,55 @@ class _Step7PhotosState extends State<Step7Photos> {
           // Photo image
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              photoUrl,
-              width: 100,
-              height: 100,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(
-                  width: 100,
-                  height: 100,
-                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
+            child: isValidUrl
+                ? Image.network(
+                    photoUrl,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        width: 100,
+                        height: 100,
+                        color: isDark
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade200,
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: 100,
+                        height: 100,
+                        color: isDark
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade200,
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                        ),
+                      );
+                    },
+                  )
+                : Container(
+                    width: 100,
+                    height: 100,
+                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.photo, color: Colors.grey, size: 32),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Mock',
+                          style: TextStyle(color: Colors.grey, fontSize: 10),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 100,
-                  height: 100,
-                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  child: const Icon(Icons.broken_image, color: Colors.grey),
-                );
-              },
-            ),
           ),
           // Delete button overlay
           Positioned(

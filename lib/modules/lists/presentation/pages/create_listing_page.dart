@@ -83,20 +83,20 @@ class _CreateListingPageState extends State<CreateListingPage> {
   }
 
   void _showSuccessModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ListingSuccessModal(
-        onCreateAnother: () {
-          Navigator.pop(context); // Close modal
-          widget.controller.createNewDraft(widget.sellerId);
-        },
-        onViewListing: () {
-          Navigator.pop(context); // Close modal
-          // Return with 'pending' to navigate to Pending tab
-          Navigator.pop(context, {'success': true, 'navigateTo': 'pending'});
-        },
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ListingSuccessScreen(
+          onCreateAnother: () {
+            // Pop back to create new listing
+            Navigator.pop(context);
+            widget.controller.createNewDraft(widget.sellerId);
+          },
+          onViewListing: () {
+            // Pop and return with 'pending' to navigate to Pending tab
+            Navigator.pop(context, {'success': true, 'navigateTo': 'pending'});
+          },
+        ),
       ),
     );
   }
@@ -166,7 +166,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
                     Icon(Icons.error_outline, size: 48, color: Colors.red),
                     SizedBox(height: 16),
                     Text(
-                      widget.controller.errorMessage ?? 'Failed to initialize listing',
+                      widget.controller.errorMessage ??
+                          'Failed to initialize listing',
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 16),
@@ -185,9 +186,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
             return Column(
               children: [
                 _buildStepIndicator(isDark),
-                Expanded(
-                  child: _buildStepContent(),
-                ),
+                Expanded(child: _buildStepContent()),
                 _buildNavigationBar(isDark),
               ],
             );
@@ -232,22 +231,27 @@ class _CreateListingPageState extends State<CreateListingPage> {
                       color: isCompleted
                           ? Colors.green
                           : (isCurrent
-                              ? ColorConstants.primary
-                              : (isDark
-                                  ? ColorConstants.surfaceLight
-                                  : ColorConstants.backgroundSecondaryLight)),
+                                ? ColorConstants.primary
+                                : (isDark
+                                      ? ColorConstants.surfaceLight
+                                      : ColorConstants
+                                            .backgroundSecondaryLight)),
                     ),
                     child: Center(
                       child: isCompleted
-                          ? const Icon(Icons.check, color: Colors.white, size: 18)
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 18,
+                            )
                           : Text(
                               '$step',
                               style: TextStyle(
                                 color: isCurrent
                                     ? Colors.white
                                     : (isDark
-                                        ? ColorConstants.textSecondaryDark
-                                        : ColorConstants.textSecondaryLight),
+                                          ? ColorConstants.textSecondaryDark
+                                          : ColorConstants.textSecondaryLight),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
                               ),
