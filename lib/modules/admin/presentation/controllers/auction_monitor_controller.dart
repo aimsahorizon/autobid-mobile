@@ -146,7 +146,6 @@ class AuctionMonitorController extends ChangeNotifier {
 
   /// Get auction statistics
   Map<String, dynamic> getStatistics() {
-    final now = DateTime.now();
     final endingSoon = _auctions.where((a) => a.minutesRemaining <= 30).length;
     final highActivity = _auctions.where((a) => a.totalBids > 10).length;
     final totalBids = _auctions.fold<int>(0, (sum, a) => sum + a.totalBids);

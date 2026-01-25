@@ -1,4 +1,4 @@
-import '../../domain/entities/buyer_transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/buyer_transaction_entity.dart';
 
 /// Mock datasource for buyer's won auction transactions
 /// Provides transaction data, forms, chat, and timeline from buyer perspective

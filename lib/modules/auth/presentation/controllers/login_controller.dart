@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
-import '../../../profile/data/datasources/profile_supabase_datasource.dart';
+import '../../../profile/domain/usecases/check_email_exists_usecase.dart';
+import '../../../profile/domain/usecases/get_user_profile_by_email_usecase.dart';
 import '../../domain/usecases/sign_in_usecase.dart';
 import '../../domain/usecases/sign_in_with_google_usecase.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
 
 enum LoginStep { credentials, otpVerification, completed }
 
 class LoginController extends ChangeNotifier {
   final SignInUseCase signInUseCase;
   final SignInWithGoogleUseCase signInWithGoogleUseCase;
-  final ProfileSupabaseDataSource profileDataSource;
+  final CheckEmailExistsUseCase checkEmailExistsUseCase;
+  final GetUserProfileByEmailUseCase getUserProfileByEmailUseCase;
 
   LoginController({
     required this.signInUseCase,
     required this.signInWithGoogleUseCase,
-    required this.profileDataSource,
+    required this.checkEmailExistsUseCase,
+    required this.getUserProfileByEmailUseCase,
   });
 
   bool _isLoading = false;
@@ -36,6 +40,18 @@ class LoginController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _setError(Failure failure) {
+    _errorMessage = failure.message;
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    if (loading) _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<bool> signIn(String username, String password) async {
     if (username.isEmpty || password.isEmpty) {
       _errorMessage = 'Please fill in all fields';
@@ -43,74 +59,82 @@ class LoginController extends ChangeNotifier {
       return false;
     }
 
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+    _setLoading(true);
 
-    try {
-      // Sign in returns user with email, username, and phone number from users table
-      final user = await signInUseCase.call(username, password);
+    final result = await signInUseCase.call(username, password);
 
-      // Store user data for email OTP verification
-      _userEmail = user.email;
-      _userPhoneNumber = user.phoneNumber;
-
-      // Move to email OTP verification step (phone OTP skipped)
-      _currentStep = LoginStep.otpVerification;
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      notifyListeners();
-      return false;
-    }
+    return result.fold(
+      (failure) {
+        _setError(failure);
+        return false;
+      },
+      (user) {
+        _userEmail = user.email;
+        _userPhoneNumber = user.phoneNumber;
+        _currentStep = LoginStep.otpVerification;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      },
+    );
   }
 
   Future<bool> signInWithGoogle() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+    _setLoading(true);
 
-    try {
-      final user = await signInWithGoogleUseCase.call();
+    // 1. Sign In
+    final userResult = await signInWithGoogleUseCase.call();
 
-      // Check if email exists in user_profiles
-      final emailExists = await profileDataSource.checkEmailExists(user.email);
-
-      if (!emailExists) {
-        _isLoading = false;
-        _errorMessage = 'Account not registered. Please sign up first.';
-        notifyListeners();
+    return await userResult.fold(
+      (failure) async {
+        _setError(failure);
         return false;
-      }
+      },
+      (user) async {
+        // 2. Check Email Exists
+        final emailCheckResult = await checkEmailExistsUseCase.call(user.email);
+        
+        return await emailCheckResult.fold(
+          (failure) async {
+            _setError(failure);
+            return false;
+          },
+          (exists) async {
+            if (!exists) {
+              _errorMessage = 'Account not registered. Please sign up first.';
+              _isLoading = false;
+              notifyListeners();
+              return false;
+            }
 
-      // Fetch user profile to get phone number for OTP
-      final profile = await profileDataSource.getUserProfileByEmail(user.email);
-
-      if (profile == null) {
-        _isLoading = false;
-        _errorMessage = 'User profile not found. Please register.';
-        notifyListeners();
-        return false;
-      }
-
-      // Store user data for email OTP verification
-      _userEmail = profile.email;
-      _userPhoneNumber = profile.contactNumber;
-
-      // Move to email OTP verification step (phone OTP skipped)
-      _currentStep = LoginStep.otpVerification;
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'Google sign in failed: $e';
-      notifyListeners();
-      return false;
-    }
+            // 3. Get Profile
+            final profileResult = await getUserProfileByEmailUseCase.call(user.email);
+            
+            return profileResult.fold(
+              (failure) {
+                _setError(failure);
+                return false;
+              },
+              (profile) {
+                if (profile == null) {
+                   _errorMessage = 'User profile not found. Please register.';
+                   _isLoading = false;
+                   notifyListeners();
+                   return false;
+                }
+                
+                _userEmail = profile.email;
+                _userPhoneNumber = profile.contactNumber;
+                _currentStep = LoginStep.otpVerification;
+                _isLoading = false;
+                notifyListeners();
+                return true;
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   void completeLogin() {

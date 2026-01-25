@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/buyer_transaction_entity.dart';
-import '../../data/datasources/buyer_transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/buyer_transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/buyer_transaction_supabase_datasource.dart';
 
 /// Controller for buyer's transaction in won auctions
 /// Manages transaction state, chat, forms, and timeline

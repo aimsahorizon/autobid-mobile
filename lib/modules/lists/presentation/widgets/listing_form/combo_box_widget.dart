@@ -26,7 +26,6 @@ class ComboBoxWidget extends StatefulWidget {
 
 class _ComboBoxWidgetState extends State<ComboBoxWidget> {
   late TextEditingController _controller;
-  bool _showDropdown = false;
   List<String> _filteredItems = [];
 
   @override
@@ -74,7 +73,6 @@ class _ComboBoxWidgetState extends State<ComboBoxWidget> {
       },
       onTap: () {
         setState(() {
-          _showDropdown = true;
           _filteredItems = widget.items;
         });
       },
@@ -87,7 +85,6 @@ class _ComboBoxWidgetState extends State<ComboBoxWidget> {
           onSelected: (value) {
             _controller.text = value;
             widget.onChanged(value);
-            setState(() => _showDropdown = false);
           },
           itemBuilder: (context) {
             if (_filteredItems.isEmpty) {
@@ -102,16 +99,11 @@ class _ComboBoxWidgetState extends State<ComboBoxWidget> {
               ];
             }
             return _filteredItems.map((item) {
-              return PopupMenuItem<String>(
-                value: item,
-                child: Text(item),
-              );
+              return PopupMenuItem<String>(value: item, child: Text(item));
             }).toList();
           },
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/config/supabase_config.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
 
 class Step9Summary extends StatelessWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'core/controllers/theme_controller.dart';
-import 'core/theme/app_theme.dart';
+import 'package:autobid_mobile/core/controllers/theme_controller.dart';
+import 'package:autobid_mobile/core/theme/app_theme.dart';
 import 'router/app_router.dart';
 
 class App extends StatefulWidget {

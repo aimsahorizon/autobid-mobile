@@ -1,10 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase datasource for auction deposit management
-class DepositSupabaseDatasource {
+class DepositSupabaseDataSource {
   final SupabaseClient supabase;
 
-  DepositSupabaseDatasource({required this.supabase});
+  DepositSupabaseDataSource(this.supabase);
 
   /// Create deposit record after successful payment
   Future<String?> createDeposit({
@@ -139,5 +139,16 @@ class DepositSupabaseDatasource {
     } catch (e) {
       return false;
     }
+  }
+
+  /// Process deposit payment for auction participation
+  /// This is a simplified wrapper for the deposit creation flow
+  Future<void> processDeposit(String auctionId) async {
+    // This is a placeholder - actual implementation would involve
+    // payment processing logic which should be handled separately
+    // For now, this just validates that the method exists
+    throw UnimplementedError(
+      'processDeposit requires payment integration - use createDeposit with payment details',
+    );
   }
 }

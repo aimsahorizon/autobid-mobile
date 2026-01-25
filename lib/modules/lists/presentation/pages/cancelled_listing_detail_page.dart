@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
@@ -30,7 +30,6 @@ class CancelledListingDetailPage extends StatefulWidget {
 
 class _CancelledListingDetailPageState
     extends State<CancelledListingDetailPage> {
-  bool _isProcessing = false;
   late final ListingSupabaseDataSource _datasource;
   late final String? _effectiveSellerId;
 
@@ -87,12 +86,12 @@ class _CancelledListingDetailPageState
       // Copy the cancelled listing to a new draft
       final draftId = await _datasource.copyListingToDraft(
         widget.listing.id,
-        _effectiveSellerId!,
+        _effectiveSellerId,
       );
 
       // Remove the old cancelled listing so it disappears from the tab
       try {
-        await _datasource.deleteListing(widget.listing.id, _effectiveSellerId!);
+        await _datasource.deleteListing(widget.listing.id, _effectiveSellerId);
       } catch (e) {
         // Non-fatal: continue even if delete fails
         debugPrint(
@@ -109,7 +108,7 @@ class _CancelledListingDetailPageState
         MaterialPageRoute(
           builder: (context) => CreateListingPage(
             controller: widget.controller!,
-            sellerId: _effectiveSellerId!,
+            sellerId: _effectiveSellerId,
             draftId: draftId,
           ),
         ),
@@ -186,7 +185,7 @@ class _CancelledListingDetailPageState
       // Create new auction from the cancelled listing
       final newAuctionId = await _datasource.createAuctionFromCancelled(
         widget.listing.id,
-        _effectiveSellerId!,
+        _effectiveSellerId,
         null, // Use original starting price
         null, // Use default 7-day auction duration
       );
@@ -261,7 +260,7 @@ class _CancelledListingDetailPageState
 
     try {
       // Delete the listing
-      await _datasource.deleteListing(widget.listing.id, _effectiveSellerId!);
+      await _datasource.deleteListing(widget.listing.id, _effectiveSellerId);
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/controllers/theme_controller.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 
 class SettingsSection extends StatelessWidget {
   final ThemeController themeController;

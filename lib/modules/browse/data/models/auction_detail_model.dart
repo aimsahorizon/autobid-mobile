@@ -71,24 +71,24 @@ class AuctionDetailModel extends AuctionDetailEntity {
 
   /// Create model from JSON (Supabase response)
   factory AuctionDetailModel.fromJson(Map<String, dynamic> json) {
-    num _numOrZero(dynamic value, [num fallback = 0]) {
+    num numOrZero(dynamic value, [num fallback = 0]) {
       if (value == null) return fallback;
       return (value as num);
     }
 
-    final currentBidValue = _numOrZero(
+    final currentBidValue = numOrZero(
       json['current_bid'],
-      _numOrZero(json['starting_price'], 0),
+      numOrZero(json['starting_price'], 0),
     );
 
-    final minimumBidValue = _numOrZero(
+    final minimumBidValue = numOrZero(
       json['minimum_bid'],
-      _numOrZero(json['starting_price'], 0),
+      numOrZero(json['starting_price'], 0),
     );
 
-    final minBidIncrementValue = _numOrZero(
+    final minBidIncrementValue = numOrZero(
       json['min_bid_increment'],
-      _numOrZero(json['bid_increment'], 1000),
+      numOrZero(json['bid_increment'], 1000),
     );
 
     final snipeGuardEnabled = json['snipe_guard_enabled'] as bool? ?? true;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/admin_controller.dart';
 import '../controllers/kyc_controller.dart';
 import '../controllers/admin_transaction_controller.dart';
@@ -68,19 +68,6 @@ class _AdminMainPageState extends State<AdminMainPage>
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  void _handleBackNavigation() {
-    final supabase = Supabase.instance.client;
-    final isAuthenticated = supabase.auth.currentUser != null;
-
-    if (isAuthenticated) {
-      // User is authenticated, navigate back to home/main screen
-      Navigator.pop(context);
-    } else {
-      // User is not authenticated, navigate to login
-      Navigator.popUntil(context, (route) => route.isFirst);
-    }
   }
 
   void _handleLogout() async {

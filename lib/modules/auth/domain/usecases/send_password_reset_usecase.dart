@@ -1,3 +1,5 @@
+import 'package:fpdart/fpdart.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
 import '../repositories/auth_repository.dart';
 
 class SendPasswordResetUseCase {
@@ -5,7 +7,7 @@ class SendPasswordResetUseCase {
 
   SendPasswordResetUseCase(this.repository);
 
-  Future<void> call(String username) {
+  Future<Either<Failure, void>> call(String username) {
     return repository.sendPasswordResetRequest(username);
   }
 }

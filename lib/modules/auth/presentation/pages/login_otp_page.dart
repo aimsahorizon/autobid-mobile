@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/login_controller.dart';
 import '../controllers/login_otp_controller.dart';
 import '../widgets/otp_input_fields.dart';

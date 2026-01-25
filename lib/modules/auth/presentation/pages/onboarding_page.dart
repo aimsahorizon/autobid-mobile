@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/controllers/theme_controller.dart';
+import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import '../../auth_routes.dart';
 import '../controllers/onboarding_controller.dart';
 import '../widgets/onboarding_slide.dart';
 import '../widgets/page_indicators.dart';
 import '../widgets/onboarding_navigation_buttons.dart';
-import '../widgets/theme_toggle_button.dart';
 
 class OnboardingPage extends StatefulWidget {
   final ThemeController themeController;

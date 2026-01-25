@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../data/datasources/listing_supabase_datasource.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/app/di/app_module.dart';
 import '../../domain/entities/listing_detail_entity.dart';
+import '../../domain/entities/seller_listing_entity.dart';
+import '../../domain/usecases/submission_usecases.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import '../widgets/invite_user_dialog.dart';
@@ -58,9 +59,9 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
     // Determine if seller can invite users
     // Invites allowed: pending_approval (after admin approval), scheduled, or live
     final canInvite =
-        widget.listing.status == 'pending_approval' ||
-        widget.listing.status == 'scheduled' ||
-        widget.listing.status == 'live';
+        widget.listing.status == ListingStatus.pending ||
+        widget.listing.status == ListingStatus.scheduled ||
+        widget.listing.status == ListingStatus.active;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -147,37 +148,38 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
     setState(() => _isLoading = true);
 
     try {
-      final datasource = ListingSupabaseDataSource(Supabase.instance.client);
-      print(
-        '[PendingListingDetailPage] Calling cancelListing for ${widget.listing.id}',
-      );
-      await datasource.cancelListing(widget.listing.id);
-      print('[PendingListingDetailPage] cancelListing completed successfully');
+      final result = await sl<CancelListingUseCase>().call(widget.listing.id);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Listing cancelled successfully'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
+        result.fold(
+          (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error: ${failure.message}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            setState(() => _isLoading = false);
+          },
+          (_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Listing cancelled successfully'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) {
+                Navigator.pop(context, true); // Return true to trigger list refresh
+              }
+            });
+          },
         );
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            Navigator.pop(context, true); // Return true to trigger list refresh
-          }
-        });
       }
     } catch (e) {
-      print('[PendingListingDetailPage] Error cancelling listing: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
         setState(() => _isLoading = false);
       }
     }

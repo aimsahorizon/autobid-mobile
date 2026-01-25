@@ -1,14 +1,16 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/account_status_entity.dart';
 import '../models/account_status_model.dart';
+import 'guest_remote_datasource.dart';
 
 /// Data source for guest mode operations
 /// Handles account status checking from Supabase
-class GuestSupabaseDataSource {
+class GuestSupabaseDataSource implements GuestRemoteDataSource {
   final SupabaseClient _supabase;
 
   GuestSupabaseDataSource(this._supabase);
 
+  @override
   /// Check account status by email
   /// Returns status if user exists and has submitted KYC
   Future<AccountStatusModel?> checkAccountStatus(String email) async {
@@ -87,6 +89,7 @@ class GuestSupabaseDataSource {
     }
   }
 
+  @override
   /// Get limited auction listings for guest browse
   /// Returns auctions without sensitive bidder information
   Future<List<Map<String, dynamic>>> getGuestAuctionListings({
@@ -107,14 +110,17 @@ class GuestSupabaseDataSource {
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
 
-      print('[GuestDataSource] Retrieved ${response.length} auctions from database');
+      print(
+        '[GuestDataSource] Retrieved ${response.length} auctions from database',
+      );
 
       // Transform to match guest UI expectations
       final auctions = (response as List).map((auction) {
         return {
           'id': auction['id'],
           'title': '${auction['year']} ${auction['make']} ${auction['model']}',
-          'description': 'Active auction for ${auction['make']} ${auction['model']}',
+          'description':
+              'Active auction for ${auction['make']} ${auction['model']}',
           'category': auction['make'], // Use make as category
           'image_url': auction['car_image_url'],
           'status': auction['status'],

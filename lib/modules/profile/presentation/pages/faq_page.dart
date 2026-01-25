@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../data/datasources/support_mock_datasource.dart';
 
 class FAQPage extends StatefulWidget {

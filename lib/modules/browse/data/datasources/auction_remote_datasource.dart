@@ -1,4 +1,4 @@
-import '../../../../app/core/services/supabase_service.dart';
+import 'package:autobid_mobile/core/services/supabase_service.dart';
 import '../../domain/entities/auction_filter.dart';
 import '../models/auction_model.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/kyc_document_entity.dart';
 import '../controllers/kyc_controller.dart';
 import '../widgets/kyc_document_viewer.dart';

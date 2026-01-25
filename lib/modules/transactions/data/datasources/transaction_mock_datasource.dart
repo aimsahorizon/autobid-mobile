@@ -1,4 +1,5 @@
 import '../../domain/entities/transaction_entity.dart';
+import 'transaction_remote_datasource.dart';
 
 /// Mock datasource for transaction-related data
 /// TODO: Replace with Supabase implementation
@@ -7,7 +8,7 @@ import '../../domain/entities/transaction_entity.dart';
 /// - Use supabase.from('transaction_forms') for form data
 /// - Use supabase.from('transaction_timeline') for timeline events
 /// - Implement real-time subscriptions for chat and status updates
-class TransactionMockDataSource {
+class TransactionMockDataSource implements TransactionRemoteDataSource {
   // Toggle to switch between mock and real backend
   // Set to true for mock data, false when backend is ready
   static const bool useMockData = true;
@@ -32,6 +33,7 @@ class TransactionMockDataSource {
   ///   .select()
   ///   .eq('id', transactionId)
   ///   .single();
+  @override
   Future<TransactionEntity?> getTransaction(String transactionId) async {
     await _delay();
 
@@ -70,6 +72,7 @@ class TransactionMockDataSource {
   ///   .select()
   ///   .eq('transaction_id', transactionId)
   ///   .order('timestamp', ascending: true);
+  @override
   Future<List<ChatMessageEntity>> getChatMessages(String transactionId) async {
     await _delay();
 
@@ -124,6 +127,7 @@ class TransactionMockDataSource {
   ///   'message': message,
   ///   'timestamp': DateTime.now().toIso8601String(),
   /// });
+  @override
   Future<bool> sendMessage(
     String transactionId,
     String senderId,
@@ -150,6 +154,7 @@ class TransactionMockDataSource {
   ///   .eq('transaction_id', transactionId)
   ///   .eq('role', role.name)
   ///   .maybeSingle();
+  @override
   Future<TransactionFormEntity?> getTransactionForm(
     String transactionId,
     FormRole role,
@@ -167,6 +172,7 @@ class TransactionMockDataSource {
   /// Submit or update transaction form
   /// TODO: Implement Supabase upsert:
   /// await supabase.from('transaction_forms').upsert(formData);
+  @override
   Future<bool> submitForm(TransactionFormEntity form) async {
     await _delay();
     final index = _mockForms.indexWhere(
@@ -185,6 +191,7 @@ class TransactionMockDataSource {
   /// await supabase.from('transactions').update({
   ///   'seller_confirmed': true / 'buyer_confirmed': true
   /// }).eq('id', transactionId);
+  @override
   Future<bool> confirmForm(String transactionId, FormRole role) async {
     await _delay();
     final index = _mockTransactions.indexWhere((t) => t.id == transactionId);
@@ -223,6 +230,7 @@ class TransactionMockDataSource {
   ///   .select()
   ///   .eq('transaction_id', transactionId)
   ///   .order('timestamp', ascending: false);
+  @override
   Future<List<TransactionTimelineEntity>> getTimeline(
     String transactionId,
   ) async {
@@ -269,6 +277,7 @@ class TransactionMockDataSource {
   /// await supabase.from('transactions').update({
   ///   'status': 'pendingApproval'
   /// }).eq('id', transactionId);
+  @override
   Future<bool> submitToAdmin(String transactionId) async {
     await _delay();
     final index = _mockTransactions.indexWhere((t) => t.id == transactionId);
@@ -350,6 +359,7 @@ class TransactionMockDataSource {
   ///   'delivery_started_at': deliveryStartedAt?.toIso8601String(),
   ///   'delivery_completed_at': deliveryCompletedAt?.toIso8601String(),
   /// }).eq('id', transactionId);
+  @override
   Future<bool> updateDeliveryStatus(
     String transactionId,
     String sellerId,
@@ -446,6 +456,7 @@ class TransactionMockDataSource {
   ///   'p_buyer_id': buyerId,
   ///   'p_accepted': true,
   /// });
+  @override
   Future<bool> acceptVehicle(String transactionId, String buyerId) async {
     await _delay();
     final index = _mockTransactions.indexWhere((t) => t.id == transactionId);
@@ -493,6 +504,7 @@ class TransactionMockDataSource {
   ///   'p_accepted': false,
   ///   'p_rejection_reason': reason,
   /// });
+  @override
   Future<bool> rejectVehicle(
     String transactionId,
     String buyerId,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/payment_entity.dart';
 import '../controllers/auction_detail_controller.dart';
 import '../widgets/auction_detail/auction_cover_photo.dart';
@@ -8,7 +8,6 @@ import '../widgets/auction_detail/bidding_info_section.dart';
 import '../widgets/auction_detail/car_photos_section.dart';
 import '../widgets/auction_detail/bidding_card_section.dart';
 import '../widgets/auction_detail/detail_tabs_section.dart';
-import '../widgets/payment/payment_method_sheet.dart';
 import '../widgets/payment/gcash_payment_form.dart';
 import '../widgets/payment/maya_payment_form.dart';
 import '../widgets/payment/card_payment_form.dart';
@@ -84,22 +83,6 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         ),
       );
     }
-  }
-
-  void _showPaymentForm(PaymentMethod method) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      isDismissible: !_isPaymentProcessing,
-      enableDrag: !_isPaymentProcessing,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: _buildPaymentForm(method),
-      ),
-    );
   }
 
   Widget _buildPaymentForm(PaymentMethod method) {

@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/transaction_status_entity.dart';
 import '../controllers/buyer_seller_transactions_controller.dart';
+import '../controllers/transaction_realtime_controller.dart';
 import '../pages/pre_transaction_realtime_page.dart';
 import '../../../lists/presentation/widgets/listings_grid.dart';
 import '../../../lists/domain/entities/seller_listing_entity.dart';
-import '../../transactions_module.dart';
-import '../../data/datasources/transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/app/di/app_module.dart';
 
 /// Page for status-based transactions with buyer/seller perspective
 /// Displays in the Transactions bottom nav tab
 /// Features two main tabs: "As a Buyer" and "As a Seller"
 /// Each has sub-tabs for transaction status (In Transaction, Sold, Failed)
 class TransactionsStatusPage extends StatefulWidget {
-  const TransactionsStatusPage({super.key});
+  final BuyerSellerTransactionsController controller;
+  const TransactionsStatusPage({super.key, required this.controller});
 
   @override
   State<TransactionsStatusPage> createState() => _TransactionsStatusPageState();
@@ -24,7 +25,6 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     with TickerProviderStateMixin {
   late TabController _mainTabController; // Buyer/Seller tabs
   late TabController _statusTabController; // Status tabs
-  late BuyerSellerTransactionsController _controller;
   bool _initialized = false;
 
   static const _statusTabs = [
@@ -42,17 +42,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       vsync: this,
     );
 
-    // Initialize controller with transaction datasource only
-    final dataSource = TransactionSupabaseDataSource(SupabaseConfig.client);
-    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
-
-    _controller = BuyerSellerTransactionsController(
-      dataSource,
-      null, // No longer need separate buyer datasource
-      userId,
-    );
-
-    _controller.loadTransactions();
+    widget.controller.loadTransactions();
     _initialized = true;
   }
 
@@ -60,7 +50,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
   void dispose() {
     _mainTabController.dispose();
     _statusTabController.dispose();
-    _controller.dispose();
+    widget.controller.dispose();
     super.dispose();
   }
 
@@ -77,7 +67,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _controller.isLoading ? null : _controller.refresh,
+            onPressed: widget.controller.isLoading ? null : widget.controller.refresh,
             tooltip: 'Refresh transactions',
           ),
         ],
@@ -93,13 +83,13 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         ),
       ),
       body: ListenableBuilder(
-        listenable: _controller,
+        listenable: widget.controller,
         builder: (context, _) {
-          if (_controller.isLoading) {
+          if (widget.controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (_controller.error != null) {
+          if (widget.controller.error != null) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -119,13 +109,13 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _controller.error!,
+                    widget.controller.error!,
                     style: TextStyle(color: ColorConstants.textSecondaryLight),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(
-                    onPressed: () => _controller.refresh(),
+                    onPressed: () => widget.controller.refresh(),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Retry'),
                   ),
@@ -157,9 +147,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           controller: _statusTabController,
           tabs: _statusTabs.map((status) {
             return ListenableBuilder(
-              listenable: _controller,
+              listenable: widget.controller,
               builder: (context, _) {
-                final count = _controller.getBuyerCountByStatus(status);
+                final count = widget.controller.getBuyerCountByStatus(status);
                 return _TabWithBadge(
                   label: status.tabLabel,
                   count: count,
@@ -174,9 +164,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         controller: _statusTabController,
         children: _statusTabs.map((status) {
           return ListenableBuilder(
-            listenable: _controller,
+            listenable: widget.controller,
             builder: (context, _) {
-              final transactions = _controller.getBuyerTransactionsByStatus(
+              final transactions = widget.controller.getBuyerTransactionsByStatus(
                 status,
               );
 
@@ -212,7 +202,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
               }
 
               return RefreshIndicator(
-                onRefresh: _controller.refresh,
+                onRefresh: widget.controller.refresh,
                 child: ListingsGrid(
                   listings: transactions,
                   isGridView: false,
@@ -220,7 +210,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                   emptyTitle: _getEmptyBuyerTitle(status),
                   emptySubtitle: _getEmptyBuyerSubtitle(status),
                   emptyIcon: _getEmptyIcon(status),
-                  onListingUpdated: () => _controller.refresh(),
+                  onListingUpdated: () => widget.controller.refresh(),
                   onTransactionCardTap: _handleBuyerTransactionTap,
                 ),
               );
@@ -240,9 +230,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           controller: _statusTabController,
           tabs: _statusTabs.map((status) {
             return ListenableBuilder(
-              listenable: _controller,
+              listenable: widget.controller,
               builder: (context, _) {
-                final count = _controller.getSellerCountByStatus(status);
+                final count = widget.controller.getSellerCountByStatus(status);
                 return _TabWithBadge(
                   label: status.tabLabel,
                   count: count,
@@ -257,9 +247,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         controller: _statusTabController,
         children: _statusTabs.map((status) {
           return ListenableBuilder(
-            listenable: _controller,
+            listenable: widget.controller,
             builder: (context, _) {
-              final transactions = _controller.getSellerTransactionsByStatus(
+              final transactions = widget.controller.getSellerTransactionsByStatus(
                 status,
               );
 
@@ -295,7 +285,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
               }
 
               return RefreshIndicator(
-                onRefresh: _controller.refresh,
+                onRefresh: widget.controller.refresh,
                 child: ListingsGrid(
                   listings: transactions,
                   isGridView: false,
@@ -303,7 +293,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                   emptyTitle: _getEmptySellerTitle(status),
                   emptySubtitle: _getEmptySellerSubtitle(status),
                   emptyIcon: _getEmptyIcon(status),
-                  onListingUpdated: () => _controller.refresh(),
+                  onListingUpdated: () => widget.controller.refresh(),
                   onTransactionCardTap: _handleSellerTransactionTap,
                 ),
               );
@@ -324,8 +314,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     print('[DEBUG] Listing status: ${listing.status}');
     print('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
 
-    final transactionController = TransactionsModule.instance
-        .createRealtimeTransactionController();
+    final transactionController = sl<TransactionRealtimeController>();
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     final userName =
         SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
@@ -349,7 +338,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     );
 
     print('[DEBUG] Returned from PreTransactionRealtimePage');
-    await _controller.refresh();
+    await widget.controller.refresh();
   }
 
   /// Handle seller transaction tap
@@ -372,8 +361,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       ),
     );
 
-    final transactionController = TransactionsModule.instance
-        .createRealtimeTransactionController();
+    final transactionController = sl<TransactionRealtimeController>();
 
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     final userName =
@@ -412,7 +400,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       }
     }
 
-    await _controller.refresh();
+    await widget.controller.refresh();
   }
 
   Color _getStatusColor(TransactionStatus status) {

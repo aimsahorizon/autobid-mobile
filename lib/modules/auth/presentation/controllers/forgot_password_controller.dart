@@ -52,16 +52,20 @@ class ForgotPasswordController extends ChangeNotifier {
     _username = username;
     notifyListeners();
 
-    try {
-      await sendPasswordResetUseCase.call(username);
-      _isLoading = false;
-      _currentStep = ForgotPasswordStep.verifyOtp;
-      notifyListeners();
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      notifyListeners();
-    }
+    final result = await sendPasswordResetUseCase.call(username);
+    
+    result.fold(
+      (failure) {
+        _isLoading = false;
+        _errorMessage = failure.message;
+        notifyListeners();
+      },
+      (_) {
+        _isLoading = false;
+        _currentStep = ForgotPasswordStep.verifyOtp;
+        notifyListeners();
+      },
+    );
   }
 
   Future<void> verifyOtp(String otp) async {
@@ -75,22 +79,24 @@ class ForgotPasswordController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      final isValid = await verifyOtpUseCase.call(_username, otp);
-      _isLoading = false;
+    final result = await verifyOtpUseCase.call(_username, otp);
 
-      if (isValid) {
-        // Move to password reset step instead of success
-        _currentStep = ForgotPasswordStep.setNewPassword;
-      } else {
-        _errorMessage = 'Invalid code. Please try again.';
-      }
-      notifyListeners();
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'Verification failed. Please try again.';
-      notifyListeners();
-    }
+    result.fold(
+      (failure) {
+        _isLoading = false;
+        _errorMessage = failure.message;
+        notifyListeners();
+      },
+      (isValid) {
+        _isLoading = false;
+        if (isValid) {
+          _currentStep = ForgotPasswordStep.setNewPassword;
+        } else {
+          _errorMessage = 'Invalid code. Please try again.';
+        }
+        notifyListeners();
+      },
+    );
   }
 
   Future<void> resetPassword(String password, String confirmPassword) async {
@@ -117,16 +123,20 @@ class ForgotPasswordController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      await resetPasswordUseCase.call(_username, password);
-      _isLoading = false;
-      _currentStep = ForgotPasswordStep.success;
-      notifyListeners();
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'Failed to reset password. Please try again.';
-      notifyListeners();
-    }
+    final result = await resetPasswordUseCase.call(_username, password);
+
+    result.fold(
+      (failure) {
+        _isLoading = false;
+        _errorMessage = failure.message;
+        notifyListeners();
+      },
+      (_) {
+        _isLoading = false;
+        _currentStep = ForgotPasswordStep.success;
+        notifyListeners();
+      },
+    );
   }
 
   void resendOtp() async {
@@ -134,15 +144,19 @@ class ForgotPasswordController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      await sendPasswordResetUseCase.call(_username);
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = e.toString().replaceAll('Exception: ', '');
-      notifyListeners();
-    }
+    final result = await sendPasswordResetUseCase.call(_username);
+
+    result.fold(
+      (failure) {
+        _isLoading = false;
+        _errorMessage = failure.message;
+        notifyListeners();
+      },
+      (_) {
+        _isLoading = false;
+        notifyListeners();
+      },
+    );
   }
 
   void clearError() {

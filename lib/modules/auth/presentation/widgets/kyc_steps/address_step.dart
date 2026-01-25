@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
 import '../../../data/datasources/philippine_address_data.dart';
 
@@ -118,7 +118,7 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 32),
           DropdownButtonFormField<String>(
-            value: _regions.contains(widget.controller.region)
+            initialValue: _regions.contains(widget.controller.region)
                 ? widget.controller.region
                 : null,
             decoration: const InputDecoration(
@@ -136,7 +136,7 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _provinces.contains(widget.controller.province)
+            initialValue: _provinces.contains(widget.controller.province)
                 ? widget.controller.province
                 : null,
             decoration: const InputDecoration(
@@ -154,7 +154,7 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _cities.contains(widget.controller.city)
+            initialValue: _cities.contains(widget.controller.city)
                 ? widget.controller.city
                 : null,
             decoration: const InputDecoration(
@@ -172,7 +172,7 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _barangays.contains(widget.controller.barangay)
+            initialValue: _barangays.contains(widget.controller.barangay)
                 ? widget.controller.barangay
                 : null,
             decoration: const InputDecoration(

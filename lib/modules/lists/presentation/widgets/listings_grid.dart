@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import 'listing_card.dart';
 import '../../data/datasources/listing_detail_mock_datasource.dart';
@@ -11,6 +11,8 @@ import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
 import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
+import 'package:get_it/get_it.dart';
+import '../../../transactions/presentation/controllers/transaction_controller.dart';
 import '../../../transactions/presentation/pages/pre_transaction_page.dart';
 import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
 import '../../../transactions/transactions_module.dart';
@@ -149,8 +151,7 @@ class ListingsGrid extends StatelessWidget {
 
         // Fallback: open pre-transaction page directly
         if (!context.mounted) return;
-        final transactionController = TransactionsModule.instance
-            .createTransactionController(useMockData: false);
+        final transactionController = GetIt.I<TransactionController>();
 
         final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
         final userName =
