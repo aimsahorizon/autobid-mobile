@@ -12,28 +12,33 @@ class SellerRepositoryImpl implements SellerRepository {
   SellerRepositoryImpl(this.dataSource);
 
   @override
-  Future<Either<Failure, Map<ListingStatus, List<SellerListingEntity>>>> getSellerListings(String sellerId) async {
+  Future<Either<Failure, Map<ListingStatus, List<SellerListingEntity>>>>
+  getSellerListings(String sellerId) async {
     try {
       final Map<ListingStatus, List<SellerListingEntity>> result = {};
 
       // Load each status independently - if one fails, others can still load
-      
+
       // 1. Drafts
       try {
         final drafts = await dataSource.getSellerDrafts(sellerId);
-        result[ListingStatus.draft] = drafts.map((d) => SellerListingEntity(
-          id: d.id,
-          imageUrl: d.photoUrls?.values.firstOrNull?.firstOrNull ?? '',
-          year: d.year ?? 0,
-          make: d.brand ?? 'Unknown',
-          model: d.model ?? 'Unknown',
-          status: ListingStatus.draft,
-          startingPrice: d.startingPrice ?? 0,
-          totalBids: 0,
-          watchersCount: 0,
-          viewsCount: 0,
-          createdAt: d.lastSaved,
-        )).toList();
+        result[ListingStatus.draft] = drafts
+            .map(
+              (d) => SellerListingEntity(
+                id: d.id,
+                imageUrl: d.photoUrls?.values.firstOrNull?.firstOrNull ?? '',
+                year: d.year ?? 0,
+                make: d.brand ?? 'Unknown',
+                model: d.model ?? 'Unknown',
+                status: ListingStatus.draft,
+                startingPrice: d.startingPrice ?? 0,
+                totalBids: 0,
+                watchersCount: 0,
+                viewsCount: 0,
+                createdAt: d.lastSaved,
+              ),
+            )
+            .toList();
       } catch (e) {
         print('Error loading drafts: $e');
         result[ListingStatus.draft] = [];
@@ -42,7 +47,9 @@ class SellerRepositoryImpl implements SellerRepository {
       // 2. Pending
       try {
         final pending = await dataSource.getPendingListings(sellerId);
-        result[ListingStatus.pending] = pending.map((l) => l.toSellerListingEntity()).toList();
+        result[ListingStatus.pending] = pending
+            .map((l) => l.toSellerListingEntity())
+            .toList();
       } catch (e) {
         print('Error loading pending listings: $e');
         result[ListingStatus.pending] = [];
@@ -51,7 +58,9 @@ class SellerRepositoryImpl implements SellerRepository {
       // 3. Approved
       try {
         final approved = await dataSource.getApprovedListings(sellerId);
-        result[ListingStatus.approved] = approved.map((l) => l.toSellerListingEntity()).toList();
+        result[ListingStatus.approved] = approved
+            .map((l) => l.toSellerListingEntity())
+            .toList();
       } catch (e) {
         print('Error loading approved listings: $e');
         result[ListingStatus.approved] = [];
@@ -60,7 +69,9 @@ class SellerRepositoryImpl implements SellerRepository {
       // 4. Scheduled
       try {
         final scheduled = await dataSource.getScheduledListings(sellerId);
-        result[ListingStatus.scheduled] = scheduled.map((l) => l.toSellerListingEntity()).toList();
+        result[ListingStatus.scheduled] = scheduled
+            .map((l) => l.toSellerListingEntity())
+            .toList();
       } catch (e) {
         print('Error loading scheduled listings: $e');
         result[ListingStatus.scheduled] = [];
@@ -69,7 +80,9 @@ class SellerRepositoryImpl implements SellerRepository {
       // 5. Active
       try {
         final active = await dataSource.getActiveListings(sellerId);
-        result[ListingStatus.active] = active.map((l) => l.toSellerListingEntity()).toList();
+        result[ListingStatus.active] = active
+            .map((l) => l.toSellerListingEntity())
+            .toList();
       } catch (e) {
         print('Error loading active listings: $e');
         result[ListingStatus.active] = [];
@@ -78,7 +91,9 @@ class SellerRepositoryImpl implements SellerRepository {
       // 6. Ended
       try {
         final ended = await dataSource.getEndedListings(sellerId);
-        result[ListingStatus.ended] = ended.map((l) => l.toSellerListingEntity()).toList();
+        result[ListingStatus.ended] = ended
+            .map((l) => l.toSellerListingEntity())
+            .toList();
       } catch (e) {
         print('Error loading ended listings: $e');
         result[ListingStatus.ended] = [];
@@ -87,7 +102,9 @@ class SellerRepositoryImpl implements SellerRepository {
       // 7. Cancelled
       try {
         final cancelled = await dataSource.getCancelledListings(sellerId);
-        result[ListingStatus.cancelled] = cancelled.map((l) => l.toSellerListingEntity()).toList();
+        result[ListingStatus.cancelled] = cancelled
+            .map((l) => l.toSellerListingEntity())
+            .toList();
       } catch (e) {
         print('Error loading cancelled listings: $e');
         result[ListingStatus.cancelled] = [];
@@ -100,7 +117,9 @@ class SellerRepositoryImpl implements SellerRepository {
   }
 
   @override
-  Future<Either<Failure, List<ListingDraftEntity>>> getSellerDrafts(String sellerId) async {
+  Future<Either<Failure, List<ListingDraftEntity>>> getSellerDrafts(
+    String sellerId,
+  ) async {
     try {
       final drafts = await dataSource.getSellerDrafts(sellerId);
       return Right(drafts);
@@ -120,7 +139,9 @@ class SellerRepositoryImpl implements SellerRepository {
   }
 
   @override
-  Future<Either<Failure, ListingDraftEntity>> createDraft(String sellerId) async {
+  Future<Either<Failure, ListingDraftEntity>> createDraft(
+    String sellerId,
+  ) async {
     try {
       final draft = await dataSource.createDraft(sellerId);
       return Right(draft);
