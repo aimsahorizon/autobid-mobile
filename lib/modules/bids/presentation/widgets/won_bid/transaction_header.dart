@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
-import '../../../domain/entities/buyer_transaction_entity.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/buyer_transaction_entity.dart';
 
 class TransactionHeader extends StatelessWidget {
   final BuyerTransactionEntity transaction;

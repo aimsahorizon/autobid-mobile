@@ -1,5 +1,5 @@
 import '../../domain/entities/notification_entity.dart';
-import '../../presentation/controllers/notification_controller.dart';
+import 'notification_datasource.dart';
 import '../models/notification_model.dart';
 
 /// Mock data source for notifications (for testing without backend)

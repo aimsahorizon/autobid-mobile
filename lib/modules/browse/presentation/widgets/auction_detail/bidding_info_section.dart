@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 
 class BiddingInfoSection extends StatefulWidget {
   final DateTime endTime;
@@ -163,20 +163,20 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
         children: [
           _buildTimeBlock('$days', 'd', color),
           _buildTimeSeparator(color),
-          _buildTimeBlock('${hours.toString().padLeft(2, '0')}', 'h', color),
+          _buildTimeBlock(hours.toString().padLeft(2, '0'), 'h', color),
           _buildTimeSeparator(color),
-          _buildTimeBlock('${minutes.toString().padLeft(2, '0')}', 'm', color),
+          _buildTimeBlock(minutes.toString().padLeft(2, '0'), 'm', color),
         ],
       );
     }
 
     return Row(
       children: [
-        _buildTimeBlock('${hours.toString().padLeft(2, '0')}', 'h', color),
+        _buildTimeBlock(hours.toString().padLeft(2, '0'), 'h', color),
         _buildTimeSeparator(color),
-        _buildTimeBlock('${minutes.toString().padLeft(2, '0')}', 'm', color),
+        _buildTimeBlock(minutes.toString().padLeft(2, '0'), 'm', color),
         _buildTimeSeparator(color),
-        _buildTimeBlock('${seconds.toString().padLeft(2, '0')}', 's', color),
+        _buildTimeBlock(seconds.toString().padLeft(2, '0'), 's', color),
       ],
     );
   }

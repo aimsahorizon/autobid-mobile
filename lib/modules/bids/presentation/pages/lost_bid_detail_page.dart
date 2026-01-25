@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/bid_detail_entity.dart';
 import '../../data/datasources/bid_detail_mock_datasource.dart';
 import '../widgets/lost_bid/lost_bid_header.dart';

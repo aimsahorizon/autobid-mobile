@@ -1,4 +1,3 @@
-import 'listing_draft_entity.dart';
 import 'seller_listing_entity.dart';
 
 /// Complete listing details combining seller listing status with full car specifications
@@ -164,11 +163,11 @@ class ListingDetailEntity {
 
   /// Get time remaining (for active listings)
   Duration? get timeRemaining =>
-      endTime != null ? endTime!.difference(DateTime.now()) : null;
+      endTime?.difference(DateTime.now());
 
     /// Time until auction starts (for scheduled listings)
     Duration? get timeUntilStart =>
-      startTime != null ? startTime!.difference(DateTime.now()) : null;
+      startTime?.difference(DateTime.now());
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);

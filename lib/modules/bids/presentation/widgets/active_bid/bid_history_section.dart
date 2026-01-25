@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/bid_detail_entity.dart';
 
 class BidHistorySection extends StatelessWidget {

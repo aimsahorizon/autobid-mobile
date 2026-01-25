@@ -88,7 +88,7 @@ class TransactionRealtimeDataSource {
             .order('created_at', ascending: false)
             .limit(1);
 
-        if (multiResponse is List && multiResponse.isNotEmpty) {
+        if (multiResponse.isNotEmpty) {
           response = multiResponse.first;
           print(
             '[TransactionRealtimeDataSource] Found ${multiResponse.length} transaction(s) by auction_id, using most recent',
@@ -1423,7 +1423,7 @@ class TransactionRealtimeDataSource {
           .order('created_at', ascending: false)
           .limit(1);
 
-      if (txnByAuctionList is List && txnByAuctionList.isNotEmpty) {
+      if (txnByAuctionList.isNotEmpty) {
         print(
           '[_resolveTransactionId] Found by auction ID: ${txnByAuctionList.first['id']}',
         );

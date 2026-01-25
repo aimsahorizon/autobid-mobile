@@ -1,5 +1,5 @@
 import '../../domain/entities/user_bid_entity.dart';
-import '../../presentation/controllers/bids_controller.dart';
+import 'bids_remote_datasource.dart';
 
 /// Mock data source for user's bid history across all auctions
 /// Provides sample data for Active, Won, and Lost tabs in Bids module
@@ -10,7 +10,7 @@ import '../../presentation/controllers/bids_controller.dart';
 /// - Filter by status (active/won/lost) based on auction end_time and user's bid position
 ///
 /// TODO: Replace with SupabaseUserBidsDataSource for production
-class UserBidsMockDataSource implements IUserBidsDataSource {
+class UserBidsMockDataSource implements BidsRemoteDataSource {
   /// Simulated network delay for realistic UX
   static const _mockDelay = Duration(milliseconds: 600);
 

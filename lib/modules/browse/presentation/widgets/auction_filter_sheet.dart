@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/auction_filter.dart';
 import '../../domain/entities/filter_options.dart';
 
@@ -128,7 +128,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                     _buildSection(
                       title: 'Brand',
                       child: DropdownButtonFormField<String>(
-                        value: _filter.make,
+                        initialValue: _filter.make,
                         decoration: const InputDecoration(
                           hintText: 'Select brand',
                           border: OutlineInputBorder(),
@@ -154,7 +154,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<int>(
-                              value: _filter.yearFrom,
+                              initialValue: _filter.yearFrom,
                               decoration: const InputDecoration(
                                 labelText: 'From',
                                 border: OutlineInputBorder(),
@@ -175,7 +175,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<int>(
-                              value: _filter.yearTo,
+                              initialValue: _filter.yearTo,
                               decoration: const InputDecoration(
                                 labelText: 'To',
                                 border: OutlineInputBorder(),
@@ -247,7 +247,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                     _buildSection(
                       title: 'Transmission',
                       child: DropdownButtonFormField<String>(
-                        value: _filter.transmission,
+                        initialValue: _filter.transmission,
                         decoration: const InputDecoration(
                           hintText: 'Select transmission',
                           border: OutlineInputBorder(),
@@ -270,7 +270,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                     _buildSection(
                       title: 'Fuel Type',
                       child: DropdownButtonFormField<String>(
-                        value: _filter.fuelType,
+                        initialValue: _filter.fuelType,
                         decoration: const InputDecoration(
                           hintText: 'Select fuel type',
                           border: OutlineInputBorder(),
@@ -293,7 +293,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                     _buildSection(
                       title: 'Drive Type',
                       child: DropdownButtonFormField<String>(
-                        value: _filter.driveType,
+                        initialValue: _filter.driveType,
                         decoration: const InputDecoration(
                           hintText: 'Select drive type',
                           border: OutlineInputBorder(),
@@ -316,7 +316,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                     _buildSection(
                       title: 'Condition',
                       child: DropdownButtonFormField<String>(
-                        value: _filter.condition,
+                        initialValue: _filter.condition,
                         decoration: const InputDecoration(
                           hintText: 'Select condition',
                           border: OutlineInputBorder(),
@@ -360,7 +360,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                     _buildSection(
                       title: 'Exterior Color',
                       child: DropdownButtonFormField<String>(
-                        value: _filter.exteriorColor,
+                        initialValue: _filter.exteriorColor,
                         decoration: const InputDecoration(
                           hintText: 'Select color',
                           border: OutlineInputBorder(),
@@ -383,7 +383,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                     _buildSection(
                       title: 'Province/Region',
                       child: DropdownButtonFormField<String>(
-                        value: _filter.province,
+                        initialValue: _filter.province,
                         decoration: const InputDecoration(
                           hintText: 'Select province',
                           border: OutlineInputBorder(),

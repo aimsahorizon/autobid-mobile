@@ -158,18 +158,6 @@ class TransactionRealtimeController extends ChangeNotifier {
     });
   }
 
-  Future<void> _loadChatMessages(String transactionId) async {
-    _chatMessages = await _dataSource.getChatMessages(transactionId);
-  }
-
-  Future<void> _loadMyForm(String transactionId, FormRole role) async {
-    _myForm = await _dataSource.getTransactionForm(transactionId, role);
-  }
-
-  Future<void> _loadOtherPartyForm(String transactionId, FormRole role) async {
-    _otherPartyForm = await _dataSource.getTransactionForm(transactionId, role);
-  }
-
   Future<void> _loadTimeline(String transactionId) async {
     _timeline = await _dataSource.getTimeline(transactionId);
   }

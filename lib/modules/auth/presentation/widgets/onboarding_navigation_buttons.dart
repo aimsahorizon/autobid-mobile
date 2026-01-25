@@ -17,7 +17,6 @@ class OnboardingNavigationButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLastPage = currentPage == totalPages - 1;
-    final isFirstPage = currentPage == 0;
 
     return Column(
       children: [

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../app/core/constants/color_constants.dart';
-import '../../../../app/core/services/paymongo_service.dart';
-import '../../../../app/core/services/paymongo_mock_service.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/services/paymongo_service.dart';
+import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import '../../domain/entities/pricing_entity.dart';
 
 /// Payment page for processing token package purchases

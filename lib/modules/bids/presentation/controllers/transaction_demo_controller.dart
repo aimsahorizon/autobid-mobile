@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/buyer_transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/buyer_transaction_entity.dart';
 import 'buyer_transaction_controller.dart';
 
 /// Demo controller that auto-plays the entire transaction flow

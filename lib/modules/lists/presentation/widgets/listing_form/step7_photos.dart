@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../../../app/core/constants/color_constants.dart';
-import '../../../../../app/core/services/car_detection_service.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/services/car_detection_service.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import '../../../data/datasources/demo_listing_data.dart';

@@ -1,12 +1,13 @@
+import 'package:fpdart/fpdart.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
 import '../repositories/auth_repository.dart';
 
-/// Use case for verifying email OTP during registration
 class VerifyEmailOtpUseCase {
   final AuthRepository repository;
 
   VerifyEmailOtpUseCase(this.repository);
 
-  Future<bool> call(String email, String otp) {
+  Future<Either<Failure, bool>> call(String email, String otp) {
     return repository.verifyEmailOtp(email, otp);
   }
 }

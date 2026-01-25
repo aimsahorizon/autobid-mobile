@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../app/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/transaction_controller.dart';
 import '../controllers/seller_transaction_demo_controller.dart';
 import '../widgets/transaction/chat_tab.dart';

@@ -1,11 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/user_bid_model.dart';
 import '../../domain/entities/user_bid_entity.dart';
-import '../../presentation/controllers/bids_controller.dart';
+import 'bids_remote_datasource.dart';
 
 /// Supabase datasource for user's bid history
 /// Fetches user's active, won, lost, and cancelled bids from database
-class UserBidsSupabaseDataSource implements IUserBidsDataSource {
+class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
   final SupabaseClient _supabase;
 
   UserBidsSupabaseDataSource(this._supabase);
@@ -44,9 +43,7 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
       );
       print('[UserBidsSupabaseDataSource] Query response: $response');
 
-      final bidsList = response is List
-          ? List<Map<String, dynamic>>.from(response)
-          : <Map<String, dynamic>>[];
+      final bidsList = List<Map<String, dynamic>>.from(response);
 
       print(
         '[UserBidsSupabaseDataSource] Parsed bidsList length: ${bidsList.length}',
@@ -88,7 +85,7 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
             );
 
             if (auctionResponse != null) {
-              auction = auctionResponse as Map<String, dynamic>;
+              auction = auctionResponse;
             }
           } catch (e) {
             print(
@@ -135,7 +132,7 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
                 .select('brand, model, year')
                 .eq('auction_id', auctionId)
                 .limit(1);
-            if (vehicleResponse is List && vehicleResponse.isNotEmpty) {
+            if (vehicleResponse.isNotEmpty) {
               final v = vehicleResponse.first;
               final brand = v['brand'] as String? ?? '';
               final model = v['model'] as String? ?? '';
@@ -157,7 +154,7 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
                 .eq('auction_id', auctionId)
                 .eq('is_primary', true)
                 .limit(1);
-            if (photoResponse is List && photoResponse.isNotEmpty) {
+            if (photoResponse.isNotEmpty) {
               coverPhotoUrl = photoResponse.first['photo_url'] as String?;
             }
           } catch (_) {
@@ -173,8 +170,6 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
           final title = auction['title'] as String? ?? 'Unknown';
           final currentPrice =
               (auction['current_price'] as num?)?.toDouble() ?? 0;
-          final startingPrice =
-              (auction['starting_price'] as num?)?.toDouble() ?? 0;
           final endTimeStr = auction['end_time'] as String?;
           final endTime = endTimeStr != null
               ? DateTime.tryParse(endTimeStr)
@@ -187,7 +182,7 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
 
           // Check if auction ended: consider both end_time and explicit status
           final hasExplicitEndedStatus =
-              statusName != null && statusName!.toLowerCase() != 'live';
+              statusName != null && statusName.toLowerCase() != 'live';
           final isTimeElapsed =
               endTime != null && DateTime.now().isAfter(endTime);
           final isAuctionEnded = hasExplicitEndedStatus || isTimeElapsed;
@@ -195,11 +190,11 @@ class UserBidsSupabaseDataSource implements IUserBidsDataSource {
           // Check if in_transaction status - buyer can access the transaction
           final isInTransaction =
               statusName != null &&
-              statusName!.toLowerCase() == 'in_transaction';
+              statusName.toLowerCase() == 'in_transaction';
 
           // Check if deal_failed status - buyer cancelled or deal fell through
           final isDealFailed =
-              statusName != null && statusName!.toLowerCase() == 'deal_failed';
+              statusName != null && statusName.toLowerCase() == 'deal_failed';
 
           print(
             '[UserBidsSupabaseDataSource]   isAuctionEnded: $isAuctionEnded',
