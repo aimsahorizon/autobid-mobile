@@ -12,6 +12,7 @@ class ListingDraftController extends ChangeNotifier {
   final GetDraftUseCase _getDraftUseCase;
   final CreateDraftUseCase _createDraftUseCase;
   final SaveDraftUseCase _saveDraftUseCase;
+  final MarkDraftCompleteUseCase _markDraftCompleteUseCase;
   final DeleteDraftUseCase _deleteDraftUseCase;
   final SubmitListingUseCase _submitListingUseCase;
   final UploadListingPhotoUseCase _uploadListingPhotoUseCase;
@@ -23,6 +24,7 @@ class ListingDraftController extends ChangeNotifier {
     required GetDraftUseCase getDraftUseCase,
     required CreateDraftUseCase createDraftUseCase,
     required SaveDraftUseCase saveDraftUseCase,
+    required MarkDraftCompleteUseCase markDraftCompleteUseCase,
     required DeleteDraftUseCase deleteDraftUseCase,
     required SubmitListingUseCase submitListingUseCase,
     required UploadListingPhotoUseCase uploadListingPhotoUseCase,
@@ -32,6 +34,7 @@ class ListingDraftController extends ChangeNotifier {
        _getDraftUseCase = getDraftUseCase,
        _createDraftUseCase = createDraftUseCase,
        _saveDraftUseCase = saveDraftUseCase,
+       _markDraftCompleteUseCase = markDraftCompleteUseCase,
        _deleteDraftUseCase = deleteDraftUseCase,
        _submitListingUseCase = submitListingUseCase,
        _uploadListingPhotoUseCase = uploadListingPhotoUseCase,
@@ -489,25 +492,49 @@ class ListingDraftController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    // 1. Save one last time
-    await _saveDraftUseCase.call(_currentDraft!);
+    try {
+      // 1. Save one last time
+      await _saveDraftUseCase.call(_currentDraft!);
 
-    // 2. Submit (RPC handles completion status and token)
-    final result = await _submitListingUseCase.call(_currentDraft!.id);
-    
-    _isSubmitting = false;
-    return result.fold(
-      (failure) {
-        _errorMessage = failure.message;
+      // 2. Mark draft as complete (CRITICAL: Required by submit_listing_from_draft RPC)
+      final markCompleteResult = await _markDraftCompleteUseCase.call(_currentDraft!.id);
+      
+      final completeSuccess = markCompleteResult.fold(
+        (failure) {
+          _errorMessage = 'Failed to mark draft as complete: ${failure.message}';
+          return false;
+        },
+        (_) => true,
+      );
+
+      if (!completeSuccess) {
+        _isSubmitting = false;
         notifyListeners();
         return false;
-      },
-      (_) {
-        _currentDraft = null;
-        notifyListeners();
-        return true;
-      },
-    );
+      }
+
+      // 3. Submit (RPC handles token consumption and auction creation)
+      final result = await _submitListingUseCase.call(_currentDraft!.id);
+      
+      _isSubmitting = false;
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          notifyListeners();
+          return false;
+        },
+        (_) {
+          _currentDraft = null;
+          notifyListeners();
+          return true;
+        },
+      );
+    } catch (e) {
+      _isSubmitting = false;
+      _errorMessage = 'Error submitting listing: $e';
+      notifyListeners();
+      return false;
+    }
   }
 
   /// Delete draft

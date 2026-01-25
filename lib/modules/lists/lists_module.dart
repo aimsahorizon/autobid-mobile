@@ -29,6 +29,7 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => GetDraftUseCase(sl()));
   sl.registerLazySingleton(() => CreateDraftUseCase(sl()));
   sl.registerLazySingleton(() => SaveDraftUseCase(sl()));
+  sl.registerLazySingleton(() => MarkDraftCompleteUseCase(sl()));
   sl.registerLazySingleton(() => DeleteDraftUseCase(sl()));
   sl.registerLazySingleton(() => SubmitListingUseCase(sl()));
   sl.registerLazySingleton(() => CancelListingUseCase(sl()));
@@ -43,6 +44,7 @@ Future<void> initListsModule() async {
     getDraftUseCase: sl(),
     createDraftUseCase: sl(),
     saveDraftUseCase: sl(),
+    markDraftCompleteUseCase: sl(),
     deleteDraftUseCase: sl(),
     submitListingUseCase: sl(),
     uploadListingPhotoUseCase: sl(),
