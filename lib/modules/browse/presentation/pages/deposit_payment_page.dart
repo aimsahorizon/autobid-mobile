@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' hide TokenType;
+import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import 'package:autobid_mobile/core/services/stripe_service.dart';
+import 'package:autobid_mobile/core/services/paymongo_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/deposit_supabase_datasource.dart';
 
@@ -25,18 +25,28 @@ class DepositPaymentPage extends StatefulWidget {
 }
 
 class _DepositPaymentPageState extends State<DepositPaymentPage> {
-  final _stripeService = StripeService();
+  final _payMongoService = PayMongoService();
   bool _isProcessing = false;
 
   // Billing form fields
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _cardNumberController = TextEditingController();
+  final _expMonthController = TextEditingController();
+  final _expYearController = TextEditingController();
+  final _cvcController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
+    _cardNumberController.dispose();
+    _expMonthController.dispose();
+    _expYearController.dispose();
+    _cvcController.dispose();
     super.dispose();
   }
 
@@ -56,9 +66,8 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
     try {
       // Step 1: Create payment intent
-      final paymentIntent = await _stripeService.createPaymentIntent(
+      final paymentIntent = await _payMongoService.createPaymentIntent(
         amount: widget.depositAmount,
-        currency: 'PHP',
         description: 'Auction Participation Deposit',
         metadata: {
           'auction_id': widget.auctionId,
@@ -67,26 +76,35 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         },
       );
 
-      final clientSecret = paymentIntent['client_secret'] as String;
       final paymentIntentId = paymentIntent['id'] as String;
 
-      // Step 2: Present payment sheet
-      await Stripe.instance.initPaymentSheet(
-        paymentSheetParameters: SetupPaymentSheetParameters(
-          paymentIntentClientSecret: clientSecret,
-          merchantDisplayName: 'AutoBid',
-          billingDetails: BillingDetails(
-            name: _nameController.text,
-            email: _emailController.text,
-          ),
-          style: Theme.of(context).brightness == Brightness.dark
-              ? ThemeMode.dark
-              : ThemeMode.light,
-        ),
+      // Step 2: Create payment method (simplified - card only for now)
+      final paymentMethod = await _payMongoService.createPaymentMethod(
+        cardNumber: _cardNumberController.text.replaceAll(' ', ''),
+        expMonth: int.parse(_expMonthController.text),
+        expYear: int.parse(_expYearController.text),
+        cvc: _cvcController.text,
+        billingName: _nameController.text,
+        billingEmail: _emailController.text,
+        billingPhone: _phoneController.text.isNotEmpty
+            ? _phoneController.text
+            : null,
       );
 
-      // Step 3: Display payment sheet
-      await Stripe.instance.presentPaymentSheet();
+      final paymentMethodId = paymentMethod['id'] as String;
+
+      // Step 3: Attach payment method to payment intent
+      final result = await _payMongoService.attachPaymentMethod(
+        paymentIntentId: paymentIntentId,
+        paymentMethodId: paymentMethodId,
+      );
+
+      // Check payment status
+      final status = result['attributes']['status'] as String;
+
+      if (status != 'succeeded' && status != 'awaiting_payment_method') {
+        throw PayMongoException('Payment failed with status: $status');
+      }
 
       // Step 4: Record deposit in database
       final datasource = DepositSupabaseDataSource(SupabaseConfig.client);
@@ -116,18 +134,11 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         widget.onSuccess();
         Navigator.pop(context, true);
       }
-    } on StripeException catch (e) {
+    } on PayMongoException catch (e) {
       if (mounted) {
-        String errorMessage = 'Payment failed';
-        if (e.error.code == FailureCode.Canceled) {
-          errorMessage = 'Payment canceled';
-        } else if (e.error.message != null) {
-          errorMessage = e.error.message!;
-        }
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
+            content: Text(e.message),
             backgroundColor: ColorConstants.error,
           ),
         );
@@ -298,6 +309,134 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                   return null;
                 },
               ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone (optional)',
+                  hintText: '+639171234567',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Card Details Section
+              Text(
+                'Card Details',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _cardNumberController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _CardNumberFormatter(),
+                  LengthLimitingTextInputFormatter(19),
+                ],
+                decoration: const InputDecoration(
+                  labelText: 'Card Number',
+                  hintText: '4343 4343 4343 4345',
+                  prefixIcon: Icon(Icons.credit_card),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter card number';
+                  }
+                  final digits = value.replaceAll(' ', '');
+                  if (digits.length < 13) {
+                    return 'Card number too short';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _expMonthController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(2),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Month',
+                        hintText: 'MM',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Required';
+                        }
+                        final month = int.tryParse(value);
+                        if (month == null || month < 1 || month > 12) {
+                          return 'Invalid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _expYearController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(4),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'Year',
+                        hintText: 'YYYY',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Required';
+                        }
+                        final year = int.tryParse(value);
+                        if (year == null || year < DateTime.now().year) {
+                          return 'Invalid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _cvcController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(4),
+                      ],
+                      decoration: const InputDecoration(
+                        labelText: 'CVC',
+                        hintText: '123',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Required';
+                        }
+                        if (value.length < 3) {
+                          return 'Invalid';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 32),
 
               // Test cards info
@@ -333,19 +472,19 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                     const SizedBox(height: 12),
                     _buildTestCardRow(
                       '✅ Success:',
-                      '4242 4242 4242 4242',
+                      '4343 4343 4343 4345',
                       theme,
                     ),
                     const SizedBox(height: 4),
                     _buildTestCardRow(
                       '🔐 3D Secure:',
-                      '4000 0025 0000 3155',
+                      '4571 7360 0000 0008',
                       theme,
                     ),
                     const SizedBox(height: 4),
                     _buildTestCardRow(
-                      '❌ Declined:',
-                      '4000 0000 0000 0002',
+                      '❌ Generic Fail:',
+                      '4571 7360 0000 0016',
                       theme,
                     ),
                     const SizedBox(height: 8),
@@ -433,6 +572,32 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// Card number formatter to add spaces every 4 digits
+class _CardNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll(' ', '');
+    final buffer = StringBuffer();
+
+    for (int i = 0; i < text.length; i++) {
+      buffer.write(text[i]);
+      final nonZeroIndex = i + 1;
+      if (nonZeroIndex % 4 == 0 && nonZeroIndex != text.length) {
+        buffer.write(' ');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
