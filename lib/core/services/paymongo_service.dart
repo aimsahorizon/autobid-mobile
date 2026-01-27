@@ -87,12 +87,15 @@ class PayMongoService {
   }) async {
     final url = Uri.parse('$_baseUrl/payment_methods');
 
+    // Ensure card number contains only digits
+    final cleanCardNumber = cardNumber.replaceAll(RegExp(r'\D'), '');
+
     final body = jsonEncode({
       'data': {
         'attributes': {
           'type': 'card',
           'details': {
-            'card_number': cardNumber,
+            'card_number': cleanCardNumber,
             'exp_month': expMonth,
             'exp_year': expYear,
             'cvc': cvc,

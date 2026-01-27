@@ -60,55 +60,16 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
         );
   }
 
-  Future<void> _processCardPayment() async {
+  Future<void> _processPayment() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isProcessing = true);
 
     try {
-      // Step 1: Create payment intent
-      final paymentIntent = await _payMongoService.createPaymentIntent(
-        amount: widget.package.price,
-        description: widget.package.description,
-        metadata: {
-          'user_id': widget.userId,
-          'package_id': widget.package.id,
-          'tokens': widget.package.tokens.toString(),
-          'bonus_tokens': widget.package.bonusTokens.toString(),
-        },
-      );
-
-      final paymentIntentId = paymentIntent['id'] as String;
-
-      // Step 2: Create payment method
-      final paymentMethod = await _payMongoService.createPaymentMethod(
-        cardNumber: _cardNumberController.text.replaceAll(' ', ''),
-        expMonth: int.parse(_expMonthController.text),
-        expYear: int.parse(_expYearController.text),
-        cvc: _cvcController.text,
-        billingName: _nameController.text,
-        billingEmail: _emailController.text,
-        billingPhone: _phoneController.text.isNotEmpty
-            ? _phoneController.text
-            : null,
-      );
-
-      final paymentMethodId = paymentMethod['id'] as String;
-
-      // Step 3: Attach payment method to payment intent
-      final result = await _payMongoService.attachPaymentMethod(
-        paymentIntentId: paymentIntentId,
-        paymentMethodId: paymentMethodId,
-      );
-
-      // Check payment status
-      final status = result['attributes']['status'] as String;
-
-      if (status == 'succeeded' || status == 'awaiting_payment_method') {
-        // Step 4: Credit tokens to user account
-        await _creditTokens();
-      } else {
-        throw PayMongoException('Payment failed with status: $status');
+      if (_selectedPaymentMethod == PaymentMethodType.card) {
+        await _processCardPayment();
+      } else if (_selectedPaymentMethod == PaymentMethodType.gcash) {
+        await _processGCashPayment();
       }
     } on PayMongoException catch (e) {
       if (mounted) {
@@ -133,6 +94,96 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
         setState(() => _isProcessing = false);
       }
     }
+  }
+
+  Future<void> _processCardPayment() async {
+    // Step 1: Create payment intent
+    final paymentIntent = await _payMongoService.createPaymentIntent(
+      amount: widget.package.price,
+      description: widget.package.description,
+      metadata: {
+        'user_id': widget.userId,
+        'package_id': widget.package.id,
+        'tokens': widget.package.tokens.toString(),
+        'bonus_tokens': widget.package.bonusTokens.toString(),
+      },
+    );
+
+    final paymentIntentId = paymentIntent['id'] as String;
+
+    // Step 2: Create payment method
+    final paymentMethod = await _payMongoService.createPaymentMethod(
+      cardNumber: _cardNumberController.text.replaceAll(' ', ''),
+      expMonth: int.parse(_expMonthController.text),
+      expYear: int.parse(_expYearController.text),
+      cvc: _cvcController.text,
+      billingName: _nameController.text,
+      billingEmail: _emailController.text,
+      billingPhone: _phoneController.text.isNotEmpty
+          ? _phoneController.text
+          : null,
+    );
+
+    final paymentMethodId = paymentMethod['id'] as String;
+
+    // Step 3: Attach payment method to payment intent
+    final result = await _payMongoService.attachPaymentMethod(
+      paymentIntentId: paymentIntentId,
+      paymentMethodId: paymentMethodId,
+    );
+
+    // Check payment status
+    final status = result['attributes']['status'] as String;
+
+    if (status == 'succeeded' || status == 'awaiting_payment_method') {
+      // Step 4: Credit tokens to user account
+      await _creditTokens();
+    } else {
+      throw PayMongoException('Payment failed with status: $status');
+    }
+  }
+
+  Future<void> _processGCashPayment() async {
+    // Step 1: Create payment intent
+    final paymentIntent = await _payMongoService.createPaymentIntent(
+      amount: widget.package.price,
+      description: widget.package.description,
+      metadata: {
+        'user_id': widget.userId,
+        'package_id': widget.package.id,
+        'tokens': widget.package.tokens.toString(),
+        'bonus_tokens': widget.package.bonusTokens.toString(),
+      },
+    );
+
+    final paymentIntentId = paymentIntent['id'] as String;
+
+    // Step 2: Create GCash source
+    final source = await _payMongoService.createSource(
+      type: 'gcash',
+      amount: widget.package.price,
+      redirectSuccessUrl: 'https://autobid.app/payment/success',
+      redirectFailedUrl: 'https://autobid.app/payment/failed',
+      metadata: {
+        'user_id': widget.userId,
+        'package_id': widget.package.id,
+        'tokens': widget.package.tokens.toString(),
+        'bonus_tokens': widget.package.bonusTokens.toString(),
+        'name': _nameController.text,
+        'email': _emailController.text,
+        'phone': _phoneController.text,
+      },
+    );
+
+    final sourceId = source['id'] as String;
+    final checkoutUrl =
+        source['attributes']['redirect']['checkout_url'] as String;
+
+    // Step 3: Open GCash checkout in browser (for now, show message)
+    // TODO: Implement webview or external browser launch
+    throw PayMongoException(
+      'GCash payment requires browser redirect. Feature coming soon. Checkout URL: $checkoutUrl',
+    );
   }
 
   Future<void> _creditTokens() async {
@@ -254,11 +305,24 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone (Optional)',
+                decoration: InputDecoration(
+                  labelText: _selectedPaymentMethod == PaymentMethodType.gcash
+                      ? 'Phone'
+                      : 'Phone (Optional)',
                   hintText: '+639123456789',
-                  prefixIcon: Icon(Icons.phone_outlined),
+                  prefixIcon: const Icon(Icons.phone_outlined),
                 ),
+                validator: (value) {
+                  if (_selectedPaymentMethod == PaymentMethodType.gcash) {
+                    if (value == null || value.isEmpty) {
+                      return 'Phone is required for GCash';
+                    }
+                    if (!value.startsWith('+63') && !value.startsWith('09')) {
+                      return 'Enter valid PH number (+63 or 09)';
+                    }
+                  }
+                  return null;
+                },
               ),
 
               // Card details (only for card payment)
@@ -277,8 +341,10 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(16),
                     _CardNumberFormatter(),
+                    LengthLimitingTextInputFormatter(
+                      19,
+                    ), // 16 digits + 3 spaces
                   ],
                   decoration: const InputDecoration(
                     labelText: 'Card Number',
@@ -289,7 +355,8 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter card number';
                     }
-                    if (value.replaceAll(' ', '').length < 13) {
+                    final digitsOnly = value.replaceAll(' ', '');
+                    if (digitsOnly.length < 13 || digitsOnly.length > 19) {
                       return 'Please enter a valid card number';
                     }
                     return null;
@@ -382,7 +449,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isProcessing ? null : _processCardPayment,
+                  onPressed: _isProcessing ? null : _processPayment,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ColorConstants.primary,
                     foregroundColor: Colors.white,
@@ -561,18 +628,6 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
         _buildPaymentMethodOption(
           PaymentMethodType.gcash,
           Icons.account_balance_wallet,
-          isDark,
-        ),
-        const SizedBox(height: 12),
-        _buildPaymentMethodOption(
-          PaymentMethodType.paymaya,
-          Icons.payment,
-          isDark,
-        ),
-        const SizedBox(height: 12),
-        _buildPaymentMethodOption(
-          PaymentMethodType.grabPay,
-          Icons.local_taxi,
           isDark,
         ),
       ],
