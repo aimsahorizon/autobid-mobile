@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../controllers/pricing_controller.dart';
+import 'subscription_payment_page.dart';
 
 class SubscriptionPage extends StatefulWidget {
   final String userId;
@@ -53,7 +54,28 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
     if (confirm != true) return;
 
-    // Process subscription
+    // Handle Paid Plans via PayMongo
+    if (plan != SubscriptionPlan.free) {
+      if (!mounted) return;
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SubscriptionPaymentPage(
+            plan: plan,
+            userId: widget.userId,
+            onSuccess: () => _processSubscription(plan),
+          ),
+        ),
+      );
+    } else {
+      // Free plan - proceed directly
+      await _processSubscription(plan);
+    }
+  }
+
+  Future<void> _processSubscription(SubscriptionPlan plan) async {
+    // Process subscription with controller
     final success = await widget.controller.subscribe(
       userId: widget.userId,
       plan: plan,
