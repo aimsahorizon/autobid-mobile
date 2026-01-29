@@ -27,7 +27,7 @@ class PayMongoPaymentPage extends StatefulWidget {
 class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
   PayMongoService _payMongoService = PayMongoService();
   bool _isProcessing = false;
-  bool _useDemoMode = false;
+  bool _useDemoMode = true;
 
   // Form fields
   final _nameController = TextEditingController();

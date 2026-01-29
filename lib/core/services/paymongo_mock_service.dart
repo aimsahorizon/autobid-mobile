@@ -15,17 +15,15 @@ class PayMongoMockService extends PayMongoService {
 
     // Return mock payment intent
     return {
-      'data': {
-        'id': 'pi_mock_${DateTime.now().millisecondsSinceEpoch}',
-        'type': 'payment_intent',
-        'attributes': {
-          'amount': (amount * 100).toInt(),
-          'currency': 'PHP',
-          'description': description,
-          'status': 'awaiting_payment_method',
-          'client_key': 'mock_client_key_${DateTime.now().millisecondsSinceEpoch}',
-          'metadata': metadata ?? {},
-        },
+      'id': 'pi_mock_${DateTime.now().millisecondsSinceEpoch}',
+      'type': 'payment_intent',
+      'attributes': {
+        'amount': (amount * 100).toInt(),
+        'currency': 'PHP',
+        'description': description,
+        'status': 'awaiting_payment_method',
+        'client_key': 'mock_client_key_${DateTime.now().millisecondsSinceEpoch}',
+        'metadata': metadata ?? {},
       },
     };
   }
@@ -44,21 +42,21 @@ class PayMongoMockService extends PayMongoService {
 
     // Return mock payment method
     return {
-      'data': {
-        'id': 'pm_mock_${DateTime.now().millisecondsSinceEpoch}',
-        'type': 'payment_method',
-        'attributes': {
-          'type': 'card',
-          'billing': {
-            'name': billingName,
-            'email': billingEmail,
-            'phone': billingPhone,
-          },
-          'details': {
-            'last4': cardNumber.substring(cardNumber.length - 4),
-            'exp_month': expMonth,
-            'exp_year': expYear,
-          },
+      'id': 'pm_mock_${DateTime.now().millisecondsSinceEpoch}',
+      'type': 'payment_method',
+      'attributes': {
+        'type': 'card',
+        'billing': {
+          'name': billingName,
+          'email': billingEmail,
+          'phone': billingPhone,
+        },
+        'details': {
+          'last4': cardNumber.length >= 4 
+              ? cardNumber.substring(cardNumber.length - 4) 
+              : cardNumber,
+          'exp_month': expMonth,
+          'exp_year': expYear,
         },
       },
     };
@@ -74,16 +72,14 @@ class PayMongoMockService extends PayMongoService {
 
     // Simulate successful payment
     return {
-      'data': {
-        'id': paymentIntentId,
-        'type': 'payment_intent',
-        'attributes': {
-          'status': 'succeeded',
-          'amount': 10000, // Mock amount
-          'currency': 'PHP',
-          'payment_method': paymentMethodId,
-          'paid_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        },
+      'id': paymentIntentId,
+      'type': 'payment_intent',
+      'attributes': {
+        'status': 'succeeded',
+        'amount': 10000, // Mock amount
+        'currency': 'PHP',
+        'payment_method': paymentMethodId,
+        'paid_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
       },
     };
   }
@@ -100,21 +96,19 @@ class PayMongoMockService extends PayMongoService {
 
     // Return mock source with checkout URL
     return {
-      'data': {
-        'id': 'src_mock_${DateTime.now().millisecondsSinceEpoch}',
-        'type': 'source',
-        'attributes': {
-          'amount': (amount * 100).toInt(),
-          'currency': 'PHP',
-          'type': type,
-          'status': 'pending',
-          'redirect': {
-            'checkout_url': 'https://mock-checkout.paymongo.com/sources/mock_${DateTime.now().millisecondsSinceEpoch}',
-            'success': redirectSuccessUrl,
-            'failed': redirectFailedUrl,
-          },
-          'metadata': metadata ?? {},
+      'id': 'src_mock_${DateTime.now().millisecondsSinceEpoch}',
+      'type': 'source',
+      'attributes': {
+        'amount': (amount * 100).toInt(),
+        'currency': 'PHP',
+        'type': type,
+        'status': 'pending',
+        'redirect': {
+          'checkout_url': 'https://mock-checkout.paymongo.com/sources/mock_${DateTime.now().millisecondsSinceEpoch}',
+          'success': redirectSuccessUrl,
+          'failed': redirectFailedUrl,
         },
+        'metadata': metadata ?? {},
       },
     };
   }
@@ -125,14 +119,12 @@ class PayMongoMockService extends PayMongoService {
 
     // Return mock source with chargeable status
     return {
-      'data': {
-        'id': sourceId,
-        'type': 'source',
-        'attributes': {
-          'status': 'chargeable',
-          'amount': 10000,
-          'currency': 'PHP',
-        },
+      'id': sourceId,
+      'type': 'source',
+      'attributes': {
+        'status': 'chargeable',
+        'amount': 10000,
+        'currency': 'PHP',
       },
     };
   }
@@ -146,19 +138,17 @@ class PayMongoMockService extends PayMongoService {
 
     // Simulate successful payment
     return {
-      'data': {
-        'id': 'pay_mock_${DateTime.now().millisecondsSinceEpoch}',
-        'type': 'payment',
-        'attributes': {
-          'status': 'paid',
-          'amount': 10000,
-          'currency': 'PHP',
-          'source': {
-            'id': sourceId,
-            'type': 'source',
-          },
-          'paid_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      'id': 'pay_mock_${DateTime.now().millisecondsSinceEpoch}',
+      'type': 'payment',
+      'attributes': {
+        'status': 'paid',
+        'amount': 10000,
+        'currency': 'PHP',
+        'source': {
+          'id': sourceId,
+          'type': 'source',
         },
+        'paid_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
       },
     };
   }
@@ -168,14 +158,12 @@ class PayMongoMockService extends PayMongoService {
     await Future.delayed(_mockDelay);
 
     return {
-      'data': {
-        'id': paymentIntentId,
-        'type': 'payment_intent',
-        'attributes': {
-          'status': 'succeeded',
-          'amount': 10000,
-          'currency': 'PHP',
-        },
+      'id': paymentIntentId,
+      'type': 'payment_intent',
+      'attributes': {
+        'status': 'succeeded',
+        'amount': 10000,
+        'currency': 'PHP',
       },
     };
   }
