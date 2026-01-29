@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'app/app.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
+import 'package:autobid_mobile/core/services/stripe_service.dart';
 import 'app/di/app_module.dart';
 
 void main() async {
@@ -16,6 +17,9 @@ void main() async {
 
   // Initialize PayMongo
   await PayMongoService.init();
+
+  // Initialize Stripe
+  await StripeService.init();
 
   runApp(const App());
 }
