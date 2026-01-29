@@ -56,7 +56,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     // Get deposit amount (default 5000 if not specified)
     final depositAmount = 5000.0; // Auction deposit amount
 
-    // Navigate to Stripe deposit payment page
+    // Navigate to PayMongo deposit payment page
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(

@@ -570,7 +570,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                   children: [
                     const Icon(Icons.lock_outline, size: 16),
                     const SizedBox(width: 8),
-                    Text('Secured by Stripe', style: theme.textTheme.bodySmall),
+                    Text('Secured by PayMongo', style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
