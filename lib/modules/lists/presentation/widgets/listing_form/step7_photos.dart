@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
@@ -735,6 +736,56 @@ class _Step7PhotosState extends State<Step7Photos> {
     );
   }
 
+  /// Show full screen image
+  void _showFullImage(BuildContext context, String imageUrl) {
+    if (!context.mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Full screen image with zoom
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: imageUrl.startsWith('http')
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        );
+                      },
+                    )
+                  : Image.file(
+                      File(imageUrl),
+                      fit: BoxFit.contain,
+                    ),
+            ),
+            // Close button
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black.withOpacity(0.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Build photo preview with delete button
   Widget _buildPhotoPreview(
     BuildContext context,
@@ -747,109 +798,112 @@ class _Step7PhotosState extends State<Step7Photos> {
     final isValidUrl =
         photoUrl.startsWith('http://') || photoUrl.startsWith('https://');
 
-    return Container(
-      width: 100,
-      height: 100,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark
-              ? ColorConstants.surfaceLight.withValues(alpha: 0.3)
-              : Colors.grey.shade300,
+    return GestureDetector(
+      onTap: () => _showFullImage(context, photoUrl),
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDark
+                ? ColorConstants.surfaceLight.withValues(alpha: 0.3)
+                : Colors.grey.shade300,
+          ),
         ),
-      ),
-      child: Stack(
-        children: [
-          // Photo image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: isValidUrl
-                ? Image.network(
-                    photoUrl,
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        width: 100,
-                        height: 100,
-                        color: isDark
-                            ? Colors.grey.shade800
-                            : Colors.grey.shade200,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 100,
-                        height: 100,
-                        color: isDark
-                            ? Colors.grey.shade800
-                            : Colors.grey.shade200,
-                        child: const Icon(
-                          Icons.broken_image,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  )
-                : Container(
-                    width: 100,
-                    height: 100,
-                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.photo, color: Colors.grey, size: 32),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Mock',
-                          style: TextStyle(color: Colors.grey, fontSize: 10),
-                        ),
-                      ],
+        child: Stack(
+          children: [
+            // Photo image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: isValidUrl
+                  ? Image.network(
+                      photoUrl,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      width: 100,
+                      height: 100,
+                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.photo, color: Colors.grey, size: 32),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Mock',
+                            style: TextStyle(color: Colors.grey, fontSize: 10),
+                          ),
+                        ],
+                      ),
                     ),
+            ),
+            // Delete button overlay
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: () => _deletePhoto(context, category, index),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.9),
+                    shape: BoxShape.circle,
                   ),
-          ),
-          // Delete button overlay
-          Positioned(
-            top: 4,
-            right: 4,
-            child: GestureDetector(
-              onTap: () => _deletePhoto(context, category, index),
+                  child: const Icon(Icons.close, color: Colors.white, size: 16),
+                ),
+              ),
+            ),
+            // Photo number badge
+            Positioned(
+              bottom: 4,
+              right: 4,
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.9),
-                  shape: BoxShape.circle,
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.close, color: Colors.white, size: 16),
-              ),
-            ),
-          ),
-          // Photo number badge
-          Positioned(
-            bottom: 4,
-            right: 4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '${index + 1}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
