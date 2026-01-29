@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
+import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/deposit_supabase_datasource.dart';
 
@@ -27,6 +28,7 @@ class DepositPaymentPage extends StatefulWidget {
 class _DepositPaymentPageState extends State<DepositPaymentPage> {
   final _payMongoService = PayMongoService();
   bool _isProcessing = false;
+  bool _useDemoMode = true; // Default to test environment
 
   // Billing form fields
   final _nameController = TextEditingController();
@@ -64,9 +66,12 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
     setState(() => _isProcessing = true);
 
+    // Use Mock service if in demo mode
+    final service = _useDemoMode ? PayMongoMockService() : _payMongoService;
+
     try {
       // Step 1: Create payment intent
-      final paymentIntent = await _payMongoService.createPaymentIntent(
+      final paymentIntent = await service.createPaymentIntent(
         amount: widget.depositAmount,
         description: 'Auction Participation Deposit',
         metadata: {
@@ -79,7 +84,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final paymentIntentId = paymentIntent['id'] as String;
 
       // Step 2: Create payment method (simplified - card only for now)
-      final paymentMethod = await _payMongoService.createPaymentMethod(
+      final paymentMethod = await service.createPaymentMethod(
         cardNumber: _cardNumberController.text.replaceAll(' ', ''),
         expMonth: int.parse(_expMonthController.text),
         expYear: int.parse(_expYearController.text),
@@ -94,7 +99,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final paymentMethodId = paymentMethod['id'] as String;
 
       // Step 3: Attach payment method to payment intent
-      final result = await _payMongoService.attachPaymentMethod(
+      final result = await service.attachPaymentMethod(
         paymentIntentId: paymentIntentId,
         paymentMethodId: paymentMethodId,
       );
@@ -173,6 +178,42 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Demo mode toggle
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _useDemoMode
+                      ? Colors.orange.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _useDemoMode ? Colors.orange : Colors.grey.shade300,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.bug_report_outlined,
+                      color: _useDemoMode ? Colors.orange : Colors.grey,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Use Demo Mode (No real API calls)',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    Switch(
+                      value: _useDemoMode,
+                      onChanged: (value) =>
+                          setState(() => _useDemoMode = value),
+                      activeColor: Colors.orange,
+                    ),
+                  ],
+                ),
+              ),
+
               // Deposit info card
               Container(
                 padding: const EdgeInsets.all(20),

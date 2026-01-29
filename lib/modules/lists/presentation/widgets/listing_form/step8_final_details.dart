@@ -547,20 +547,23 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Amount buyers must deposit before they can place a bid',
+          'Min: ₱5,000 | Max: ₱50,000 | Increments of ₱5,000',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 8),
         FormFieldWidget(
           controller: _depositAmountController,
           label: 'Deposit Amount',
-          hint: 'e.g., 50000, 100000',
+          hint: 'e.g., 5000, 25000, 50000',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
             final value = double.tryParse(v!);
-            if (value == null || value <= 0) return 'Must be greater than 0';
+            if (value == null) return 'Invalid amount';
+            if (value < 5000) return 'Minimum deposit is ₱5,000';
+            if (value > 50000) return 'Maximum deposit is ₱50,000';
+            if (value % 5000 != 0) return 'Must be in increments of ₱5,000';
             return null;
           },
         ),
@@ -621,9 +624,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
 
   Widget _buildDepositSuggestions(double startingPrice) {
     final suggestions = <(String, String)>[
-      ('₱25,000', '5% of typical starting price'),
-      ('₱50,000', 'Standard deposit'),
-      ('₱100,000', 'Premium deposit'),
+      ('₱5,000', 'Minimum deposit'),
+      ('₱25,000', 'Standard deposit'),
+      ('₱50,000', 'Maximum deposit'),
     ];
 
     return Wrap(
