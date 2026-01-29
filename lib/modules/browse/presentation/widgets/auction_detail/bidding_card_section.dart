@@ -374,6 +374,18 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                   );
                   return;
                 }
+                
+                if (amount % 1000 != 0) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Increment must be a multiple of ₱1,000',
+                      ),
+                      backgroundColor: ColorConstants.error,
+                    ),
+                  );
+                  return;
+                }
 
                 setState(() => _customIncrements.add(amount));
                 Navigator.pop(context);
@@ -860,14 +872,25 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                           final increment = amount - widget.currentBid;
                           final meetsMinIncrement =
                               increment >= widget.minBidIncrement;
-                          if (amount >= _nextMinimumBid && meetsMinIncrement) {
+                          final isMultipleOf1k = increment % 1000 == 0;
+
+                          if (amount >= _nextMinimumBid && 
+                              meetsMinIncrement && 
+                              isMultipleOf1k) {
                             widget.onPlaceBid(amount);
                           } else {
+                            String errorMsg;
+                            if (amount < _nextMinimumBid) {
+                              errorMsg = 'Bid must be at least ₱${_formatNumber(_nextMinimumBid)}';
+                            } else if (!meetsMinIncrement) {
+                              errorMsg = 'Increase must be ≥ ₱${_formatNumber(widget.minBidIncrement)}';
+                            } else {
+                              errorMsg = 'Bid increment must be a multiple of ₱1,000';
+                            }
+                            
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(
-                                  'Bid must be at least ₱${_formatNumber(_nextMinimumBid)} and increase by ≥ ₱${_formatNumber(widget.minBidIncrement)}',
-                                ),
+                                content: Text(errorMsg),
                                 backgroundColor: ColorConstants.error,
                               ),
                             );

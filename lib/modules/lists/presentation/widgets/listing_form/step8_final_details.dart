@@ -465,21 +465,22 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Each bid must be at least this amount higher than the previous bid',
+          'Minimum gap between bids (must be in multiples of ₱1,000)',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 8),
         FormFieldWidget(
           controller: _bidIncrementController,
           label: 'Bid Increment',
-          hint: 'e.g., 1000, 1500, 2000, 5000',
+          hint: 'e.g., 1000, 2000, 5000',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
             final value = double.tryParse(v!);
-            if (value == null || value <= 0) return 'Must be greater than 0';
+            if (value == null) return 'Invalid amount';
             if (value < 1000) return 'Minimum increment is ₱1,000';
+            if (value % 1000 != 0) return 'Must be a multiple of ₱1,000';
             return null;
           },
         ),
@@ -598,9 +599,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
 
   Widget _buildIncrementSuggestions(double startingPrice) {
     final suggestions = <(String, String)>[
-      ('₱1,000', 'Lower-priced vehicles'),
-      ('₱5,000', 'Mid-range vehicles'),
-      ('₱10,000', 'Luxury vehicles'),
+      ('₱1,000', 'Standard'),
+      ('₱2,000', 'Accelerated'),
+      ('₱5,000', 'High value'),
     ];
 
     return Wrap(
