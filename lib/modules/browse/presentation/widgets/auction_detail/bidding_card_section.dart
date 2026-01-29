@@ -7,6 +7,7 @@ class BiddingCardSection extends StatefulWidget {
   final double minimumBid;
   final double currentBid;
   final double minBidIncrement;
+  final double depositAmount;
   final bool enableIncrementalBidding;
   final VoidCallback onDeposit;
   final Function(double) onPlaceBid;
@@ -21,6 +22,7 @@ class BiddingCardSection extends StatefulWidget {
     required this.minimumBid,
     required this.currentBid,
     required this.minBidIncrement,
+    required this.depositAmount,
     required this.enableIncrementalBidding,
     required this.onDeposit,
     required this.onPlaceBid,
@@ -495,7 +497,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '₱10,000 Deposit',
+                  '₱${_formatNumber(widget.depositAmount)} Deposit',
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: ColorConstants.primary,
                     fontWeight: FontWeight.bold,

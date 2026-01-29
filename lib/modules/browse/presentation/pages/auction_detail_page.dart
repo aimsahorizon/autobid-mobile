@@ -53,8 +53,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
       return;
     }
 
-    // Get deposit amount (default 5000 if not specified)
-    final depositAmount = 5000.0; // Auction deposit amount
+    // Get deposit amount from auction configuration
+    final depositAmount = auction.depositAmount > 0 ? auction.depositAmount : 5000.0;
 
     // Navigate to PayMongo deposit payment page
     final result = await Navigator.push<bool>(
@@ -270,6 +270,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                       minimumBid: auction.minimumBid,
                       currentBid: auction.currentBid,
                       minBidIncrement: auction.minBidIncrement,
+                      depositAmount: auction.depositAmount > 0 ? auction.depositAmount : 5000.0,
                       enableIncrementalBidding:
                           auction.enableIncrementalBidding,
                       onDeposit: _handleDeposit,
