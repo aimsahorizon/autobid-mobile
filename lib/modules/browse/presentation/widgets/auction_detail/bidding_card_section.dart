@@ -87,14 +87,14 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
         ? widget.minBidIncrement
         : _selectedIncrement;
 
+    // Generate preset increments based on the seller's configured minimum increment
     final presetIncrements = <double>{
-      widget.minBidIncrement,
-      widget.minBidIncrement * 2,
-      5000,
-      10000,
-      25000,
-      50000,
-    }.where((inc) => inc >= widget.minBidIncrement).toList()..sort();
+      widget.minBidIncrement, // 1x
+      widget.minBidIncrement * 2, // 2x
+      widget.minBidIncrement * 3, // 3x
+      widget.minBidIncrement * 5, // 5x
+      widget.minBidIncrement * 10, // 10x
+    }.toList()..sort();
 
     showDialog(
       context: context,
