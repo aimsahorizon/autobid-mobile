@@ -24,198 +24,75 @@ The goal is to refactor the entire Flutter application (`autobid_mobile`) to a s
 
 ### A. Transactions Module (`lib/modules/transactions/`)
 **Status:** ✅ Fully Refactored & Error-Free
-*   **Domain:** Created `TransactionRepository` and 11 UseCases (e.g., `GetTransactionUseCase`, `SubmitFormUseCase`, `SendMessageUseCase`).
-*   **Data:** 
-    *   Created `TransactionRemoteDataSource` interface.
-    *   Implemented `TransactionCompositeSupabaseDataSource`. This **aggregates** existing logic from `ChatSupabaseDataSource`, `SellerTransactionSupabaseDataSource`, `BuyerTransactionSupabaseDataSource`, and `TransactionSupabaseDataSource` to fulfill the contract without rewriting all SQL queries.
-*   **Presentation:** Refactored `TransactionController` to depend *only* on UseCases.
+*   **Domain:** Created `TransactionRepository` and 11 UseCases.
+*   **Data:** Implemented `TransactionCompositeSupabaseDataSource` aggregating specialized datasources.
+*   **Presentation:** Refactored `TransactionController` to use UseCases.
 *   **Fixes:** 
-    *   Moved `BuyerTransactionEntity` and `BuyerTransactionSupabaseDataSource` from `Bids` module to `Transactions` module to align domain ownership.
-    *   Fixed `listings_grid.dart` to remove legacy manual controller instantiation (`createTransactionController`) and use `GetIt` service locator.
+    *   Fixed `listings_grid.dart` to use `GetIt` instead of legacy `createTransactionController`.
+    *   Fixed `sendMessage` signature in Composite DataSource.
 
 ### B. Lists Module (`lib/modules/lists/`)
 **Status:** ✅ Fully Refactored
-*   Moved logic from `ListingDraftController` and `ListsController` to UseCases (`GetSellerListings`, `CreateDraft`, etc.).
-*   Fixed `ListingsGrid` to adhere to DI patterns.
+*   Logic moved to UseCases.
+*   `ListingsGrid` fixed for DI.
 
 ### C. Bids Module (`lib/modules/bids/`)
 **Status:** ✅ Fully Refactored
-*   Updated to point to moved `BuyerTransaction` resources in `Transactions` module.
-*   Controllers use UseCases.
+*   Updated imports to point to moved `BuyerTransactionEntity` in Transactions module.
+
+### D. Guest Module (`lib/modules/guest/`)
+**Status:** ✅ Fixed
+*   **Critical Fix:** Added `initGuestModule()` call to `lib/app/di/app_module.dart`. It was missing, causing "GuestController not registered" runtime error.
+
+### E. Profile Module (`lib/modules/profile/`)
+**Status:** ✅ Fixed
+*   **Critical Fix:** Registered `PricingRepositoryImpl` as `PricingRepository` interface in `initProfileModule`, fixing "PricingRepository not registered" runtime error.
 
 ---
 
 ## 3. Immediate Next Task: Browse Module Refactor
 
-**Status:** ✅ Fully Refactored & Error-Free
-**Completed:** January 21, 2026
+**Objective:** Refactor `lib/modules/browse/` to Clean Architecture.
+**Primary Violation:** `AuctionDetailController` imports and uses DataSources directly (`AuctionSupabaseDataSource`, etc.).
 
-### Summary
-The Browse module has been successfully refactored to follow Clean Architecture principles with proper Dependency Injection using GetIt. The refactoring focused on the `AuctionDetailController` which previously directly used DataSources, violating the architectural standard.
+### Detailed Step-by-Step Instructions:
 
-### What Was Done
+1.  **Analyze `AuctionDetailController`:**
+    *   Identify all methods fetching data (Auction details, Bids, Similar items, Q&A).
+    *   Identify all methods performing actions (Place Bid, Submit Q&A).
 
-#### Domain Layer
-*   **Created `AuctionDetailRepository` interface** (`domain/repositories/auction_detail_repository.dart`)
-    -   Defines contracts for all auction detail operations (get auction, bidding, Q&A, preferences)
-    -   Returns `Either<Failure, T>` for proper error handling
-*   **Created 10 UseCases** in `domain/usecases/`:
-    -   `GetAuctionDetailUseCase` - Fetch detailed auction information
-    -   `GetBidHistoryUseCase` - Retrieve bid history timeline
-    -   `PlaceBidUseCase` - Place a bid on an auction
-    -   `GetQuestionsUseCase` - Get Q&A questions for an auction
-    -   `PostQuestionUseCase` - Submit new questions
-    -   `LikeQuestionUseCase` - Like questions
-    -   `UnlikeQuestionUseCase` - Unlike questions
-    -   `GetBidIncrementUseCase` - Get user's bid increment preference
-    -   `UpsertBidIncrementUseCase` - Save user's bid increment preference
-    -   `ProcessDepositUseCase` - Handle deposit payment processing
+2.  **Domain Layer:**
+    *   Create `BrowseRepository` interface in `lib/modules/browse/domain/repositories/browse_repository.dart`.
+    *   Create UseCases in `lib/modules/browse/domain/usecases/`:
+        *   `GetAuctionDetailUseCase`
+        *   `PlaceBidUseCase`
+        *   `GetSimilarAuctionsUseCase`
+        *   `SubmitQuestionUseCase`
+        *   ...and others as identified.
 
-#### Data Layer
-*   **Created `AuctionDetailRemoteDataSource` interface** (`data/datasources/auction_detail_remote_datasource.dart`)
-    -   Defines the contract for remote data operations
-*   **Created `AuctionDetailCompositeSupabaseDataSource`** (`data/datasources/auction_detail_composite_supabase_datasource.dart`)
-    -   Aggregates existing specialized datasources following Composite Pattern:
-        -   `AuctionSupabaseDataSource` - Auction details
-        -   `BidSupabaseDataSource` - Bidding operations
-        -   `QASupabaseDataSource` - Q&A functionality
-        -   `UserPreferencesSupabaseDatasource` - User preferences
-        -   `DepositSupabaseDataSource` - Deposit handling
-    -   **No SQL logic was rewritten** - delegates to existing implementations
-*   **Created `AuctionDetailRepositoryImpl`** (`data/repositories/auction_detail_repository_impl.dart`)
-    -   Implements `AuctionDetailRepository`
-    -   Uses `AuctionDetailRemoteDataSource`
-    -   Handles error mapping to `Failure` types
+3.  **Data Layer:**
+    *   Create `BrowseRemoteDataSource` interface.
+    *   Create `BrowseRepositoryImpl`.
+    *   **Strategy:** Likely need a **Composite Data Source** again (`BrowseCompositeSupabaseDataSource`) to aggregate `AuctionSupabaseDataSource`, `BidSupabaseDataSource`, and `QASupabaseDataSource` if they are split. If they are all in one file, just wrap it.
 
-#### Presentation Layer
-*   **Refactored `AuctionDetailController`**
-    -   **Removed all direct DataSource dependencies**
-    -   Now depends only on UseCases via constructor injection
-    -   Removed legacy constructors (`.mock()`, `.supabase()`)
-    -   Single constructor accepting all UseCases
-    -   All methods now use UseCases: `loadAuctionDetail()`, `placeBid()`, `askQuestion()`, `toggleQuestionLike()`, etc.
-*   **Note:** `BrowseController` was already following Clean Architecture (uses `AuctionRepository`)
+4.  **Presentation Layer:**
+    *   Refactor `AuctionDetailController` to accept UseCases in constructor.
+    *   Refactor `BrowseController` (if needed, check `browse_module.dart`).
 
-#### Dependency Injection
-*   **Updated `initBrowseModule()`** in `browse_module.dart`
-    -   Registers all new DataSources
-    -   Registers `AuctionDetailCompositeSupabaseDataSource` as `AuctionDetailRemoteDataSource`
-    -   Registers `AuctionDetailRepository` implementation
-    -   Registers all 10 UseCases as lazy singletons
-    -   Registers `AuctionDetailController` as factory with UseCase dependencies
-*   **Deprecated legacy `BrowseModule` class methods**
-    -   Kept for backward compatibility but marked as `@deprecated`
-    -   Methods now delegate to GetIt service locator
-
-### Fixes Applied
-*   Fixed `DepositSupabaseDataSource` class naming (was inconsistent with `Datasource` vs `DataSource`)
-*   Added `processDeposit()` method to `DepositSupabaseDataSource` (throws `UnimplementedError` as placeholder)
-*   Fixed import paths for `Failure` class (`core/error/failures.dart` not `core/errors/failures.dart`)
-*   Fixed nullable `Failure` references in error handling
-*   Updated `deposit_payment_page.dart` to use correct class name
-
-### Architecture Compliance
-✅ **Dependency Injection:** All dependencies injected via constructor, no `GetIt.I` or singletons inside classes  
-✅ **Data Flow:** UI → Controller → UseCases → Repository → DataSource  
-✅ **Strict Layering:** Presentation layer only imports Domain entities, not Data layer  
-✅ **Error Handling:** Repository returns `Either<Failure, T>` using fpdart  
-✅ **Composite Pattern:** Aggregates existing datasources without rewriting SQL
+5.  **Wiring:**
+    *   Update `initBrowseModule` in `lib/modules/browse/browse_module.dart` to register the new stack.
 
 ---
 
 ## 4. Future Phases (Roadmap)
 
 ### Phase 4: Remaining Modules
-
-#### A. Guest Module (`lib/modules/guest/`)
-**Status:** ✅ Fully Refactored & Error-Free
-**Completed:** January 21, 2026
-
-**Summary:** Guest module refactored to Clean Architecture with UseCases and proper DI.
-
-**Domain Layer:**
-- Created `GuestRepository` interface
-- Created 2 UseCases: `CheckAccountStatusUseCase`, `GetGuestAuctionListingsUseCase`
-
-**Data Layer:**
-- Created `GuestRemoteDataSource` interface
-- Updated `GuestSupabaseDataSource` to implement interface
-- Created `GuestRepositoryImpl`
-
-**Presentation Layer:**
-- Refactored `GuestController` to use UseCases only
-- Removed direct DataSource dependencies
-- Removed mock data toggle (handled by DI now)
-
-**Dependency Injection:**
-- Created `initGuestModule()` following GetIt pattern
-- Deprecated legacy `GuestModule` class methods
-
----
-
-#### C. Notifications Module
-**Status:** ✅ Fully Refactored & Error-Free
-**Completed:** January 21, 2026
-
-**Domain Layer:**
-- Created `NotificationRepository` interface with 6 methods
-- Created 6 UseCases:
-  - `GetNotificationsUseCase` - Fetch notifications for user
-  - `GetUnreadCountUseCase` - Get count of unread notifications
-  - `MarkAsReadUseCase` - Mark notification as read
-  - `MarkAllAsReadUseCase` - Mark all notifications as read
-  - `DeleteNotificationUseCase` - Delete a notification
-  - `GetUnreadNotificationsUseCase` - Fetch only unread notifications
-
-**Data Layer:**
-- Created `INotificationDataSource` interface in separate file
-- Created `NotificationRepositoryImpl` using existing datasource
-- Updated imports in all datasource files to use new interface
-
-**Presentation Layer:**
-- Refactored `NotificationController` to use UseCases only
-- Removed `INotificationDataSource` dependency
-- All methods now use UseCases with proper Either<Failure, T> handling
-
-**Dependency Injection:**
-- Updated `initNotificationsModule()` to register Repository and all 6 UseCases
-- Updated controller factory to inject all UseCases
-- Deprecated legacy `NotificationsModule` class methods
-
----
-
-#### D. Profile Module
-**Status:** ✅ Fully Refactored & Error-Free
-**Completed:** January 22, 2026
-
-**Domain Layer:**
-- Added `uploadProfilePhoto` and `uploadCoverPhoto` methods to ProfileRepository interface
-- Created 3 new UseCases:
-  - `UploadProfilePhotoUseCase` - Upload profile photo to storage
-  - `UploadCoverPhotoUseCase` - Upload cover photo to storage
-  - `UpdateProfileWithPhotoUseCase` - Update profile with new photo URLs
-
-**Data Layer:**
-- Implemented photo upload methods in `ProfileRepositorySupabaseImpl`
-- Methods return Either<Failure, String> with photo URLs
-- Proper error handling with Failure types
-
-**Presentation Layer:**
-- Refactored `ProfileController` to remove datasource dependency
-- Now uses UseCases only via constructor injection
-- Updated `updateProfilePhoto()` and `updateCoverPhoto()` methods to use UseCases
-- Proper Either<Failure, T> handling in all methods
-
-**Dependency Injection:**
-- Updated `initProfileModule()` to register 3 new UseCases
-- Updated ProfileController factory with proper constructor parameters
-- All dependencies injected via GetIt
-
----
+*   **Notifications Module:** Check `NotificationsController`.
+*   **Profile Module:** Check `ProfileController` and `Auth` dependencies.
 
 ### Phase 5: Cleanup & Optimization
 *   **Remove Mock DataSources:** Delete `TransactionMockDataSource`, `ListingDetailMockDataSource` once confirmed unused.
-*   **Unused Code:** Run `dart fix` and remove unused imports/variables (currently ~700 info/warnings).
+*   **Unused Code:** Run `dart fix` and remove unused imports/variables (currently ~640 info/warnings).
 *   **Unit Tests:** Generate tests for the new UseCases.
 
 ### Phase 6: Next.js Admin Portal
@@ -230,3 +107,4 @@ The Browse module has been successfully refactored to follow Clean Architecture 
 *   **Composite Pattern:** When refactoring modules with scattered datasources (like `Transactions` or `Browse`), do **not** rewrite the SQL logic if possible. Create a `CompositeDataSource` that implements the new Interface and holds instances of the existing specialized datasources (`final ChatDS chat;`, `final AuctionDS auction;`). Delegate calls to them.
 *   **Entity Moves:** If you move an Entity (like `BuyerTransactionEntity`), you **MUST** run a regex search to fix all imports in other modules immediately.
 *   **Legacy Code:** Do not simply delete legacy static methods in `Module` classes until you are 100% sure strict DI is working in all widgets.
+*   **Registration Types:** Always register implementations as their Interface types (e.g., `sl.registerLazySingleton<RepositoryInterface>(() => RepositoryImpl(...))`).

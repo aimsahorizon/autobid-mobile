@@ -12,6 +12,7 @@ import '../../modules/notifications/notifications_module.dart';
 import '../../modules/lists/lists_module.dart';
 import '../../modules/admin/admin_module.dart';
 import '../../modules/transactions/transactions_module.dart';
+import '../../modules/guest/guest_module.dart';
 
 final sl = GetIt.instance;
 
@@ -36,6 +37,8 @@ Future<void> initDependencies() async {
   await initBrowseModule();
   await initNotificationsModule();
   await initListsModule();
-  await initAdminModule();
-  await initTransactionsModule();
-}
+    await initAdminModule();
+    await initTransactionsModule();
+    await initGuestModule();
+  }
+  
