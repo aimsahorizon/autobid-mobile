@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
+import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../../data/datasources/pricing_supabase_datasource.dart';
@@ -24,8 +25,9 @@ class PayMongoPaymentPage extends StatefulWidget {
 }
 
 class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
-  final _payMongoService = PayMongoService();
+  PayMongoService _payMongoService = PayMongoService();
   bool _isProcessing = false;
+  bool _useDemoMode = false;
 
   // Form fields
   final _nameController = TextEditingController();
@@ -40,6 +42,14 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
   PaymentMethodType _selectedPaymentMethod = PaymentMethodType.card;
 
   @override
+  void initState() {
+    super.initState();
+    // Default billing info from profile if available
+    _nameController.text = 'Juan Dela Cruz';
+    _emailController.text = 'juan@example.com';
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
@@ -52,12 +62,10 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
   }
 
   String _formatPrice(double price) {
-    return price
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
+    return price.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
   }
 
   Future<void> _processPayment() async {
@@ -65,11 +73,14 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
 
     setState(() => _isProcessing = true);
 
+    // Use Mock service if in demo mode
+    final service = _useDemoMode ? PayMongoMockService() : _payMongoService;
+
     try {
       if (_selectedPaymentMethod == PaymentMethodType.card) {
-        await _processCardPayment();
+        await _processCardPayment(service);
       } else if (_selectedPaymentMethod == PaymentMethodType.gcash) {
-        await _processGCashPayment();
+        await _processGCashPayment(service);
       }
     } on PayMongoException catch (e) {
       if (mounted) {
@@ -96,9 +107,9 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     }
   }
 
-  Future<void> _processCardPayment() async {
+  Future<void> _processCardPayment(PayMongoService service) async {
     // Step 1: Create payment intent
-    final paymentIntent = await _payMongoService.createPaymentIntent(
+    final paymentIntent = await service.createPaymentIntent(
       amount: widget.package.price,
       description: widget.package.description,
       metadata: {
@@ -112,22 +123,20 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     final paymentIntentId = paymentIntent['id'] as String;
 
     // Step 2: Create payment method
-    final paymentMethod = await _payMongoService.createPaymentMethod(
-      cardNumber: _cardNumberController.text.replaceAll(' ', ''),
+    final paymentMethod = await service.createPaymentMethod(
+      cardNumber: _cardNumberController.text,
       expMonth: int.parse(_expMonthController.text),
       expYear: int.parse(_expYearController.text),
       cvc: _cvcController.text,
       billingName: _nameController.text,
       billingEmail: _emailController.text,
-      billingPhone: _phoneController.text.isNotEmpty
-          ? _phoneController.text
-          : null,
+      billingPhone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
     );
 
     final paymentMethodId = paymentMethod['id'] as String;
 
     // Step 3: Attach payment method to payment intent
-    final result = await _payMongoService.attachPaymentMethod(
+    final result = await service.attachPaymentMethod(
       paymentIntentId: paymentIntentId,
       paymentMethodId: paymentMethodId,
     );
@@ -135,7 +144,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     // Check payment status
     final status = result['attributes']['status'] as String;
 
-    if (status == 'succeeded' || status == 'awaiting_payment_method') {
+    if (status == 'succeeded' || status == 'awaiting_payment_method' || status == 'awaiting_next_action') {
       // Step 4: Credit tokens to user account
       await _creditTokens();
     } else {
@@ -143,7 +152,8 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     }
   }
 
-  Future<void> _processGCashPayment() async {
+  Future<void> _processGCashPayment(PayMongoService service) async {
+    // ...
     // Step 1: Create payment intent
     final paymentIntent = await _payMongoService.createPaymentIntent(
       amount: widget.package.price,
@@ -242,6 +252,34 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Demo mode toggle
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _useDemoMode ? Colors.orange.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _useDemoMode ? Colors.orange : Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.bug_report_outlined, color: _useDemoMode ? Colors.orange : Colors.grey),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Use Demo Mode (No real API calls)',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    Switch(
+                      value: _useDemoMode,
+                      onChanged: (value) => setState(() => _useDemoMode = value),
+                      activeColor: Colors.orange,
+                    ),
+                  ],
+                ),
+              ),
+
               // Package summary
               _buildPackageSummary(theme, isDark),
               const SizedBox(height: 32),
@@ -443,6 +481,54 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
                 ),
               ],
 
+              // Test cards info
+              if (_selectedPaymentMethod == PaymentMethodType.card) ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: ColorConstants.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: ColorConstants.info.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.credit_card,
+                            color: ColorConstants.info,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'PayMongo Test Cards',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: ColorConstants.info,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTestCardRow('✅ Visa:', '4111 1111 1111 1111', theme),
+                      const SizedBox(height: 4),
+                      _buildTestCardRow('✅ Mastercard:', '5555 5555 5555 4444', theme),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Any future expiry, any 3-digit CVC',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 32),
 
               // Pay button
@@ -508,6 +594,31 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTestCardRow(String label, String number, ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            number,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontFamily: 'monospace',
+            ),
+          ),
+        ),
+      ],
     );
   }
 

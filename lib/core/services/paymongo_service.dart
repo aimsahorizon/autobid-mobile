@@ -37,6 +37,14 @@ class PayMongoService {
     return {'Authorization': 'Basic $auth', 'Content-Type': 'application/json'};
   }
 
+  /// Get authorization header with base64 encoded public key
+  /// Creating payment methods should ideally use the public key from the client
+  Map<String, String> get _publicAuthHeaders {
+    final key = _publicKey.isNotEmpty ? _publicKey : _secretKey;
+    final auth = base64Encode(utf8.encode('$key:'));
+    return {'Authorization': 'Basic $auth', 'Content-Type': 'application/json'};
+  }
+
   /// Create a PaymentIntent for the purchase
   /// This is the first step in the payment flow
   Future<Map<String, dynamic>> createPaymentIntent({
@@ -47,7 +55,10 @@ class PayMongoService {
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     final amountInCentavos = (amount * 100).toInt();
 
-    final url = Uri.parse('$_baseUrl/payment_intents');
+    final url = Uri.parse('$_baseUrl/payment_intent'); // API v1 use /payment_intents or /payment_intent? 
+    // Actually PayMongo v1 uses /payment_intents (plural). My previous code had it.
+    // Wait, let's stick to plural if it was working.
+    final intentsUrl = Uri.parse('$_baseUrl/payment_intents');
 
     final body = jsonEncode({
       'data': {
@@ -62,7 +73,7 @@ class PayMongoService {
       },
     });
 
-    final response = await http.post(url, headers: _authHeaders, body: body);
+    final response = await http.post(intentsUrl, headers: _authHeaders, body: body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final Map<String, dynamic> responseData = jsonDecode(response.body);
@@ -87,8 +98,8 @@ class PayMongoService {
   }) async {
     final url = Uri.parse('$_baseUrl/payment_methods');
 
-    // Ensure card number contains only digits
-    final cleanCardNumber = cardNumber.replaceAll(RegExp(r'\D'), '');
+    // Ensure card number contains ONLY digits and is trimmed
+    final cleanCardNumber = cardNumber.replaceAll(RegExp(r'[^0-9]'), '').trim();
 
     final body = jsonEncode({
       'data': {
@@ -98,18 +109,19 @@ class PayMongoService {
             'card_number': cleanCardNumber,
             'exp_month': expMonth,
             'exp_year': expYear,
-            'cvc': cvc,
+            'cvc': cvc.trim(),
           },
           'billing': {
-            'name': billingName,
-            'email': billingEmail,
-            if (billingPhone != null) 'phone': billingPhone,
+            'name': billingName.trim(),
+            'email': billingEmail.trim(),
+            if (billingPhone != null) 'phone': billingPhone.trim(),
           },
         },
       },
     });
 
-    final response = await http.post(url, headers: _authHeaders, body: body);
+    // Use Public Key for creating payment methods
+    final response = await http.post(url, headers: _publicAuthHeaders, body: body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final Map<String, dynamic> responseData = jsonDecode(response.body);
