@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/services/car_detection_service.dart';
 import '../controllers/listing_draft_controller.dart';
+import '../../domain/entities/listing_draft_entity.dart';
+import '../../data/datasources/demo_listing_data.dart';
 import '../widgets/listing_form/step1_basic_info.dart';
 import '../widgets/listing_form/step2_mechanical_spec.dart';
 import '../widgets/listing_form/step3_dimensions.dart';
@@ -29,6 +32,8 @@ class CreateListingPage extends StatefulWidget {
 }
 
 class _CreateListingPageState extends State<CreateListingPage> {
+  final _carDetectionService = CarDetectionService();
+
   @override
   void initState() {
     super.initState();
@@ -108,6 +113,198 @@ class _CreateListingPageState extends State<CreateListingPage> {
         ),
       );
     });
+  }
+
+  /// AI Detection: Auto-fill car details from uploaded photo
+  Future<void> _detectCarAndAutoFill(BuildContext context) async {
+    final photoUrls = widget.controller.currentDraft?.photoUrls;
+    if (photoUrls == null || photoUrls.isEmpty) return;
+
+    // Get first uploaded photo for detection
+    // Try to find a photo in any category
+    String? firstPhoto;
+    for (var urls in photoUrls.values) {
+      if (urls.isNotEmpty) {
+        firstPhoto = urls.first;
+        break;
+      }
+    }
+    
+    if (firstPhoto == null) return;
+
+    // Show loading
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Detecting car details...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    try {
+      // Call AI detection service (Mock for now)
+      final detectedData = await _carDetectionService.detectCarFromImage(
+        firstPhoto,
+      );
+
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close loading
+
+      // Update draft with detected data
+      final currentDraft = widget.controller.currentDraft!;
+      final updatedDraft = ListingDraftEntity(
+        id: currentDraft.id,
+        sellerId: currentDraft.sellerId,
+        currentStep: currentDraft.currentStep,
+        lastSaved: DateTime.now(),
+        isComplete: currentDraft.isComplete,
+        // AI-detected fields
+        brand: detectedData['brand'] as String?,
+        model: detectedData['model'] as String?,
+        variant: '${detectedData['bodyType']} ${detectedData['transmission']}',
+        year: detectedData['year'] as int?,
+        transmission: detectedData['transmission'] as String?,
+        exteriorColor: detectedData['color'] as String?,
+        tags: (detectedData['tags'] as List<dynamic>?)?.cast<String>() ?? currentDraft.tags,
+        // Preserve existing data
+        engineType: currentDraft.engineType,
+        engineDisplacement: currentDraft.engineDisplacement,
+        cylinderCount: currentDraft.cylinderCount,
+        horsepower: currentDraft.horsepower,
+        torque: currentDraft.torque,
+        fuelType: currentDraft.fuelType,
+        driveType: currentDraft.driveType,
+        length: currentDraft.length,
+        width: currentDraft.width,
+        height: currentDraft.height,
+        wheelbase: currentDraft.wheelbase,
+        groundClearance: currentDraft.groundClearance,
+        seatingCapacity: currentDraft.seatingCapacity,
+        doorCount: currentDraft.doorCount,
+        fuelTankCapacity: currentDraft.fuelTankCapacity,
+        curbWeight: currentDraft.curbWeight,
+        grossWeight: currentDraft.grossWeight,
+        paintType: currentDraft.paintType,
+        rimType: currentDraft.rimType,
+        rimSize: currentDraft.rimSize,
+        tireSize: currentDraft.tireSize,
+        tireBrand: currentDraft.tireBrand,
+        condition: currentDraft.condition,
+        mileage: currentDraft.mileage,
+        previousOwners: currentDraft.previousOwners,
+        hasModifications: currentDraft.hasModifications,
+        modificationsDetails: currentDraft.modificationsDetails,
+        hasWarranty: currentDraft.hasWarranty,
+        warrantyDetails: currentDraft.warrantyDetails,
+        usageType: currentDraft.usageType,
+        plateNumber: currentDraft.plateNumber,
+        orcrStatus: currentDraft.orcrStatus,
+        registrationStatus: currentDraft.registrationStatus,
+        registrationExpiry: currentDraft.registrationExpiry,
+        province: currentDraft.province,
+        cityMunicipality: currentDraft.cityMunicipality,
+        photoUrls: currentDraft.photoUrls,
+        description: currentDraft.description,
+        knownIssues: currentDraft.knownIssues,
+        features: currentDraft.features,
+        startingPrice: currentDraft.startingPrice,
+        reservePrice: currentDraft.reservePrice,
+        auctionEndDate: currentDraft.auctionEndDate,
+        biddingType: currentDraft.biddingType,
+        bidIncrement: currentDraft.bidIncrement,
+        minBidIncrement: currentDraft.minBidIncrement,
+        depositAmount: currentDraft.depositAmount,
+        enableIncrementalBidding: currentDraft.enableIncrementalBidding,
+        // tags: (detectedData['tags'] as List<dynamic>?)?.cast<String>() ?? currentDraft.tags, // Duplicate
+        deedOfSaleUrl: currentDraft.deedOfSaleUrl,
+      );
+
+      widget.controller.updateDraft(updatedDraft);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})',
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        if (Navigator.canPop(context)) Navigator.pop(context); // Close loading if still open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to detect car: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleNextStep() async {
+    // If Step 1 (Photos) and moving to Step 2
+    if (widget.controller.currentStep == 1 && widget.controller.canGoNext) {
+      final photoUrls = widget.controller.currentDraft?.photoUrls;
+      // Check if there are ANY photos
+      bool hasPhotos = photoUrls != null && photoUrls.values.any((list) => list.isNotEmpty);
+      
+      if (hasPhotos) {
+        final shouldAutoFill = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.auto_awesome, color: ColorConstants.primary),
+                const SizedBox(width: 12),
+                const Text('Auto-fill with AI?'),
+              ],
+            ),
+            content: const Text(
+              'We can analyze your photos to auto-fill vehicle details like Brand, Model, and Year.\n\nWould you like to try this?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('No, Manual Entry'),
+              ),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                icon: const Icon(Icons.psychology),
+                label: const Text('Yes, Auto-fill'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: ColorConstants.primary,
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldAutoFill == true) {
+          await _detectCarAndAutoFill(context);
+        }
+      }
+    }
+    
+    // Proceed to next step
+    widget.controller.goToNextStep();
   }
 
   @override
@@ -351,7 +548,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: widget.controller.goToNextStep,
+                  // Use _handleNextStep here
+                  onPressed: _handleNextStep,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ColorConstants.primary,
                     foregroundColor: Colors.white,
