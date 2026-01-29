@@ -402,22 +402,22 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             Expanded(
               child: SegmentedButton<String>(
                 style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                    (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Theme.of(context).colorScheme.primary;
-                      }
-                      return Colors.transparent;
-                    },
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith<Color>(
-                    (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Colors.white;
-                      }
-                      return Theme.of(context).colorScheme.onSurface;
-                    },
-                  ),
+                  backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                    Set<WidgetState> states,
+                  ) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Theme.of(context).colorScheme.primary;
+                    }
+                    return Colors.transparent;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                    Set<WidgetState> states,
+                  ) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Colors.white;
+                    }
+                    return Theme.of(context).colorScheme.onSurface;
+                  }),
                 ),
                 segments: const <ButtonSegment<String>>[
                   ButtonSegment<String>(
@@ -472,13 +472,14 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         FormFieldWidget(
           controller: _bidIncrementController,
           label: 'Bid Increment',
-          hint: 'e.g., 1000, 5000, 10000',
+          hint: 'e.g., 1000, 1500, 2000, 5000',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
             final value = double.tryParse(v!);
             if (value == null || value <= 0) return 'Must be greater than 0';
+            if (value < 1000) return 'Minimum increment is ₱1,000';
             return null;
           },
         ),
