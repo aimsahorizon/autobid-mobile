@@ -1,34 +1,52 @@
 /// Data source for sample photo guides
 /// Provides sample/reference photos for each photo category
-/// Backend can populate this with actual sample images from database
+/// Uses local assets from the images directory
 class SamplePhotoGuideDataSource {
-  /// Toggle between mock data and backend data
-  /// Set to true to use mock URLs, false to fetch from backend
-  static const bool useMockData = true;
+  /// Base path for car assets
+  static const String _baseAssetPath = 'assets/images/2017 Honda Civic Type R';
 
-  /// Get sample photo URL for a specific category
-  /// TODO: Replace with actual backend API call
-  /// Example: await http.get('api/sample-photos/$category')
+  /// Mapping of category names to asset paths
+  static const Map<String, String> _assetMapping = {
+    // Exterior
+    'Front View': 'Front view/5LKfR.jpg',
+    'Rear View': 'Rear view/9B_Hg.jpg',
+    'Left Side': 'driver side full view/C08XV.jpg',
+    'Right Side': 'passenger side full view/s-7lNdaAM.jpg',
+    'Front Left Angle': 'front 3-4 angle (driver side)/s-gUCr-Js.jpg',
+    'Front Right Angle': 'front 3-4 angle (passenger side)/s-7lNdaAM.jpg',
+    'Rear Left Angle': 'rear 3-4 angle (driver seat)/s-EpUblvB.jpg',
+    'Rear Right Angle': 'rear 3-4 angle (passenger seat)/0bfXB.jpg',
+    
+    // Interior
+    'Dashboard': 'driver seat and dashboard/s-XICBlSl.jpeg',
+    'Steering Wheel': 'steering wheel and controls/Tu9Xe.jpg',
+    'Center Console': 'center console and infotainment/s-Nk0JIHF.jpeg',
+    'Front Seats': 'passenger seat/s--OrGUsw.jpeg',
+    'Instrument Cluster': 'odometer/A42DA.jpg',
+    'Trunk Interior': 'trunk or cargo area/s-2zii47X.jpeg',
+    
+    // Engine
+    'Engine Bay Overview': 'engine bay overall shot/s-bnvUXOF.jpeg',
+    
+    // Wheels
+    'Front Left Wheel': 'closeup of all wheels and tires/s-ASZiDOp.jpeg',
+    'Front Right Wheel': 'closeup of all wheels and tires/s-ASZiDOp.jpeg',
+    'Rear Left Wheel': 'closeup of all wheels and tires/s-ASZiDOp.jpeg',
+    'Rear Right Wheel': 'closeup of all wheels and tires/s-ASZiDOp.jpeg',
+    
+    // Documents
+    'OR/CR': 'title or registration/s-soSUY4T.jpeg',
+    'Registration Papers': 'title or registration/s-soSUY4T.jpeg',
+  };
+
+  /// Get sample photo path for a specific category
   Future<String?> getSamplePhoto(String category) async {
-    if (useMockData) {
-      return _getMockSamplePhoto(category);
-    } else {
-      // TODO: Implement backend fetch
-      // final response = await http.get(Uri.parse('$baseUrl/sample-photos/$category'));
-      // if (response.statusCode == 200) {
-      //   final data = json.decode(response.body);
-      //   return data['sampleUrl'];
-      // }
-      return null;
+    final relativePath = _assetMapping[category];
+    if (relativePath != null) {
+      return '$_baseAssetPath/$relativePath';
     }
-  }
-
-  /// Mock sample photo URLs for testing
-  /// These will be replaced with actual backend URLs
-  String? _getMockSamplePhoto(String category) {
-    // Using picsum.photos for mock sample images
-    // Backend will replace these with actual guide photos
-    final seed = category.replaceAll(' ', '_').toLowerCase();
-    return 'https://picsum.photos/seed/sample_$seed/600/400';
+    
+    // Fallback: return a generic car photo or null
+    return '$_baseAssetPath/Front view/5LKfR.jpg';
   }
 }

@@ -677,28 +677,44 @@ class _Step7PhotosState extends State<Step7Photos> {
               ),
             ),
             if (sampleUrl != null)
-              Image.network(
-                sampleUrl,
-                height: 300,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const SizedBox(
+              sampleUrl.startsWith('assets/')
+                  ? Image.asset(
+                    sampleUrl,
                     height: 300,
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 300,
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported, size: 64),
+                        ),
+                      );
+                    },
+                  )
+                  : Image.network(
+                    sampleUrl,
                     height: 300,
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 64),
-                    ),
-                  );
-                },
-              )
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return const SizedBox(
+                        height: 300,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 300,
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Icon(Icons.image_not_supported, size: 64),
+                        ),
+                      );
+                    },
+                  )
             else
               Container(
                 height: 300,

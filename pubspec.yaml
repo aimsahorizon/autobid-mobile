@@ -94,6 +94,23 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
+    - assets/images/2017 Honda Civic Type R/center console and infotainment/
+    - assets/images/2017 Honda Civic Type R/closeup of all wheels and tires/
+    - assets/images/2017 Honda Civic Type R/driver seat and dashboard/
+    - assets/images/2017 Honda Civic Type R/driver side full view/
+    - assets/images/2017 Honda Civic Type R/engine bay overall shot/
+    - assets/images/2017 Honda Civic Type R/front 3-4 angle (driver side)/
+    - assets/images/2017 Honda Civic Type R/front 3-4 angle (passenger side)/
+    - assets/images/2017 Honda Civic Type R/Front view/
+    - assets/images/2017 Honda Civic Type R/odometer/
+    - assets/images/2017 Honda Civic Type R/passenger seat/
+    - assets/images/2017 Honda Civic Type R/passenger side full view/
+    - assets/images/2017 Honda Civic Type R/rear 3-4 angle (driver seat)/
+    - assets/images/2017 Honda Civic Type R/rear 3-4 angle (passenger seat)/
+    - assets/images/2017 Honda Civic Type R/Rear view/
+    - assets/images/2017 Honda Civic Type R/steering wheel and controls/
+    - assets/images/2017 Honda Civic Type R/title or registration/
+    - assets/images/2017 Honda Civic Type R/trunk or cargo area/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
