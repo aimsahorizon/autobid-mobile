@@ -484,9 +484,49 @@ class ListingDraftController extends ChangeNotifier {
     );
   }
 
+  /// Validate bidding configuration rules
+  bool _validateBiddingConfig() {
+    if (_currentDraft == null) return false;
+
+    final deposit = _currentDraft!.depositAmount ?? 50000;
+    final increment = _currentDraft!.bidIncrement ?? 1000;
+
+    // Deposit rules: 5k-50k, 5k increments
+    if (deposit < 5000) {
+      _errorMessage = 'Deposit amount must be at least ₱5,000';
+      return false;
+    }
+    if (deposit > 50000) {
+      _errorMessage = 'Deposit amount cannot exceed ₱50,000';
+      return false;
+    }
+    if (deposit % 5000 != 0) {
+      _errorMessage = 'Deposit amount must be a multiple of ₱5,000';
+      return false;
+    }
+
+    // Bid Increment rules: Min 1k, 1k increments
+    if (increment < 1000) {
+      _errorMessage = 'Bid increment must be at least ₱1,000';
+      return false;
+    }
+    if (increment % 1000 != 0) {
+      _errorMessage = 'Bid increment must be a multiple of ₱1,000';
+      return false;
+    }
+
+    return true;
+  }
+
   /// Submit listing
   Future<bool> submitListing(String userId) async {
     if (_currentDraft == null || !canSubmit) return false;
+
+    // Validate bidding config before submission
+    if (!_validateBiddingConfig()) {
+      notifyListeners();
+      return false;
+    }
 
     _isSubmitting = true;
     _errorMessage = null;
