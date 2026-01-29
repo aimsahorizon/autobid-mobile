@@ -11,6 +11,8 @@ class AuctionDetailEntity {
   final bool showReservePrice;
   final double minBidIncrement;
   final bool enableIncrementalBidding;
+  final String biddingType;
+  final double depositAmount;
   final int watchersCount;
   final int biddersCount;
   final int totalBids;
@@ -18,6 +20,9 @@ class AuctionDetailEntity {
   final String status; // 'active', 'ended', 'sold'
   final CarPhotosEntity photos;
   final bool hasUserDeposited;
+  
+  // Documents
+  final String? deedOfSaleUrl;
 
   // Anti-snipe guard configuration
   /// When enabled, auction extends if bid placed near end time (default: true)
@@ -95,6 +100,8 @@ class AuctionDetailEntity {
     required this.minimumBid,
     required this.minBidIncrement,
     required this.enableIncrementalBidding,
+    this.biddingType = 'public',
+    this.depositAmount = 0,
     this.reservePrice,
     required this.isReserveMet,
     required this.showReservePrice,
@@ -105,6 +112,7 @@ class AuctionDetailEntity {
     required this.status,
     required this.photos,
     required this.hasUserDeposited,
+    this.deedOfSaleUrl,
     this.snipeGuardEnabled = true,
     this.snipeGuardThresholdSeconds = 300,
     this.snipeGuardExtendSeconds = 300,

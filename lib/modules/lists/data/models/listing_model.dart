@@ -76,6 +76,21 @@ class ListingModel {
   /// Transaction ID for cancelled listings that have an associated failed transaction
   final String? transactionId;
 
+  // Bidding Configuration
+  final String biddingType;
+  final double bidIncrement;
+  final double minBidIncrement;
+  final double depositAmount;
+  final bool enableIncrementalBidding;
+  
+  // Snipe Guard
+  final bool snipeGuardEnabled;
+  final int snipeGuardThresholdSeconds;
+  final int snipeGuardExtendSeconds;
+
+  // Documents
+  final String? deedOfSaleUrl;
+
   const ListingModel({
     required this.id,
     required this.sellerId,
@@ -146,6 +161,15 @@ class ListingModel {
     required this.createdAt,
     required this.updatedAt,
     this.transactionId,
+    this.biddingType = 'public',
+    this.bidIncrement = 1000,
+    this.minBidIncrement = 1000,
+    this.depositAmount = 0,
+    this.enableIncrementalBidding = true,
+    this.snipeGuardEnabled = true,
+    this.snipeGuardThresholdSeconds = 300,
+    this.snipeGuardExtendSeconds = 300,
+    this.deedOfSaleUrl,
   });
 
   /// Convert database row to model
@@ -240,6 +264,15 @@ class ListingModel {
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
       transactionId: json['transaction_id'] as String?,
+      biddingType: json['bidding_type'] as String? ?? 'public',
+      bidIncrement: _toDouble(json['bid_increment']) ?? 1000,
+      minBidIncrement: _toDouble(json['min_bid_increment']) ?? 1000,
+      depositAmount: _toDouble(json['deposit_amount']) ?? 0,
+      enableIncrementalBidding: json['enable_incremental_bidding'] as bool? ?? true,
+      snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
+      snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int? ?? 300,
+      snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int? ?? 300,
+      deedOfSaleUrl: json['deed_of_sale_url'] as String?,
     );
   }
 
@@ -330,6 +363,15 @@ class ListingModel {
       knownIssues: knownIssues,
       features: features,
       auctionEndDate: auctionEndTime,
+      biddingType: biddingType,
+      bidIncrement: bidIncrement,
+      minBidIncrement: minBidIncrement,
+      depositAmount: depositAmount,
+      enableIncrementalBidding: enableIncrementalBidding,
+      snipeGuardEnabled: snipeGuardEnabled,
+      snipeGuardThresholdSeconds: snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds: snipeGuardExtendSeconds,
+      deedOfSaleUrl: deedOfSaleUrl,
     );
   }
 

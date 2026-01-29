@@ -246,6 +246,14 @@ class AuctionSupabaseDataSource {
         photos['all'] = photoList.map((p) => p['photo_url'] as String).toList();
       }
 
+      // Fetch detailed configuration from auctions table directly
+      // This ensures we get the latest schema fields even if the view is outdated
+      final auctionConfigResponse = await _supabase
+          .from('auctions')
+          .select('bidding_type, deed_of_sale_url')
+          .eq('id', auctionId)
+          .single();
+
       // Check if user has deposited (if logged in)
       bool hasUserDeposited = false;
       if (userId != null) {
@@ -266,6 +274,8 @@ class AuctionSupabaseDataSource {
       // Build auction detail model
       return AuctionDetailModel.fromJson({
         ...auctionResponse,
+        'bidding_type': auctionConfigResponse['bidding_type'],
+        'deed_of_sale_url': auctionConfigResponse['deed_of_sale_url'],
         'car_image_url': auctionResponse['primary_image_url'] ?? '',
         // Map database current_price to model's current_bid
         'current_bid':

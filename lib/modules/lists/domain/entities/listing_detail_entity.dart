@@ -82,6 +82,19 @@ class ListingDetailEntity {
   final List<String>? features;
   final DateTime? auctionEndDate;
 
+  // Configuration
+  final String biddingType;
+  final double bidIncrement;
+  final double minBidIncrement;
+  final double depositAmount;
+  final bool enableIncrementalBidding;
+  final bool snipeGuardEnabled;
+  final int snipeGuardThresholdSeconds;
+  final int snipeGuardExtendSeconds;
+  
+  // Documents
+  final String? deedOfSaleUrl;
+
   const ListingDetailEntity({
     required this.id,
     required this.status,
@@ -143,6 +156,15 @@ class ListingDetailEntity {
     this.knownIssues,
     this.features,
     this.auctionEndDate,
+    this.biddingType = 'public',
+    this.bidIncrement = 1000,
+    this.minBidIncrement = 1000,
+    this.depositAmount = 0,
+    this.enableIncrementalBidding = true,
+    this.snipeGuardEnabled = true,
+    this.snipeGuardThresholdSeconds = 300,
+    this.snipeGuardExtendSeconds = 300,
+    this.deedOfSaleUrl,
   });
 
   /// Get formatted car name

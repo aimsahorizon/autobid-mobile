@@ -30,9 +30,54 @@ class CarInfoTab extends StatelessWidget {
             _FeaturesSection(auction: auction),
           if (auction.features != null && auction.features!.isNotEmpty)
             const SizedBox(height: 24),
+          _AuctionConfigSection(auction: auction),
+          const SizedBox(height: 24),
           if (auction.description != null || auction.knownIssues != null)
             _DescriptionSection(auction: auction),
           const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuctionConfigSection extends StatelessWidget {
+  final AuctionDetailEntity auction;
+
+  const _AuctionConfigSection({required this.auction});
+
+  @override
+  Widget build(BuildContext context) {
+    return _InfoCard(
+      title: 'Auction Settings',
+      child: Column(
+        children: [
+          _InfoRow(
+            label: 'Bidding Type',
+            value: auction.biddingType == 'public' ? 'Public' : 'Private',
+          ),
+          _InfoRow(
+            label: 'Increment Type',
+            value: auction.enableIncrementalBidding ? 'Dynamic' : 'Fixed',
+          ),
+          if (!auction.enableIncrementalBidding)
+            _InfoRow(
+              label: 'Min Increment',
+              value: '₱${auction.minBidIncrement.toStringAsFixed(0)}',
+            ),
+          _InfoRow(
+            label: 'Buyer Deposit',
+            value: '₱${auction.depositAmount.toStringAsFixed(0)}',
+          ),
+          _InfoRow(
+            label: 'Snipe Guard',
+            value: auction.snipeGuardEnabled ? 'Enabled' : 'Disabled',
+          ),
+          if (auction.snipeGuardEnabled)
+            _InfoRow(
+              label: 'Extension',
+              value: '+${auction.snipeGuardExtendSeconds}s',
+            ),
         ],
       ),
     );
@@ -248,7 +293,8 @@ class _DocumentationSection extends StatelessWidget {
     // Only show if we have documentation data
     if (auction.plateNumber == null &&
         auction.orcrStatus == null &&
-        auction.province == null) {
+        auction.province == null &&
+        auction.deedOfSaleUrl == null) {
       return const SizedBox.shrink();
     }
 
@@ -256,6 +302,23 @@ class _DocumentationSection extends StatelessWidget {
       title: 'Documentation & Location',
       child: Column(
         children: [
+          if (auction.deedOfSaleUrl != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified, color: Colors.green, size: 20),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Deed of Sale Verified',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (auction.plateNumber != null)
             _InfoRow(label: 'Plate Number', value: auction.plateNumber!),
           if (auction.orcrStatus != null)
