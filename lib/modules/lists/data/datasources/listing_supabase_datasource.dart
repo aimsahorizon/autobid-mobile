@@ -467,6 +467,7 @@ class ListingSupabaseDataSource {
   Future<List<ListingModel>> getEndedListings(String sellerId) async {
     try {
       final endedStatusId = await _getStatusId('ended');
+      final unsoldStatusId = await _getStatusId('unsold');
 
       final response = await _supabase
           .from('auctions')
@@ -477,7 +478,7 @@ class ListingSupabaseDataSource {
             auction_photos(photo_url, category, display_order, is_primary)
           ''')
           .eq('seller_id', sellerId)
-          .eq('status_id', endedStatusId)
+          .inFilter('status_id', [endedStatusId, unsoldStatusId])
           .order('end_time', ascending: false);
 
       return (response as List)

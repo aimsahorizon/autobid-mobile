@@ -400,6 +400,7 @@ class ListingModel {
       case 'scheduled':
         return ListingStatus.scheduled;
       case 'ended':
+      case 'unsold':
         return ListingStatus.ended;
       case 'cancelled':
         return ListingStatus.cancelled;
