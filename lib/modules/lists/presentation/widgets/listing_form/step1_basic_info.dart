@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
 import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
 import 'combo_box_widget.dart';
 import '../../../data/datasources/demo_listing_data.dart';
@@ -59,60 +59,12 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
   void _updateDraft() {
     final draft = widget.controller.currentDraft!;
     widget.controller.updateDraft(
-      ListingDraftEntity(
-        id: draft.id,
-        sellerId: draft.sellerId,
-        currentStep: draft.currentStep,
+      draft.copyWith(
         lastSaved: DateTime.now(),
         brand: _brand,
         model: _model,
         variant: _variant,
         year: _yearController.text.isEmpty ? null : int.tryParse(_yearController.text),
-        engineType: draft.engineType,
-        engineDisplacement: draft.engineDisplacement,
-        cylinderCount: draft.cylinderCount,
-        horsepower: draft.horsepower,
-        torque: draft.torque,
-        transmission: draft.transmission,
-        fuelType: draft.fuelType,
-        driveType: draft.driveType,
-        length: draft.length,
-        width: draft.width,
-        height: draft.height,
-        wheelbase: draft.wheelbase,
-        groundClearance: draft.groundClearance,
-        seatingCapacity: draft.seatingCapacity,
-        doorCount: draft.doorCount,
-        fuelTankCapacity: draft.fuelTankCapacity,
-        curbWeight: draft.curbWeight,
-        grossWeight: draft.grossWeight,
-        exteriorColor: draft.exteriorColor,
-        paintType: draft.paintType,
-        rimType: draft.rimType,
-        rimSize: draft.rimSize,
-        tireSize: draft.tireSize,
-        tireBrand: draft.tireBrand,
-        condition: draft.condition,
-        mileage: draft.mileage,
-        previousOwners: draft.previousOwners,
-        hasModifications: draft.hasModifications,
-        modificationsDetails: draft.modificationsDetails,
-        hasWarranty: draft.hasWarranty,
-        warrantyDetails: draft.warrantyDetails,
-        usageType: draft.usageType,
-        plateNumber: draft.plateNumber,
-        orcrStatus: draft.orcrStatus,
-        registrationStatus: draft.registrationStatus,
-        registrationExpiry: draft.registrationExpiry,
-        province: draft.province,
-        cityMunicipality: draft.cityMunicipality,
-        photoUrls: draft.photoUrls,
-        description: draft.description,
-        knownIssues: draft.knownIssues,
-        features: draft.features,
-        startingPrice: draft.startingPrice,
-        reservePrice: draft.reservePrice,
-        auctionEndDate: draft.auctionEndDate,
       ),
     );
   }

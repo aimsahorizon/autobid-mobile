@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
 import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
 import 'ai_price_predictor.dart';
 import '../../../data/datasources/demo_listing_data.dart';
@@ -81,54 +81,8 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     if (draft == null) return; // Guard against null draft
 
     widget.controller.updateDraft(
-      ListingDraftEntity(
-        id: draft.id,
-        sellerId: draft.sellerId,
-        currentStep: draft.currentStep,
+      draft.copyWith(
         lastSaved: DateTime.now(),
-        brand: draft.brand,
-        model: draft.model,
-        variant: draft.variant,
-        year: draft.year,
-        engineType: draft.engineType,
-        engineDisplacement: draft.engineDisplacement,
-        cylinderCount: draft.cylinderCount,
-        horsepower: draft.horsepower,
-        torque: draft.torque,
-        transmission: draft.transmission,
-        fuelType: draft.fuelType,
-        driveType: draft.driveType,
-        length: draft.length,
-        width: draft.width,
-        height: draft.height,
-        wheelbase: draft.wheelbase,
-        groundClearance: draft.groundClearance,
-        seatingCapacity: draft.seatingCapacity,
-        doorCount: draft.doorCount,
-        fuelTankCapacity: draft.fuelTankCapacity,
-        curbWeight: draft.curbWeight,
-        grossWeight: draft.grossWeight,
-        exteriorColor: draft.exteriorColor,
-        paintType: draft.paintType,
-        rimType: draft.rimType,
-        rimSize: draft.rimSize,
-        tireSize: draft.tireSize,
-        tireBrand: draft.tireBrand,
-        condition: draft.condition,
-        mileage: draft.mileage,
-        previousOwners: draft.previousOwners,
-        hasModifications: draft.hasModifications,
-        modificationsDetails: draft.modificationsDetails,
-        hasWarranty: draft.hasWarranty,
-        warrantyDetails: draft.warrantyDetails,
-        usageType: draft.usageType,
-        plateNumber: draft.plateNumber,
-        orcrStatus: draft.orcrStatus,
-        registrationStatus: draft.registrationStatus,
-        registrationExpiry: draft.registrationExpiry,
-        province: draft.province,
-        cityMunicipality: draft.cityMunicipality,
-        photoUrls: draft.photoUrls,
         description: _descriptionController.text.isEmpty
             ? null
             : _descriptionController.text,
