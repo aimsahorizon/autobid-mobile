@@ -292,20 +292,25 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
               context: context,
               initialDate:
                   _auctionEndDate ??
-                  DateTime.now().add(const Duration(days: 7)),
-              firstDate: DateTime.now().add(const Duration(days: 1)),
+                  DateTime.now().add(const Duration(hours: 1)),
+              firstDate: DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 90)),
             );
             if (picked != null) {
-              final endOfDay = DateTime(
+              // Allow time selection
+              final pickedTime = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay.now(),
+              );
+              final endDateTime = DateTime(
                 picked.year,
                 picked.month,
                 picked.day,
-                23,
-                59,
+                pickedTime?.hour ?? 23,
+                pickedTime?.minute ?? 59,
                 59,
               );
-              setState(() => _auctionEndDate = endOfDay);
+              setState(() => _auctionEndDate = endDateTime);
               _updateDraft();
             }
           },
