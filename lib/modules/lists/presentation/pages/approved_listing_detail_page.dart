@@ -116,7 +116,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
 
     try {
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
       final currentEnd = listing.endTime;
       // Ensure end_time stays after start_time to satisfy constraint
       final safeEnd = (currentEnd != null && currentEnd.isAfter(now))
