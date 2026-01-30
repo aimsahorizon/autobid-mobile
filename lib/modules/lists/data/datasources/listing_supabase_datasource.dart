@@ -867,6 +867,35 @@ class ListingSupabaseDataSource {
     }
   }
 
+  /// Update auction end time for pending/approved listings
+  Future<void> updateAuctionEndTime(
+    String auctionId,
+    DateTime newEndTime,
+  ) async {
+    try {
+      final response = await _supabase.rpc(
+        'update_auction_end_time',
+        params: {
+          'p_auction_id': auctionId,
+          'p_new_end_time': newEndTime.toIso8601String(),
+        },
+      );
+
+      // Check if RPC returned error
+      if (response is Map) {
+        if (response['success'] == false) {
+          throw Exception(
+            response['error'] ?? 'Failed to update auction end time',
+          );
+        }
+      }
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update end time: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update end time: $e');
+    }
+  }
+
   /// Complete sale (mark as sold)
   Future<void> completeSale(String listingId, double finalPrice) async {
     try {

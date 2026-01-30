@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../../domain/usecases/submission_usecases.dart';
+import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import '../widgets/invite_user_dialog.dart';
@@ -67,6 +69,25 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
+          // Update End Time button
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : () => _updateEndTime(context),
+                  icon: const Icon(Icons.schedule),
+                  label: const Text('Update End Time'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           // Invite Users button - only show during pending_approval, scheduled, or live
           if (canInvite)
             Row(
@@ -122,6 +143,67 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
     );
   }
 
+  Future<void> _updateEndTime(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate:
+          widget.listing.endTime ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+    );
+
+    if (picked == null || !context.mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+        widget.listing.endTime ?? DateTime.now().add(const Duration(hours: 1)),
+      ),
+    );
+
+    if (pickedTime == null || !context.mounted) return;
+
+    final localDateTime = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      pickedTime.hour,
+      pickedTime.minute,
+      59,
+    );
+
+    final newEndTime = localDateTime.toUtc();
+
+    setState(() => _isLoading = true);
+
+    try {
+      final datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+      await datasource.updateAuctionEndTime(widget.listing.id, newEndTime);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Auction end time updated successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _cancelListing(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -172,7 +254,10 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
             );
             Future.delayed(const Duration(milliseconds: 500), () {
               if (mounted) {
-                Navigator.pop(context, true); // Return true to trigger list refresh
+                Navigator.pop(
+                  context,
+                  true,
+                ); // Return true to trigger list refresh
               }
             });
           },

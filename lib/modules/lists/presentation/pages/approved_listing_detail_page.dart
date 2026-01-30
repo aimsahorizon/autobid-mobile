@@ -18,6 +18,73 @@ class ApprovedListingDetailPage extends StatelessWidget {
 
   ApprovedListingDetailPage({super.key, required this.listing});
 
+  Future<void> _updateEndTime(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate:
+          listing.endTime ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+    );
+
+    if (picked == null || !context.mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+        listing.endTime ?? DateTime.now().add(const Duration(hours: 1)),
+      ),
+    );
+
+    if (pickedTime == null || !context.mounted) return;
+
+    final localDateTime = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      pickedTime.hour,
+      pickedTime.minute,
+      59,
+    );
+
+    final newEndTime = localDateTime.toUtc();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      await _datasource.updateAuctionEndTime(listing.id, newEndTime);
+
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading
+        Navigator.pop(context, true); // Return to refresh
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Auction end time updated successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _makeListingLive(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -52,10 +119,9 @@ class ApprovedListingDetailPage extends StatelessWidget {
       final now = DateTime.now();
       final currentEnd = listing.endTime;
       // Ensure end_time stays after start_time to satisfy constraint
-      final safeEnd =
-          (currentEnd != null && currentEnd.isAfter(now))
-              ? currentEnd
-              : now.add(const Duration(days: 7));
+      final safeEnd = (currentEnd != null && currentEnd.isAfter(now))
+          ? currentEnd
+          : now.add(const Duration(days: 7));
 
       // Update listing status to live with aligned start/end
       await _datasource.updateListingStatusByName(
@@ -99,7 +165,9 @@ class ApprovedListingDetailPage extends StatelessWidget {
     final now = DateTime.now();
     // Clamp initial picker value to be >= today to avoid showDatePicker assertion
     final baseRaw = listing.startTime ?? now.add(const Duration(hours: 1));
-    final base = baseRaw.isBefore(now) ? now.add(const Duration(hours: 1)) : baseRaw;
+    final base = baseRaw.isBefore(now)
+        ? now.add(const Duration(hours: 1))
+        : baseRaw;
 
     // Step 1: choose date
     final pickedDate = await showDatePicker(
@@ -212,7 +280,8 @@ class ApprovedListingDetailPage extends StatelessWidget {
     final isScheduled = listing.status == ListingStatus.scheduled;
 
     // Auto-start if scheduled time already passed
-    final shouldAutoStart = isScheduled &&
+    final shouldAutoStart =
+        isScheduled &&
         listing.startTime != null &&
         listing.startTime!.isBefore(DateTime.now()) &&
         !_autoStartTriggered.contains(listing.id);
@@ -267,10 +336,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: gradientColors),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: accentColor.withValues(alpha: 0.4),
-          width: 2,
-        ),
+        border: Border.all(color: accentColor.withValues(alpha: 0.4), width: 2),
       ),
       child: Column(
         children: [
@@ -315,8 +381,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
                     : ColorConstants.textSecondaryLight,
               ),
             ),
-          ]
-          else
+          ] else
             Text(
               'Your listing has been approved! Choose to go live now or schedule for later.',
               textAlign: TextAlign.center,
@@ -399,11 +464,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomBar(
-    BuildContext context,
-    bool isDark,
-    bool isScheduled,
-  ) {
+  Widget _buildBottomBar(BuildContext context, bool isDark, bool isScheduled) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -419,45 +480,78 @@ class ApprovedListingDetailPage extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: OutlinedButton.icon(
-                  onPressed: () => _scheduleListingLater(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: isScheduled ? Colors.purple : ColorConstants.info,
-                    side: const BorderSide(
-                      color: ColorConstants.info,
-                      width: 2,
-                    ),
-                  ),
-                  icon: Icon(isScheduled ? Icons.edit_calendar : Icons.schedule),
-                  label: Text(
-                    isScheduled ? 'Reschedule' : 'Schedule',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+            // Update End Time button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _updateEndTime(context),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.access_time),
+                label: const Text(
+                  'Update End Time',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: FilledButton.icon(
-                  onPressed: () => _makeListingLive(context),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: isScheduled ? Colors.deepPurple : ColorConstants.success,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.rocket_launch),
-                  label: Text(
-                    isScheduled ? 'Start Now' : 'Go Live',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _scheduleListingLater(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isScheduled
+                            ? Colors.purple
+                            : ColorConstants.info,
+                        side: const BorderSide(
+                          color: ColorConstants.info,
+                          width: 2,
+                        ),
+                      ),
+                      icon: Icon(
+                        isScheduled ? Icons.edit_calendar : Icons.schedule,
+                      ),
+                      label: Text(
+                        isScheduled ? 'Reschedule' : 'Schedule',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed: () => _makeListingLive(context),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: isScheduled
+                            ? Colors.deepPurple
+                            : ColorConstants.success,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.rocket_launch),
+                      label: Text(
+                        isScheduled ? 'Start Now' : 'Go Live',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

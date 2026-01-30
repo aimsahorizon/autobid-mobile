@@ -302,7 +302,8 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                 context: context,
                 initialTime: TimeOfDay.now(),
               );
-              final endDateTime = DateTime(
+              // Create datetime in local timezone
+              final localDateTime = DateTime(
                 picked.year,
                 picked.month,
                 picked.day,
@@ -310,7 +311,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                 pickedTime?.minute ?? 59,
                 59,
               );
-              setState(() => _auctionEndDate = endDateTime);
+              // Convert to UTC immediately to maintain the actual intended time
+              // This prevents timezone issues when storing and retrieving
+              setState(() => _auctionEndDate = localDateTime.toUtc());
               _updateDraft();
             }
           },
