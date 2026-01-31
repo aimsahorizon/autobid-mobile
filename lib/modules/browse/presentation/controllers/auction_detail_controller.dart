@@ -13,6 +13,8 @@ import '../../domain/usecases/unlike_question_usecase.dart';
 import '../../domain/usecases/get_bid_increment_usecase.dart';
 import '../../domain/usecases/upsert_bid_increment_usecase.dart';
 import '../../domain/usecases/process_deposit_usecase.dart';
+import '../../domain/usecases/stream_auction_updates_usecase.dart';
+import '../../domain/usecases/stream_bid_updates_usecase.dart';
 import '../../../profile/domain/usecases/consume_bidding_token_usecase.dart';
 
 /// Controller for managing auction detail page state
@@ -34,6 +36,8 @@ class AuctionDetailController extends ChangeNotifier {
   final UpsertBidIncrementUseCase _upsertBidIncrementUseCase;
   final ProcessDepositUseCase _processDepositUseCase;
   final ConsumeBiddingTokenUsecase _consumeBiddingTokenUsecase;
+  final StreamAuctionUpdatesUseCase _streamAuctionUpdatesUseCase;
+  final StreamBidUpdatesUseCase _streamBidUpdatesUseCase;
   final String? _userId;
 
   /// Create controller with UseCases via Dependency Injection
@@ -49,6 +53,8 @@ class AuctionDetailController extends ChangeNotifier {
     required UpsertBidIncrementUseCase upsertBidIncrementUseCase,
     required ProcessDepositUseCase processDepositUseCase,
     required ConsumeBiddingTokenUsecase consumeBiddingTokenUsecase,
+    required StreamAuctionUpdatesUseCase streamAuctionUpdatesUseCase,
+    required StreamBidUpdatesUseCase streamBidUpdatesUseCase,
     String? userId,
   }) : _getAuctionDetailUseCase = getAuctionDetailUseCase,
        _getBidHistoryUseCase = getBidHistoryUseCase,
@@ -61,6 +67,8 @@ class AuctionDetailController extends ChangeNotifier {
        _upsertBidIncrementUseCase = upsertBidIncrementUseCase,
        _processDepositUseCase = processDepositUseCase,
        _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
+       _streamAuctionUpdatesUseCase = streamAuctionUpdatesUseCase,
+       _streamBidUpdatesUseCase = streamBidUpdatesUseCase,
        _userId = userId;
 
   // State properties
@@ -78,6 +86,8 @@ class AuctionDetailController extends ChangeNotifier {
   double? _maxAutoBid;
   double _bidIncrement = 1000;
   Timer? _pollingTimer;
+  StreamSubscription? _auctionSubscription;
+  StreamSubscription? _bidSubscription;
 
   // Public getters
   AuctionDetailEntity? get auction => _auction;
@@ -138,6 +148,9 @@ class AuctionDetailController extends ChangeNotifier {
 
       // Load bid history and Q&A in parallel
       await Future.wait([_loadBidHistory(id), _loadQuestions(id)]);
+
+      // Start Realtime Updates
+      _subscribeToRealtimeUpdates(id);
 
       // Check if we've been outbid and auto-bid is active
       if (previousBid != null &&
@@ -567,6 +580,38 @@ class AuctionDetailController extends ChangeNotifier {
     }
   }
 
+  /// Subscribe to realtime updates for auction and bids
+  void _subscribeToRealtimeUpdates(String auctionId) {
+    // Cancel existing subscriptions if any
+    _auctionSubscription?.cancel();
+    _bidSubscription?.cancel();
+
+    print('DEBUG: Subscribing to realtime updates for auction: $auctionId');
+
+    // Subscribe to auction updates (price, end_time)
+    _auctionSubscription = _streamAuctionUpdatesUseCase(
+      auctionId: auctionId,
+    ).listen((_) {
+      print('DEBUG: Realtime auction update received');
+      // Reload auction details quietly
+      loadAuctionDetail(auctionId, isBackground: true);
+    }, onError: (e) {
+      print('ERROR: Realtime auction subscription error: $e');
+    });
+
+    // Subscribe to bid updates (new bids)
+    _bidSubscription = _streamBidUpdatesUseCase(auctionId: auctionId).listen((
+      _,
+    ) {
+      print('DEBUG: Realtime bid update received');
+      // Reload bid history quietly
+      _loadBidHistory(auctionId);
+      // Note: Auction update usually triggers separately, but reloading history ensures timeline is fresh
+    }, onError: (e) {
+      print('ERROR: Realtime bid subscription error: $e');
+    });
+  }
+
   /// Starts polling timer to periodically check for auction updates
   /// Runs every 5 seconds when auto-bid is active
   void _startPolling() {
@@ -593,6 +638,8 @@ class AuctionDetailController extends ChangeNotifier {
   @override
   void dispose() {
     _stopPolling();
+    _auctionSubscription?.cancel();
+    _bidSubscription?.cancel();
     super.dispose();
   }
 }
