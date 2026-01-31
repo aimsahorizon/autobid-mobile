@@ -3,8 +3,6 @@ import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
 import 'province_city_picker.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step6Documentation extends StatefulWidget {
   final ListingDraftController controller;
@@ -105,19 +103,6 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     );
   }
 
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(6);
-    setState(() {
-      _plateController.text = demoData['plateNumber'];
-      _orcrStatus = demoData['orcrStatus'];
-      _registrationStatus = demoData['registrationStatus'];
-      _registrationExpiry = demoData['registrationExpiry'];
-      _province = demoData['province'];
-      _city = demoData['cityMunicipality'];
-    });
-    _updateDraft();
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -127,8 +112,6 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           'Step 6: Documentation & Location',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         FormFieldWidget(
           controller: _plateController,

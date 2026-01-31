@@ -5,7 +5,6 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import '../../../data/datasources/sample_photo_guide_datasource.dart';
-import 'demo_autofill_button.dart';
 
 class Step7Photos extends StatefulWidget {
   final ListingDraftController controller;
@@ -93,9 +92,9 @@ class _Step7PhotosState extends State<Step7Photos> {
           showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => WillPopScope(
-              onWillPop: () async => false,
-              child: const Center(
+            builder: (context) => const PopScope(
+              canPop: false,
+              child: Center(
                 child: Card(
                   child: Padding(
                     padding: EdgeInsets.all(24),
@@ -249,7 +248,7 @@ class _Step7PhotosState extends State<Step7Photos> {
     }
   }
 
-  Future<void> _pickImage(BuildContext context, String category) async {
+  Future<void> _pickDeedOfSale(BuildContext context) async {
     // Directly open camera for document capture
     setState(() => _isUploadingDeedOfSale = true);
 

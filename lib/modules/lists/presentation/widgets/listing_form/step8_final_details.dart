@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// ...existing code...
 import '../../controllers/listing_draft_controller.dart';
 import 'form_field_widget.dart';
 import 'ai_price_predictor.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step8FinalDetails extends StatefulWidget {
   final ListingDraftController controller;
@@ -139,21 +136,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _updateDraft();
   }
 
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(8);
-    setState(() {
-      _descriptionController.text = demoData['description'];
-      _issuesController.text = demoData['knownIssues'] ?? '';
-      _features = List<String>.from(demoData['features'] ?? []);
-      _startingPriceController.text = demoData['startingPrice'].toString();
-      _reservePriceController.text = demoData['reservePrice']?.toString() ?? '';
-      _auctionEndDate = demoData['auctionEndDate'];
-      _bidIncrementController.text = '5000';
-      _depositAmountController.text = '50000';
-    });
-    _updateDraft();
-  }
-
   @override
   Widget build(BuildContext context) {
     final draft = widget.controller.currentDraft;
@@ -172,8 +154,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           'Step 8: Final Details & Bidding Configuration',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
 
         // ===== DESCRIPTION & DETAILS SECTION =====
