@@ -60,10 +60,12 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
   Widget _buildActionButtons(BuildContext context, bool isDark) {
     // Determine if seller can invite users
     // Invites allowed: pending_approval (after admin approval), scheduled, or live
+    // AND must be a private auction
     final canInvite =
-        widget.listing.status == ListingStatus.pending ||
+        (widget.listing.status == ListingStatus.pending ||
         widget.listing.status == ListingStatus.scheduled ||
-        widget.listing.status == ListingStatus.active;
+        widget.listing.status == ListingStatus.active) &&
+        widget.listing.biddingType == 'private';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),

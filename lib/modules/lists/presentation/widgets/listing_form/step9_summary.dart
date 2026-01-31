@@ -24,12 +24,15 @@ class Step9Summary extends StatelessWidget {
 
     if (success) {
       onSubmitSuccess();
-    } else {
-      final errorMessage =
-          controller.errorMessage ?? 'Please complete all required fields';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errorMessage)));
+    } else if (controller.errorMessage != null) {
+      // Only show error if submission failed and there is an error message
+      // If success is false but no error message, it might be a silent failure or handled elsewhere
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(controller.errorMessage!),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

@@ -6,6 +6,7 @@ import '../widgets/detail_sections/listing_info_section.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../../domain/entities/seller_listing_entity.dart';
+import '../widgets/invite_user_dialog.dart';
 
 class ApprovedListingDetailPage extends StatelessWidget {
   final ListingDetailEntity listing;
@@ -483,6 +484,32 @@ class ApprovedListingDetailPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Invite Users button (only for private auctions)
+            if (listing.biddingType == 'private') ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => InviteUserDialog(
+                        auctionId: listing.id,
+                        auctionTitle: '${listing.year} ${listing.brand} ${listing.model}',
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.person_add),
+                  label: const Text(
+                    'Invite Users',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             // Update End Time button
             SizedBox(
               width: double.infinity,

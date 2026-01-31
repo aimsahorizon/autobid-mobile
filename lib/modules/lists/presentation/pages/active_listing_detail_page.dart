@@ -7,6 +7,7 @@ import '../widgets/detail_sections/listing_info_section.dart';
 import '../widgets/detail_sections/auction_stats_section.dart';
 import '../widgets/detail_sections/qa_section.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
+import '../widgets/invite_user_dialog.dart';
 
 class ActiveListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
@@ -171,17 +172,45 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
         child: SafeArea(
           child: SizedBox(
             height: 48,
-            child: FilledButton.icon(
-              onPressed: () => _endAuction(context),
-              style: FilledButton.styleFrom(
-                backgroundColor: ColorConstants.warning,
-                foregroundColor: Colors.white,
-              ),
-              icon: const Icon(Icons.flag),
-              label: const Text(
-                'End Auction',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+            child: Row(
+              children: [
+                if (_listing.biddingType == 'private') ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => InviteUserDialog(
+                            auctionId: _listing.id,
+                            auctionTitle: '${_listing.year} ${_listing.brand} ${_listing.model}',
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Invite'),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  flex: 2,
+                  child: FilledButton.icon(
+                    onPressed: () => _endAuction(context),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: ColorConstants.warning,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.flag),
+                    label: const Text(
+                      'End Auction',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
