@@ -285,10 +285,10 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
     setState(() => _isSubmitting = true);
 
     await _controller.createTicket(
-      subject: _subjectController.text,
       categoryId: 'cat_${_selectedCategory.name}',
-      categoryName: _selectedCategory.label,
-      message: _messageController.text,
+      subject: _subjectController.text,
+      description: _messageController.text,
+      priority: TicketPriority.medium,
     );
     
     setState(() => _isSubmitting = false);
@@ -389,7 +389,10 @@ class _TicketDetailPageState extends State<_TicketDetailPage> {
     if (_messageController.text.isEmpty) return;
 
     setState(() => _isSending = true);
-    await _controller.addMessage(widget.ticket.id, _messageController.text);
+    await _controller.addMessage(
+      ticketId: widget.ticket.id,
+      message: _messageController.text,
+    );
     _messageController.clear();
     setState(() => _isSending = false);
 

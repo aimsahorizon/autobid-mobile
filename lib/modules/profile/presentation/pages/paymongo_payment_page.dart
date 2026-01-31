@@ -4,6 +4,7 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
 import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../../data/datasources/pricing_supabase_datasource.dart';
 
@@ -25,7 +26,7 @@ class PayMongoPaymentPage extends StatefulWidget {
 }
 
 class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
-  PayMongoService _payMongoService = PayMongoService();
+  final PayMongoService _payMongoService = PayMongoService();
   bool _isProcessing = false;
   bool _useDemoMode = true;
 
@@ -74,7 +75,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     setState(() => _isProcessing = true);
 
     // Use Mock service if in demo mode
-    final service = _useDemoMode ? PayMongoMockService() : _payMongoService;
+    final IPayMongoService service = _useDemoMode ? PayMongoMockService() : _payMongoService;
 
     try {
       if (_selectedPaymentMethod == PaymentMethodType.card) {
@@ -107,7 +108,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     }
   }
 
-  Future<void> _processCardPayment(PayMongoService service) async {
+  Future<void> _processCardPayment(IPayMongoService service) async {
     // Step 1: Create payment intent
     final paymentIntent = await service.createPaymentIntent(
       amount: widget.package.price,
@@ -152,10 +153,10 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     }
   }
 
-  Future<void> _processGCashPayment(PayMongoService service) async {
+  Future<void> _processGCashPayment(IPayMongoService service) async {
     // ...
     // Step 1: Create payment intent
-    final paymentIntent = await _payMongoService.createPaymentIntent(
+    final paymentIntent = await service.createPaymentIntent(
       amount: widget.package.price,
       description: widget.package.description,
       metadata: {
@@ -169,7 +170,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     final paymentIntentId = paymentIntent['id'] as String;
 
     // Step 2: Create GCash source
-    final source = await _payMongoService.createSource(
+    final source = await service.createSource(
       type: 'gcash',
       amount: widget.package.price,
       redirectSuccessUrl: 'https://autobid.app/payment/success',

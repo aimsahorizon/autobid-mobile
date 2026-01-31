@@ -63,8 +63,18 @@ class SupportController extends ChangeNotifier {
   String? get createTicketError => _createTicketError;
   String? get sendMessageError => _sendMessageError;
 
+  /// Combined error message for UI
+  String? get errorMessage =>
+      _error ??
+      _createTicketError ??
+      _sendMessageError ??
+      _ticketsError ??
+      _ticketDetailError ??
+      _categoriesError;
+
   List<SupportCategoryEntity> get categories => _categories;
   List<SupportTicketEntity> get tickets => _tickets;
+  List<SupportTicketEntity> get userTickets => _tickets;
   SupportTicketEntity? get selectedTicket => _selectedTicket;
   TicketStatus? get statusFilter => _statusFilter;
 
@@ -87,7 +97,7 @@ class SupportController extends ChangeNotifier {
   }
 
   /// Load user tickets with optional filtering
-  Future<void> loadTickets({
+  Future<void> loadUserTickets({
     TicketStatus? status,
     bool refresh = false,
   }) async {
@@ -283,7 +293,7 @@ class SupportController extends ChangeNotifier {
 
   /// Refresh tickets list
   Future<void> refresh() async {
-    await loadTickets(status: _statusFilter, refresh: true);
+    await loadUserTickets(status: _statusFilter, refresh: true);
   }
 
   /// Clear selected ticket

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
 import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
+import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import '../../domain/entities/pricing_entity.dart';
 
 /// Subscription payment page for processing plan subscriptions
@@ -23,7 +24,7 @@ class SubscriptionPaymentPage extends StatefulWidget {
 }
 
 class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
-  final _payMongoService = PayMongoService();
+  final PayMongoService _payMongoService = PayMongoService();
   bool _isProcessing = false;
   bool _useDemoMode = true; // Default to test environment
 
@@ -62,7 +63,7 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
     setState(() => _isProcessing = true);
 
     // Use Mock service if in demo mode
-    final service = _useDemoMode ? PayMongoMockService() : _payMongoService;
+    final IPayMongoService service = _useDemoMode ? PayMongoMockService() : _payMongoService;
 
     try {
       // Step 1: Create payment intent
