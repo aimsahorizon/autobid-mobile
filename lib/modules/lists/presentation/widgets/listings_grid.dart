@@ -3,7 +3,7 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import 'listing_card.dart';
-import '../../data/datasources/listing_detail_mock_datasource.dart';
+import '../../data/datasources/listing_supabase_datasource.dart';
 import '../controllers/listing_draft_controller.dart';
 import '../pages/active_listing_detail_page.dart';
 import '../pages/pending_listing_detail_page.dart';
@@ -59,16 +59,18 @@ class ListingsGrid extends StatelessWidget {
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // Convert to ListingDetailEntity
-    final datasource = ListingDetailMockDataSource();
-    final detailEntity = await datasource.convertToDetailEntity(listing);
+    try {
+      // Fetch full listing details from Supabase
+      final datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+      final listingModel = await datasource.getSellerListing(listing.id);
+      final detailEntity = listingModel.toListingDetailEntity();
 
-    if (!context.mounted) return;
-    Navigator.pop(context); // Close loading dialog
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close loading dialog
 
-    // Navigate to appropriate detail page based on status
-    Widget detailPage;
-    switch (listing.status) {
+      // Navigate to appropriate detail page based on status
+      Widget detailPage;
+      switch (listing.status) {
       case ListingStatus.active:
         detailPage = ActiveListingDetailPage(listing: detailEntity);
         break;
@@ -184,6 +186,17 @@ class ListingsGrid extends StatelessWidget {
     // Reload listings if there was an update (delete/submit)
     if (result != null && onListingUpdated != null) {
       onListingUpdated!();
+    }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load listing details: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
     }
   }
 

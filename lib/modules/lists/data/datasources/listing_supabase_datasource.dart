@@ -1657,4 +1657,42 @@ class ListingSupabaseDataSource {
         .stream(primaryKey: ['id'])
         .eq('seller_id', sellerId);
   }
+
+  /// Fetch a single seller listing by ID with full details
+  /// Used for navigating from list to detail view
+  Future<ListingModel> getSellerListing(String auctionId) async {
+    try {
+      final response = await _supabase
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary),
+            auction_transactions!auction_transactions_auction_id_fkey(id, status)
+          ''')
+          .eq('id', auctionId)
+          .single();
+
+      // Check for transaction (for cancelled listings)
+      final transactions = response['auction_transactions'] as List?;
+      String? transactionId;
+      if (transactions != null && transactions.isNotEmpty) {
+        final failedTransaction = transactions.firstWhere(
+          (txn) => txn['status'] == 'deal_failed',
+          orElse: () => transactions.first,
+        );
+        transactionId = failedTransaction['id'] as String?;
+      }
+
+      final jsonWithTransaction = Map<String, dynamic>.from(response);
+      jsonWithTransaction['transaction_id'] = transactionId;
+
+      return _mergeAuctionWithVehicleData(jsonWithTransaction);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch listing detail: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to fetch listing detail: $e');
+    }
+  }
 }
