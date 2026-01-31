@@ -183,4 +183,14 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
       return Left(ServerFailure('Failed to process deposit: ${e.toString()}'));
     }
   }
+
+  @override
+  Stream<void> streamAuctionUpdates({required String auctionId}) {
+    return remoteDataSource.streamAuctionUpdates(auctionId: auctionId);
+  }
+
+  @override
+  Stream<void> streamBidUpdates({required String auctionId}) {
+    return remoteDataSource.streamBidUpdates(auctionId: auctionId);
+  }
 }
