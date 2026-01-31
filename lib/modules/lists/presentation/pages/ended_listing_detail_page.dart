@@ -320,8 +320,8 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   Widget _buildResultCard(bool isReserveMet, bool hasReservePrice) {
     return Card(
       color: isReserveMet
-          ? ColorConstants.success.withOpacity(0.1)
-          : ColorConstants.warning.withOpacity(0.1),
+          ? ColorConstants.success.withAlpha((0.1 * 255).toInt())
+          : ColorConstants.warning.withAlpha((0.1 * 255).toInt()),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -396,8 +396,8 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   Widget _buildGuidanceCard(bool isReserveMet) {
     return Card(
       color: isReserveMet
-          ? ColorConstants.success.withOpacity(0.1)
-          : ColorConstants.warning.withOpacity(0.1),
+          ? ColorConstants.success.withAlpha((0.1 * 255).toInt())
+          : ColorConstants.warning.withAlpha((0.1 * 255).toInt()),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -445,7 +445,9 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withAlpha((0.5 * 255).toInt()),
                 ),
               ),
               child: Column(

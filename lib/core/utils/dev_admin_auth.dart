@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 /// DEV ONLY: Admin authentication bypass for testing
 /// This allows instant admin access without proper authentication flow
@@ -12,7 +13,7 @@ class DevAdminAuth {
     try {
       final supabase = Supabase.instance.client;
 
-      print('[DevAdminAuth] Starting quick admin login...');
+      debugPrint('[DevAdminAuth] Starting quick admin login...');
 
       // Try to sign in first
       try {
@@ -20,9 +21,9 @@ class DevAdminAuth {
           email: devAdminEmail,
           password: devAdminPassword,
         );
-        print('[DevAdminAuth] Sign in successful: ${response.user?.id}');
+        debugPrint('[DevAdminAuth] Sign in successful: ${response.user?.id}');
       } catch (signInError) {
-        print('[DevAdminAuth] Sign in failed, attempting sign up...');
+        debugPrint('[DevAdminAuth] Sign in failed, attempting sign up...');
 
         // If sign in fails, try to sign up
         try {
@@ -30,16 +31,16 @@ class DevAdminAuth {
             email: devAdminEmail,
             password: devAdminPassword,
           );
-          print('[DevAdminAuth] Sign up successful: ${signUpResponse.user?.id}');
+          debugPrint('[DevAdminAuth] Sign up successful: ${signUpResponse.user?.id}');
 
           // Sign in after sign up
           await supabase.auth.signInWithPassword(
             email: devAdminEmail,
             password: devAdminPassword,
           );
-          print('[DevAdminAuth] Post-signup sign in successful');
+          debugPrint('[DevAdminAuth] Post-signup sign in successful');
         } catch (signUpError) {
-          print('[DevAdminAuth] Sign up failed: $signUpError');
+          debugPrint('[DevAdminAuth] Sign up failed: $signUpError');
           return false;
         }
       }
@@ -49,7 +50,7 @@ class DevAdminAuth {
 
       return true;
     } catch (e) {
-      print('[DevAdminAuth] Quick admin login failed: $e');
+      debugPrint('[DevAdminAuth] Quick admin login failed: $e');
       return false;
     }
   }
@@ -59,11 +60,11 @@ class DevAdminAuth {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
-        print('[DevAdminAuth] No current user, cannot create admin_users record');
+        debugPrint('[DevAdminAuth] No current user, cannot create admin_users record');
         return;
       }
 
-      print('[DevAdminAuth] Checking admin_users record for: $userId');
+      debugPrint('[DevAdminAuth] Checking admin_users record for: $userId');
 
       // Check if admin_users record exists
       final existingAdmin = await supabase
@@ -73,11 +74,11 @@ class DevAdminAuth {
           .maybeSingle();
 
       if (existingAdmin != null) {
-        print('[DevAdminAuth] Admin_users record already exists');
+        debugPrint('[DevAdminAuth] Admin_users record already exists');
         return;
       }
 
-      print('[DevAdminAuth] Creating admin_users record...');
+      debugPrint('[DevAdminAuth] Creating admin_users record...');
 
       // Get super_admin role ID
       final roleResponse = await supabase
@@ -96,7 +97,7 @@ class DevAdminAuth {
           .maybeSingle();
 
       if (userExists == null) {
-        print('[DevAdminAuth] Creating users table record...');
+        debugPrint('[DevAdminAuth] Creating users table record...');
         await supabase.from('users').insert({
           'id': userId,
           'email': devAdminEmail,
@@ -114,10 +115,10 @@ class DevAdminAuth {
         'created_by': userId,
       });
 
-      print('[DevAdminAuth] ✅ Admin_users record created successfully');
+      debugPrint('[DevAdminAuth] ✅ Admin_users record created successfully');
     } catch (e) {
-      print('[DevAdminAuth] ⚠️  Failed to create admin_users record: $e');
-      print('[DevAdminAuth] ℹ️  You may need to run create_admin_account.sql manually');
+      debugPrint('[DevAdminAuth] ⚠️  Failed to create admin_users record: $e');
+      debugPrint('[DevAdminAuth] ℹ️  You may need to run create_admin_account.sql manually');
     }
   }
 

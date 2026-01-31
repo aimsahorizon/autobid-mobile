@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:fpdart/fpdart.dart';
+// ...existing code...
 import 'package:autobid_mobile/modules/profile/data/repositories/profile_repository_supabase_impl.dart';
 import 'package:autobid_mobile/modules/profile/data/datasources/profile_supabase_datasource.dart';
 import 'package:autobid_mobile/modules/profile/data/models/user_profile_model.dart';

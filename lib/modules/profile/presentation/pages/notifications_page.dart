@@ -172,7 +172,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       color: isRead
           ? (isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight)
-          : ColorConstants.primary.withOpacity(0.1),
+          : ColorConstants.primary.withAlpha((0.1 * 255).toInt()),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

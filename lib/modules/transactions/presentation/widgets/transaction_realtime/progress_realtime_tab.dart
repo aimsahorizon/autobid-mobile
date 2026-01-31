@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
@@ -238,16 +239,16 @@ class ProgressRealtimeTab extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      print(
+      debugPrint(
         '[ProgressRealtimeTab] User confirmed cancel. Calling controller...',
       );
-      print('[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"');
+      debugPrint('[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"');
 
       final success = await controller.buyerCancelDeal(
         reason: reasonController.text.trim(),
       );
 
-      print('[ProgressRealtimeTab] buyerCancelDeal returned: $success');
+      debugPrint('[ProgressRealtimeTab] buyerCancelDeal returned: $success');
 
       if (context.mounted) {
         if (success) {
@@ -260,7 +261,7 @@ class ProgressRealtimeTab extends StatelessWidget {
           // Navigate back since the deal is cancelled
           Navigator.pop(context);
         } else {
-          print(
+          debugPrint(
             '[ProgressRealtimeTab] ❌ Cancel failed. Error: ${controller.errorMessage}',
           );
           ScaffoldMessenger.of(context).showSnackBar(

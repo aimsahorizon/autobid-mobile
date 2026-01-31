@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
@@ -22,8 +23,8 @@ class _Step7PhotosState extends State<Step7Photos> {
   bool _isUploadingDeedOfSale = false;
 
   Future<void> _pickImage(BuildContext context, String category) async {
-    print('DEBUG [Step7Photos]: ========================================');
-    print(
+    debugPrint('DEBUG [Step7Photos]: ========================================');
+    debugPrint(
       'DEBUG [Step7Photos]: Attempting to pick image for category: $category',
     );
 
@@ -53,11 +54,11 @@ class _Step7PhotosState extends State<Step7Photos> {
     );
 
     if (action == null) {
-      print('DEBUG [Step7Photos]: User cancelled image selection');
+      debugPrint('DEBUG [Step7Photos]: User cancelled image selection');
       return;
     }
 
-    print('DEBUG [Step7Photos]: User selected: $action');
+    debugPrint('DEBUG [Step7Photos]: User selected: $action');
 
     if (!context.mounted) return;
 
@@ -66,7 +67,9 @@ class _Step7PhotosState extends State<Step7Photos> {
 
       if (action == 'multiple') {
         // Pick multiple images
-        print('DEBUG [Step7Photos]: Opening gallery for multiple selection...');
+        debugPrint(
+          'DEBUG [Step7Photos]: Opening gallery for multiple selection...',
+        );
         final pickedFiles = await picker.pickMultiImage(
           maxWidth: 1920,
           maxHeight: 1080,
@@ -74,7 +77,7 @@ class _Step7PhotosState extends State<Step7Photos> {
         );
 
         if (pickedFiles.isEmpty) {
-          print('DEBUG [Step7Photos]: No images selected');
+          debugPrint('DEBUG [Step7Photos]: No images selected');
           if (context.mounted) {
             ScaffoldMessenger.of(
               context,
@@ -83,7 +86,9 @@ class _Step7PhotosState extends State<Step7Photos> {
           return;
         }
 
-        print('DEBUG [Step7Photos]: ${pickedFiles.length} images selected');
+        debugPrint(
+          'DEBUG [Step7Photos]: ${pickedFiles.length} images selected',
+        );
 
         // Show progress dialog
         if (context.mounted) {
@@ -116,7 +121,7 @@ class _Step7PhotosState extends State<Step7Photos> {
 
         for (int i = 0; i < pickedFiles.length; i++) {
           final pickedFile = pickedFiles[i];
-          print(
+          debugPrint(
             'DEBUG [Step7Photos]: Uploading ${i + 1}/${pickedFiles.length}...',
           );
 
@@ -132,7 +137,7 @@ class _Step7PhotosState extends State<Step7Photos> {
           }
         }
 
-        print(
+        debugPrint(
           'DEBUG [Step7Photos]: Upload complete: $successCount success, $failCount failed',
         );
 
@@ -162,7 +167,7 @@ class _Step7PhotosState extends State<Step7Photos> {
         XFile? pickedFile;
 
         if (action == 'camera') {
-          print('DEBUG [Step7Photos]: Opening camera...');
+          debugPrint('DEBUG [Step7Photos]: Opening camera...');
           pickedFile = await picker.pickImage(
             source: ImageSource.camera,
             maxWidth: 1920,
@@ -170,7 +175,7 @@ class _Step7PhotosState extends State<Step7Photos> {
             imageQuality: 85,
           );
         } else {
-          print('DEBUG [Step7Photos]: Opening gallery...');
+          debugPrint('DEBUG [Step7Photos]: Opening gallery...');
           pickedFile = await picker.pickImage(
             source: ImageSource.gallery,
             maxWidth: 1920,
@@ -180,7 +185,7 @@ class _Step7PhotosState extends State<Step7Photos> {
         }
 
         if (pickedFile == null) {
-          print('DEBUG [Step7Photos]: No image selected');
+          debugPrint('DEBUG [Step7Photos]: No image selected');
           if (context.mounted) {
             ScaffoldMessenger.of(
               context,
@@ -189,18 +194,20 @@ class _Step7PhotosState extends State<Step7Photos> {
           return;
         }
 
-        print('DEBUG [Step7Photos]: Image picked - Path: ${pickedFile.path}');
-        print(
+        debugPrint(
+          'DEBUG [Step7Photos]: Image picked - Path: ${pickedFile.path}',
+        );
+        debugPrint(
           'DEBUG [Step7Photos]: Image size: ${await pickedFile.length()} bytes',
         );
-        print('DEBUG [Step7Photos]: Uploading to controller...');
+        debugPrint('DEBUG [Step7Photos]: Uploading to controller...');
 
         final success = await widget.controller.uploadPhoto(
           category,
           pickedFile.path,
         );
 
-        print('DEBUG [Step7Photos]: Upload result: $success');
+        debugPrint('DEBUG [Step7Photos]: Upload result: $success');
 
         if (context.mounted) {
           if (success) {
@@ -221,8 +228,8 @@ class _Step7PhotosState extends State<Step7Photos> {
         }
       }
     } catch (e, stackTrace) {
-      print('ERROR [Step7Photos]: Failed to pick/upload image: $e');
-      print('STACK [Step7Photos]: $stackTrace');
+      debugPrint('ERROR [Step7Photos]: Failed to pick/upload image: $e');
+      debugPrint('STACK [Step7Photos]: $stackTrace');
 
       if (context.mounted) {
         // Close progress dialog if open
@@ -238,7 +245,9 @@ class _Step7PhotosState extends State<Step7Photos> {
         );
       }
     } finally {
-      print('DEBUG [Step7Photos]: ========================================');
+      debugPrint(
+        'DEBUG [Step7Photos]: ========================================',
+      );
     }
   }
 
@@ -680,42 +689,42 @@ class _Step7PhotosState extends State<Step7Photos> {
             if (sampleUrl != null)
               sampleUrl.startsWith('assets/')
                   ? Image.asset(
-                    sampleUrl,
-                    height: 300,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 300,
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported, size: 64),
-                        ),
-                      );
-                    },
-                  )
+                      sampleUrl,
+                      height: 300,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 300,
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: Icon(Icons.image_not_supported, size: 64),
+                          ),
+                        );
+                      },
+                    )
                   : Image.network(
-                    sampleUrl,
-                    height: 300,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return const SizedBox(
-                        height: 300,
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 300,
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported, size: 64),
-                        ),
-                      );
-                    },
-                  )
+                      sampleUrl,
+                      height: 300,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const SizedBox(
+                          height: 300,
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 300,
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: Icon(Icons.image_not_supported, size: 64),
+                          ),
+                        );
+                      },
+                    )
             else
               Container(
                 height: 300,
@@ -739,7 +748,7 @@ class _Step7PhotosState extends State<Step7Photos> {
   /// Show full screen image
   void _showFullImage(BuildContext context, String imageUrl) {
     if (!context.mounted) return;
-    
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -763,10 +772,7 @@ class _Step7PhotosState extends State<Step7Photos> {
                         );
                       },
                     )
-                  : Image.file(
-                      File(imageUrl),
-                      fit: BoxFit.contain,
-                    ),
+                  : Image.file(File(imageUrl), fit: BoxFit.contain),
             ),
             // Close button
             Positioned(
@@ -852,7 +858,9 @@ class _Step7PhotosState extends State<Step7Photos> {
                   : Container(
                       width: 100,
                       height: 100,
-                      color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      color: isDark
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade200,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

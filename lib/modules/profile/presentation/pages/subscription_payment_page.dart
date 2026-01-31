@@ -180,7 +180,7 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
                       value: _useDemoMode,
                       onChanged: (value) =>
                           setState(() => _useDemoMode = value),
-                      activeColor: Colors.orange,
+                      activeThumbColor: Colors.orange,
                     ),
                   ],
                 ),

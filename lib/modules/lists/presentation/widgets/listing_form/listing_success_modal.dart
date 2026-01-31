@@ -36,7 +36,7 @@ class ListingSuccessScreen extends StatelessWidget {
                         width: 120,
                         height: 120,
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.green.withAlpha((0.1 * 255).toInt()),
                           shape: BoxShape.circle,
                         ),
                         child: Container(

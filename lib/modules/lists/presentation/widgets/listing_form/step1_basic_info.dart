@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
+// ...existing code...
 import '../../controllers/listing_draft_controller.dart';
 import 'form_field_widget.dart';
 import 'combo_box_widget.dart';
@@ -25,18 +25,42 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
   String? _variant;
 
   static const _brands = [
-    'Toyota', 'Honda', 'Ford', 'Mitsubishi', 'Nissan',
-    'Hyundai', 'Mazda', 'Suzuki', 'Isuzu', 'Chevrolet',
+    'Toyota',
+    'Honda',
+    'Ford',
+    'Mitsubishi',
+    'Nissan',
+    'Hyundai',
+    'Mazda',
+    'Suzuki',
+    'Isuzu',
+    'Chevrolet',
   ];
 
   static const _models = [
-    'Corolla', 'Civic', 'Mustang', 'Vios', 'City',
-    'Fortuner', 'CR-V', 'Ranger', 'Hilux', 'Wigo',
+    'Corolla',
+    'Civic',
+    'Mustang',
+    'Vios',
+    'City',
+    'Fortuner',
+    'CR-V',
+    'Ranger',
+    'Hilux',
+    'Wigo',
   ];
 
   static const _variants = [
-    'Altis', 'RS', 'GT', 'XLE', 'Base', 'V',
-    'Sport', 'Limited', 'Premium', 'Standard',
+    'Altis',
+    'RS',
+    'GT',
+    'XLE',
+    'Base',
+    'V',
+    'Sport',
+    'Limited',
+    'Premium',
+    'Standard',
   ];
 
   @override
@@ -64,7 +88,9 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
         brand: _brand,
         model: _model,
         variant: _variant,
-        year: _yearController.text.isEmpty ? null : int.tryParse(_yearController.text),
+        year: _yearController.text.isEmpty
+            ? null
+            : int.tryParse(_yearController.text),
       ),
     );
   }

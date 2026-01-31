@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:fpdart/fpdart.dart';
+// ...existing code...
 import 'package:autobid_mobile/modules/bids/data/repositories/bids_repository_impl.dart';
 import 'package:autobid_mobile/modules/bids/data/datasources/bids_remote_datasource.dart';
 import 'package:autobid_mobile/modules/bids/domain/entities/user_bid_entity.dart';

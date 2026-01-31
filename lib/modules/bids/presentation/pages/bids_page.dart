@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/presentation/pages/auction_detail_page.dart';
 import '../../../browse/browse_module.dart';
@@ -47,14 +48,14 @@ class _BidsPageState extends State<BidsPage>
   }
 
   void _navigateToActiveBid(BuildContext context, UserBidEntity bid) {
-    print(
+    debugPrint(
       '[BidsPage] _navigateToActiveBid called with auctionId=${bid.auctionId}',
     );
 
     // Navigate to auction detail page from browse module
     // This shows the actual auction with live bidding functionality
     final controller = BrowseModule.instance.createAuctionDetailController();
-    print(
+    debugPrint(
       '[BidsPage] Created AuctionDetailController, navigating to AuctionDetailPage',
     );
     Navigator.push(
@@ -77,7 +78,7 @@ class _BidsPageState extends State<BidsPage>
       );
       return;
     }
-    print(
+    debugPrint(
       '[BidsPage] _navigateToWonBid called with auctionId=${bid.auctionId}',
     );
     Navigator.push(
@@ -89,7 +90,7 @@ class _BidsPageState extends State<BidsPage>
   }
 
   void _navigateToLostBid(BuildContext context, UserBidEntity bid) {
-    print(
+    debugPrint(
       '[BidsPage] _navigateToLostBid called with auctionId=${bid.auctionId}',
     );
     Navigator.push(
@@ -305,7 +306,7 @@ class _BidsPageState extends State<BidsPage>
 
   void _navigateToCancelledBid(BuildContext context, UserBidEntity bid) {
     // Cancelled bids are read-only - just show auction details
-    print(
+    debugPrint(
       '[BidsPage] _navigateToCancelledBid called with auctionId=${bid.auctionId}',
     );
     Navigator.push(

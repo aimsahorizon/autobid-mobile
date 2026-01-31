@@ -208,7 +208,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                       value: _useDemoMode,
                       onChanged: (value) =>
                           setState(() => _useDemoMode = value),
-                      activeColor: Colors.orange,
+                      activeThumbColor: Colors.orange,
                     ),
                   ],
                 ),

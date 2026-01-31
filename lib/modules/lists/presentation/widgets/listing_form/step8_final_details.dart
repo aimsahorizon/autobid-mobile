@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
+// ...existing code...
 import '../../controllers/listing_draft_controller.dart';
 import 'form_field_widget.dart';
 import 'ai_price_predictor.dart';
@@ -408,7 +408,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
+            color: Colors.blue.withAlpha((0.1 * 255).toInt()),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -487,7 +487,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
+                    color: Colors.amber.withAlpha((0.1 * 255).toInt()),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -538,9 +538,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
+            color: Colors.green.withAlpha((0.1 * 255).toInt()),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.withOpacity(0.3)),
+            border: Border.all(
+              color: Colors.green.withAlpha((0.3 * 255).toInt()),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
