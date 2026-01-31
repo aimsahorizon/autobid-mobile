@@ -1648,4 +1648,13 @@ class ListingSupabaseDataSource {
       );
     }
   }
+
+  /// Stream seller's listings updates
+  /// Listens to changes in 'auctions' table for the specific seller
+  Stream<List<Map<String, dynamic>>> streamSellerListings(String sellerId) {
+    return _supabase
+        .from('auctions')
+        .stream(primaryKey: ['id'])
+        .eq('seller_id', sellerId);
+  }
 }

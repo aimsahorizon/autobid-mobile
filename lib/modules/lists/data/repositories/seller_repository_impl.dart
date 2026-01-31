@@ -247,4 +247,9 @@ class SellerRepositoryImpl implements SellerRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Stream<void> streamSellerListings(String sellerId) {
+    return dataSource.streamSellerListings(sellerId);
+  }
 }
