@@ -213,4 +213,10 @@ class UserBidsMockDataSource implements BidsRemoteDataSource {
     final allBids = await getUserBids();
     return allBids['lost'] ?? [];
   }
+
+  @override
+  Stream<void> streamUserBids(String userId) {
+    // Return empty stream for mock
+    return const Stream.empty();
+  }
 }

@@ -384,4 +384,13 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
     final allBids = await getUserBids(userId);
     return allBids['lost'] ?? [];
   }
+
+  /// Stream user's bid updates (e.g. outbid notifications)
+  /// Listens to changes in 'bids' table for this user
+  Stream<List<Map<String, dynamic>>> streamUserBids(String userId) {
+    return _supabase
+        .from('bids')
+        .stream(primaryKey: ['id'])
+        .eq('bidder_id', userId);
+  }
 }

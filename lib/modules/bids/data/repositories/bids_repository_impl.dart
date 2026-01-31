@@ -18,4 +18,9 @@ class BidsRepositoryImpl implements BidsRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Stream<void> streamUserBids(String userId) {
+    return remoteDataSource.streamUserBids(userId);
+  }
 }
