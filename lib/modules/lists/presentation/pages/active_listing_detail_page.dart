@@ -6,6 +6,7 @@ import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import '../widgets/detail_sections/auction_stats_section.dart';
 import '../widgets/detail_sections/qa_section.dart';
+import '../widgets/detail_sections/seller_bid_history_section.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/invite_user_dialog.dart';
 
@@ -24,20 +25,42 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
     SupabaseConfig.client,
   );
   late ListingDetailEntity _listing;
+  List<Map<String, dynamic>> _bids = [];
   bool _isLoading = false;
+  bool _isLoadingBids = false;
 
   @override
   void initState() {
     super.initState();
     _listing = widget.listing;
+    _loadBids();
+  }
+
+  Future<void> _loadBids() async {
+    setState(() => _isLoadingBids = true);
+    try {
+      final bids = await _datasource.getBids(_listing.id);
+      if (mounted) {
+        setState(() {
+          _bids = bids;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading bids: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingBids = false);
+      }
+    }
   }
 
   Future<void> _refreshListing() async {
     setState(() => _isLoading = true);
     try {
-      // Note: You may need to fetch the updated listing from datasource
-      // For now, this shows the refresh loading state
-      await Future.delayed(const Duration(seconds: 1));
+      // Refresh both listing details and bids
+      await _loadBids();
+      // TODO: Ideally fetch fresh listing details here too
+      // _listing = await _datasource.getListing(_listing.id);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -148,6 +171,11 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
                 ListingCoverSection(listing: _listing),
                 const SizedBox(height: 16),
                 AuctionStatsSection(listing: _listing),
+                const SizedBox(height: 16),
+                SellerBidHistorySection(
+                  bids: _bids,
+                  isLoading: _isLoadingBids,
+                ),
                 const SizedBox(height: 16),
                 ListingInfoSection(listing: _listing),
                 const SizedBox(height: 16),

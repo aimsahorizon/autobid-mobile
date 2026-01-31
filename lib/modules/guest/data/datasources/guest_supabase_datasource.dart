@@ -100,14 +100,19 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
     try {
       debugPrint('[GuestDataSource] Fetching guest auctions from database...');
 
-      // Query auctions with limited information
-      // Hide bidder details, bid amounts, Q&A section
+      // Query auctions with joined data
+      // Filter for 'live' auctions (guests should see live auctions)
       final response = await _supabase
           .from('auctions')
-          .select(
-            'id, car_image_url, year, make, model, status, start_time, end_time, watchers_count, bidders_count',
-          )
-          .eq('status', 'active')
+          .select('''
+            id,
+            start_time,
+            end_time,
+            auction_statuses!inner(status_name),
+            auction_vehicles(year, make, model),
+            auction_photos(photo_url, is_primary)
+          ''')
+          .eq('auction_statuses.status_name', 'live')
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
 
@@ -117,14 +122,30 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
 
       // Transform to match guest UI expectations
       final auctions = (response as List).map((auction) {
+        final vehicle = auction['auction_vehicles'] as Map<String, dynamic>? ?? {};
+        final photos = auction['auction_photos'] as List<dynamic>? ?? [];
+        
+        // Find primary photo
+        String? imageUrl;
+        if (photos.isNotEmpty) {
+          final primary = photos.firstWhere(
+            (p) => p['is_primary'] == true,
+            orElse: () => photos.first,
+          );
+          imageUrl = primary['photo_url'] as String?;
+        }
+
+        final make = vehicle['make'] as String? ?? 'Unknown';
+        final model = vehicle['model'] as String? ?? 'Vehicle';
+        final year = vehicle['year'] as int? ?? 0;
+
         return {
           'id': auction['id'],
-          'title': '${auction['year']} ${auction['make']} ${auction['model']}',
-          'description':
-              'Active auction for ${auction['make']} ${auction['model']}',
-          'category': auction['make'], // Use make as category
-          'image_url': auction['car_image_url'],
-          'status': auction['status'],
+          'title': '$year $make $model',
+          'description': 'Active auction for $make $model',
+          'category': make,
+          'image_url': imageUrl,
+          'status': 'live',
           'start_date': auction['start_time'],
           'end_date': auction['end_time'],
         };

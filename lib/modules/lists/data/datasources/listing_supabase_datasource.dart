@@ -542,9 +542,16 @@ class ListingSupabaseDataSource {
 
       return (response as List).map((json) {
         // Check if there's a failed transaction associated with this cancelled listing
-        final transactions = json['auction_transactions'] as List?;
+        final transactionsData = json['auction_transactions'];
+        List<dynamic> transactions = [];
+        if (transactionsData is List) {
+          transactions = transactionsData;
+        } else if (transactionsData is Map) {
+          transactions = [transactionsData];
+        }
+
         String? transactionId;
-        if (transactions != null && transactions.isNotEmpty) {
+        if (transactions.isNotEmpty) {
           // Find the transaction (typically deal_failed status for buyer-cancelled deals)
           final failedTransaction = transactions.firstWhere(
             (txn) => txn['status'] == 'deal_failed',
@@ -1708,6 +1715,28 @@ class ListingSupabaseDataSource {
       throw Exception('Failed to fetch listing detail: ${e.message}');
     } catch (e) {
       throw Exception('Failed to fetch listing detail: $e');
+    }
+  }
+
+  /// Get bid history for a listing
+  Future<List<Map<String, dynamic>>> getBids(String auctionId) async {
+    try {
+      final response = await _supabase
+          .from('bids')
+          .select('''
+            id,
+            bid_amount,
+            created_at,
+            user_profiles(username, full_name, profile_photo_url)
+          ''')
+          .eq('auction_id', auctionId)
+          .order('bid_amount', ascending: false);
+
+      return List<Map<String, dynamic>>.from(response);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to fetch bids: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to fetch bids: $e');
     }
   }
 }
