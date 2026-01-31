@@ -10,6 +10,7 @@ import 'domain/usecases/media_management_usecases.dart';
 import 'data/repositories/seller_repository_impl.dart';
 import 'domain/repositories/seller_repository.dart';
 import 'domain/usecases/get_seller_listings_usecase.dart';
+import 'domain/usecases/stream_seller_listings_usecase.dart';
 
 /// Initialize Lists module dependencies
 Future<void> initListsModule() async {
@@ -36,9 +37,10 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => UploadListingPhotoUseCase(sl()));
   sl.registerLazySingleton(() => UploadDeedOfSaleUseCase(sl()));
   sl.registerLazySingleton(() => DeleteDeedOfSaleUseCase(sl()));
+  sl.registerLazySingleton(() => StreamSellerListingsUseCase(sl()));
 
   // Controllers (Factory)
-  sl.registerFactory(() => ListsController(sl(), sl()));
+  sl.registerFactory(() => ListsController(sl(), sl(), sl()));
   sl.registerFactory(() => ListingDraftController(
     getSellerDraftsUseCase: sl(),
     getDraftUseCase: sl(),
