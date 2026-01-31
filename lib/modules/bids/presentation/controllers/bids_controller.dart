@@ -2,15 +2,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../domain/entities/user_bid_entity.dart';
 import '../../domain/usecases/get_user_bids_usecase.dart';
+import '../../domain/usecases/stream_user_bids_usecase.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 
 /// Controller for managing user's bid history state
 /// Handles loading and categorizing bids by status (active, won, lost)
 class BidsController extends ChangeNotifier {
   final GetUserBidsUseCase _getUserBidsUseCase;
+  final StreamUserBidsUseCase _streamUserBidsUseCase;
   final AuthRepository _authRepository;
 
-  BidsController(this._getUserBidsUseCase, this._authRepository);
+  BidsController(
+    this._getUserBidsUseCase,
+    this._streamUserBidsUseCase,
+    this._authRepository,
+  );
 
   // State properties - private with public getters
   List<UserBidEntity> _activeBids = [];
@@ -20,8 +26,9 @@ class BidsController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Polling mechanism for auto-refresh when auctions end
+  // Polling mechanism and stream subscription
   Timer? _pollTimer;
+  StreamSubscription? _bidsSubscription;
 
   // Public getters for accessing state
   List<UserBidEntity> get activeBids => _activeBids;
@@ -72,6 +79,11 @@ class BidsController extends ChangeNotifier {
           } else {
             _stopPolling();
           }
+
+          // Start Realtime Subscription if not active
+          if (_bidsSubscription == null) {
+            _subscribeToBids(userId);
+          }
         },
       );
     } catch (e) {
@@ -82,6 +94,16 @@ class BidsController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void _subscribeToBids(String userId) {
+    _bidsSubscription?.cancel();
+    _bidsSubscription = _streamUserBidsUseCase(userId).listen((_) {
+      print('DEBUG: Realtime user bid update received');
+      refreshActiveBids(); // Reuse existing refresh logic
+    }, onError: (e) {
+      print('ERROR: Realtime user bid subscription error: $e');
+    });
   }
 
   /// Starts polling to check if active auctions have ended
@@ -139,6 +161,7 @@ class BidsController extends ChangeNotifier {
   @override
   void dispose() {
     _stopPolling();
+    _bidsSubscription?.cancel();
     super.dispose();
   }
 
