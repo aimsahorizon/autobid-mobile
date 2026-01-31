@@ -261,4 +261,14 @@ class BidSupabaseDataSource {
       throw Exception('Failed to get deposit: $e');
     }
   }
+
+  /// Stream bid updates for a specific auction
+  /// Listens to changes in the 'bids' table
+  Stream<List<Map<String, dynamic>>> streamBidUpdates(String auctionId) {
+    return _supabase
+        .from('bids')
+        .stream(primaryKey: ['id'])
+        .eq('auction_id', auctionId)
+        .order('created_at', ascending: false);
+  }
 }

@@ -64,4 +64,10 @@ abstract class AuctionDetailRemoteDataSource {
 
   /// Process deposit payment for auction participation
   Future<void> processDeposit({required String auctionId});
+
+  /// Stream auction updates
+  Stream<void> streamAuctionUpdates({required String auctionId});
+
+  /// Stream bid updates
+  Stream<void> streamBidUpdates({required String auctionId});
 }

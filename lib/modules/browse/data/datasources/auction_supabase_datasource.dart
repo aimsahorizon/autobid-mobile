@@ -380,4 +380,13 @@ class AuctionSupabaseDataSource {
       throw Exception('Failed to unwatch auction: $e');
     }
   }
+
+  /// Stream updates for a specific auction
+  /// Listens to changes in the 'auctions' table
+  Stream<List<Map<String, dynamic>>> streamAuctionUpdates(String auctionId) {
+    return _supabase
+        .from('auctions')
+        .stream(primaryKey: ['id'])
+        .eq('id', auctionId);
+  }
 }

@@ -160,4 +160,14 @@ class AuctionDetailCompositeSupabaseDataSource
   Future<void> processDeposit({required String auctionId}) {
     return _depositDataSource.processDeposit(auctionId);
   }
+
+  @override
+  Stream<void> streamAuctionUpdates({required String auctionId}) {
+    return _auctionDataSource.streamAuctionUpdates(auctionId);
+  }
+
+  @override
+  Stream<void> streamBidUpdates({required String auctionId}) {
+    return _bidDataSource.streamBidUpdates(auctionId);
+  }
 }
