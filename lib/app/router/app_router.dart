@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import '../../core/controllers/theme_controller.dart';
 import '../presentation/pages/home_page.dart';
 import '../../modules/auth/auth_module.dart';
@@ -7,8 +8,8 @@ import '../../modules/auth/presentation/pages/forgot_password_page.dart';
 import '../../modules/auth/presentation/pages/login_page.dart';
 import '../../modules/auth/presentation/pages/onboarding_page.dart';
 import '../../modules/auth/presentation/pages/registration_page.dart';
-import '../../modules/guest/guest_module.dart';
 import '../../modules/guest/guest_routes.dart';
+import '../../modules/guest/presentation/controllers/guest_controller.dart';
 import '../../modules/guest/presentation/pages/guest_page.dart';
 
 class AppRouter {
@@ -44,7 +45,7 @@ class AppRouter {
       case GuestRoutes.main:
         return MaterialPageRoute(
           builder: (_) => GuestPage(
-            controller: GuestModule.instance.createGuestController(),
+            controller: GetIt.instance<GuestController>(),
             themeController: themeController,
           ),
         );
