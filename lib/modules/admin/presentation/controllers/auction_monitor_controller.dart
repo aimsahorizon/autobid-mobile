@@ -48,14 +48,14 @@ class AuctionMonitorController extends ChangeNotifier {
           notifyListeners();
         },
         onError: (error) {
-          print('[AuctionMonitorController] Stream error: $error');
+          debugPrint('[AuctionMonitorController] Stream error: $error');
           _errorMessage = 'Failed to load auction updates';
           notifyListeners();
         },
       );
     } catch (e) {
       _errorMessage = 'Failed to initialize monitoring: $e';
-      print('[AuctionMonitorController] Init error: $e');
+      debugPrint('[AuctionMonitorController] Init error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -86,13 +86,13 @@ class AuctionMonitorController extends ChangeNotifier {
               notifyListeners();
             },
             onError: (error) {
-              print('[AuctionMonitorController] Bid stream error: $error');
+              debugPrint('[AuctionMonitorController] Bid stream error: $error');
             },
           );
 
       notifyListeners();
     } catch (e) {
-      print('[AuctionMonitorController] Error selecting auction: $e');
+      debugPrint('[AuctionMonitorController] Error selecting auction: $e');
       _errorMessage = 'Failed to load auction bids';
       notifyListeners();
     }
@@ -124,7 +124,7 @@ class AuctionMonitorController extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = 'Failed to refresh: $e';
-      print('[AuctionMonitorController] Refresh error: $e');
+      debugPrint('[AuctionMonitorController] Refresh error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

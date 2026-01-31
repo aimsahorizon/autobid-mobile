@@ -1,11 +1,9 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
-import '../../../data/datasources/demo_listing_data.dart';
 import '../../../data/datasources/sample_photo_guide_datasource.dart';
 import 'demo_autofill_button.dart';
 
@@ -251,82 +249,7 @@ class _Step7PhotosState extends State<Step7Photos> {
     }
   }
 
-  Future<void> _autofillDemoPhotos(BuildContext context) async {
-    final currentDraft = widget.controller.currentDraft;
-    if (currentDraft == null) return;
-
-    final demoData = DemoListingData.getDemoDataForStep(7);
-    final demoPhotoUrls = demoData['photoUrls'] as Map<String, List<String>>;
-
-    // Update draft with demo photo URLs directly
-    final updatedDraft = ListingDraftEntity(
-      id: currentDraft.id,
-      sellerId: currentDraft.sellerId,
-      currentStep: currentDraft.currentStep,
-      lastSaved: DateTime.now(),
-      isComplete: currentDraft.isComplete,
-      brand: currentDraft.brand,
-      model: currentDraft.model,
-      variant: currentDraft.variant,
-      year: currentDraft.year,
-      engineType: currentDraft.engineType,
-      engineDisplacement: currentDraft.engineDisplacement,
-      cylinderCount: currentDraft.cylinderCount,
-      horsepower: currentDraft.horsepower,
-      torque: currentDraft.torque,
-      transmission: currentDraft.transmission,
-      fuelType: currentDraft.fuelType,
-      driveType: currentDraft.driveType,
-      length: currentDraft.length,
-      width: currentDraft.width,
-      height: currentDraft.height,
-      wheelbase: currentDraft.wheelbase,
-      groundClearance: currentDraft.groundClearance,
-      seatingCapacity: currentDraft.seatingCapacity,
-      doorCount: currentDraft.doorCount,
-      fuelTankCapacity: currentDraft.fuelTankCapacity,
-      curbWeight: currentDraft.curbWeight,
-      grossWeight: currentDraft.grossWeight,
-      exteriorColor: currentDraft.exteriorColor,
-      paintType: currentDraft.paintType,
-      rimType: currentDraft.rimType,
-      rimSize: currentDraft.rimSize,
-      tireSize: currentDraft.tireSize,
-      tireBrand: currentDraft.tireBrand,
-      condition: currentDraft.condition,
-      mileage: currentDraft.mileage,
-      previousOwners: currentDraft.previousOwners,
-      hasModifications: currentDraft.hasModifications,
-      modificationsDetails: currentDraft.modificationsDetails,
-      hasWarranty: currentDraft.hasWarranty,
-      warrantyDetails: currentDraft.warrantyDetails,
-      usageType: currentDraft.usageType,
-      plateNumber: currentDraft.plateNumber,
-      orcrStatus: currentDraft.orcrStatus,
-      registrationStatus: currentDraft.registrationStatus,
-      registrationExpiry: currentDraft.registrationExpiry,
-      province: currentDraft.province,
-      cityMunicipality: currentDraft.cityMunicipality,
-      photoUrls: demoPhotoUrls, // Use demo photos
-      description: currentDraft.description,
-      knownIssues: currentDraft.knownIssues,
-      features: currentDraft.features,
-      startingPrice: currentDraft.startingPrice,
-      reservePrice: currentDraft.reservePrice,
-      auctionEndDate: currentDraft.auctionEndDate,
-    );
-
-    widget.controller.updateDraft(updatedDraft);
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('All demo photos added!')));
-    }
-  }
-
-  /// Pick and upload deed of sale document
-  Future<void> _pickDeedOfSale(BuildContext context) async {
+  Future<void> _pickImage(BuildContext context, String category) async {
     // Directly open camera for document capture
     setState(() => _isUploadingDeedOfSale = true);
 
@@ -782,7 +705,7 @@ class _Step7PhotosState extends State<Step7Photos> {
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close, color: Colors.white, size: 30),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.black.withOpacity(0.5),
+                  backgroundColor: Colors.black.withValues(alpha: 0.5),
                 ),
               ),
             ),
@@ -1116,11 +1039,6 @@ class _Step7PhotosState extends State<Step7Photos> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  DemoAutofillButton(
-                    onPressed: () => _autofillDemoPhotos(context),
-                  ),
-                  // AI Detection UI Removed - logic moved to next step dialog
                 ],
               ),
             ),

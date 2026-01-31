@@ -4,8 +4,6 @@ import 'package:flutter/services.dart';
 import '../../controllers/listing_draft_controller.dart';
 import 'form_field_widget.dart';
 import 'combo_box_widget.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step1BasicInfo extends StatefulWidget {
   final ListingDraftController controller;
@@ -95,17 +93,6 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
     );
   }
 
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(1);
-    setState(() {
-      _brand = demoData['brand'];
-      _model = demoData['model'];
-      _variant = demoData['variant'];
-      _yearController.text = demoData['year'].toString();
-    });
-    _updateDraft();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -122,8 +109,6 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
             'Enter the basic details of your vehicle',
             style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
-          const SizedBox(height: 16),
-          DemoAutofillButton(onPressed: _autofillDemoData),
           const SizedBox(height: 24),
           ComboBoxWidget(
             label: 'Brand *',

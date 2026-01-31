@@ -46,14 +46,14 @@ class QAController extends ChangeNotifier {
               },
               onError: (error) {
                 if (!_isDisposed) {
-                  print('QA subscription error: $error');
+                  debugPrint('QA subscription error: $error');
                 }
               },
             );
       }
     } catch (e) {
       if (!_isDisposed) {
-        print('QA init error: $e');
+        debugPrint('QA init error: $e');
       }
     } finally {
       if (!_isDisposed) {

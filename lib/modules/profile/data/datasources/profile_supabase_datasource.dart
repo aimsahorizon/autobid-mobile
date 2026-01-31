@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_profile_model.dart';
 
@@ -98,7 +99,8 @@ class ProfileSupabaseDataSource {
       if (username != null) updates['username'] = username;
       if (contactNumber != null) updates['phone_number'] = contactNumber;
       if (coverPhotoUrl != null) updates['cover_photo_url'] = coverPhotoUrl;
-      if (profilePhotoUrl != null) updates['profile_photo_url'] = profilePhotoUrl;
+      if (profilePhotoUrl != null)
+        updates['profile_photo_url'] = profilePhotoUrl;
 
       // Note: fullName is not updated here as it's derived from first/middle/last names
       // To update name, update first_name, middle_name, last_name separately
@@ -204,9 +206,9 @@ class ProfileSupabaseDataSource {
       await _supabase.storage.from(bucket).remove([filepath]);
     } on StorageException catch (e) {
       // Log error but don't throw - deletion is not critical
-      print('Failed to delete photo: ${e.message}');
+      debugPrint('Failed to delete photo: ${e.message}');
     } catch (e) {
-      print('Failed to delete photo: $e');
+      debugPrint('Failed to delete photo: $e');
     }
   }
 

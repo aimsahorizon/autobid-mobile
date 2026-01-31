@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import '../../domain/entities/seller_listing_entity.dart';
@@ -40,7 +41,7 @@ class SellerRepositoryImpl implements SellerRepository {
             )
             .toList();
       } catch (e) {
-        print('Error loading drafts: $e');
+        debugPrint('Error loading drafts: $e');
         result[ListingStatus.draft] = [];
       }
 
@@ -51,7 +52,7 @@ class SellerRepositoryImpl implements SellerRepository {
             .map((l) => l.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('Error loading pending listings: $e');
+        debugPrint('Error loading pending listings: $e');
         result[ListingStatus.pending] = [];
       }
 
@@ -62,7 +63,7 @@ class SellerRepositoryImpl implements SellerRepository {
             .map((l) => l.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('Error loading approved listings: $e');
+        debugPrint('Error loading approved listings: $e');
         result[ListingStatus.approved] = [];
       }
 
@@ -73,7 +74,7 @@ class SellerRepositoryImpl implements SellerRepository {
             .map((l) => l.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('Error loading scheduled listings: $e');
+        debugPrint('Error loading scheduled listings: $e');
         result[ListingStatus.scheduled] = [];
       }
 
@@ -84,7 +85,7 @@ class SellerRepositoryImpl implements SellerRepository {
             .map((l) => l.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('Error loading active listings: $e');
+        debugPrint('Error loading active listings: $e');
         result[ListingStatus.active] = [];
       }
 
@@ -95,7 +96,7 @@ class SellerRepositoryImpl implements SellerRepository {
             .map((l) => l.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('Error loading ended listings: $e');
+        debugPrint('Error loading ended listings: $e');
         result[ListingStatus.ended] = [];
       }
 
@@ -106,7 +107,7 @@ class SellerRepositoryImpl implements SellerRepository {
             .map((l) => l.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('Error loading cancelled listings: $e');
+        debugPrint('Error loading cancelled listings: $e');
         result[ListingStatus.cancelled] = [];
       }
 

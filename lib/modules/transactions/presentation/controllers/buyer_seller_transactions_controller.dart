@@ -65,28 +65,30 @@ class BuyerSellerTransactionsController extends ChangeNotifier {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
-        debugPrint('[BuyerSellerTransactionsController] Error: $e');
+      debugPrint('[BuyerSellerTransactionsController] Error: $e');
     }
   }
 
   /// Load buyer transactions (from auction_transactions where buyer_id = userId)
   Future<void> _loadBuyerTransactions() async {
-    print('[DEBUG] Loading BUYER transactions for userId: $_userId');
+    debugPrint('[DEBUG] Loading BUYER transactions for userId: $_userId');
     try {
       final Map<TransactionStatus, List<SellerListingEntity>> result = {};
 
       // Active buyer transactions
       try {
         final active = await _dataSource.getActiveBuyerTransactions(_userId);
-          debugPrint('[DEBUG] BUYER active raw count: ${active.length}');
+        debugPrint('[DEBUG] BUYER active raw count: ${active.length}');
         for (final m in active) {
-            debugPrint('[DEBUG] BUYER active: id=${m.id}, car=${m.brand} ${m.model}, sellerId=${m.sellerId}');
+          debugPrint(
+            '[DEBUG] BUYER active: id=${m.id}, car=${m.brand} ${m.model}, sellerId=${m.sellerId}',
+          );
         }
         result[TransactionStatus.inTransaction] =
             active.map((m) => m.toSellerListingEntity()).toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       } catch (e) {
-          debugPrint('[DEBUG] Error loading buyer active: $e');
+        debugPrint('[DEBUG] Error loading buyer active: $e');
         result[TransactionStatus.inTransaction] = [];
       }
 
@@ -95,37 +97,43 @@ class BuyerSellerTransactionsController extends ChangeNotifier {
         final completed = await _dataSource.getCompletedBuyerTransactions(
           _userId,
         );
-          debugPrint('[DEBUG] BUYER completed raw count: ${completed.length}');
+        debugPrint('[DEBUG] BUYER completed raw count: ${completed.length}');
         for (final m in completed) {
-            debugPrint('[DEBUG] BUYER completed: id=${m.id}, sellerId=${m.sellerId}');
+          debugPrint(
+            '[DEBUG] BUYER completed: id=${m.id}, sellerId=${m.sellerId}',
+          );
         }
         result[TransactionStatus.sold] =
             completed.map((m) => m.toSellerListingEntity()).toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       } catch (e) {
-          debugPrint('[DEBUG] Error loading buyer completed: $e');
+        debugPrint('[DEBUG] Error loading buyer completed: $e');
         result[TransactionStatus.sold] = [];
       }
 
       // Failed buyer transactions
       try {
         final failed = await _dataSource.getFailedBuyerTransactions(_userId);
-          debugPrint('[DEBUG] BUYER failed raw count: ${failed.length}');
+        debugPrint('[DEBUG] BUYER failed raw count: ${failed.length}');
         for (final m in failed) {
-            debugPrint('[DEBUG] BUYER failed: id=${m.id}, sellerId=${m.sellerId}');
+          debugPrint(
+            '[DEBUG] BUYER failed: id=${m.id}, sellerId=${m.sellerId}',
+          );
         }
         result[TransactionStatus.dealFailed] =
             failed.map((m) => m.toSellerListingEntity()).toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       } catch (e) {
-          debugPrint('[DEBUG] Error loading buyer failed: $e');
+        debugPrint('[DEBUG] Error loading buyer failed: $e');
         result[TransactionStatus.dealFailed] = [];
       }
 
       _buyerTransactions = result;
-        debugPrint('[DEBUG] BUYER final: inTx=${result[TransactionStatus.inTransaction]?.length}, sold=${result[TransactionStatus.sold]?.length}, failed=${result[TransactionStatus.dealFailed]?.length}');
+      debugPrint(
+        '[DEBUG] BUYER final: inTx=${result[TransactionStatus.inTransaction]?.length}, sold=${result[TransactionStatus.sold]?.length}, failed=${result[TransactionStatus.dealFailed]?.length}',
+      );
     } catch (e) {
-        debugPrint('[DEBUG] Error loading buyer transactions: $e');
+      debugPrint('[DEBUG] Error loading buyer transactions: $e');
       _buyerTransactions = {
         TransactionStatus.inTransaction: [],
         TransactionStatus.sold: [],
@@ -136,59 +144,67 @@ class BuyerSellerTransactionsController extends ChangeNotifier {
 
   /// Load seller transactions (from auction_transactions where seller_id = userId)
   Future<void> _loadSellerTransactions() async {
-    print('[DEBUG] Loading SELLER transactions for userId: $_userId');
+    debugPrint('[DEBUG] Loading SELLER transactions for userId: $_userId');
     try {
       final Map<TransactionStatus, List<SellerListingEntity>> result = {};
 
       // Active seller transactions
       try {
         final active = await _dataSource.getActiveTransactions(_userId);
-          debugPrint('[DEBUG] SELLER active raw count: ${active.length}');
+        debugPrint('[DEBUG] SELLER active raw count: ${active.length}');
         for (final m in active) {
-            debugPrint('[DEBUG] SELLER active: id=${m.id}, car=${m.brand} ${m.model}, sellerId=${m.sellerId}');
+          debugPrint(
+            '[DEBUG] SELLER active: id=${m.id}, car=${m.brand} ${m.model}, sellerId=${m.sellerId}',
+          );
         }
         result[TransactionStatus.inTransaction] =
             active.map((m) => m.toSellerListingEntity()).toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       } catch (e) {
-          debugPrint('[DEBUG] Error loading seller active: $e');
+        debugPrint('[DEBUG] Error loading seller active: $e');
         result[TransactionStatus.inTransaction] = [];
       }
 
       // Completed seller transactions
       try {
         final completed = await _dataSource.getCompletedTransactions(_userId);
-          debugPrint('[DEBUG] SELLER completed raw count: ${completed.length}');
+        debugPrint('[DEBUG] SELLER completed raw count: ${completed.length}');
         for (final m in completed) {
-            debugPrint('[DEBUG] SELLER completed: id=${m.id}, sellerId=${m.sellerId}');
+          debugPrint(
+            '[DEBUG] SELLER completed: id=${m.id}, sellerId=${m.sellerId}',
+          );
         }
         result[TransactionStatus.sold] =
             completed.map((m) => m.toSellerListingEntity()).toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       } catch (e) {
-          debugPrint('[DEBUG] Error loading seller completed: $e');
+        debugPrint('[DEBUG] Error loading seller completed: $e');
         result[TransactionStatus.sold] = [];
       }
 
       // Failed seller transactions
       try {
         final failed = await _dataSource.getFailedTransactions(_userId);
-          debugPrint('[DEBUG] SELLER failed raw count: ${failed.length}');
+        debugPrint('[DEBUG] SELLER failed raw count: ${failed.length}');
         for (final m in failed) {
-            debugPrint('[DEBUG] SELLER failed: id=${m.id}, sellerId=${m.sellerId}');
+          debugPrint(
+            '[DEBUG] SELLER failed: id=${m.id}, sellerId=${m.sellerId}',
+          );
         }
         result[TransactionStatus.dealFailed] =
             failed.map((m) => m.toSellerListingEntity()).toList()
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       } catch (e) {
-          debugPrint('[DEBUG] Error loading seller failed: $e');
+        debugPrint('[DEBUG] Error loading seller failed: $e');
         result[TransactionStatus.dealFailed] = [];
       }
 
       _sellerTransactions = result;
-        debugPrint('[DEBUG] SELLER final: inTx=${result[TransactionStatus.inTransaction]?.length}, sold=${result[TransactionStatus.sold]?.length}, failed=${result[TransactionStatus.dealFailed]?.length}');
+      debugPrint(
+        '[DEBUG] SELLER final: inTx=${result[TransactionStatus.inTransaction]?.length}, sold=${result[TransactionStatus.sold]?.length}, failed=${result[TransactionStatus.dealFailed]?.length}',
+      );
     } catch (e) {
-        debugPrint('[DEBUG] Error loading seller transactions: $e');
+      debugPrint('[DEBUG] Error loading seller transactions: $e');
       _sellerTransactions = {
         TransactionStatus.inTransaction: [],
         TransactionStatus.sold: [],

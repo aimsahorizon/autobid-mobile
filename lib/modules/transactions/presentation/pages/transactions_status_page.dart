@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/transaction_status_entity.dart';
@@ -68,7 +67,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: widget.controller.isLoading ? null : widget.controller.refresh,
+            onPressed: widget.controller.isLoading
+                ? null
+                : widget.controller.refresh,
             tooltip: 'Refresh transactions',
           ),
         ],
@@ -167,9 +168,8 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           return ListenableBuilder(
             listenable: widget.controller,
             builder: (context, _) {
-              final transactions = widget.controller.getBuyerTransactionsByStatus(
-                status,
-              );
+              final transactions = widget.controller
+                  .getBuyerTransactionsByStatus(status);
 
               if (transactions.isEmpty) {
                 return Center(
@@ -250,9 +250,8 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           return ListenableBuilder(
             listenable: widget.controller,
             builder: (context, _) {
-              final transactions = widget.controller.getSellerTransactionsByStatus(
-                status,
-              );
+              final transactions = widget.controller
+                  .getSellerTransactionsByStatus(status);
 
               if (transactions.isEmpty) {
                 return Center(

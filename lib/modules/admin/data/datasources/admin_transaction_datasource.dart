@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/admin_transaction_entity.dart';
 
@@ -14,7 +15,7 @@ class AdminTransactionDataSource {
     int offset = 0,
   }) async {
     try {
-      print(
+      debugPrint(
         '[AdminTransactionDataSource] getTransactions called, filter: $statusFilter',
       );
 
@@ -38,16 +39,18 @@ class AdminTransactionDataSource {
             .range(offset, offset + limit - 1);
       }
 
-      print('[AdminTransactionDataSource] Got ${response.length} transactions');
+      debugPrint(
+        '[AdminTransactionDataSource] Got ${response.length} transactions',
+      );
       if (response.isNotEmpty) {
-        print(
+        debugPrint(
           '[AdminTransactionDataSource] First transaction: ${response.first}',
         );
       }
 
       return response.map((data) => _mapToEntity(data)).toList();
     } catch (e) {
-      print('[AdminTransactionDataSource] Error getting transactions: $e');
+      debugPrint('[AdminTransactionDataSource] Error getting transactions: $e');
       rethrow;
     }
   }
@@ -73,7 +76,9 @@ class AdminTransactionDataSource {
 
       return (response as List).map((data) => _mapToEntity(data)).toList();
     } catch (e) {
-      print('[AdminTransactionDataSource] Error getting pending reviews: $e');
+      debugPrint(
+        '[AdminTransactionDataSource] Error getting pending reviews: $e',
+      );
       rethrow;
     }
   }
@@ -95,7 +100,7 @@ class AdminTransactionDataSource {
       if (response == null) return null;
       return _mapToEntity(response);
     } catch (e) {
-      print('[AdminTransactionDataSource] Error getting transaction: $e');
+      debugPrint('[AdminTransactionDataSource] Error getting transaction: $e');
       rethrow;
     }
   }
@@ -113,7 +118,7 @@ class AdminTransactionDataSource {
 
       return (response as List).map((data) => _mapToFormEntity(data)).toList();
     } catch (e) {
-      print('[AdminTransactionDataSource] Error getting forms: $e');
+      debugPrint('[AdminTransactionDataSource] Error getting forms: $e');
       return [];
     }
   }
@@ -147,7 +152,7 @@ class AdminTransactionDataSource {
 
       return true;
     } catch (e) {
-      print('[AdminTransactionDataSource] Error approving: $e');
+      debugPrint('[AdminTransactionDataSource] Error approving: $e');
       return false;
     }
   }
@@ -180,7 +185,7 @@ class AdminTransactionDataSource {
 
       return true;
     } catch (e) {
-      print('[AdminTransactionDataSource] Error rejecting: $e');
+      debugPrint('[AdminTransactionDataSource] Error rejecting: $e');
       return false;
     }
   }
@@ -188,7 +193,7 @@ class AdminTransactionDataSource {
   /// Get transaction statistics
   Future<AdminTransactionStats> getStats() async {
     try {
-      print('[AdminTransactionDataSource] getStats called');
+      debugPrint('[AdminTransactionDataSource] getStats called');
       final response = await _supabase
           .from('auction_transactions')
           .select(
@@ -196,7 +201,7 @@ class AdminTransactionDataSource {
           );
 
       final transactions = response as List;
-      print(
+      debugPrint(
         '[AdminTransactionDataSource] Stats query got ${transactions.length} transactions',
       );
 
@@ -244,7 +249,7 @@ class AdminTransactionDataSource {
         failed: failed,
       );
     } catch (e) {
-      print('[AdminTransactionDataSource] Error getting stats: $e');
+      debugPrint('[AdminTransactionDataSource] Error getting stats: $e');
       return const AdminTransactionStats(
         total: 0,
         pendingReview: 0,
@@ -278,7 +283,7 @@ class AdminTransactionDataSource {
         'actor_name': adminName,
       });
     } catch (e) {
-      print('[AdminTransactionDataSource] Error adding timeline: $e');
+      debugPrint('[AdminTransactionDataSource] Error adding timeline: $e');
     }
   }
 

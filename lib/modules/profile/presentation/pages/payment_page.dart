@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
-import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import '../../domain/entities/pricing_entity.dart';
 
 /// Payment page for processing token package purchases
@@ -25,7 +24,6 @@ class PaymentPage extends StatefulWidget {
 class _PaymentPageState extends State<PaymentPage> {
   PaymentMethodType _selectedMethod = PaymentMethodType.card;
   bool _isProcessing = false;
-  bool _useDemoMode = true; // Toggle between demo and real API
 
   // Card form fields
   final _cardNumberController = TextEditingController();
@@ -63,10 +61,7 @@ class _PaymentPageState extends State<PaymentPage> {
     setState(() => _isProcessing = true);
 
     try {
-      // Use mock service in demo mode, real service otherwise
-      final paymongoService = _useDemoMode
-          ? PayMongoMockService()
-          : PayMongoService();
+      final paymongoService = PayMongoService();
 
       if (_selectedMethod == PaymentMethodType.card) {
         await _processCardPayment(paymongoService);
@@ -216,79 +211,6 @@ class _PaymentPageState extends State<PaymentPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Payment'),
-        actions: [
-          // Demo mode toggle
-          PopupMenuButton<String>(
-            icon: Icon(
-              _useDemoMode ? Icons.science_outlined : Icons.cloud_outlined,
-              color: _useDemoMode ? ColorConstants.warning : ColorConstants.success,
-            ),
-            tooltip: _useDemoMode ? 'Demo Mode (Simulated)' : 'Live Mode (Real API)',
-            onSelected: (value) {
-              if (value == 'toggle') {
-                setState(() {
-                  _useDemoMode = !_useDemoMode;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _useDemoMode
-                          ? 'Switched to Demo Mode - Payments will be simulated'
-                          : 'Switched to Live Mode - Real payments will be processed',
-                    ),
-                    backgroundColor: _useDemoMode
-                        ? ColorConstants.warning
-                        : ColorConstants.success,
-                    duration: const Duration(seconds: 3),
-                  ),
-                );
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'toggle',
-                child: Row(
-                  children: [
-                    Icon(
-                      _useDemoMode ? Icons.cloud_outlined : Icons.science_outlined,
-                      color: _useDemoMode ? ColorConstants.success : ColorConstants.warning,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      _useDemoMode
-                          ? 'Switch to Live Mode'
-                          : 'Switch to Demo Mode',
-                    ),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                enabled: false,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Current Mode:',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _useDemoMode ? 'Demo (Simulated)' : 'Live (Real API)',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: _useDemoMode
-                            ? ColorConstants.warning
-                            : ColorConstants.success,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
       body: Form(
         key: _formKey,
@@ -297,51 +219,6 @@ class _PaymentPageState extends State<PaymentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Demo mode banner
-              if (_useDemoMode) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: ColorConstants.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: ColorConstants.warning.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.science_outlined,
-                        color: ColorConstants.warning,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Demo Mode Active',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: ColorConstants.warning,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Payment will be simulated. No real charges will be made.',
-                              style: theme.textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-
               // Package summary
               _buildPackageSummary(theme, isDark),
               const SizedBox(height: 32),

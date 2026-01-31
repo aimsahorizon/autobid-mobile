@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../data/datasources/support_mock_datasource.dart';
 
 class FAQPage extends StatefulWidget {
   const FAQPage({super.key});
@@ -10,19 +9,21 @@ class FAQPage extends StatefulWidget {
 }
 
 class _FAQPageState extends State<FAQPage> {
-  List<Map<String, String>> _faqs = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFAQs();
-  }
-
-  Future<void> _loadFAQs() async {
-    _faqs = await SupportMockDataSource().getFAQs();
-    setState(() => _isLoading = false);
-  }
+  final List<Map<String, String>> _faqs = [
+    {
+      'question': 'How do I place a bid?',
+      'answer': 'To place a bid, navigate to the auction page and enter your bid amount. Make sure you have enough tokens.',
+    },
+    {
+      'question': 'What are tokens?',
+      'answer': 'Tokens are used to place bids on auctions. You can purchase them from the profile page.',
+    },
+    {
+      'question': 'How do I contact support?',
+      'answer': 'You can contact support by creating a ticket in the Customer Support section.',
+    },
+  ];
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {

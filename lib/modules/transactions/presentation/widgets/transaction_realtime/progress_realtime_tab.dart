@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
@@ -242,7 +241,9 @@ class ProgressRealtimeTab extends StatelessWidget {
       debugPrint(
         '[ProgressRealtimeTab] User confirmed cancel. Calling controller...',
       );
-      debugPrint('[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"');
+      debugPrint(
+        '[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"',
+      );
 
       final success = await controller.buyerCancelDeal(
         reason: reasonController.text.trim(),

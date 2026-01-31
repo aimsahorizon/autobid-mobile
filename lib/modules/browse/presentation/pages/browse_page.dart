@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../browse_module.dart';
 import '../../../lists/presentation/pages/active_listing_detail_page.dart';
 import '../../../lists/presentation/pages/approved_listing_detail_page.dart';
 import '../../../lists/domain/entities/listing_detail_entity.dart';
@@ -10,6 +10,7 @@ import '../../../notifications/notifications_module.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../../data/datasources/auction_supabase_datasource.dart';
 import '../../domain/entities/auction_detail_entity.dart';
+import '../controllers/auction_detail_controller.dart';
 import '../controllers/browse_controller.dart';
 import '../widgets/auction_card.dart';
 import '../widgets/auction_filter_sheet.dart';
@@ -31,7 +32,7 @@ class _BrowsePageState extends State<BrowsePage> {
   final _searchController = TextEditingController();
   bool _isGridView = true; // Toggle between grid and list view
 
-  BrowseController get _controller => BrowseModule.instance.controller;
+  BrowseController get _controller => widget.controller;
 
   @override
   void initState() {
@@ -59,22 +60,6 @@ class _BrowsePageState extends State<BrowsePage> {
         onApply: (filter) {
           _controller.applyFilter(filter);
         },
-      ),
-    );
-  }
-
-  void _toggleDemoMode(BuildContext context) {
-    BrowseModule.toggleDemoMode();
-    setState(() {});
-    _controller.loadAuctions();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          BrowseModule.useMockData
-              ? 'Switched to Mock Data'
-              : 'Switched to Database',
-        ),
-        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -268,34 +253,6 @@ class _BrowsePageState extends State<BrowsePage> {
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => _controller.loadAuctions(),
             tooltip: 'Refresh',
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              if (value == 'toggle_demo') {
-                _toggleDemoMode(context);
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'toggle_demo',
-                child: Row(
-                  children: [
-                    Icon(
-                      BrowseModule.useMockData
-                          ? Icons.cloud_outlined
-                          : Icons.storage_outlined,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      BrowseModule.useMockData
-                          ? 'Switch to Database'
-                          : 'Switch to Mock Data',
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -547,7 +504,7 @@ class _BrowsePageState extends State<BrowsePage> {
                               MaterialPageRoute(
                                 builder: (_) => AuctionDetailPage(
                                   auctionId: auction.id,
-                                  controller: BrowseModule.instance.createAuctionDetailController(),
+                                  controller: GetIt.instance<AuctionDetailController>(),
                                 ),
                               ),
                             );
@@ -618,7 +575,7 @@ class _BrowsePageState extends State<BrowsePage> {
                                       MaterialPageRoute(
                                         builder: (_) => AuctionDetailPage(
                                           auctionId: auction.id,
-                                          controller: BrowseModule.instance.createAuctionDetailController(),
+                                          controller: GetIt.instance<AuctionDetailController>(),
                                         ),
                                       ),
                                     );

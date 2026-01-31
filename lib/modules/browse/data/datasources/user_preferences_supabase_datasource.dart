@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserPreferencesSupabaseDatasource {
@@ -19,7 +20,7 @@ class UserPreferencesSupabaseDatasource {
       final n = res['bid_increment'] as num?;
       return n?.toDouble();
     } on PostgrestException catch (e) {
-      print('[UserPrefs] getBidIncrement error: ${e.message}');
+      debugPrint('[UserPrefs] getBidIncrement error: ${e.message}');
       return null;
     }
   }

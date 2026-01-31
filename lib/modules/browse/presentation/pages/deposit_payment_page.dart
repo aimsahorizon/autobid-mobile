@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
-import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/deposit_supabase_datasource.dart';
 
@@ -28,7 +27,6 @@ class DepositPaymentPage extends StatefulWidget {
 class _DepositPaymentPageState extends State<DepositPaymentPage> {
   final _payMongoService = PayMongoService();
   bool _isProcessing = false;
-  bool _useDemoMode = true; // Default to test environment
 
   // Billing form fields
   final _nameController = TextEditingController();
@@ -66,8 +64,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
     setState(() => _isProcessing = true);
 
-    // Use Mock service if in demo mode
-    final service = _useDemoMode ? PayMongoMockService() : _payMongoService;
+    final service = _payMongoService;
 
     try {
       // Step 1: Create payment intent
@@ -178,42 +175,6 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Demo mode toggle
-              Container(
-                margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _useDemoMode
-                      ? Colors.orange.withValues(alpha: 0.1)
-                      : Colors.grey.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _useDemoMode ? Colors.orange : Colors.grey.shade300,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.bug_report_outlined,
-                      color: _useDemoMode ? Colors.orange : Colors.grey,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Use Demo Mode (No real API calls)',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                    Switch(
-                      value: _useDemoMode,
-                      onChanged: (value) =>
-                          setState(() => _useDemoMode = value),
-                      activeThumbColor: Colors.orange,
-                    ),
-                  ],
-                ),
-              ),
-
               // Deposit info card
               Container(
                 padding: const EdgeInsets.all(20),
@@ -477,66 +438,6 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 32),
-
-              // Test cards info
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: ColorConstants.info.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: ColorConstants.info.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.credit_card,
-                          color: ColorConstants.info,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Test Cards',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: ColorConstants.info,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTestCardRow(
-                      '✅ Success:',
-                      '4343 4343 4343 4345',
-                      theme,
-                    ),
-                    const SizedBox(height: 4),
-                    _buildTestCardRow(
-                      '🔐 3D Secure:',
-                      '4571 7360 0000 0008',
-                      theme,
-                    ),
-                    const SizedBox(height: 4),
-                    _buildTestCardRow(
-                      '❌ Generic Fail:',
-                      '4571 7360 0000 0016',
-                      theme,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Any future expiry (12/34), any CVC (123)',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
               ),
               const SizedBox(height: 32),
 

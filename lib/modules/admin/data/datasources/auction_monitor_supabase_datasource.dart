@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/auction_monitor_entity.dart';
 
@@ -12,7 +13,7 @@ class AuctionMonitorSupabaseDataSource {
   /// Get all active auctions for monitoring
   Future<List<AuctionMonitorEntity>> getActiveAuctions() async {
     try {
-      print(
+      debugPrint(
         '[AuctionMonitorDataSource] Querying auction_browse_listings view...',
       );
 
@@ -29,7 +30,7 @@ class AuctionMonitorSupabaseDataSource {
           .order('end_time', ascending: true)
           .limit(100);
 
-      print(
+      debugPrint(
         '[AuctionMonitorDataSource] Found ${(response as List).length} auctions from view',
       );
       final auctions = <AuctionMonitorEntity>[];
@@ -44,13 +45,13 @@ class AuctionMonitorSupabaseDataSource {
         auctions.add(_parseAuctionMonitorFromView(json, latestBid, sellerInfo));
       }
 
-      print(
+      debugPrint(
         '[AuctionMonitorDataSource] Parsed ${auctions.length} auction entities',
       );
       return auctions;
     } catch (e, stackTrace) {
-      print('[AuctionMonitorDataSource] Error fetching auctions: $e');
-      print('[AuctionMonitorDataSource] Stack trace: $stackTrace');
+      debugPrint('[AuctionMonitorDataSource] Error fetching auctions: $e');
+      debugPrint('[AuctionMonitorDataSource] Stack trace: $stackTrace');
       return [];
     }
   }
@@ -83,7 +84,7 @@ class AuctionMonitorSupabaseDataSource {
       try {
         await _supabase.removeChannel(channel);
       } catch (e) {
-        print('[AuctionMonitorDataSource] Error removing channel: $e');
+        debugPrint('[AuctionMonitorDataSource] Error removing channel: $e');
       }
     };
 
@@ -125,7 +126,7 @@ class AuctionMonitorSupabaseDataSource {
         );
       }).toList();
     } catch (e) {
-      print('[AuctionMonitorDataSource] Error fetching bids: $e');
+      debugPrint('[AuctionMonitorDataSource] Error fetching bids: $e');
       return [];
     }
   }
@@ -165,7 +166,7 @@ class AuctionMonitorSupabaseDataSource {
       try {
         await _supabase.removeChannel(channel);
       } catch (e) {
-        print('[AuctionMonitorDataSource] Error removing channel: $e');
+        debugPrint('[AuctionMonitorDataSource] Error removing channel: $e');
       }
     };
 
@@ -217,7 +218,7 @@ class AuctionMonitorSupabaseDataSource {
         controller.add(auctions);
       }
     } catch (e) {
-      print('[AuctionMonitorDataSource] Error emitting snapshot: $e');
+      debugPrint('[AuctionMonitorDataSource] Error emitting snapshot: $e');
     }
   }
 

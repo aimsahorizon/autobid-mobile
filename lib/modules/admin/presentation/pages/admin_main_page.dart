@@ -44,9 +44,13 @@ class _AdminMainPageState extends State<AdminMainPage>
       // Ensure module is initialized
       AdminModule.instance.initialize();
       _transactionController = AdminModule.instance.transactionController;
-      print('[AdminMainPage] Transaction controller initialized successfully');
+      debugPrint(
+        '[AdminMainPage] Transaction controller initialized successfully',
+      );
     } catch (e) {
-      print('[AdminMainPage] Error initializing transaction controller: $e');
+      debugPrint(
+        '[AdminMainPage] Error initializing transaction controller: $e',
+      );
       // Try again with setState to trigger rebuild
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -56,7 +60,7 @@ class _AdminMainPageState extends State<AdminMainPage>
               _transactionController =
                   AdminModule.instance.transactionController;
             } catch (e2) {
-              print('[AdminMainPage] Retry failed: $e2');
+              debugPrint('[AdminMainPage] Retry failed: $e2');
             }
           });
         }

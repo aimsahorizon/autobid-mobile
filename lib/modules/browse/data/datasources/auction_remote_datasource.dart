@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:autobid_mobile/core/services/supabase_service.dart';
 import '../../domain/entities/auction_filter.dart';
 import '../models/auction_model.dart';
@@ -12,19 +13,21 @@ class AuctionRemoteDataSource {
   /// Tries full browse view first, falls back to simple view if unavailable
   Future<List<AuctionModel>> getActiveAuctions({AuctionFilter? filter}) async {
     try {
-      print('[AuctionRemoteDataSource] Loading auctions with filter: $filter');
+      debugPrint(
+        '[AuctionRemoteDataSource] Loading auctions with filter: $filter',
+      );
 
       // Try the full auction_browse_listings view first
       return await _fetchFromView('auction_browse_listings', filter);
     } catch (e) {
-      print(
+      debugPrint(
         '[AuctionRemoteDataSource] Full view failed: $e. Trying fallback view...',
       );
       try {
         // Fallback to simpler view if full view fails
         return await _fetchFromView('auction_browse_simple', filter);
       } catch (e2) {
-        print(
+        debugPrint(
           '[AuctionRemoteDataSource] Fallback view also failed: $e2. Trying direct auctions table...',
         );
         // Final fallback: query auctions table directly
@@ -74,7 +77,7 @@ class AuctionRemoteDataSource {
 
     // Order by ending soonest first
     final response = await queryBuilder.order('end_time', ascending: true);
-    print(
+    debugPrint(
       '[AuctionRemoteDataSource] Fetched ${(response as List).length} auctions from $viewName',
     );
 
@@ -132,7 +135,7 @@ class AuctionRemoteDataSource {
     }
 
     final response = await queryBuilder.order('end_time', ascending: true);
-    print(
+    debugPrint(
       '[AuctionRemoteDataSource] Fetched ${(response as List).length} auctions from auctions table (fallback)',
     );
 

@@ -1,11 +1,9 @@
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'data/datasources/pricing_supabase_datasource.dart';
-import 'data/datasources/profile_mock_datasource.dart';
 import 'data/datasources/profile_supabase_datasource.dart';
 import 'data/datasources/support_supabase_datasource.dart';
 import 'data/repositories/pricing_repository_impl.dart';
-import 'data/repositories/profile_repository_mock_impl.dart';
 import 'data/repositories/profile_repository_supabase_impl.dart';
 import 'data/repositories/support_repository_supabase_impl.dart';
 import 'domain/repositories/pricing_repository.dart';
@@ -116,18 +114,10 @@ class ProfileModule {
 
   ProfileModule._();
 
-  /// Toggle this to switch between mock and real data
-  static const bool useMockData = false;
-
   /// Singleton instances
   ProfileSupabaseDataSource? _dataSourceInstance;
   ProfileRepository? _repositoryInstance;
   ProfileController? _controllerInstance;
-
-  /// Create mock data source
-  ProfileMockDataSource _createMockDataSource() {
-    return ProfileMockDataSource();
-  }
 
   /// Create Supabase data source
   ProfileSupabaseDataSource _getOrCreateDataSource() {
@@ -138,14 +128,9 @@ class ProfileModule {
   /// Create profile repository
   ProfileRepository _getOrCreateRepository() {
     if (_repositoryInstance != null) return _repositoryInstance!;
-
-    if (useMockData) {
-      _repositoryInstance = ProfileRepositoryMockImpl(_createMockDataSource());
-    } else {
-      _repositoryInstance = ProfileRepositorySupabaseImpl(
-        _getOrCreateDataSource(),
-      );
-    }
+    _repositoryInstance = ProfileRepositorySupabaseImpl(
+      _getOrCreateDataSource(),
+    );
     return _repositoryInstance!;
   }
 

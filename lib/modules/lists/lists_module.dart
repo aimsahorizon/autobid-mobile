@@ -2,7 +2,6 @@ import 'package:get_it/get_it.dart';
 import 'presentation/controllers/lists_controller.dart';
 import 'presentation/controllers/listing_draft_controller.dart';
 import 'data/datasources/listing_supabase_datasource.dart';
-import '../transactions/presentation/controllers/transaction_controller.dart';
 
 import 'domain/usecases/draft_management_usecases.dart';
 import 'domain/usecases/submission_usecases.dart';
@@ -53,25 +52,4 @@ Future<void> initListsModule() async {
     uploadDeedOfSaleUseCase: sl(),
     deleteDeedOfSaleUseCase: sl(),
   ));
-}
-
-/// Lists module dependency injection (Legacy)
-class ListsModule {
-  /// Toggle for mock data vs real Supabase backend
-  static bool useMockData = true;
-
-  /// Singleton controller instances
-  static ListsController? _listsController;
-  static TransactionController? _transactionController;
-  static ListingDraftController? _listingDraftController;
-
-  /// Dispose resources when module is no longer needed
-  static void dispose() {
-    _listsController?.dispose();
-    _listsController = null;
-    _transactionController?.dispose();
-    _transactionController = null;
-    _listingDraftController?.dispose();
-    _listingDraftController = null;
-  }
 }

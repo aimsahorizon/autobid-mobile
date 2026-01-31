@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase datasource for seller listing operations
@@ -17,7 +18,9 @@ class ListingSupabaseDataSource {
     try {
       var query = _supabase
           .from('vehicles')
-          .select('id, brand, model, year, starting_price, current_bid, reserve_price, total_bids, watchers_count, views_count, status, created_at, end_time, main_image_url')
+          .select(
+            'id, brand, model, year, starting_price, current_bid, reserve_price, total_bids, watchers_count, views_count, status, created_at, end_time, main_image_url',
+          )
           .eq('seller_id', sellerId);
 
       // Filter by status if provided
@@ -47,18 +50,22 @@ class ListingSupabaseDataSource {
     double? reservePrice,
   }) async {
     try {
-      final response = await _supabase.from('vehicles').insert({
-        'seller_id': sellerId,
-        'brand': brand,
-        'model': model,
-        'year': year,
-        'variant': variant,
-        'starting_price': startingPrice,
-        'reserve_price': reservePrice,
-        'status': 'draft',
-        'current_bid': 0,
-        'main_image_url': '', // Will be updated when photos uploaded
-      }).select('id').single();
+      final response = await _supabase
+          .from('vehicles')
+          .insert({
+            'seller_id': sellerId,
+            'brand': brand,
+            'model': model,
+            'year': year,
+            'variant': variant,
+            'starting_price': startingPrice,
+            'reserve_price': reservePrice,
+            'status': 'draft',
+            'current_bid': 0,
+            'main_image_url': '', // Will be updated when photos uploaded
+          })
+          .select('id')
+          .single();
 
       return response['id'] as String;
     } on PostgrestException catch (e) {
@@ -94,10 +101,7 @@ class ListingSupabaseDataSource {
 
       if (updates.isEmpty) return;
 
-      await _supabase
-          .from('vehicles')
-          .update(updates)
-          .eq('id', vehicleId);
+      await _supabase.from('vehicles').update(updates).eq('id', vehicleId);
     } on PostgrestException catch (e) {
       throw Exception('Failed to update listing: ${e.message}');
     } catch (e) {
@@ -122,14 +126,18 @@ class ListingSupabaseDataSource {
       final filepath = '$userId/$vehicleId/$filename';
 
       // Upload to vehicle-photos bucket
-      await _supabase.storage.from('vehicle-photos').upload(
+      await _supabase.storage
+          .from('vehicle-photos')
+          .upload(
             filepath,
             imageFile,
             fileOptions: const FileOptions(upsert: true),
           );
 
       // Get public URL
-      final publicUrl = _supabase.storage.from('vehicle-photos').getPublicUrl(filepath);
+      final publicUrl = _supabase.storage
+          .from('vehicle-photos')
+          .getPublicUrl(filepath);
 
       // Insert into vehicle_photos table
       await _supabase.from('vehicle_photos').insert({
@@ -165,10 +173,7 @@ class ListingSupabaseDataSource {
   }) async {
     try {
       // Delete from database
-      await _supabase
-          .from('vehicle_photos')
-          .delete()
-          .eq('id', photoId);
+      await _supabase.from('vehicle_photos').delete().eq('id', photoId);
 
       // Extract filepath from URL and delete from storage
       final uri = Uri.parse(photoUrl);
@@ -181,7 +186,7 @@ class ListingSupabaseDataSource {
       throw Exception('Failed to delete photo: ${e.message}');
     } catch (e) {
       // Don't throw on storage errors - photo may already be deleted
-      print('Error deleting photo from storage: $e');
+      debugPrint('Error deleting photo from storage: $e');
     }
   }
 
@@ -208,11 +213,14 @@ class ListingSupabaseDataSource {
     required DateTime endTime,
   }) async {
     try {
-      await _supabase.from('vehicles').update({
-        'status': 'active',
-        'start_time': startTime.toIso8601String(),
-        'end_time': endTime.toIso8601String(),
-      }).eq('id', vehicleId);
+      await _supabase
+          .from('vehicles')
+          .update({
+            'status': 'active',
+            'start_time': startTime.toIso8601String(),
+            'end_time': endTime.toIso8601String(),
+          })
+          .eq('id', vehicleId);
     } on PostgrestException catch (e) {
       throw Exception('Failed to activate listing: ${e.message}');
     } catch (e) {
@@ -255,7 +263,7 @@ class ListingSupabaseDataSource {
             await _supabase.storage.from('vehicle-photos').remove([filepath]);
           } catch (e) {
             // Continue even if storage deletion fails
-            print('Error deleting photo: $e');
+            debugPrint('Error deleting photo: $e');
           }
         }
       }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase datasource for bid operations
@@ -58,7 +59,7 @@ class BidSupabaseDataSource {
   /// Extend auction end time by 5 minutes on every bid
   Future<void> _maybeApplySnipeGuard(String auctionId) async {
     try {
-      print('[SnipeGuard] 🔍 Adding 5 minutes to auction $auctionId');
+      debugPrint('[SnipeGuard] 🔍 Adding 5 minutes to auction $auctionId');
 
       final auction = await _supabase
           .from('auctions')
@@ -67,13 +68,13 @@ class BidSupabaseDataSource {
           .maybeSingle();
 
       if (auction == null) {
-        print('[SnipeGuard] ❌ Auction not found');
+        debugPrint('[SnipeGuard] ❌ Auction not found');
         return;
       }
 
       final endTimeRaw = auction['end_time'] as String?;
       if (endTimeRaw == null) {
-        print('[SnipeGuard] ❌ No end_time found');
+        debugPrint('[SnipeGuard] ❌ No end_time found');
         return;
       }
 
@@ -81,8 +82,8 @@ class BidSupabaseDataSource {
       final now = DateTime.now().toUtc();
       final newEndTime = endTime.add(const Duration(minutes: 5));
 
-      print('[SnipeGuard] Old end: $endTime');
-      print('[SnipeGuard] New end: $newEndTime (+ 5 minutes)');
+      debugPrint('[SnipeGuard] Old end: $endTime');
+      debugPrint('[SnipeGuard] New end: $newEndTime (+ 5 minutes)');
 
       await _supabase
           .from('auctions')
@@ -92,10 +93,10 @@ class BidSupabaseDataSource {
           })
           .eq('id', auctionId);
 
-      print('[SnipeGuard] ✅ Added 5 minutes successfully!');
+      debugPrint('[SnipeGuard] ✅ Added 5 minutes successfully!');
     } catch (e) {
       // Non-fatal; bid already placed. Log and continue.
-      print('[SnipeGuard] ❌ Failed to add time: $e');
+      debugPrint('[SnipeGuard] ❌ Failed to add time: $e');
     }
   }
 
@@ -103,7 +104,7 @@ class BidSupabaseDataSource {
   /// Joins with users table to get bidder info (LEFT JOIN to handle missing users)
   Future<List<Map<String, dynamic>>> getBidHistory(String auctionId) async {
     try {
-      print(
+      debugPrint(
         'DEBUG [BidDataSource]: Fetching bid history for auction_id: $auctionId',
       );
 
@@ -116,22 +117,24 @@ class BidSupabaseDataSource {
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);
 
-      print(
+      debugPrint(
         'DEBUG [BidDataSource]: Query response type: ${response.runtimeType}',
       );
-      print('DEBUG [BidDataSource]: Response data: $response');
+      debugPrint('DEBUG [BidDataSource]: Response data: $response');
 
       final result = List<Map<String, dynamic>>.from(response);
-      print('DEBUG [BidDataSource]: Returning ${result.length} bids');
+      debugPrint('DEBUG [BidDataSource]: Returning ${result.length} bids');
 
       return result;
     } on PostgrestException catch (e) {
-      print('ERROR [BidDataSource]: PostgrestException - ${e.message}');
-      print('ERROR [BidDataSource]: Code: ${e.code}, Details: ${e.details}');
+      debugPrint('ERROR [BidDataSource]: PostgrestException - ${e.message}');
+      debugPrint(
+        'ERROR [BidDataSource]: Code: ${e.code}, Details: ${e.details}',
+      );
       throw Exception('Failed to get bid history: ${e.message}');
     } catch (e, stackTrace) {
-      print('ERROR [BidDataSource]: Exception - $e');
-      print('ERROR [BidDataSource]: Stack trace: $stackTrace');
+      debugPrint('ERROR [BidDataSource]: Exception - $e');
+      debugPrint('ERROR [BidDataSource]: Stack trace: $stackTrace');
       throw Exception('Failed to get bid history: $e');
     }
   }

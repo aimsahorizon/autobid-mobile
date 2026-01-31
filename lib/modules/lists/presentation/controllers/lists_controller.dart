@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../../domain/usecases/get_seller_listings_usecase.dart';
@@ -37,8 +38,7 @@ class ListsController extends ChangeNotifier {
   List<SellerListingEntity> getListingsByStatus(ListingStatus status) =>
       _listings[status] ?? [];
 
-  int getCountByStatus(ListingStatus status) =>
-      _listings[status]?.length ?? 0;
+  int getCountByStatus(ListingStatus status) => _listings[status]?.length ?? 0;
 
   Future<void> loadListings() async {
     _isLoading = true;
@@ -82,26 +82,30 @@ class ListsController extends ChangeNotifier {
 
   void _subscribeToUpdates(String userId) {
     _listingsSubscription?.cancel();
-    _listingsSubscription = _streamSellerListingsUseCase(userId).listen((_) {
-      // Reload listings quietly on update
-      _reloadListingsQuietly(userId);
-    }, onError: (e) {
-      print('Realtime listing subscription error: $e');
-    });
+    _listingsSubscription = _streamSellerListingsUseCase(userId).listen(
+      (_) {
+        // Reload listings quietly on update
+        _reloadListingsQuietly(userId);
+      },
+      onError: (e) {
+        debugPrint('Realtime listing subscription error: $e');
+      },
+    );
   }
 
   Future<void> _reloadListingsQuietly(String userId) async {
     try {
       final result = await _getSellerListingsUseCase.call(userId);
       result.fold(
-        (failure) => print('Failed to reload listings: ${failure.message}'),
+        (failure) =>
+            debugPrint('Failed to reload listings: ${failure.message}'),
         (listingsMap) {
           _listings = listingsMap;
           notifyListeners();
         },
       );
     } catch (e) {
-      print('Failed to reload listings: $e');
+      debugPrint('Failed to reload listings: $e');
     }
   }
 
@@ -113,6 +117,8 @@ class ListsController extends ChangeNotifier {
   /// Convenience factory for backward compatibility if needed during migration
   /// (Should be replaced by sl() in UI)
   factory ListsController.supabase() {
-    throw UnsupportedError('Use dependency injection via GetIt (sl<ListsController>())');
+    throw UnsupportedError(
+      'Use dependency injection via GetIt (sl<ListsController>())',
+    );
   }
 }

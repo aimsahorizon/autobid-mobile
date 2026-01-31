@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/auction_model.dart';
 import '../models/auction_detail_model.dart';
@@ -20,21 +21,21 @@ class AuctionSupabaseDataSource {
   /// Tries full browse view first, falls back to simple view, then direct auctions table
   Future<List<AuctionModel>> getActiveAuctions({AuctionFilter? filter}) async {
     try {
-      print(
+      debugPrint(
         '[AuctionSupabaseDataSource] Loading auctions with filter: $filter',
       );
 
       // Try the full auction_browse_listings view first
       return await _fetchFromView('auction_browse_listings', filter);
     } catch (e) {
-      print(
+      debugPrint(
         '[AuctionSupabaseDataSource] Full view failed: $e. Trying fallback view...',
       );
       try {
         // Fallback to simpler view if full view fails
         return await _fetchFromView('auction_browse_simple', filter);
       } catch (e2) {
-        print(
+        debugPrint(
           '[AuctionSupabaseDataSource] Fallback view also failed: $e2. Trying direct auctions table...',
         );
         // Final fallback: query auctions table directly
@@ -89,7 +90,7 @@ class AuctionSupabaseDataSource {
 
     // Order by ending soonest first
     final response = await queryBuilder.order('end_time', ascending: true);
-    print(
+    debugPrint(
       '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $source',
     );
 
@@ -149,7 +150,7 @@ class AuctionSupabaseDataSource {
     }
 
     final response = await queryBuilder.order('end_time', ascending: true);
-    print(
+    debugPrint(
       '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from auctions table (fallback)',
     );
 
@@ -191,7 +192,7 @@ class AuctionSupabaseDataSource {
             .single();
       } on PostgrestException catch (e) {
         // Fallback: older view may not have new columns; re-query without them
-        print(
+        debugPrint(
           '[AuctionSupabaseDataSource] Fallback select without min/enable columns due to: ${e.message}',
         );
         auctionResponse = await _supabase

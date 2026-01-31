@@ -34,27 +34,3 @@ Future<void> initGuestModule() async {
     ),
   );
 }
-
-/// Legacy Dependency injection container for Guest module
-/// @deprecated - Use GetIt service locator via initGuestModule() instead
-class GuestModule {
-  static GuestModule? _instance;
-
-  GuestModule._() {
-    _initializeDependencies();
-  }
-
-  static GuestModule get instance {
-    _instance ??= GuestModule._();
-    return _instance!;
-  }
-
-  void _initializeDependencies() {
-    // Dependencies are now managed via GetIt in initGuestModule()
-  }
-
-  /// @deprecated - Use GetIt.instance.get<GuestController>() instead
-  GuestController createGuestController() {
-    return GetIt.instance<GuestController>();
-  }
-}

@@ -44,7 +44,7 @@ class TransactionsStatusController extends ChangeNotifier {
             .map((model) => model.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('[TransactionsStatusController] Error loading active: $e');
+        debugPrint('[TransactionsStatusController] Error loading active: $e');
         result[TransactionStatus.inTransaction] = [];
       }
 
@@ -55,7 +55,9 @@ class TransactionsStatusController extends ChangeNotifier {
             .map((model) => model.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('[TransactionsStatusController] Error loading completed: $e');
+        debugPrint(
+          '[TransactionsStatusController] Error loading completed: $e',
+        );
         result[TransactionStatus.sold] = [];
       }
 
@@ -66,7 +68,7 @@ class TransactionsStatusController extends ChangeNotifier {
             .map((model) => model.toSellerListingEntity())
             .toList();
       } catch (e) {
-        print('[TransactionsStatusController] Error loading failed: $e');
+        debugPrint('[TransactionsStatusController] Error loading failed: $e');
         result[TransactionStatus.dealFailed] = [];
       }
 
@@ -77,7 +79,9 @@ class TransactionsStatusController extends ChangeNotifier {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
-      print('[TransactionsStatusController] Error loading transactions: $e');
+      debugPrint(
+        '[TransactionsStatusController] Error loading transactions: $e',
+      );
     }
   }
 

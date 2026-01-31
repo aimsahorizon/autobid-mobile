@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/account_status_entity.dart';
 import '../models/account_status_model.dart';
@@ -15,7 +16,7 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
   /// Returns status if user exists and has submitted KYC
   Future<AccountStatusModel?> checkAccountStatus(String email) async {
     try {
-      print('[GuestDataSource] Checking account status for email: $email');
+      debugPrint('[GuestDataSource] Checking account status for email: $email');
 
       // Query users table (KYC users are stored here)
       final response = await _supabase
@@ -26,10 +27,10 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
           .eq('email', email)
           .maybeSingle();
 
-      print('[GuestDataSource] Response: $response');
+      debugPrint('[GuestDataSource] Response: $response');
 
       if (response == null) {
-        print('[GuestDataSource] No user found with email: $email');
+        debugPrint('[GuestDataSource] No user found with email: $email');
         return null;
       }
 
@@ -56,15 +57,15 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
         userName: fullName.trim(),
       );
 
-      print('[GuestDataSource] Successfully mapped to AccountStatusModel');
+      debugPrint('[GuestDataSource] Successfully mapped to AccountStatusModel');
       return accountStatus;
     } on PostgrestException catch (e) {
-      print('[GuestDataSource] PostgrestException: ${e.message}');
-      print('[GuestDataSource] Error details: ${e.details}');
-      print('[GuestDataSource] Error hint: ${e.hint}');
+      debugPrint('[GuestDataSource] PostgrestException: ${e.message}');
+      debugPrint('[GuestDataSource] Error details: ${e.details}');
+      debugPrint('[GuestDataSource] Error hint: ${e.hint}');
       throw Exception('Failed to check account status: ${e.message}');
     } catch (e) {
-      print('[GuestDataSource] Unexpected error: $e');
+      debugPrint('[GuestDataSource] Unexpected error: $e');
       throw Exception('Failed to check account status: $e');
     }
   }
@@ -97,7 +98,7 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
     int offset = 0,
   }) async {
     try {
-      print('[GuestDataSource] Fetching guest auctions from database...');
+      debugPrint('[GuestDataSource] Fetching guest auctions from database...');
 
       // Query auctions with limited information
       // Hide bidder details, bid amounts, Q&A section
@@ -110,7 +111,7 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
 
-      print(
+      debugPrint(
         '[GuestDataSource] Retrieved ${response.length} auctions from database',
       );
 
@@ -131,10 +132,10 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
 
       return auctions;
     } on PostgrestException catch (e) {
-      print('[GuestDataSource] PostgrestException: ${e.message}');
+      debugPrint('[GuestDataSource] PostgrestException: ${e.message}');
       throw Exception('Failed to fetch auctions: ${e.message}');
     } catch (e) {
-      print('[GuestDataSource] Unexpected error: $e');
+      debugPrint('[GuestDataSource] Unexpected error: $e');
       throw Exception('Failed to fetch auctions: $e');
     }
   }

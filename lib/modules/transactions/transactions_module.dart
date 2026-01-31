@@ -2,7 +2,6 @@ import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/datasources/transaction_remote_datasource.dart';
 import 'data/datasources/transaction_composite_supabase_datasource.dart';
-import 'data/datasources/transaction_mock_datasource.dart';
 import 'data/datasources/transaction_supabase_datasource.dart';
 import 'data/datasources/transaction_realtime_datasource.dart';
 import 'data/datasources/seller_transaction_supabase_datasource.dart';
@@ -23,7 +22,6 @@ Future<void> initTransactionsModule() async {
   final sl = GetIt.instance;
 
   // Primitive Datasources
-  sl.registerLazySingleton(() => TransactionMockDataSource());
   sl.registerLazySingleton(() => TransactionSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => SellerTransactionSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => BuyerTransactionSupabaseDataSource(sl()));

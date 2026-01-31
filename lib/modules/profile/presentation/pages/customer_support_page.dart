@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/support_ticket_entity.dart';
-import '../../data/datasources/support_mock_datasource.dart';
+import '../controllers/support_controller.dart';
 
 class CustomerSupportPage extends StatefulWidget {
   const CustomerSupportPage({super.key});
@@ -11,20 +12,22 @@ class CustomerSupportPage extends StatefulWidget {
 }
 
 class _CustomerSupportPageState extends State<CustomerSupportPage> {
-  final _dataSource = SupportMockDataSource();
-  List<SupportTicketEntity> _tickets = [];
-  bool _isLoading = true;
-
+  late SupportController _controller;
+  
   @override
   void initState() {
     super.initState();
+    _controller = GetIt.instance<SupportController>();
     _loadTickets();
   }
 
   Future<void> _loadTickets() async {
-    setState(() => _isLoading = true);
-    _tickets = await _dataSource.getTickets();
-    setState(() => _isLoading = false);
+    // Assuming the user is logged in, we'd normally get the userId from auth
+    // For now, we'll let the controller handle fetching or pass a placeholder if needed
+    // The controller likely needs a userId to fetch tickets. 
+    // Checking SupportController implementation...
+    await _controller.loadUserTickets(); 
+    if (mounted) setState(() {});
   }
 
   void _createNewTicket() {
@@ -45,14 +48,23 @@ class _CustomerSupportPageState extends State<CustomerSupportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Customer Support')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _tickets.isEmpty
-              ? _EmptyState(onCreateTicket: _createNewTicket)
-              : _TicketsList(
-                  tickets: _tickets,
-                  onTicketTap: _openTicket,
-                ),
+      body: ListenableBuilder(
+        listenable: _controller,
+        builder: (context, child) {
+          if (_controller.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (_controller.userTickets.isEmpty) {
+            return _EmptyState(onCreateTicket: _createNewTicket);
+          }
+
+          return _TicketsList(
+            tickets: _controller.userTickets,
+            onTicketTap: _openTicket,
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewTicket,
         icon: const Icon(Icons.add),
@@ -178,6 +190,7 @@ class _TicketCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
+            if (ticket.messages.isNotEmpty)
             Text(
               ticket.messages.last.message,
               style: theme.textTheme.bodySmall?.copyWith(
@@ -245,7 +258,14 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
   final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
   SupportCategory _selectedCategory = SupportCategory.general;
+  late SupportController _controller;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = GetIt.instance<SupportController>();
+  }
 
   @override
   void dispose() {
@@ -264,18 +284,26 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
 
     setState(() => _isSubmitting = true);
 
-    await SupportMockDataSource().createTicket(
+    await _controller.createTicket(
       subject: _subjectController.text,
       categoryId: 'cat_${_selectedCategory.name}',
       categoryName: _selectedCategory.label,
-      description: _messageController.text,
+      message: _messageController.text,
     );
+    
+    setState(() => _isSubmitting = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ticket created successfully'), backgroundColor: ColorConstants.success),
-      );
-      Navigator.pop(context);
+      if (_controller.errorMessage != null) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ticket created successfully'), backgroundColor: ColorConstants.success),
+        );
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -342,7 +370,14 @@ class _TicketDetailPage extends StatefulWidget {
 
 class _TicketDetailPageState extends State<_TicketDetailPage> {
   final _messageController = TextEditingController();
+  late SupportController _controller;
   bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = GetIt.instance<SupportController>();
+  }
 
   @override
   void dispose() {
@@ -354,14 +389,20 @@ class _TicketDetailPageState extends State<_TicketDetailPage> {
     if (_messageController.text.isEmpty) return;
 
     setState(() => _isSending = true);
-    await SupportMockDataSource().sendMessage(widget.ticket.id, _messageController.text);
+    await _controller.addMessage(widget.ticket.id, _messageController.text);
     _messageController.clear();
     setState(() => _isSending = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Message sent')),
-      );
+       if (_controller.errorMessage != null) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Message sent')),
+        );
+      }
     }
   }
 

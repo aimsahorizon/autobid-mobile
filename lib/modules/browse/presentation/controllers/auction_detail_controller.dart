@@ -157,7 +157,7 @@ class AuctionDetailController extends ChangeNotifier {
           _auction != null &&
           _auction!.currentBid > previousBid &&
           _isAutoBidActive) {
-        print(
+        debugPrint(
           'DEBUG: Detected outbid - previous: $previousBid, current: ${_auction!.currentBid}',
         );
         // We've been outbid, trigger auto-bid check
@@ -181,14 +181,14 @@ class AuctionDetailController extends ChangeNotifier {
   Future<void> _loadBidHistory(String auctionId) async {
     _isLoadingBidHistory = true;
     try {
-      print('DEBUG: Loading bid history for auction: $auctionId');
+      debugPrint('DEBUG: Loading bid history for auction: $auctionId');
 
       // Get bid history using UseCase
       final result = await _getBidHistoryUseCase(auctionId: auctionId);
 
       result.fold(
         (failure) {
-          print('ERROR: Failed to load bid history: ${failure.message}');
+          debugPrint('ERROR: Failed to load bid history: ${failure.message}');
           _bidHistory = [];
         },
         (bids) {
@@ -204,13 +204,13 @@ class AuctionDetailController extends ChangeNotifier {
               isWinning: bid.isWinning,
             );
           }).toList();
-          print('DEBUG: Loaded ${_bidHistory.length} bids');
+          debugPrint('DEBUG: Loaded ${_bidHistory.length} bids');
         },
       );
     } catch (e, stackTrace) {
       // Log the error instead of silent fail
-      print('ERROR: Failed to load bid history: $e');
-      print('STACK: $stackTrace');
+      debugPrint('ERROR: Failed to load bid history: $e');
+      debugPrint('STACK: $stackTrace');
       _bidHistory = [];
     } finally {
       _isLoadingBidHistory = false;
@@ -221,9 +221,13 @@ class AuctionDetailController extends ChangeNotifier {
   Future<void> _loadQuestions(String auctionId) async {
     _isLoadingQA = true;
     try {
-      print('DEBUG [Controller]: ========================================');
-      print('DEBUG [Controller]: Starting Q&A load for auction: $auctionId');
-      print('DEBUG [Controller]: User ID: $_userId');
+      debugPrint(
+        'DEBUG [Controller]: ========================================',
+      );
+      debugPrint(
+        'DEBUG [Controller]: Starting Q&A load for auction: $auctionId',
+      );
+      debugPrint('DEBUG [Controller]: User ID: $_userId');
 
       // Get questions using UseCase
       final result = await _getQuestionsUseCase(
@@ -233,36 +237,46 @@ class AuctionDetailController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          print('ERROR [Controller]: Failed to load Q&A: ${failure.message}');
+          debugPrint(
+            'ERROR [Controller]: Failed to load Q&A: ${failure.message}',
+          );
           _questions = [];
         },
         (questions) {
           _questions = questions;
-          print('DEBUG [Controller]: Received response from UseCase');
-          print('DEBUG [Controller]: Questions count: ${_questions.length}');
+          debugPrint('DEBUG [Controller]: Received response from UseCase');
+          debugPrint(
+            'DEBUG [Controller]: Questions count: ${_questions.length}',
+          );
 
           if (_questions.isEmpty) {
-            print('DEBUG [Controller]: ⚠️ NO QUESTIONS FOUND IN DATABASE');
-            print('DEBUG [Controller]: This means:');
-            print(
+            debugPrint('DEBUG [Controller]: ⚠️ NO QUESTIONS FOUND IN DATABASE');
+            debugPrint('DEBUG [Controller]: This means:');
+            debugPrint(
               'DEBUG [Controller]:   1. Q&A schema might not be run (migration 00045)',
             );
-            print(
+            debugPrint(
               'DEBUG [Controller]:   2. No questions have been asked yet for this listing',
             );
-            print(
+            debugPrint(
               'DEBUG [Controller]:   3. RLS policies might be blocking access',
             );
           }
         },
       );
 
-      print('DEBUG [Controller]: ========================================');
+      debugPrint(
+        'DEBUG [Controller]: ========================================',
+      );
     } catch (e, stackTrace) {
-      print('ERROR [Controller]: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-      print('ERROR [Controller]: Failed to load Q&A: $e');
-      print('STACK [Controller]: $stackTrace');
-      print('ERROR [Controller]: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+      debugPrint(
+        'ERROR [Controller]: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+      );
+      debugPrint('ERROR [Controller]: Failed to load Q&A: $e');
+      debugPrint('STACK [Controller]: $stackTrace');
+      debugPrint(
+        'ERROR [Controller]: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!',
+      );
       _questions = [];
     } finally {
       _isLoadingQA = false;
@@ -273,23 +287,23 @@ class AuctionDetailController extends ChangeNotifier {
   Future<void> askQuestion(String category, String question) async {
     if (_auction == null) return;
 
-    print('DEBUG [Controller]: ========================================');
-    print('DEBUG [Controller]: Attempting to ask question');
-    print('DEBUG [Controller]: Auction ID: ${_auction!.id}');
-    print('DEBUG [Controller]: Category: $category');
-    print('DEBUG [Controller]: Question: $question');
-    print('DEBUG [Controller]: User ID: $_userId');
+    debugPrint('DEBUG [Controller]: ========================================');
+    debugPrint('DEBUG [Controller]: Attempting to ask question');
+    debugPrint('DEBUG [Controller]: Auction ID: ${_auction!.id}');
+    debugPrint('DEBUG [Controller]: Category: $category');
+    debugPrint('DEBUG [Controller]: Question: $question');
+    debugPrint('DEBUG [Controller]: User ID: $_userId');
 
     try {
       // Check authentication
       if (_userId == null) {
-        print(
+        debugPrint(
           'ERROR [Controller]: ❌ User not authenticated, cannot ask question',
         );
         return;
       }
 
-      print('DEBUG [Controller]: Calling UseCase.postQuestion()...');
+      debugPrint('DEBUG [Controller]: Calling UseCase.postQuestion()...');
 
       // Post question using UseCase
       final result = await _postQuestionUseCase(
@@ -301,23 +315,25 @@ class AuctionDetailController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          print(
+          debugPrint(
             'ERROR [Controller]: ❌ Failed to post question: ${failure.message}',
           );
         },
         (qa) {
-          print('DEBUG [Controller]: Question posted successfully: ${qa.id}');
-          print(
+          debugPrint(
+            'DEBUG [Controller]: Question posted successfully: ${qa.id}',
+          );
+          debugPrint(
             'DEBUG [Controller]: ✅ Question posted successfully, reloading Q&A...',
           );
           _loadQuestions(_auction!.id).then((_) => notifyListeners());
         },
       );
     } catch (e, stackTrace) {
-      print('ERROR [Controller]: ❌ Exception while asking question: $e');
-      print('STACK [Controller]: $stackTrace');
+      debugPrint('ERROR [Controller]: ❌ Exception while asking question: $e');
+      debugPrint('STACK [Controller]: $stackTrace');
     }
-    print('DEBUG [Controller]: ========================================');
+    debugPrint('DEBUG [Controller]: ========================================');
   }
 
   /// Toggles like on a question
@@ -325,7 +341,7 @@ class AuctionDetailController extends ChangeNotifier {
     try {
       // Check authentication
       if (_userId == null) {
-        print('ERROR: User not authenticated, cannot like question');
+        debugPrint('ERROR: User not authenticated, cannot like question');
         return;
       }
 
@@ -338,8 +354,9 @@ class AuctionDetailController extends ChangeNotifier {
           userId: _userId,
         );
         result.fold(
-          (failure) =>
-              print('ERROR: Failed to unlike question: ${failure.message}'),
+          (failure) => debugPrint(
+            'ERROR: Failed to unlike question: ${failure.message}',
+          ),
           (_) {},
         );
       } else {
@@ -349,7 +366,7 @@ class AuctionDetailController extends ChangeNotifier {
         );
         result.fold(
           (failure) =>
-              print('ERROR: Failed to like question: ${failure.message}'),
+              debugPrint('ERROR: Failed to like question: ${failure.message}'),
           (_) {},
         );
       }
@@ -373,7 +390,7 @@ class AuctionDetailController extends ChangeNotifier {
       }).toList();
       notifyListeners();
     } catch (e) {
-      print('ERROR: Failed to toggle like: $e');
+      debugPrint('ERROR: Failed to toggle like: $e');
     }
   }
 
@@ -444,7 +461,7 @@ class AuctionDetailController extends ChangeNotifier {
       }
 
       // Place bid using UseCase
-      print('[AuctionDetailController] Placing bid: \$$amount');
+      debugPrint('[AuctionDetailController] Placing bid: \$$amount');
       final result = await _placeBidUseCase(
         auctionId: _auction!.id,
         bidderId: effectiveUserId,
@@ -460,13 +477,13 @@ class AuctionDetailController extends ChangeNotifier {
           return false;
         },
         (_) {
-          print(
+          debugPrint(
             '[AuctionDetailController] Bid placed successfully, reloading auction data...',
           );
           // Reload auction to update current bid and bid history
           // This will also get the potentially extended end_time from snipe guard
           loadAuctionDetail(_auction!.id);
-          print(
+          debugPrint(
             '[AuctionDetailController] Auction data reloaded. New end time: ${_auction!.endTime}',
           );
           return true;
@@ -524,14 +541,14 @@ class AuctionDetailController extends ChangeNotifier {
   /// Internal method to check if auto-bid should trigger and place bid
   Future<void> _checkAndPlaceAutoBid() async {
     if (!_isAutoBidActive || _maxAutoBid == null || _auction == null) {
-      print(
+      debugPrint(
         'DEBUG: Auto-bid check skipped - active: $_isAutoBidActive, maxBid: $_maxAutoBid, auction: ${_auction != null}',
       );
       return;
     }
 
     if (_isProcessing) {
-      print('DEBUG: Auto-bid check skipped - already processing a bid');
+      debugPrint('DEBUG: Auto-bid check skipped - already processing a bid');
       return;
     }
 
@@ -539,13 +556,13 @@ class AuctionDetailController extends ChangeNotifier {
     final currentBid = _auction!.currentBid;
     final nextBidAmount = currentBid + _bidIncrement;
 
-    print(
+    debugPrint(
       'DEBUG: Auto-bid check - currentBid: $currentBid, nextBid: $nextBidAmount, maxBid: $_maxAutoBid',
     );
 
     // Check if next bid is within our max limit
     if (nextBidAmount > _maxAutoBid!) {
-      print(
+      debugPrint(
         'DEBUG: Auto-bid limit reached - deactivating (nextBid $nextBidAmount > maxBid $_maxAutoBid)',
       );
       _isAutoBidActive = false;
@@ -560,19 +577,21 @@ class AuctionDetailController extends ChangeNotifier {
     if (_bidHistory.isNotEmpty) {
       final highestBid = _bidHistory.first;
       if (highestBid.isCurrentUser && highestBid.amount >= currentBid) {
-        print('DEBUG: Already highest bidder - no auto-bid needed');
+        debugPrint('DEBUG: Already highest bidder - no auto-bid needed');
         return;
       }
     }
 
     // Place automatic bid
-    print('DEBUG: Placing auto-bid of ₱$nextBidAmount');
+    debugPrint('DEBUG: Placing auto-bid of ₱$nextBidAmount');
     final success = await placeBid(nextBidAmount, userId: _userId);
 
     if (success) {
-      print('DEBUG: Auto-bid successful at ₱$nextBidAmount');
+      debugPrint('DEBUG: Auto-bid successful at ₱$nextBidAmount');
     } else {
-      print('DEBUG: Auto-bid failed - ${_errorMessage ?? "unknown error"}');
+      debugPrint(
+        'DEBUG: Auto-bid failed - ${_errorMessage ?? "unknown error"}',
+      );
       // If bid fails, deactivate auto-bid to prevent infinite loops
       _isAutoBidActive = false;
       _stopPolling();
@@ -586,30 +605,35 @@ class AuctionDetailController extends ChangeNotifier {
     _auctionSubscription?.cancel();
     _bidSubscription?.cancel();
 
-    print('DEBUG: Subscribing to realtime updates for auction: $auctionId');
+    debugPrint(
+      'DEBUG: Subscribing to realtime updates for auction: $auctionId',
+    );
 
     // Subscribe to auction updates (price, end_time)
-    _auctionSubscription = _streamAuctionUpdatesUseCase(
-      auctionId: auctionId,
-    ).listen((_) {
-      print('DEBUG: Realtime auction update received');
-      // Reload auction details quietly
-      loadAuctionDetail(auctionId, isBackground: true);
-    }, onError: (e) {
-      print('ERROR: Realtime auction subscription error: $e');
-    });
+    _auctionSubscription = _streamAuctionUpdatesUseCase(auctionId: auctionId)
+        .listen(
+          (_) {
+            debugPrint('DEBUG: Realtime auction update received');
+            // Reload auction details quietly
+            loadAuctionDetail(auctionId, isBackground: true);
+          },
+          onError: (e) {
+            debugPrint('ERROR: Realtime auction subscription error: $e');
+          },
+        );
 
     // Subscribe to bid updates (new bids)
-    _bidSubscription = _streamBidUpdatesUseCase(auctionId: auctionId).listen((
-      _,
-    ) {
-      print('DEBUG: Realtime bid update received');
-      // Reload bid history quietly
-      _loadBidHistory(auctionId);
-      // Note: Auction update usually triggers separately, but reloading history ensures timeline is fresh
-    }, onError: (e) {
-      print('ERROR: Realtime bid subscription error: $e');
-    });
+    _bidSubscription = _streamBidUpdatesUseCase(auctionId: auctionId).listen(
+      (_) {
+        debugPrint('DEBUG: Realtime bid update received');
+        // Reload bid history quietly
+        _loadBidHistory(auctionId);
+        // Note: Auction update usually triggers separately, but reloading history ensures timeline is fresh
+      },
+      onError: (e) {
+        debugPrint('ERROR: Realtime bid subscription error: $e');
+      },
+    );
   }
 
   /// Starts polling timer to periodically check for auction updates
@@ -617,10 +641,10 @@ class AuctionDetailController extends ChangeNotifier {
   void _startPolling() {
     _stopPolling(); // Cancel any existing timer
 
-    print('DEBUG: Starting auto-bid polling (5s interval)');
+    debugPrint('DEBUG: Starting auto-bid polling (5s interval)');
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (_auction != null && _isAutoBidActive) {
-        print('DEBUG: Polling for auction updates...');
+        debugPrint('DEBUG: Polling for auction updates...');
         loadAuctionDetail(_auction!.id, isBackground: true);
       }
     });
@@ -629,7 +653,7 @@ class AuctionDetailController extends ChangeNotifier {
   /// Stops the polling timer
   void _stopPolling() {
     if (_pollingTimer != null) {
-      print('DEBUG: Stopping auto-bid polling');
+      debugPrint('DEBUG: Stopping auto-bid polling');
       _pollingTimer?.cancel();
       _pollingTimer = null;
     }

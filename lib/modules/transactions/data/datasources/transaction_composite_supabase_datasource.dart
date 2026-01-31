@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/buyer_transaction_entity.dart' as buyer;
 import 'transaction_remote_datasource.dart';
@@ -38,7 +39,7 @@ class TransactionCompositeSupabaseDataSource
       );
       return _mapSellerJsonToTransactionEntity(sellerData);
     } catch (e) {
-      print('[TransactionCompositeDS] Error fetching transaction: $e');
+      debugPrint('[TransactionCompositeDS] Error fetching transaction: $e');
       return null;
     }
   }

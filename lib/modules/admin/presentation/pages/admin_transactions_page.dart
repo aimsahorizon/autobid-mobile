@@ -42,7 +42,7 @@ class _AdminTransactionsPageState extends State<AdminTransactionsPage>
   }
 
   Future<void> _loadData() async {
-    print('[AdminTransactionsPage] Loading data...');
+    debugPrint('[AdminTransactionsPage] Loading data...');
     await widget.controller.loadAll();
     // Default to "all" to show all transactions
     await widget.controller.loadTransactions(statusFilter: 'all');

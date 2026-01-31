@@ -3,7 +3,6 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/car_detection_service.dart';
 import '../controllers/listing_draft_controller.dart';
 import '../../domain/entities/listing_draft_entity.dart';
-import '../../data/datasources/demo_listing_data.dart';
 import '../widgets/listing_form/step1_basic_info.dart';
 import '../widgets/listing_form/step2_mechanical_spec.dart';
 import '../widgets/listing_form/step3_dimensions.dart';
@@ -129,7 +128,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
         break;
       }
     }
-    
+
     if (firstPhoto == null) return;
 
     // Show loading
@@ -156,7 +155,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
     }
 
     try {
-      // Call AI detection service (Mock for now)
+      // Call AI detection service
       final detectedData = await _carDetectionService.detectCarFromImage(
         firstPhoto,
       );
@@ -179,7 +178,9 @@ class _CreateListingPageState extends State<CreateListingPage> {
         year: detectedData['year'] as int?,
         transmission: detectedData['transmission'] as String?,
         exteriorColor: detectedData['color'] as String?,
-        tags: (detectedData['tags'] as List<dynamic>?)?.cast<String>() ?? currentDraft.tags,
+        tags:
+            (detectedData['tags'] as List<dynamic>?)?.cast<String>() ??
+            currentDraft.tags,
         // Preserve existing data
         engineType: currentDraft.engineType,
         engineDisplacement: currentDraft.engineDisplacement,
@@ -248,7 +249,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
       }
     } catch (e) {
       if (context.mounted) {
-        if (Navigator.canPop(context)) Navigator.pop(context); // Close loading if still open
+        if (Navigator.canPop(context))
+          Navigator.pop(context); // Close loading if still open
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to detect car: $e'),
@@ -264,8 +266,9 @@ class _CreateListingPageState extends State<CreateListingPage> {
     if (widget.controller.currentStep == 1 && widget.controller.canGoNext) {
       final photoUrls = widget.controller.currentDraft?.photoUrls;
       // Check if there are ANY photos
-      bool hasPhotos = photoUrls != null && photoUrls.values.any((list) => list.isNotEmpty);
-      
+      bool hasPhotos =
+          photoUrls != null && photoUrls.values.any((list) => list.isNotEmpty);
+
       if (hasPhotos) {
         final shouldAutoFill = await showDialog<bool>(
           context: context,
@@ -302,7 +305,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
         }
       }
     }
-    
+
     // Proceed to next step
     widget.controller.goToNextStep();
   }

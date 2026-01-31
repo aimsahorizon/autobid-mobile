@@ -34,11 +34,3 @@ Future<void> initBidsModule() async {
     sl(), // AuthRepository
   ));
 }
-
-/// Legacy BidsModule class (Deprecated)
-/// Kept for potential backward compatibility references during migration
-class BidsModule {
-  static final BidsModule _instance = BidsModule._internal();
-  static BidsModule get instance => _instance;
-  BidsModule._internal();
-}

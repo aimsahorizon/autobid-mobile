@@ -36,12 +36,14 @@ class _PreTransactionRealtimePageState
   @override
   void initState() {
     super.initState();
-    print('[DEBUG PreTransactionRealtimePage] initState called');
-    print(
+    debugPrint('[DEBUG PreTransactionRealtimePage] initState called');
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] transactionId: ${widget.transactionId}',
     );
-    print('[DEBUG PreTransactionRealtimePage] userId: ${widget.userId}');
-    print('[DEBUG PreTransactionRealtimePage] userName: ${widget.userName}');
+    debugPrint('[DEBUG PreTransactionRealtimePage] userId: ${widget.userId}');
+    debugPrint(
+      '[DEBUG PreTransactionRealtimePage] userName: ${widget.userName}',
+    );
     _debugStatus = 'loading...';
     _loadWithDebug();
   }
@@ -65,7 +67,7 @@ class _PreTransactionRealtimePageState
         });
       }
     } catch (e) {
-      print(
+      debugPrint(
         '[DEBUG PreTransactionRealtimePage] Exception in loadTransaction: $e',
       );
       if (mounted) {
@@ -76,24 +78,26 @@ class _PreTransactionRealtimePageState
 
   @override
   void dispose() {
-    print('[DEBUG PreTransactionRealtimePage] dispose called');
+    debugPrint('[DEBUG PreTransactionRealtimePage] dispose called');
     widget.controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    print('[DEBUG PreTransactionRealtimePage] build called - $_debugStatus');
-    print(
+    debugPrint(
+      '[DEBUG PreTransactionRealtimePage] build called - $_debugStatus',
+    );
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] isLoading: ${widget.controller.isLoading}',
     );
-    print(
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] hasError: ${widget.controller.hasError}',
     );
-    print(
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] transaction: ${widget.controller.transaction?.id}',
     );
-    print(
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] transaction status: ${widget.controller.transaction?.status}',
     );
 

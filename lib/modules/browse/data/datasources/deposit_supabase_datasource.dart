@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase datasource for auction deposit management
@@ -14,7 +15,7 @@ class DepositSupabaseDataSource {
     required String paymentIntentId,
   }) async {
     try {
-      print(
+      debugPrint(
         '[DepositSupabaseDatasource] Creating deposit for auction: $auctionId, user: $userId, amount: $amount',
       );
 
@@ -28,7 +29,7 @@ class DepositSupabaseDataSource {
         },
       );
 
-      print('[DepositSupabaseDatasource] Response: $response');
+      debugPrint('[DepositSupabaseDatasource] Response: $response');
 
       // Handle response - could be a single row or a table
       if (response is List && response.isNotEmpty) {
@@ -41,7 +42,7 @@ class DepositSupabaseDataSource {
           throw Exception('Failed to create deposit: $message');
         }
 
-        print(
+        debugPrint(
           '[DepositSupabaseDatasource] Deposit created successfully: $depositId',
         );
         return depositId;
@@ -54,18 +55,18 @@ class DepositSupabaseDataSource {
           throw Exception('Failed to create deposit: $message');
         }
 
-        print(
+        debugPrint(
           '[DepositSupabaseDatasource] Deposit created successfully: $depositId',
         );
         return depositId;
       } else {
-        print(
+        debugPrint(
           '[DepositSupabaseDatasource] Unexpected response type: ${response.runtimeType}',
         );
         throw Exception('Unexpected response from server');
       }
     } catch (e) {
-      print('[DepositSupabaseDatasource] Error creating deposit: $e');
+      debugPrint('[DepositSupabaseDatasource] Error creating deposit: $e');
       throw Exception('Failed to create deposit: $e');
     }
   }

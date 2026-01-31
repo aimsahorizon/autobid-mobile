@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../lists/data/models/listing_model.dart';
 
@@ -102,13 +103,13 @@ class TransactionSupabaseDataSource {
       // Extract auction data from transaction records
       final transactions = (response as List);
       if (transactions.isEmpty) {
-        print(
+        debugPrint(
           '[TransactionSupabaseDataSource] No transactions found for status: $status',
         );
         return [];
       }
 
-      print(
+      debugPrint(
         '[TransactionSupabaseDataSource] Found ${transactions.length} transactions for status: $status',
       );
 
@@ -123,7 +124,7 @@ class TransactionSupabaseDataSource {
         // This ensures navigation to PreTransactionRealtimePage works correctly
         final transactionId = txn['id'] as String;
         final auctionId = txn['auction_id'] as String?;
-        print(
+        debugPrint(
           '[TransactionSupabaseDataSource] Transaction ID: $transactionId, Auction ID: $auctionId',
         );
         auctionData['id'] = transactionId; // Use transaction ID for navigation

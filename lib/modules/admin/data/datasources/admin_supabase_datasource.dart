@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/admin_listing_entity.dart';
 
@@ -73,18 +74,20 @@ class AdminSupabaseDataSource {
           .eq('status_id', pendingStatusId)
           .order('created_at', ascending: true);
 
-      print(
+      debugPrint(
         'DEBUG: Pending listings response: ${(response as List).length} items',
       );
       if ((response as List).isNotEmpty) {
-        print('DEBUG: First item keys: ${(response[0] as Map).keys.toList()}');
+        debugPrint(
+          'DEBUG: First item keys: ${(response[0] as Map).keys.toList()}',
+        );
       }
 
       return (response as List)
           .map((json) => _parseAdminListing(json))
           .toList();
     } catch (e) {
-      print('DEBUG: Failed to fetch pending listings: $e');
+      debugPrint('DEBUG: Failed to fetch pending listings: $e');
       throw Exception('Failed to fetch pending listings: $e');
     }
   }
@@ -92,9 +95,9 @@ class AdminSupabaseDataSource {
   /// Get all listings by status
   Future<List<AdminListingEntity>> getListingsByStatus(String status) async {
     try {
-      print('[ADMIN] ===== START FETCH =====');
-      print('[ADMIN] Fetching listings with status: $status');
-      print('[ADMIN] Current user: ${_supabase.auth.currentUser?.id}');
+      debugPrint('[ADMIN] ===== START FETCH =====');
+      debugPrint('[ADMIN] Fetching listings with status: $status');
+      debugPrint('[ADMIN] Current user: ${_supabase.auth.currentUser?.id}');
 
       // Handle 'all' status differently - no status filter
       if (status == 'all') {
@@ -110,11 +113,11 @@ class AdminSupabaseDataSource {
             .order('created_at', ascending: false)
             .limit(100);
 
-        print(
+        debugPrint(
           '[ADMIN] Fetched ${(response as List).length} listings (all statuses)',
         );
         if ((response as List).isNotEmpty) {
-          print('[ADMIN] Sample data: ${(response as List).first}');
+          debugPrint('[ADMIN] Sample data: ${(response as List).first}');
         }
         return (response as List)
             .map((json) => _parseAdminListing(json))
@@ -122,11 +125,11 @@ class AdminSupabaseDataSource {
       }
 
       // For specific status, filter by status_id
-      print('[ADMIN] Getting status ID for: $status');
+      debugPrint('[ADMIN] Getting status ID for: $status');
       final statusId = await _getStatusId(status);
-      print('[ADMIN] Status ID: $statusId');
+      debugPrint('[ADMIN] Status ID: $statusId');
 
-      print('[ADMIN] Executing query...');
+      debugPrint('[ADMIN] Executing query...');
       final response = await _supabase
           .from('auctions')
           .select('''
@@ -140,24 +143,24 @@ class AdminSupabaseDataSource {
           .order('created_at', ascending: false)
           .limit(100);
 
-      print('[ADMIN] Raw response type: ${response.runtimeType}');
-      print(
+      debugPrint('[ADMIN] Raw response type: ${response.runtimeType}');
+      debugPrint(
         '[ADMIN] Fetched ${(response as List).length} listings with status: $status',
       );
 
       if ((response as List).isNotEmpty) {
-        print('[ADMIN] First item: ${(response as List).first}');
+        debugPrint('[ADMIN] First item: ${(response as List).first}');
       }
 
-      print('[ADMIN] Parsing ${(response as List).length} items...');
+      debugPrint('[ADMIN] Parsing ${(response as List).length} items...');
       final parsed = (response as List)
           .map((json) => _parseAdminListing(json))
           .toList();
-      print('[ADMIN] Successfully parsed ${parsed.length} listings');
-      print('[ADMIN] ===== END FETCH =====');
+      debugPrint('[ADMIN] Successfully parsed ${parsed.length} listings');
+      debugPrint('[ADMIN] ===== END FETCH =====');
       return parsed;
     } catch (e) {
-      print('[ADMIN] Error fetching listings: $e');
+      debugPrint('[ADMIN] Error fetching listings: $e');
       throw Exception('Failed to fetch listings: $e');
     }
   }
@@ -193,7 +196,7 @@ class AdminSupabaseDataSource {
           })
           .eq('id', auctionId);
 
-      print(
+      debugPrint(
         '[ADMIN] Approved listing $auctionId -> status: approved by admin_user $adminUserId (user: $currentUserId)',
       );
     } catch (e) {
@@ -231,7 +234,7 @@ class AdminSupabaseDataSource {
           })
           .eq('id', auctionId);
 
-      print(
+      debugPrint(
         '[ADMIN] Rejected listing $auctionId by admin_user $adminUserId (user: $currentUserId): $reason',
       );
     } catch (e) {
@@ -320,7 +323,7 @@ class AdminSupabaseDataSource {
           );
           coverPhoto = primaryPhoto['photo_url'] as String?;
         } catch (e) {
-          print('[ADMIN] Error extracting photo: $e');
+          debugPrint('[ADMIN] Error extracting photo: $e');
         }
       }
 
@@ -362,9 +365,9 @@ class AdminSupabaseDataSource {
         reviewedBy: json['reviewed_by'] as String?,
       );
     } catch (e, stackTrace) {
-      print('[ADMIN] ERROR parsing listing: $e');
-      print('[ADMIN] Stack trace: $stackTrace');
-      print('[ADMIN] JSON keys: ${json.keys.toList()}');
+      debugPrint('[ADMIN] ERROR parsing listing: $e');
+      debugPrint('[ADMIN] Stack trace: $stackTrace');
+      debugPrint('[ADMIN] JSON keys: ${json.keys.toList()}');
       rethrow;
     }
   }

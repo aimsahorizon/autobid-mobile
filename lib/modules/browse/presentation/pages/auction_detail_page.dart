@@ -114,9 +114,6 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
   Future<void> _processPayment(PaymentMethod method, String details) async {
     setState(() => _isPaymentProcessing = true);
 
-    // Simulate payment processing (mock)
-    await Future.delayed(const Duration(seconds: 2));
-
     if (!mounted) return;
     Navigator.pop(context);
 

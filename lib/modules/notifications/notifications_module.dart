@@ -1,7 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'data/datasources/notification_datasource.dart';
-import 'data/datasources/notification_mock_datasource.dart';
 import 'data/datasources/notification_supabase_datasource.dart';
 import 'data/repositories/notification_repository_impl.dart';
 import 'domain/repositories/notification_repository.dart';
@@ -56,30 +55,8 @@ class NotificationsModule {
 
   NotificationsModule._internal();
 
-  /// Toggle for mock data vs real Supabase backend
-  static bool useMockData = true;
-
-  // Data source instances
-  final _mockDataSource = NotificationMockDataSource();
-  NotificationSupabaseDataSource? _supabaseDataSource;
-
   /// Singleton controller instance (deprecated)
   static NotificationController? _notificationController;
-
-  /// Create Supabase datasource
-  NotificationSupabaseDataSource _createSupabaseDataSource() {
-    return NotificationSupabaseDataSource(supabase: SupabaseConfig.client);
-  }
-
-  /// Get data source based on useMockData flag
-  INotificationDataSource _getDataSource() {
-    if (useMockData) {
-      return _mockDataSource;
-    } else {
-      _supabaseDataSource ??= _createSupabaseDataSource();
-      return _supabaseDataSource!;
-    }
-  }
 
   /// Get or create notification controller
   /// @deprecated Use GetIt.instance.get<NotificationController>() instead
@@ -89,22 +66,42 @@ class NotificationsModule {
     if (GetIt.instance.isRegistered<NotificationController>()) {
       return GetIt.instance<NotificationController>();
     }
-    // Fallback to legacy implementation
+    // Fallback to legacy implementation using Supabase directly
     _notificationController ??= NotificationController(
       getNotificationsUseCase: GetNotificationsUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
       getUnreadCountUseCase: GetUnreadCountUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
       markAsReadUseCase: MarkAsReadUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
       markAllAsReadUseCase: MarkAllAsReadUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
       deleteNotificationUseCase: DeleteNotificationUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
     );
     return _notificationController!;
@@ -116,27 +113,41 @@ class NotificationsModule {
   NotificationController createNotificationController() {
     return NotificationController(
       getNotificationsUseCase: GetNotificationsUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
       getUnreadCountUseCase: GetUnreadCountUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
       markAsReadUseCase: MarkAsReadUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
       markAllAsReadUseCase: MarkAllAsReadUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
       deleteNotificationUseCase: DeleteNotificationUseCase(
-        NotificationRepositoryImpl(dataSource: _getDataSource()),
+        NotificationRepositoryImpl(
+          dataSource: NotificationSupabaseDataSource(
+            supabase: SupabaseConfig.client,
+          ),
+        ),
       ),
     );
-  }
-
-  /// Toggle demo mode (switch between mock and Supabase)
-  static void toggleDemoMode() {
-    useMockData = !useMockData;
-    dispose();
   }
 
   /// Dispose resources

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/listing_draft_model.dart';
 import '../models/listing_model.dart';
@@ -166,7 +167,7 @@ class ListingSupabaseDataSource {
         throw Exception('User must be authenticated to delete draft');
       }
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Deleting draft: $draftId for user: ${currentUser.id}',
       );
 
@@ -184,9 +185,11 @@ class ListingSupabaseDataSource {
         );
       }
 
-      print('[ListingSupabaseDataSource] Successfully deleted draft: $draftId');
+      debugPrint(
+        '[ListingSupabaseDataSource] Successfully deleted draft: $draftId',
+      );
     } on PostgrestException catch (e) {
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] PostgrestException deleting draft: ${e.message}',
       );
       if (e.message.contains('row level security')) {
@@ -194,7 +197,7 @@ class ListingSupabaseDataSource {
       }
       throw Exception('Failed to delete draft: ${e.message}');
     } catch (e) {
-      print('[ListingSupabaseDataSource] Exception deleting draft: $e');
+      debugPrint('[ListingSupabaseDataSource] Exception deleting draft: $e');
       throw Exception('Failed to delete draft: $e');
     }
   }
@@ -580,14 +583,14 @@ class ListingSupabaseDataSource {
         throw Exception('Invalid auctionId or statusName');
       }
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Starting status update: '
         'auctionId=$auctionId, statusName=$statusName',
       );
 
       // Get status ID from status name
       final statusId = await _getStatusId(statusName);
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Resolved status $statusName to ID: $statusId',
       );
 
@@ -598,7 +601,7 @@ class ListingSupabaseDataSource {
         if (additionalData != null) ...additionalData,
       };
 
-      print('[ListingSupabaseDataSource] Update data: $updateData');
+      debugPrint('[ListingSupabaseDataSource] Update data: $updateData');
 
       // First, verify the auction exists before updating
       final existingAuction = await _supabase
@@ -611,17 +614,17 @@ class ListingSupabaseDataSource {
         throw Exception('Auction not found with ID: $auctionId');
       }
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Found auction: '
         'seller_id=${existingAuction['seller_id']}, '
         'current_status_id=${existingAuction['status_id']}',
       );
 
       // Perform the update - capture any errors
-      print('[ListingSupabaseDataSource] Executing update query...');
+      debugPrint('[ListingSupabaseDataSource] Executing update query...');
       await _supabase.from('auctions').update(updateData).eq('id', auctionId);
 
-      print('[ListingSupabaseDataSource] Update query completed');
+      debugPrint('[ListingSupabaseDataSource] Update query completed');
 
       // Wait a moment for DB replication
       await Future.delayed(const Duration(milliseconds: 500));
@@ -638,13 +641,13 @@ class ListingSupabaseDataSource {
       }
 
       final updatedStatusId = verification['status_id'] as String?;
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] After update: status_id=$updatedStatusId, '
         'updated_at=${verification['updated_at']}',
       );
 
       if (updatedStatusId != statusId) {
-        print(
+        debugPrint(
           '[ListingSupabaseDataSource] WARNING: Status not persisted! '
           'Expected $statusId but got $updatedStatusId. '
           'This suggests RLS policy issue or permission problem.',
@@ -655,19 +658,21 @@ class ListingSupabaseDataSource {
         );
       }
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Successfully updated auction $auctionId '
         'from status ${existingAuction['status_id']} to $statusId ($statusName)',
       );
       return true;
     } on PostgrestException catch (e) {
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] PostgreSQL error updating status: '
         'code=${e.code}, message=${e.message}, details=${e.details}',
       );
       throw Exception('Database error: ${e.message}');
     } catch (e) {
-      print('[ListingSupabaseDataSource] Error updating listing status: $e');
+      debugPrint(
+        '[ListingSupabaseDataSource] Error updating listing status: $e',
+      );
       rethrow;
     }
   }
@@ -680,7 +685,7 @@ class ListingSupabaseDataSource {
     String sellerId,
   ) async {
     try {
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Ensuring transaction record for auction: $auctionId',
       );
 
@@ -692,14 +697,16 @@ class ListingSupabaseDataSource {
           .maybeSingle();
 
       if (auctionData == null) {
-        print('[ListingSupabaseDataSource] ❌ Auction not found: $auctionId');
+        debugPrint(
+          '[ListingSupabaseDataSource] ❌ Auction not found: $auctionId',
+        );
         return false;
       }
 
       final currentPrice = auctionData['current_price'] as num?;
       final totalBids = auctionData['total_bids'] as int?;
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Auction current_price: $currentPrice, total_bids: $totalBids',
       );
 
@@ -717,12 +724,14 @@ class ListingSupabaseDataSource {
 
         if ((bids as List).isNotEmpty) {
           highestBid = bids[0];
-          print(
+          debugPrint(
             '[ListingSupabaseDataSource] Found highest bid via query: ${highestBid['bid_amount']}',
           );
         }
       } catch (e) {
-        print('[ListingSupabaseDataSource] Error querying bids directly: $e');
+        debugPrint(
+          '[ListingSupabaseDataSource] Error querying bids directly: $e',
+        );
       }
 
       // Approach 2: If no bid found via direct query, use RPC or aggregation
@@ -742,13 +751,13 @@ class ListingSupabaseDataSource {
             }
 
             if (highestBid != null) {
-              print(
+              debugPrint(
                 '[ListingSupabaseDataSource] Found highest bid via RPC: ${highestBid['bid_amount']}',
               );
             }
           }
         } catch (e) {
-          print(
+          debugPrint(
             '[ListingSupabaseDataSource] RPC approach failed: $e - continuing with fallback',
           );
         }
@@ -756,7 +765,7 @@ class ListingSupabaseDataSource {
 
       // Approach 3: Use auction's current_price as fallback (it should be synced by trigger)
       if (highestBid == null && currentPrice != null && currentPrice > 0) {
-        print(
+        debugPrint(
           '[ListingSupabaseDataSource] Using auction current_price ($currentPrice) as bid amount',
         );
 
@@ -776,17 +785,17 @@ class ListingSupabaseDataSource {
               'bidder_id': bidderSearch['bidder_id'],
               'bid_amount': currentPrice,
             };
-            print(
+            debugPrint(
               '[ListingSupabaseDataSource] Found bidder with current_price',
             );
           }
         } catch (e) {
-          print('[ListingSupabaseDataSource] Bidder search failed: $e');
+          debugPrint('[ListingSupabaseDataSource] Bidder search failed: $e');
         }
       }
 
       if (highestBid == null) {
-        print(
+        debugPrint(
           '[ListingSupabaseDataSource] ❌ No winning bid found for auction: $auctionId. Current price: $currentPrice, Total bids: $totalBids',
         );
         return false;
@@ -795,7 +804,7 @@ class ListingSupabaseDataSource {
       final buyerId = highestBid['bidder_id'] as String;
       final agreedPrice = (highestBid['bid_amount'] as num).toDouble();
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Creating transaction - Buyer: $buyerId, Price: $agreedPrice',
       );
 
@@ -810,18 +819,18 @@ class ListingSupabaseDataSource {
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'auction_id');
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] ✅ Transaction record created/updated for auction: $auctionId',
       );
       return true;
     } on PostgrestException catch (e) {
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Postgrest error creating transaction: ${e.message} (Code: ${e.code})',
       );
-      print('[ListingSupabaseDataSource] Details: ${e.details}');
+      debugPrint('[ListingSupabaseDataSource] Details: ${e.details}');
       return false;
     } catch (e) {
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Unexpected error ensuring transaction: $e',
       );
       return false;
@@ -831,7 +840,7 @@ class ListingSupabaseDataSource {
   /// End active auction (move to ended status)
   Future<bool> endAuction(String auctionId) async {
     try {
-      print('[ListingSupabaseDataSource] Ending auction: $auctionId');
+      debugPrint('[ListingSupabaseDataSource] Ending auction: $auctionId');
 
       return await updateListingStatusByName(
         auctionId,
@@ -839,7 +848,7 @@ class ListingSupabaseDataSource {
         additionalData: {'end_time': DateTime.now().toIso8601String()},
       );
     } catch (e) {
-      print('[ListingSupabaseDataSource] Error ending auction: $e');
+      debugPrint('[ListingSupabaseDataSource] Error ending auction: $e');
       rethrow;
     }
   }
@@ -847,11 +856,11 @@ class ListingSupabaseDataSource {
   /// Reauction ended listing (move back to pending for admin review)
   Future<bool> reauctiongListing(String auctionId) async {
     try {
-      print('[ListingSupabaseDataSource] Reauction listing: $auctionId');
+      debugPrint('[ListingSupabaseDataSource] Reauction listing: $auctionId');
 
       return await updateListingStatusByName(auctionId, 'pending_approval');
     } catch (e) {
-      print('[ListingSupabaseDataSource] Error reauction listing: $e');
+      debugPrint('[ListingSupabaseDataSource] Error reauction listing: $e');
       rethrow;
     }
   }
@@ -859,11 +868,13 @@ class ListingSupabaseDataSource {
   /// Cancel ended auction (move to cancelled status)
   Future<bool> cancelEndedAuction(String auctionId) async {
     try {
-      print('[ListingSupabaseDataSource] Cancelling ended auction: $auctionId');
+      debugPrint(
+        '[ListingSupabaseDataSource] Cancelling ended auction: $auctionId',
+      );
 
       return await updateListingStatusByName(auctionId, 'cancelled');
     } catch (e) {
-      print('[ListingSupabaseDataSource] Error cancelling auction: $e');
+      debugPrint('[ListingSupabaseDataSource] Error cancelling auction: $e');
       rethrow;
     }
   }
@@ -934,7 +945,7 @@ class ListingSupabaseDataSource {
   /// Moves listing to cancelled status
   Future<void> cancelListing(String auctionId) async {
     try {
-      print('[ListingSupabaseDataSource] Cancelling listing: $auctionId');
+      debugPrint('[ListingSupabaseDataSource] Cancelling listing: $auctionId');
 
       // Verify auction exists and get current status before update
       final beforeUpdate = await _supabase
@@ -947,7 +958,7 @@ class ListingSupabaseDataSource {
         throw Exception('Auction not found with ID: $auctionId');
       }
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Before cancel - status_id: ${beforeUpdate['status_id']}',
       );
 
@@ -973,19 +984,21 @@ class ListingSupabaseDataSource {
           ? statusInfo['status_name']
           : 'unknown';
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] After cancel - status_id: $newStatusId, status_name: $statusName',
       );
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Successfully cancelled listing: $auctionId',
       );
     } on PostgrestException catch (e) {
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] PostgrestException cancelling: code=${e.code}, message=${e.message}, details=${e.details}',
       );
       throw Exception('Failed to cancel listing: ${e.message}');
     } catch (e) {
-      print('[ListingSupabaseDataSource] Exception cancelling listing: $e');
+      debugPrint(
+        '[ListingSupabaseDataSource] Exception cancelling listing: $e',
+      );
       throw Exception('Failed to cancel listing: $e');
     }
   }
@@ -998,7 +1011,7 @@ class ListingSupabaseDataSource {
   /// Used when seller wants to edit and resubmit a cancelled listing
   Future<String> copyListingToDraft(String auctionId, String sellerId) async {
     try {
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Copying cancelled listing to draft: $auctionId',
       );
 
@@ -1105,7 +1118,9 @@ class ListingSupabaseDataSource {
           .single();
 
       final draftId = draftResponse['id'] as String;
-      print('[ListingSupabaseDataSource] Successfully created draft: $draftId');
+      debugPrint(
+        '[ListingSupabaseDataSource] Successfully created draft: $draftId',
+      );
       return draftId;
     } on PostgrestException catch (e) {
       throw Exception('Failed to copy listing to draft: ${e.message}');
@@ -1123,7 +1138,7 @@ class ListingSupabaseDataSource {
     DateTime? newEndTime,
   ) async {
     try {
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Creating new auction from cancelled: $auctionId',
       );
 
@@ -1232,7 +1247,7 @@ class ListingSupabaseDataSource {
         }
       }
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Successfully created new auction: $newAuctionId',
       );
       return newAuctionId;
@@ -1247,7 +1262,7 @@ class ListingSupabaseDataSource {
   /// Removes auction, photos, bids, watchers, and vehicle data
   Future<void> deleteListing(String auctionId, String sellerId) async {
     try {
-      print('[ListingSupabaseDataSource] Deleting listing: $auctionId');
+      debugPrint('[ListingSupabaseDataSource] Deleting listing: $auctionId');
 
       // Verify seller ownership before deleting
       final auctionResponse = await _supabase
@@ -1284,7 +1299,7 @@ class ListingSupabaseDataSource {
       // 5. Delete the auction itself
       await _supabase.from('auctions').delete().eq('id', auctionId);
 
-      print(
+      debugPrint(
         '[ListingSupabaseDataSource] Successfully deleted listing: $auctionId',
       );
     } on PostgrestException catch (e) {

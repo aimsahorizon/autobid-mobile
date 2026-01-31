@@ -694,7 +694,9 @@ class _AuctionMonitorPageState extends State<AuctionMonitorPage> {
                                             vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.1),
+                                            color: Colors.blue.withValues(
+                                              alpha: 0.1,
+                                            ),
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
@@ -750,9 +752,9 @@ class _AuctionMonitorPageState extends State<AuctionMonitorPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -839,8 +841,8 @@ class _AuctionMonitorPageState extends State<AuctionMonitorPage> {
                           ),
                           decoration: BoxDecoration(
                             color: qa.isAnswered
-                                ? Colors.green.withOpacity(0.12)
-                                : Colors.orange.withOpacity(0.12),
+                                ? Colors.green.withValues(alpha: 0.12)
+                                : Colors.orange.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -890,7 +892,9 @@ class _AuctionMonitorPageState extends State<AuctionMonitorPage> {
                                     vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.blueGrey.withOpacity(0.1),
+                                    color: Colors.blueGrey.withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(

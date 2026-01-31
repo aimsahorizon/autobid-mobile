@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/user_bid_entity.dart';
 import 'bids_remote_datasource.dart';
@@ -18,11 +19,11 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
   @override
   Future<Map<String, List<UserBidEntity>>> getUserBids([String? userId]) async {
     if (userId == null) {
-      print('[UserBidsSupabaseDataSource] getUserBids: userId is null');
+      debugPrint('[UserBidsSupabaseDataSource] getUserBids: userId is null');
       return {'active': [], 'won': [], 'lost': [], 'cancelled': []};
     }
 
-    print(
+    debugPrint(
       '[UserBidsSupabaseDataSource] getUserBids: fetching bids for userId=$userId',
     );
 
@@ -38,19 +39,19 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
           .select('id, auction_id, bid_amount, created_at')
           .eq('bidder_id', userId);
 
-      print(
+      debugPrint(
         '[UserBidsSupabaseDataSource] Query response type: ${response.runtimeType}',
       );
-      print('[UserBidsSupabaseDataSource] Query response: $response');
+      debugPrint('[UserBidsSupabaseDataSource] Query response: $response');
 
       final bidsList = List<Map<String, dynamic>>.from(response);
 
-      print(
+      debugPrint(
         '[UserBidsSupabaseDataSource] Parsed bidsList length: ${bidsList.length}',
       );
 
       if (bidsList.isEmpty) {
-        print('[UserBidsSupabaseDataSource] No bids found for user');
+        debugPrint('[UserBidsSupabaseDataSource] No bids found for user');
         return {'active': [], 'won': [], 'lost': []};
       }
 
@@ -61,13 +62,15 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
         bidsByAuctionId.putIfAbsent(auctionId, () => []).add(bid);
       }
 
-      print(
+      debugPrint(
         '[UserBidsSupabaseDataSource] Grouped bids by auctionId. Count: ${bidsByAuctionId.length}',
       );
 
       // Process each auction
       for (final auctionId in bidsByAuctionId.keys) {
-        print('[UserBidsSupabaseDataSource] Processing auctionId: $auctionId');
+        debugPrint(
+          '[UserBidsSupabaseDataSource] Processing auctionId: $auctionId',
+        );
         try {
           final bidsForThisAuction = bidsByAuctionId[auctionId]!;
 
@@ -80,7 +83,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
                 .eq('id', auctionId)
                 .maybeSingle();
 
-            print(
+            debugPrint(
               '[UserBidsSupabaseDataSource]   Direct auction query result: $auctionResponse',
             );
 
@@ -88,13 +91,13 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
               auction = auctionResponse;
             }
           } catch (e) {
-            print(
+            debugPrint(
               '[UserBidsSupabaseDataSource]   Direct auction query error: $e',
             );
           }
 
           if (auction == null) {
-            print(
+            debugPrint(
               '[UserBidsSupabaseDataSource]   Auction $auctionId not accessible, skipping',
             );
             continue;
@@ -104,7 +107,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
           // listings in the buyer tab when the auction enters transaction state.
           final sellerId = auction['seller_id'] as String?;
           if (sellerId != null && sellerId == userId) {
-            print(
+            debugPrint(
               '[UserBidsSupabaseDataSource]   Skipping auction $auctionId because user is seller',
             );
             continue;
@@ -175,10 +178,10 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
               ? DateTime.tryParse(endTimeStr)
               : null;
 
-          print('[UserBidsSupabaseDataSource]   title: $title');
-          print('[UserBidsSupabaseDataSource]   statusName: $statusName');
-          print('[UserBidsSupabaseDataSource]   vehicle: $vehicleDisplay');
-          print('[UserBidsSupabaseDataSource]   endTime: $endTime');
+          debugPrint('[UserBidsSupabaseDataSource]   title: $title');
+          debugPrint('[UserBidsSupabaseDataSource]   statusName: $statusName');
+          debugPrint('[UserBidsSupabaseDataSource]   vehicle: $vehicleDisplay');
+          debugPrint('[UserBidsSupabaseDataSource]   endTime: $endTime');
 
           // Check if auction ended: consider both end_time and explicit status
           final hasExplicitEndedStatus =
@@ -196,13 +199,15 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
           final isDealFailed =
               statusName != null && statusName.toLowerCase() == 'deal_failed';
 
-          print(
+          debugPrint(
             '[UserBidsSupabaseDataSource]   isAuctionEnded: $isAuctionEnded',
           );
-          print(
+          debugPrint(
             '[UserBidsSupabaseDataSource]   isInTransaction: $isInTransaction',
           );
-          print('[UserBidsSupabaseDataSource]   isDealFailed: $isDealFailed');
+          debugPrint(
+            '[UserBidsSupabaseDataSource]   isDealFailed: $isDealFailed',
+          );
 
           // Get highest bidder
           String? highestBidderId;
@@ -225,16 +230,16 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
           final isUserHighestBidder =
               highestBidderId != null && highestBidderId == userId;
 
-          print(
+          debugPrint(
             '[UserBidsSupabaseDataSource]   highestBidderId: $highestBidderId',
           );
-          print(
+          debugPrint(
             '[UserBidsSupabaseDataSource]   isUserHighestBidder: $isUserHighestBidder',
           );
 
           // Categorize bid
           if (!isAuctionEnded) {
-            print('[UserBidsSupabaseDataSource]   -> ACTIVE BID');
+            debugPrint('[UserBidsSupabaseDataSource]   -> ACTIVE BID');
             // ACTIVE BID
             activeBids.add(
               UserBidEntity(
@@ -262,7 +267,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
             if (isUserHighestBidder) {
               // Check if deal was cancelled/failed
               if (isDealFailed) {
-                print(
+                debugPrint(
                   '[UserBidsSupabaseDataSource]   -> CANCELLED BID (deal_failed)',
                 );
                 // CANCELLED - buyer cancelled the deal
@@ -288,7 +293,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
                   ),
                 );
               } else {
-                print(
+                debugPrint(
                   '[UserBidsSupabaseDataSource]   -> WON BID (canAccess: $isInTransaction)',
                 );
                 // WON
@@ -316,7 +321,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
                 );
               }
             } else {
-              print('[UserBidsSupabaseDataSource]   -> LOST BID');
+              debugPrint('[UserBidsSupabaseDataSource]   -> LOST BID');
               // LOST
               lostBids.add(
                 UserBidEntity(
@@ -342,14 +347,14 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
             }
           }
         } catch (e, st) {
-          print(
+          debugPrint(
             '[UserBidsSupabaseDataSource] Error processing auction $auctionId: $e\n$st',
           );
           continue;
         }
       }
 
-      print(
+      debugPrint(
         '[UserBidsSupabaseDataSource] SUMMARY: active=${activeBids.length}, won=${wonBids.length}, lost=${lostBids.length}, cancelled=${cancelledBids.length}',
       );
       return {
@@ -359,7 +364,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
         'cancelled': cancelledBids,
       };
     } catch (e, st) {
-      print('[UserBidsSupabaseDataSource] Failed to load bids: $e\n$st');
+      debugPrint('[UserBidsSupabaseDataSource] Failed to load bids: $e\n$st');
       throw Exception('Failed to load bids: $e');
     }
   }
