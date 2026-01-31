@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import '../../browse/presentation/pages/auction_detail_page.dart';
-import '../../browse/presentation/controllers/auction_detail_controller.dart';
+import '../../../browse/presentation/pages/auction_detail_page.dart';
+import '../../../browse/presentation/controllers/auction_detail_controller.dart';
 
 class ActiveBidDetailPage extends StatefulWidget {
   final String auctionId;

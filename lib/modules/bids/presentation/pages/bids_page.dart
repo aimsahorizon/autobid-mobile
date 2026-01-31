@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/presentation/pages/auction_detail_page.dart';
-import '../../../browse/browse_module.dart';
+import '../../../browse/presentation/controllers/auction_detail_controller.dart';
 import '../../../notifications/notifications_module.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../controllers/bids_controller.dart';
@@ -54,7 +55,7 @@ class _BidsPageState extends State<BidsPage>
 
     // Navigate to auction detail page from browse module
     // This shows the actual auction with live bidding functionality
-    final controller = BrowseModule.instance.createAuctionDetailController();
+    final controller = GetIt.instance<AuctionDetailController>();
     debugPrint(
       '[BidsPage] Created AuctionDetailController, navigating to AuctionDetailPage',
     );
