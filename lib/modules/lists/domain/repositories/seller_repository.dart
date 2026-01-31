@@ -17,4 +17,5 @@ abstract class SellerRepository {
   Future<Either<Failure, String>> uploadDeedOfSale({required String userId, required String listingId, required File documentFile});
   Future<Either<Failure, void>> deleteDeedOfSale(String documentUrl);
   Future<Either<Failure, void>> cancelListing(String auctionId);
+  Stream<void> streamSellerListings(String sellerId);
 }
