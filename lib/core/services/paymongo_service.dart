@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'ipaymongo_service.dart';
 
 /// PayMongo payment service for handling payments
 /// Documentation: https://developers.paymongo.com/docs
 /// Get your keys from: https://dashboard.paymongo.com/developers
-class PayMongoService {
+class PayMongoService implements IPayMongoService {
   // API credentials loaded from environment variables
   static final String _secretKey = dotenv.env['PAYMONGO_SECRET_KEY'] ?? '';
   static final String _publicKey = dotenv.env['PAYMONGO_PUBLIC_KEY'] ?? '';
@@ -16,19 +18,19 @@ class PayMongoService {
   static Future<void> init() async {
     // Only initialize if keys are available
     if (_secretKey.isEmpty) {
-      print(
+      debugPrint(
         'Warning: PayMongo secret key not found in .env file. Skipping PayMongo initialization.',
       );
       return;
     }
 
     if (_publicKey.isEmpty) {
-      print(
+      debugPrint(
         'Warning: PayMongo public key not found in .env file. Some features may not work.',
       );
     }
 
-    print('PayMongo initialized successfully');
+    debugPrint('PayMongo initialized successfully');
   }
 
   /// Get authorization header with base64 encoded secret key
@@ -55,7 +57,9 @@ class PayMongoService {
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     final amountInCentavos = (amount * 100).toInt();
 
-    final url = Uri.parse('$_baseUrl/payment_intent'); // API v1 use /payment_intents or /payment_intent? 
+    final url = Uri.parse(
+      '$_baseUrl/payment_intent',
+    ); // API v1 use /payment_intents or /payment_intent?
     // Actually PayMongo v1 uses /payment_intents (plural). My previous code had it.
     // Wait, let's stick to plural if it was working.
     final intentsUrl = Uri.parse('$_baseUrl/payment_intents');
@@ -73,7 +77,11 @@ class PayMongoService {
       },
     });
 
-    final response = await http.post(intentsUrl, headers: _authHeaders, body: body);
+    final response = await http.post(
+      intentsUrl,
+      headers: _authHeaders,
+      body: body,
+    );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final Map<String, dynamic> responseData = jsonDecode(response.body);
@@ -121,7 +129,11 @@ class PayMongoService {
     });
 
     // Use Public Key for creating payment methods
-    final response = await http.post(url, headers: _publicAuthHeaders, body: body);
+    final response = await http.post(
+      url,
+      headers: _publicAuthHeaders,
+      body: body,
+    );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final Map<String, dynamic> responseData = jsonDecode(response.body);
