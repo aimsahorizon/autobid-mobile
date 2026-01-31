@@ -3,6 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/modules/bids/presentation/controllers/bids_controller.dart';
 import 'package:autobid_mobile/modules/bids/domain/usecases/get_user_bids_usecase.dart';
+import 'package:autobid_mobile/modules/bids/domain/usecases/stream_user_bids_usecase.dart';
 import 'package:autobid_mobile/modules/auth/domain/repositories/auth_repository.dart';
 import 'package:autobid_mobile/modules/bids/domain/entities/user_bid_entity.dart';
 import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
@@ -10,17 +11,30 @@ import 'package:autobid_mobile/core/error/failures.dart';
 
 class MockGetUserBidsUseCase extends Mock implements GetUserBidsUseCase {}
 
+class MockStreamUserBidsUseCase extends Mock implements StreamUserBidsUseCase {}
+
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
   late BidsController controller;
   late MockGetUserBidsUseCase mockGetUserBidsUseCase;
+  late MockStreamUserBidsUseCase mockStreamUserBidsUseCase;
   late MockAuthRepository mockAuthRepository;
 
   setUp(() {
     mockGetUserBidsUseCase = MockGetUserBidsUseCase();
+    mockStreamUserBidsUseCase = MockStreamUserBidsUseCase();
     mockAuthRepository = MockAuthRepository();
-    controller = BidsController(mockGetUserBidsUseCase, mockAuthRepository);
+    
+    // Default mock behavior for stream
+    when(() => mockStreamUserBidsUseCase.call(any()))
+        .thenAnswer((_) => const Stream.empty());
+
+    controller = BidsController(
+      mockGetUserBidsUseCase,
+      mockStreamUserBidsUseCase,
+      mockAuthRepository,
+    );
   });
 
   tearDown(() {

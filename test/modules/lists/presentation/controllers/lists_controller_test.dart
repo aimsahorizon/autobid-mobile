@@ -3,6 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/modules/lists/presentation/controllers/lists_controller.dart';
 import 'package:autobid_mobile/modules/lists/domain/usecases/get_seller_listings_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/stream_seller_listings_usecase.dart';
 import 'package:autobid_mobile/modules/auth/domain/repositories/auth_repository.dart';
 import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
 import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
@@ -11,18 +12,29 @@ import 'package:autobid_mobile/core/error/failures.dart';
 class MockGetSellerListingsUseCase extends Mock
     implements GetSellerListingsUseCase {}
 
+class MockStreamSellerListingsUseCase extends Mock
+    implements StreamSellerListingsUseCase {}
+
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
   late ListsController controller;
   late MockGetSellerListingsUseCase mockGetSellerListingsUseCase;
+  late MockStreamSellerListingsUseCase mockStreamSellerListingsUseCase;
   late MockAuthRepository mockAuthRepository;
 
   setUp(() {
     mockGetSellerListingsUseCase = MockGetSellerListingsUseCase();
+    mockStreamSellerListingsUseCase = MockStreamSellerListingsUseCase();
     mockAuthRepository = MockAuthRepository();
+
+    // Default mock behavior for stream
+    when(() => mockStreamSellerListingsUseCase.call(any()))
+        .thenAnswer((_) => const Stream.empty());
+
     controller = ListsController(
       mockGetSellerListingsUseCase,
+      mockStreamSellerListingsUseCase,
       mockAuthRepository,
     );
   });

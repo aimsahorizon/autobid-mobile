@@ -1,24 +1,38 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../../domain/usecases/get_seller_listings_usecase.dart';
+import '../../domain/usecases/stream_seller_listings_usecase.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 
 /// Controller for managing seller listings across all tabs
 class ListsController extends ChangeNotifier {
   final GetSellerListingsUseCase _getSellerListingsUseCase;
+  final StreamSellerListingsUseCase _streamSellerListingsUseCase;
   final AuthRepository _authRepository;
 
-  ListsController(this._getSellerListingsUseCase, this._authRepository);
+  ListsController(
+    this._getSellerListingsUseCase,
+    this._streamSellerListingsUseCase,
+    this._authRepository,
+  );
 
   Map<ListingStatus, List<SellerListingEntity>> _listings = {};
   bool _isLoading = false;
   bool _isGridView = true;
   String? _errorMessage;
+  StreamSubscription? _listingsSubscription;
 
   Map<ListingStatus, List<SellerListingEntity>> get listings => _listings;
   bool get isLoading => _isLoading;
   bool get isGridView => _isGridView;
   String? get errorMessage => _errorMessage;
+
+  @override
+  void dispose() {
+    _listingsSubscription?.cancel();
+    super.dispose();
+  }
 
   List<SellerListingEntity> getListingsByStatus(ListingStatus status) =>
       _listings[status] ?? [];
@@ -52,6 +66,10 @@ class ListsController extends ChangeNotifier {
         },
         (listingsMap) {
           _listings = listingsMap;
+          // Start subscription if not already active
+          if (_listingsSubscription == null) {
+            _subscribeToUpdates(userId);
+          }
         },
       );
     } catch (e) {
@@ -59,6 +77,31 @@ class ListsController extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  void _subscribeToUpdates(String userId) {
+    _listingsSubscription?.cancel();
+    _listingsSubscription = _streamSellerListingsUseCase(userId).listen((_) {
+      // Reload listings quietly on update
+      _reloadListingsQuietly(userId);
+    }, onError: (e) {
+      print('Realtime listing subscription error: $e');
+    });
+  }
+
+  Future<void> _reloadListingsQuietly(String userId) async {
+    try {
+      final result = await _getSellerListingsUseCase.call(userId);
+      result.fold(
+        (failure) => print('Failed to reload listings: ${failure.message}'),
+        (listingsMap) {
+          _listings = listingsMap;
+          notifyListeners();
+        },
+      );
+    } catch (e) {
+      print('Failed to reload listings: $e');
     }
   }
 
