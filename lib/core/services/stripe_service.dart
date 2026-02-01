@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -18,7 +19,7 @@ class StripeService {
   static Future<void> init() async {
     // Only initialize if publishable key is available
     if (_testPublishableKey.isEmpty) {
-      print('Warning: Stripe publishable key not found in .env file. Skipping Stripe initialization.');
+      debugPrint('Warning: Stripe publishable key not found in .env file. Skipping Stripe initialization.');
       return;
     }
 
@@ -26,7 +27,7 @@ class StripeService {
       Stripe.publishableKey = _testPublishableKey;
       await Stripe.instance.applySettings();
     } catch (e) {
-      print('Warning: Failed to initialize Stripe: $e');
+      debugPrint('Warning: Failed to initialize Stripe: $e');
     }
   }
 

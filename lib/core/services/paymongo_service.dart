@@ -49,6 +49,7 @@ class PayMongoService implements IPayMongoService {
 
   /// Create a PaymentIntent for the purchase
   /// This is the first step in the payment flow
+  @override
   Future<Map<String, dynamic>> createPaymentIntent({
     required double amount,
     required String description,
@@ -57,9 +58,7 @@ class PayMongoService implements IPayMongoService {
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     final amountInCentavos = (amount * 100).toInt();
 
-    final url = Uri.parse(
-      '$_baseUrl/payment_intent',
-    ); // API v1 use /payment_intents or /payment_intent?
+    // API v1 use /payment_intents or /payment_intent?
     // Actually PayMongo v1 uses /payment_intents (plural). My previous code had it.
     // Wait, let's stick to plural if it was working.
     final intentsUrl = Uri.parse('$_baseUrl/payment_intents');
@@ -95,6 +94,7 @@ class PayMongoService implements IPayMongoService {
   }
 
   /// Create a PaymentMethod from card details
+  @override
   Future<Map<String, dynamic>> createPaymentMethod({
     required String cardNumber,
     required int expMonth,
@@ -147,6 +147,7 @@ class PayMongoService implements IPayMongoService {
   }
 
   /// Attach PaymentMethod to PaymentIntent
+  @override
   Future<Map<String, dynamic>> attachPaymentMethod({
     required String paymentIntentId,
     required String paymentMethodId,
@@ -196,6 +197,7 @@ class PayMongoService implements IPayMongoService {
   }
 
   /// Create a Source for e-wallet payments (GCash, PayMaya, GrabPay)
+  @override
   Future<Map<String, dynamic>> createSource({
     required double amount,
     required String type, // 'gcash', 'paymaya', 'grab_pay'
@@ -233,6 +235,7 @@ class PayMongoService implements IPayMongoService {
   }
 
   /// Retrieve Source (for checking e-wallet payment status)
+  @override
   Future<Map<String, dynamic>> retrieveSource(String sourceId) async {
     final url = Uri.parse('$_baseUrl/sources/$sourceId');
 
@@ -248,6 +251,7 @@ class PayMongoService implements IPayMongoService {
   }
 
   /// Create a Payment from a Source (after successful redirect)
+  @override
   Future<Map<String, dynamic>> createPayment({
     required String sourceId,
     required String description,
