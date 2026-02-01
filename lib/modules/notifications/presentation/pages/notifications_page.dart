@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../controllers/notification_controller.dart';
-import '../../notifications_module.dart';
 
 /// Notifications page showing all user notifications
 class NotificationsPage extends StatefulWidget {
@@ -14,11 +14,12 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  NotificationController get _controller => NotificationsModule.instance.controller;
+  late final NotificationController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = GetIt.instance<NotificationController>();
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     _controller.loadNotifications(userId);
   }

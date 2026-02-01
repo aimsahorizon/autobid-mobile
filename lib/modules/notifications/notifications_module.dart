@@ -12,6 +12,9 @@ import 'domain/usecases/delete_notification_usecase.dart';
 import 'domain/usecases/get_unread_notifications_usecase.dart';
 import 'presentation/controllers/notification_controller.dart';
 
+// Export the controller so it can be used by other modules
+export 'presentation/controllers/notification_controller.dart';
+
 /// Initialize Notifications module dependencies
 Future<void> initNotificationsModule() async {
   final sl = GetIt.instance;
@@ -59,7 +62,7 @@ class NotificationsModule {
   static NotificationController? _notificationController;
 
   /// Get or create notification controller
-  /// @deprecated Use GetIt.instance.get<NotificationController>() instead
+  /// @deprecated Use GetIt.instance.get[NotificationController] instead
   @Deprecated('Use GetIt.instance.get<NotificationController>()')
   NotificationController get controller {
     // Return GetIt controller if available
@@ -108,7 +111,7 @@ class NotificationsModule {
   }
 
   /// Create a new notification controller
-  /// @deprecated Use GetIt.instance.get<NotificationController>() instead
+  /// @deprecated Use GetIt.instance.get[NotificationController] instead
   @Deprecated('Use GetIt.instance.get<NotificationController>()')
   NotificationController createNotificationController() {
     return NotificationController(
