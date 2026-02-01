@@ -392,6 +392,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
 
   /// Stream user's bid updates (e.g. outbid notifications)
   /// Listens to changes in 'bids' table for this user
+  @override
   Stream<List<Map<String, dynamic>>> streamUserBids(String userId) {
     return _supabase
         .from('bids')
