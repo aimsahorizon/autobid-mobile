@@ -60,7 +60,7 @@ class AdminTransactionController extends ChangeNotifier {
       _stats = await _dataSource.getStats();
       notifyListeners();
     } catch (e) {
-      print('[AdminTransactionController] Error loading stats: $e');
+      debugPrint('[AdminTransactionController] Error loading stats: $e');
     }
   }
 
