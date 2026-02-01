@@ -28,7 +28,8 @@ class OtpInputFields extends StatelessWidget {
           child: TextField(
             controller: controllers[index],
             focusNode: focusNodes[index],
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(signed: false, decimal: false),
+            textInputAction: index < 5 ? TextInputAction.next : TextInputAction.done,
             textAlign: TextAlign.center,
             maxLength: 1,
             style: theme.textTheme.headlineMedium,
