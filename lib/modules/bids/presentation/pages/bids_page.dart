@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/presentation/pages/auction_detail_page.dart';
 import '../../../browse/presentation/controllers/auction_detail_controller.dart';
-import '../../../notifications/notifications_module.dart';
+import '../../../notifications/presentation/controllers/notification_controller.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../controllers/bids_controller.dart';
 import '../widgets/user_bids_list.dart';
@@ -115,10 +114,10 @@ class _BidsPageState extends State<BidsPage>
         actions: [
           // Notification bell with unread count badge
           ListenableBuilder(
-            listenable: NotificationsModule.instance.controller,
+            listenable: GetIt.instance<NotificationController>(),
             builder: (context, _) {
               final notificationController =
-                  NotificationsModule.instance.controller;
+                  GetIt.instance<NotificationController>();
               final unreadCount = notificationController.unreadCount;
 
               return Stack(
