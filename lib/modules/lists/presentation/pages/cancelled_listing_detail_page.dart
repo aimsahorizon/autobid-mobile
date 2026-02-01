@@ -75,9 +75,13 @@ class _CancelledListingDetailPageState
 
     if (confirmed != true || !mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(this.context);
+    final messenger = ScaffoldMessenger.of(this.context);
+
     // Show loading indicator
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
@@ -100,11 +104,10 @@ class _CancelledListingDetailPageState
       }
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
       // Navigate to create listing page with the copied draft
-      await Navigator.push(
-        context,
+      await navigator.push(
         MaterialPageRoute(
           builder: (context) => CreateListingPage(
             controller: widget.controller!,
@@ -116,7 +119,7 @@ class _CancelledListingDetailPageState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text(
             'Draft created successfully. Edit and resubmit for approval.',
@@ -126,12 +129,12 @@ class _CancelledListingDetailPageState
       );
 
       // Inform parent to refresh lists and remove the cancelled card
-      Navigator.pop(context, true);
+      navigator.pop(true);
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Failed to create draft: $e'),
           backgroundColor: ColorConstants.error,
@@ -174,9 +177,13 @@ class _CancelledListingDetailPageState
 
     if (confirmed != true || !mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(this.context);
+    final messenger = ScaffoldMessenger.of(this.context);
+
     // Show loading indicator
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
@@ -191,12 +198,12 @@ class _CancelledListingDetailPageState
       );
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
       // Pop back to listing view
-      Navigator.pop(context);
+      navigator.pop();
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             'New auction created (ID: $newAuctionId). It is pending admin approval.',
@@ -206,9 +213,9 @@ class _CancelledListingDetailPageState
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Failed to create new auction: $e'),
           backgroundColor: ColorConstants.error,
@@ -251,9 +258,13 @@ class _CancelledListingDetailPageState
 
     if (confirmed != true || !mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(this.context);
+    final messenger = ScaffoldMessenger.of(this.context);
+
     // Show loading indicator
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
@@ -263,12 +274,12 @@ class _CancelledListingDetailPageState
       await _datasource.deleteListing(widget.listing.id, _effectiveSellerId);
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
       // Return to listing view with result to trigger refresh
-      Navigator.pop(context, true);
+      navigator.pop(true);
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Listing deleted successfully'),
           backgroundColor: ColorConstants.success,
@@ -276,9 +287,9 @@ class _CancelledListingDetailPageState
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Failed to delete listing: $e'),
           backgroundColor: ColorConstants.error,

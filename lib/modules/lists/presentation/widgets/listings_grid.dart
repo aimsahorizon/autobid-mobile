@@ -71,39 +71,89 @@ class ListingsGrid extends StatelessWidget {
       // Navigate to appropriate detail page based on status
       Widget detailPage;
       switch (listing.status) {
-      case ListingStatus.active:
-        detailPage = ActiveListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.pending:
-        detailPage = PendingListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.approved:
-        detailPage = ApprovedListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.scheduled:
-        // Scheduled listings are treated like approved listings for details
-        detailPage = ApprovedListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.draft:
-        if (draftController == null || sellerId == null) return;
-        detailPage = DraftListingDetailPage(
-          listing: detailEntity,
-          controller: draftController!,
-          sellerId: sellerId!,
-        );
-        break;
-      case ListingStatus.ended:
-        detailPage = EndedListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.cancelled:
-        // Check if this cancelled listing has an associated failed transaction
-        // If so, route to the transaction page with options to handle the failed deal
-        if (listing.transactionId != null) {
-          // Has a transaction - route to transaction page for deal failed options
-          // (next highest bidder, relist, delete)
+        case ListingStatus.active:
+          detailPage = ActiveListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.pending:
+          detailPage = PendingListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.approved:
+          detailPage = ApprovedListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.scheduled:
+          // Scheduled listings are treated like approved listings for details
+          detailPage = ApprovedListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.draft:
+          if (draftController == null || sellerId == null) return;
+          detailPage = DraftListingDetailPage(
+            listing: detailEntity,
+            controller: draftController!,
+            sellerId: sellerId!,
+          );
+          break;
+        case ListingStatus.ended:
+          detailPage = EndedListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.cancelled:
+          // Check if this cancelled listing has an associated failed transaction
+          // If so, route to the transaction page with options to handle the failed deal
+          if (listing.transactionId != null) {
+            // Has a transaction - route to transaction page for deal failed options
+            // (next highest bidder, relist, delete)
+            if (!context.mounted) return;
+            final realtimeController = TransactionsModule.instance
+                .createRealtimeTransactionController();
+
+            final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+            final userName =
+                SupabaseConfig
+                    .client
+                    .auth
+                    .currentUser
+                    ?.userMetadata?['full_name'] ??
+                'Seller';
+
+            await Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PreTransactionRealtimePage(
+                  controller: realtimeController,
+                  transactionId: listing.transactionId!,
+                  userId: userId,
+                  userName: userName,
+                ),
+              ),
+            );
+
+            // Reload listings after returning from transaction page
+            if (onListingUpdated != null) {
+              onListingUpdated!();
+            }
+            return;
+          }
+
+          // No transaction - regular cancelled listing page
+          // Controller and sellerId are optional - page handles null gracefully
+          detailPage = CancelledListingDetailPage(
+            listing: detailEntity,
+            controller: draftController,
+            sellerId: sellerId,
+          );
+          break;
+        case ListingStatus.inTransaction:
+        case ListingStatus.sold:
+        case ListingStatus.dealFailed:
+          // Transaction statuses MUST use callback or open pre-transaction page
+          // Never navigate to a listings detail page for transactions
+          if (onTransactionCardTap != null) {
+            await onTransactionCardTap!(context, listing);
+            return;
+          }
+
+          // Fallback: open pre-transaction page directly
           if (!context.mounted) return;
-          final realtimeController = TransactionsModule.instance
-              .createRealtimeTransactionController();
+          final transactionController = GetIt.I<TransactionController>();
 
           final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
           final userName =
@@ -117,76 +167,27 @@ class ListingsGrid extends StatelessWidget {
           await Navigator.push<void>(
             context,
             MaterialPageRoute(
-              builder: (context) => PreTransactionRealtimePage(
-                controller: realtimeController,
-                transactionId: listing.transactionId!,
+              builder: (context) => PreTransactionPage(
+                controller: transactionController,
+                transactionId: listing.id,
                 userId: userId,
                 userName: userName,
               ),
             ),
           );
-
-          // Reload listings after returning from transaction page
-          if (onListingUpdated != null) {
-            onListingUpdated!();
-          }
           return;
-        }
+      }
 
-        // No transaction - regular cancelled listing page
-        // Controller and sellerId are optional - page handles null gracefully
-        detailPage = CancelledListingDetailPage(
-          listing: detailEntity,
-          controller: draftController,
-          sellerId: sellerId,
-        );
-        break;
-      case ListingStatus.inTransaction:
-      case ListingStatus.sold:
-      case ListingStatus.dealFailed:
-        // Transaction statuses MUST use callback or open pre-transaction page
-        // Never navigate to a listings detail page for transactions
-        if (onTransactionCardTap != null) {
-          await onTransactionCardTap!(context, listing);
-          return;
-        }
+      if (!context.mounted) return;
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => detailPage),
+      );
 
-        // Fallback: open pre-transaction page directly
-        if (!context.mounted) return;
-        final transactionController = GetIt.I<TransactionController>();
-
-        final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
-        final userName =
-            SupabaseConfig
-                .client
-                .auth
-                .currentUser
-                ?.userMetadata?['full_name'] ??
-            'Seller';
-
-        await Navigator.push<void>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PreTransactionPage(
-              controller: transactionController,
-              transactionId: listing.id,
-              userId: userId,
-              userName: userName,
-            ),
-          ),
-        );
-        return;
-    }
-
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => detailPage),
-    );
-
-    // Reload listings if there was an update (delete/submit)
-    if (result != null && onListingUpdated != null) {
-      onListingUpdated!();
-    }
+      // Reload listings if there was an update (delete/submit)
+      if (result != null && onListingUpdated != null) {
+        onListingUpdated!();
+      }
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog

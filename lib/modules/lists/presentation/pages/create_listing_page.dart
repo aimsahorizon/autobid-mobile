@@ -66,8 +66,9 @@ class _CreateListingPageState extends State<CreateListingPage> {
           ),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
               await widget.controller.saveDraft();
-              if (mounted) Navigator.pop(context, true);
+              if (mounted) navigator.pop(true);
             },
             child: const Text('Save & Exit'),
           ),
@@ -131,8 +132,12 @@ class _CreateListingPageState extends State<CreateListingPage> {
 
     if (firstPhoto == null) return;
 
+    // Capture navigator before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     // Show loading
-    if (context.mounted) {
+    if (mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -160,8 +165,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
         firstPhoto,
       );
 
-      if (!context.mounted) return;
-      Navigator.pop(context); // Close loading
+      if (!mounted) return;
+      navigator.pop(); // Close loading
 
       // Update draft with detected data
       final currentDraft = widget.controller.currentDraft!;
@@ -236,8 +241,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
 
       widget.controller.updateDraft(updatedDraft);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})',
@@ -248,10 +253,11 @@ class _CreateListingPageState extends State<CreateListingPage> {
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        if (Navigator.canPop(context))
-          Navigator.pop(context); // Close loading if still open
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        if (navigator.canPop()) {
+          navigator.pop(); // Close loading if still open
+        }
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Failed to detect car: $e'),
             backgroundColor: Colors.red,
@@ -300,7 +306,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
           ),
         );
 
-        if (shouldAutoFill == true) {
+        if (shouldAutoFill == true && mounted) {
           await _detectCarAndAutoFill(context);
         }
       }
@@ -320,7 +326,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
-        if (shouldPop && context.mounted) {
+        if (shouldPop && mounted && context.mounted) {
           Navigator.pop(context);
         }
       },

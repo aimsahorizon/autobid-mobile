@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../controllers/listing_draft_controller.dart';
@@ -276,26 +278,27 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
               firstDate: DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 90)),
             );
-            if (picked != null) {
-              // Allow time selection
-              final pickedTime = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay.now(),
-              );
-              // Create datetime in local timezone
-              final localDateTime = DateTime(
-                picked.year,
-                picked.month,
-                picked.day,
-                pickedTime?.hour ?? 23,
-                pickedTime?.minute ?? 59,
-                59,
-              );
-              // Convert to UTC immediately to maintain the actual intended time
-              // This prevents timezone issues when storing and retrieving
-              setState(() => _auctionEndDate = localDateTime.toUtc());
-              _updateDraft();
-            }
+            if (picked == null) return;
+            if (!mounted) return;
+            final pickedTime = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay.now(),
+            );
+            if (!mounted) return;
+
+            // Create datetime in local timezone
+            final localDateTime = DateTime(
+              picked.year,
+              picked.month,
+              picked.day,
+              pickedTime?.hour ?? 23,
+              pickedTime?.minute ?? 59,
+              59,
+            );
+            // Convert to UTC immediately to maintain the actual intended time
+            // This prevents timezone issues when storing and retrieving
+            setState(() => _auctionEndDate = localDateTime.toUtc());
+            _updateDraft();
           },
           child: InputDecorator(
             decoration: InputDecoration(

@@ -50,6 +50,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
 
     final newEndTime = localDateTime.toUtc();
 
+    // Capture references before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -60,10 +64,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
       await _datasource.updateAuctionEndTime(listing.id, newEndTime);
 
       if (context.mounted) {
-        Navigator.pop(context); // Close loading
-        Navigator.pop(context, true); // Return to refresh
+        navigator.pop(); // Close loading
+        navigator.pop(true); // Return to refresh
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('Auction end time updated successfully'),
             backgroundColor: Colors.green,
@@ -73,9 +77,9 @@ class ApprovedListingDetailPage extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.pop(context); // Close loading
+        navigator.pop(); // Close loading
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,
@@ -110,6 +114,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
     if (confirmed != true) return;
     if (!context.mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -135,13 +143,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
       );
 
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading dialog
-      Navigator.pop(
-        context,
-        true,
-      ); // Return true to trigger reload in ListingsGrid
+      navigator.pop(); // Close loading dialog
+      navigator.pop(true); // Return true to trigger reload in ListingsGrid
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           content: Text('Auction is now live!'),
           backgroundColor: ColorConstants.success,
@@ -150,9 +155,9 @@ class ApprovedListingDetailPage extends StatelessWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Failed to go live: $e'),
           backgroundColor: ColorConstants.error,
@@ -179,6 +184,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
 
     if (pickedDate == null) return;
+    if (!context.mounted) return;
 
     // Step 2: choose time
     final pickedTime = await showTimePicker(
@@ -188,6 +194,11 @@ class ApprovedListingDetailPage extends StatelessWidget {
 
     if (pickedTime == null) return;
     if (!context.mounted) return;
+
+    // Format time string before async operations
+    final formattedTime = pickedTime.format(context);
+    final formattedDate =
+        '${pickedDate.month}/${pickedDate.day}/${pickedDate.year}';
 
     final scheduledStart = DateTime(
       pickedDate.year,
@@ -203,14 +214,15 @@ class ApprovedListingDetailPage extends StatelessWidget {
         ? currentEnd
         : scheduledStart.add(const Duration(days: 7));
 
+    // Capture references before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Schedule for Later'),
-        content: Text(
-          'Start auction on ${pickedDate.month}/${pickedDate.day}/${pickedDate.year} '
-          'at ${pickedTime.format(context)}?',
-        ),
+        content: Text('Start auction on $formattedDate at $formattedTime?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -245,16 +257,13 @@ class ApprovedListingDetailPage extends StatelessWidget {
       );
 
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading dialog
-      Navigator.pop(
-        context,
-        true,
-      ); // Return true to trigger reload in ListingsGrid
+      navigator.pop(); // Close loading dialog
+      navigator.pop(true); // Return true to trigger reload in ListingsGrid
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
-            'Auction scheduled for ${pickedDate.month}/${pickedDate.day}/${pickedDate.year} at ${pickedTime.format(context)}',
+            'Auction scheduled for $formattedDate at $formattedTime',
           ),
           backgroundColor: ColorConstants.info,
           duration: const Duration(seconds: 3),
@@ -262,9 +271,9 @@ class ApprovedListingDetailPage extends StatelessWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Failed to schedule: $e'),
           backgroundColor: ColorConstants.error,
@@ -494,7 +503,8 @@ class ApprovedListingDetailPage extends StatelessWidget {
                       context: context,
                       builder: (_) => InviteUserDialog(
                         auctionId: listing.id,
-                        auctionTitle: '${listing.year} ${listing.brand} ${listing.model}',
+                        auctionTitle:
+                            '${listing.year} ${listing.brand} ${listing.model}',
                       ),
                     );
                   },
