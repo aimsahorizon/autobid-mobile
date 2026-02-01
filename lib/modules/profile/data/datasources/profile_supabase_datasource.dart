@@ -99,8 +99,9 @@ class ProfileSupabaseDataSource {
       if (username != null) updates['username'] = username;
       if (contactNumber != null) updates['phone_number'] = contactNumber;
       if (coverPhotoUrl != null) updates['cover_photo_url'] = coverPhotoUrl;
-      if (profilePhotoUrl != null)
+      if (profilePhotoUrl != null) {
         updates['profile_photo_url'] = profilePhotoUrl;
+      }
 
       // Note: fullName is not updated here as it's derived from first/middle/last names
       // To update name, update first_name, middle_name, last_name separately
