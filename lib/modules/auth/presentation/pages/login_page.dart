@@ -56,10 +56,12 @@ class _LoginPageState extends State<LoginPage> {
         _passwordController.text,
       );
 
-      if (mounted &&
-          success &&
-          widget.controller.currentStep == LoginStep.otpVerification) {
-        _navigateToOtpPage();
+      if (mounted && success) {
+        if (widget.controller.currentStep == LoginStep.otpVerification) {
+          _navigateToOtpPage();
+        } else if (widget.controller.currentStep == LoginStep.completed) {
+          Navigator.of(context).pushReplacementNamed('/home');
+        }
       }
     }
   }
@@ -107,6 +109,8 @@ class _LoginPageState extends State<LoginPage> {
                 _buildGuestModeLink(theme, isDark),
                 const SizedBox(height: 24),
                 _buildAdminQuickAccess(),
+                const SizedBox(height: 16),
+                _buildDevModeToggle(theme, isDark),
                 const SizedBox(height: 24),
                 _buildSignUpPrompt(theme),
               ],
@@ -332,6 +336,48 @@ class _LoginPageState extends State<LoginPage> {
         trailing: const Icon(Icons.arrow_forward_ios, size: 14),
         onTap: _navigateToAdminDashboard,
       ),
+    );
+  }
+
+  Widget _buildDevModeToggle(ThemeData theme, bool isDark) {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.purple.withValues(alpha: 0.1),
+            border: Border.all(color: Colors.purple, width: 1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: SwitchListTile(
+            title: const Text(
+              'Dev Mode: Bypass OTP',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            subtitle: const Text(
+              'Skip verification step after login',
+              style: TextStyle(fontSize: 11),
+            ),
+            value: widget.controller.devModeBypassOtp,
+            activeColor: Colors.purple,
+            onChanged: (value) {
+              widget.controller.toggleDevModeBypassOtp(value);
+            },
+            secondary: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.purple,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.developer_mode,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

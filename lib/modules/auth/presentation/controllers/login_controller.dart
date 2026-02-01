@@ -22,6 +22,7 @@ class LoginController extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _devModeBypassOtp = false; // Dev mode to bypass OTP
   String? _errorMessage;
   LoginStep _currentStep = LoginStep.credentials;
 
@@ -30,6 +31,7 @@ class LoginController extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   bool get obscurePassword => _obscurePassword;
+  bool get devModeBypassOtp => _devModeBypassOtp;
   String? get errorMessage => _errorMessage;
   LoginStep get currentStep => _currentStep;
   String? get userEmail => _userEmail;
@@ -37,6 +39,11 @@ class LoginController extends ChangeNotifier {
 
   void togglePasswordVisibility() {
     _obscurePassword = !_obscurePassword;
+    notifyListeners();
+  }
+
+  void toggleDevModeBypassOtp(bool value) {
+    _devModeBypassOtp = value;
     notifyListeners();
   }
 
@@ -71,7 +78,13 @@ class LoginController extends ChangeNotifier {
       (user) {
         _userEmail = user.email;
         _userPhoneNumber = user.phoneNumber;
-        _currentStep = LoginStep.otpVerification;
+        
+        if (_devModeBypassOtp) {
+          _currentStep = LoginStep.completed;
+        } else {
+          _currentStep = LoginStep.otpVerification;
+        }
+        
         _isLoading = false;
         notifyListeners();
         return true;
@@ -125,7 +138,13 @@ class LoginController extends ChangeNotifier {
                 
                 _userEmail = profile.email;
                 _userPhoneNumber = profile.contactNumber;
-                _currentStep = LoginStep.otpVerification;
+                
+                if (_devModeBypassOtp) {
+                  _currentStep = LoginStep.completed;
+                } else {
+                  _currentStep = LoginStep.otpVerification;
+                }
+
                 _isLoading = false;
                 notifyListeners();
                 return true;
