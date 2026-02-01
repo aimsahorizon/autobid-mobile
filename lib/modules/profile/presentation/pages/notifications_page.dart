@@ -48,12 +48,18 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   Future<void> _respondToInvite(String inviteId, String decision) async {
+    // Capture messenger before async gap
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       await _invitesDataSource.respondInvite(
         inviteId: inviteId,
         decision: decision,
       );
-      ScaffoldMessenger.of(context).showSnackBar(
+
+      if (!mounted) return;
+
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             decision == 'accepted'
@@ -67,7 +73,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
       );
       _loadNotifications(); // Refresh to update notification state
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Failed to respond: $e'),
           backgroundColor: ColorConstants.error,

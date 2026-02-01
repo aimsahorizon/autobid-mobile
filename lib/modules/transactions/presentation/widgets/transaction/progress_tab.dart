@@ -637,68 +637,7 @@ class ProgressTab extends StatelessWidget {
     }
   }
 
-  Widget _buildDeliveryStep(
-    String title,
-    String subtitle,
-    bool isCompleted,
-    bool isActive,
-    IconData icon,
-    bool isDark,
-  ) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isCompleted
-                ? ColorConstants.success
-                : (isActive
-                      ? ColorConstants.primary
-                      : (isDark
-                            ? ColorConstants.backgroundDark
-                            : Colors.grey[200])),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            isCompleted ? Icons.check : icon,
-            color: isCompleted || isActive
-                ? Colors.white
-                : (isDark ? Colors.grey[600] : Colors.grey[400]),
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isCompleted || isActive
-                      ? (isDark
-                            ? ColorConstants.textPrimaryDark
-                            : ColorConstants.textPrimaryLight)
-                      : (isDark ? Colors.grey[600] : Colors.grey[400]),
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark
-                      ? ColorConstants.textSecondaryDark
-                      : ColorConstants.textSecondaryLight,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildDeliveryConnector(bool isCompleted, bool isDark) {
     return Container(

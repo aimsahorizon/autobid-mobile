@@ -23,15 +23,12 @@ class _FAQPageState extends State<FAQPage> {
       'answer': 'You can contact support by creating a ticket in the Customer Support section.',
     },
   ];
-  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('FAQ')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
+      body: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _faqs.length,
               itemBuilder: (context, index) => _FAQItem(

@@ -40,10 +40,12 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
   }
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 
   Future<void> _processPayment() async {
@@ -66,6 +68,8 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
       );
 
       final clientSecret = paymentIntent['client_secret'] as String;
+
+      if (!mounted) return;
 
       // Step 2: Present payment sheet
       await Stripe.instance.initPaymentSheet(
@@ -91,7 +95,9 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
       );
 
       // Determine token type
-      final tokenType = widget.package.type == TokenType.bidding ? 'bidding' : 'listing';
+      final tokenType = widget.package.type == TokenType.bidding
+          ? 'bidding'
+          : 'listing';
 
       // Calculate total tokens (base + bonus)
       final totalTokens = widget.package.tokens + widget.package.bonusTokens;
@@ -113,7 +119,9 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Payment successful! $totalTokens $tokenType tokens added to your account.'),
+            content: Text(
+              'Payment successful! $totalTokens $tokenType tokens added to your account.',
+            ),
             backgroundColor: ColorConstants.success,
             duration: const Duration(seconds: 4),
           ),
@@ -159,9 +167,7 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payment'),
-      ),
+      appBar: AppBar(title: const Text('Payment')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -249,11 +255,23 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildTestCardRow('✅ Success:', '4242 4242 4242 4242', theme),
+                    _buildTestCardRow(
+                      '✅ Success:',
+                      '4242 4242 4242 4242',
+                      theme,
+                    ),
                     const SizedBox(height: 4),
-                    _buildTestCardRow('🔐 3D Secure:', '4000 0025 0000 3155', theme),
+                    _buildTestCardRow(
+                      '🔐 3D Secure:',
+                      '4000 0025 0000 3155',
+                      theme,
+                    ),
                     const SizedBox(height: 4),
-                    _buildTestCardRow('❌ Declined:', '4000 0000 0000 0002', theme),
+                    _buildTestCardRow(
+                      '❌ Declined:',
+                      '4000 0000 0000 0002',
+                      theme,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'Any future expiry (12/34), any CVC (123)',
@@ -296,10 +314,7 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
                   children: [
                     const Icon(Icons.lock_outline, size: 16),
                     const SizedBox(width: 8),
-                    Text(
-                      'Secured by Stripe',
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    Text('Secured by Stripe', style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -326,9 +341,7 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
           flex: 3,
           child: Text(
             number,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontFamily: 'monospace',
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
           ),
         ),
       ],
@@ -339,10 +352,14 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Column(

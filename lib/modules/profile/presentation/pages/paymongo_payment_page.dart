@@ -156,7 +156,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
   Future<void> _processGCashPayment(IPayMongoService service) async {
     // ...
     // Step 1: Create payment intent
-    final paymentIntent = await service.createPaymentIntent(
+    await service.createPaymentIntent(
       amount: widget.package.price,
       description: widget.package.description,
       metadata: {
@@ -166,8 +166,6 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
         'bonus_tokens': widget.package.bonusTokens.toString(),
       },
     );
-
-    final paymentIntentId = paymentIntent['id'] as String;
 
     // Step 2: Create GCash source
     final source = await service.createSource(
@@ -186,7 +184,6 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
       },
     );
 
-    final sourceId = source['id'] as String;
     final checkoutUrl =
         source['attributes']['redirect']['checkout_url'] as String;
 
@@ -275,7 +272,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
                     Switch(
                       value: _useDemoMode,
                       onChanged: (value) => setState(() => _useDemoMode = value),
-                      activeColor: Colors.orange,
+                      activeThumbColor: Colors.orange,
                     ),
                   ],
                 ),
