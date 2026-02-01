@@ -138,7 +138,7 @@ class ProfileModule {
   ProfileRepository get repository => _getOrCreateRepository();
 
   /// Get or create profile controller (singleton)
-  /// @deprecated Use GetIt.instance.get<ProfileController>() instead
+  /// @deprecated Use GetIt.instance.get[ProfileController] instead
   @Deprecated('Use GetIt.instance.get<ProfileController>()')
   ProfileController get controller {
     // Return GetIt controller if available
