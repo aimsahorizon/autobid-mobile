@@ -161,9 +161,10 @@ class _BrowsePageState extends State<BrowsePage> {
         actions: [
           // Notification bell with unread count badge
           ListenableBuilder(
-            listenable: NotificationsModule.instance.controller,
+            listenable: GetIt.instance<NotificationController>(),
             builder: (context, _) {
-              final notificationController = NotificationsModule.instance.controller;
+              final notificationController =
+                  GetIt.instance<NotificationController>();
               final unreadCount = notificationController.unreadCount;
 
               return Stack(

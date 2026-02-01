@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../domain/entities/payment_entity.dart';
 import '../controllers/auction_detail_controller.dart';
 import '../widgets/auction_detail/auction_cover_photo.dart';
 import '../widgets/auction_detail/bidding_info_section.dart';
 import '../widgets/auction_detail/car_photos_section.dart';
 import '../widgets/auction_detail/bidding_card_section.dart';
 import '../widgets/auction_detail/detail_tabs_section.dart';
-import '../widgets/payment/gcash_payment_form.dart';
-import '../widgets/payment/maya_payment_form.dart';
-import '../widgets/payment/card_payment_form.dart';
-import '../widgets/payment/payment_success_sheet.dart';
 import 'deposit_payment_page.dart';
 
 class AuctionDetailPage extends StatefulWidget {
@@ -29,8 +24,6 @@ class AuctionDetailPage extends StatefulWidget {
 }
 
 class _AuctionDetailPageState extends State<AuctionDetailPage> {
-  bool _isPaymentProcessing = false;
-
   @override
   void initState() {
     super.initState();
@@ -83,64 +76,6 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         ),
       );
     }
-  }
-
-  Widget _buildPaymentForm(PaymentMethod method) {
-    switch (method) {
-      case PaymentMethod.gcash:
-        return GCashPaymentForm(
-          amount: 10000,
-          isProcessing: _isPaymentProcessing,
-          onCancel: () => Navigator.pop(context),
-          onSubmit: (phone) => _processPayment(method, phone),
-        );
-      case PaymentMethod.maya:
-        return MayaPaymentForm(
-          amount: 10000,
-          isProcessing: _isPaymentProcessing,
-          onCancel: () => Navigator.pop(context),
-          onSubmit: (phone) => _processPayment(method, phone),
-        );
-      case PaymentMethod.card:
-        return CardPaymentForm(
-          amount: 10000,
-          isProcessing: _isPaymentProcessing,
-          onCancel: () => Navigator.pop(context),
-          onSubmit: (card, expiry, cvv, name) => _processPayment(method, card),
-        );
-    }
-  }
-
-  Future<void> _processPayment(PaymentMethod method, String details) async {
-    setState(() => _isPaymentProcessing = true);
-
-    if (!mounted) return;
-    Navigator.pop(context);
-
-    // Process deposit through controller
-    await widget.controller.processDeposit();
-
-    if (!mounted) return;
-    setState(() => _isPaymentProcessing = false);
-
-    // Show success sheet
-    _showPaymentSuccess(method);
-  }
-
-  void _showPaymentSuccess(PaymentMethod method) {
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: Colors.transparent,
-      builder: (context) => PaymentSuccessSheet(
-        amount: 10000,
-        paymentMethod: method.label,
-        onContinue: () {
-          Navigator.pop(context);
-        },
-      ),
-    );
   }
 
   void _handleBid(double amount) async {

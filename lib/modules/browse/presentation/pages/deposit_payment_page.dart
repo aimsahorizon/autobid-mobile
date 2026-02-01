@@ -494,28 +494,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     );
   }
 
-  Widget _buildTestCardRow(String label, String number, ThemeData theme) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 3,
-          child: Text(
-            number,
-            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
-          ),
-        ),
-      ],
-    );
-  }
+
 }
 
 // Card number formatter to add spaces every 4 digits
