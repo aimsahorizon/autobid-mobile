@@ -60,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
         if (widget.controller.currentStep == LoginStep.otpVerification) {
           _navigateToOtpPage();
         } else if (widget.controller.currentStep == LoginStep.completed) {
-          Navigator.of(context).pushReplacementNamed('/home');
+          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
         }
       }
     }

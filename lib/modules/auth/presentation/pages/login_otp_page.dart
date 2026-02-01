@@ -97,7 +97,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
   void _checkEmailVerified() {
     if (widget.otpController.isEmailVerified) {
       widget.loginController.completeLogin();
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     }
   }
 
