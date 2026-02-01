@@ -396,7 +396,10 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           }
 
-          final profile = widget.controller.profile!;
+          final profile = widget.controller.profile;
+          if (profile == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           return RefreshIndicator(
             onRefresh: widget.controller.loadProfile,
