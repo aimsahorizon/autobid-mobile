@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import 'package:autobid_mobile/core/theme/app_theme.dart';
+import 'package:autobid_mobile/core/utils/navigator_key.dart';
+import 'package:autobid_mobile/core/widgets/session_timeout_manager.dart';
 import 'router/app_router.dart';
 
 class App extends StatefulWidget {
@@ -24,17 +26,20 @@ class _AppState extends State<App> {
     return ListenableBuilder(
       listenable: _themeController,
       builder: (context, _) {
-        return MaterialApp(
-          title: 'AutoBid',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: _themeController.themeMode,
-          onGenerateRoute: (settings) => AppRouter.onGenerateRoute(
-            settings,
-            themeController: _themeController,
+        return SessionTimeoutManager(
+          child: MaterialApp(
+            navigatorKey: navigatorKey,
+            title: 'AutoBid',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: _themeController.themeMode,
+            onGenerateRoute: (settings) => AppRouter.onGenerateRoute(
+              settings,
+              themeController: _themeController,
+            ),
+            initialRoute: '/',
           ),
-          initialRoute: '/',
         );
       },
     );
