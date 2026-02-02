@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
+import '../../../domain/usecases/validate_plate_number_usecase.dart';
 import 'form_field_widget.dart';
 import 'province_city_picker.dart';
 
@@ -15,12 +19,19 @@ class Step6Documentation extends StatefulWidget {
 
 class _Step6DocumentationState extends State<Step6Documentation> {
   late TextEditingController _plateController;
+  final _validatePlateUseCase = GetIt.I<ValidatePlateNumberUseCase>();
 
   String? _province;
   String? _city;
   String? _orcrStatus;
   String? _registrationStatus;
   DateTime? _registrationExpiry;
+  
+  // Validation State
+  Timer? _debounce;
+  String? _plateError;
+  bool _isValidatingPlate = false;
+  bool _isPlateValid = false;
 
   @override
   void initState() {
@@ -33,13 +44,74 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     _registrationStatus = draft.registrationStatus;
     _registrationExpiry = draft.registrationExpiry;
 
-    _plateController.addListener(_updateDraft);
+    _plateController.addListener(_onPlateChanged);
+    
+    // Initial validation if existing value
+    if (_plateController.text.isNotEmpty) {
+      _validatePlate(_plateController.text);
+    }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _plateController.removeListener(_onPlateChanged);
     _plateController.dispose();
     super.dispose();
+  }
+
+  void _onPlateChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    
+    // Convert to uppercase automatically
+    final text = _plateController.text;
+    final upper = text.toUpperCase();
+    if (text != upper) {
+      _plateController.value = _plateController.value.copyWith(
+        text: upper,
+        selection: TextSelection.collapsed(offset: upper.length),
+      );
+      return; // Listener will trigger again
+    }
+
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      _validatePlate(text);
+    });
+
+    // Update draft immediately for simple text change
+    _updateDraft();
+  }
+
+  Future<void> _validatePlate(String value) async {
+    if (value.isEmpty) {
+      setState(() {
+        _plateError = null;
+        _isPlateValid = false;
+        _isValidatingPlate = false;
+      });
+      return;
+    }
+
+    setState(() => _isValidatingPlate = true);
+
+    final error = await _validatePlateUseCase(
+      value, 
+      widget.controller.currentDraft!.sellerId
+    );
+
+    if (mounted) {
+      setState(() {
+        _isValidatingPlate = false;
+        _plateError = error;
+        _isPlateValid = error == null;
+      });
+      
+      // If validation fails, update draft to clear invalid plate? 
+      // Or keep it but block submission later?
+      // For now, we update draft anyway so typed value persists, 
+      // but UI shows error.
+      _updateDraft(); 
+    }
   }
 
   void _updateDraft() {
@@ -99,6 +171,8 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         startingPrice: draft.startingPrice,
         reservePrice: draft.reservePrice,
         auctionEndDate: draft.auctionEndDate,
+        // Only valid if no error
+        isComplete: draft.isComplete && _isPlateValid,
       ),
     );
   }
@@ -117,7 +191,27 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           controller: _plateController,
           label: 'Plate Number *',
           hint: 'e.g., ABC 1234',
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          errorText: _plateError,
+          suffix: _isValidatingPlate
+              ? const SizedBox(
+                  width: 16, 
+                  height: 16, 
+                  child: Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                )
+              : (_isPlateValid && _plateController.text.isNotEmpty)
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
+            LengthLimitingTextInputFormatter(8), // Standard max length roughly
+          ],
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            return _plateError;
+          },
         ),
         const SizedBox(height: 16),
         FormDropdownWidget(

@@ -18,4 +18,5 @@ abstract class SellerRepository {
   Future<Either<Failure, void>> deleteDeedOfSale(String documentUrl);
   Future<Either<Failure, void>> cancelListing(String auctionId);
   Stream<void> streamSellerListings(String sellerId);
+  Future<bool> isPlateNumberUnique(String sellerId, String plateNumber);
 }

@@ -253,4 +253,15 @@ class SellerRepositoryImpl implements SellerRepository {
   Stream<void> streamSellerListings(String sellerId) {
     return dataSource.streamSellerListings(sellerId);
   }
+
+  @override
+  Future<bool> isPlateNumberUnique(String sellerId, String plateNumber) async {
+    try {
+      return await dataSource.isPlateUnique(sellerId, plateNumber);
+    } catch (e) {
+      // If error occurs, assume not unique to be safe? Or throw?
+      // Use case handles exception, so rethrow is fine
+      rethrow;
+    }
+  }
 }

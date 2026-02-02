@@ -10,6 +10,7 @@ import 'data/repositories/seller_repository_impl.dart';
 import 'domain/repositories/seller_repository.dart';
 import 'domain/usecases/get_seller_listings_usecase.dart';
 import 'domain/usecases/stream_seller_listings_usecase.dart';
+import 'domain/usecases/validate_plate_number_usecase.dart';
 
 /// Initialize Lists module dependencies
 Future<void> initListsModule() async {
@@ -37,6 +38,7 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => UploadDeedOfSaleUseCase(sl()));
   sl.registerLazySingleton(() => DeleteDeedOfSaleUseCase(sl()));
   sl.registerLazySingleton(() => StreamSellerListingsUseCase(sl()));
+  sl.registerLazySingleton(() => ValidatePlateNumberUseCase(sl()));
 
   // Controllers (Factory)
   sl.registerFactory(() => ListsController(sl(), sl(), sl()));

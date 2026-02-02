@@ -11,6 +11,7 @@ class FormFieldWidget extends StatelessWidget {
   final int maxLines;
   final Widget? suffix;
   final bool enabled;
+  final String? errorText;
 
   const FormFieldWidget({
     super.key,
@@ -23,6 +24,7 @@ class FormFieldWidget extends StatelessWidget {
     this.maxLines = 1,
     this.suffix,
     this.enabled = true,
+    this.errorText,
   });
 
   @override
@@ -38,6 +40,7 @@ class FormFieldWidget extends StatelessWidget {
         labelText: label,
         hintText: hint,
         suffix: suffix,
+        errorText: errorText,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
         ),

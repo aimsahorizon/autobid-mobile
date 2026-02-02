@@ -1634,37 +1634,58 @@ class ListingSupabaseDataSource {
     return ListingModel.fromJson(mergedJson);
   }
 
+  /// Check if a plate number is unique for a seller (Public for validation)
+  /// Returns true if unique, false if duplicate exists
+  Future<bool> isPlateUnique(
+    String sellerId,
+    String plateNumber, {
+    String? excludeAuctionId,
+  }) async {
+    try {
+      final dupes = await _supabase
+          .from('auctions')
+          .select(
+            '''id, auction_statuses(status_name), auction_vehicles!inner(plate_number)''',
+          )
+          .eq('seller_id', sellerId)
+          .eq('auction_vehicles.plate_number', plateNumber)
+          .inFilter('auction_statuses.status_name', [
+            'pending_approval',
+            'approved',
+            'scheduled',
+            'live',
+            'active',
+            'ended',
+            'cancelled',
+            'in_transaction',
+            'sold',
+          ]);
+
+      final conflict = dupes.any(
+        (row) => (row['id'] as String?) != excludeAuctionId,
+      );
+
+      return !conflict;
+    } catch (e) {
+      debugPrint('Error checking plate uniqueness: $e');
+      throw Exception('Failed to check plate uniqueness: $e');
+    }
+  }
+
   /// Ensure a plate number is unique for a seller across all listing states
-  /// Optionally skip a specific auction (e.g., when relisting the same cancelled auction)
+  /// Throws exception if not unique (Used for submission checks)
   Future<void> _ensureUniquePlate(
     String sellerId,
     String plateNumber, {
     String? excludeAuctionId,
   }) async {
-    final dupes = await _supabase
-        .from('auctions')
-        .select(
-          '''id, auction_statuses(status_name), auction_vehicles!inner(plate_number)''',
-        )
-        .eq('seller_id', sellerId)
-        .eq('auction_vehicles.plate_number', plateNumber)
-        .inFilter('auction_statuses.status_name', [
-          'pending_approval',
-          'approved',
-          'scheduled',
-          'live',
-          'active',
-          'ended',
-          'cancelled',
-          'in_transaction',
-          'sold',
-        ]);
-
-    final conflict = dupes.any(
-      (row) => (row['id'] as String?) != excludeAuctionId,
+    final isUnique = await isPlateUnique(
+      sellerId,
+      plateNumber,
+      excludeAuctionId: excludeAuctionId,
     );
 
-    if (conflict) {
+    if (!isUnique) {
       throw Exception(
         'A listing for plate $plateNumber already exists in your account. Please delete or finish it before submitting a new one.',
       );

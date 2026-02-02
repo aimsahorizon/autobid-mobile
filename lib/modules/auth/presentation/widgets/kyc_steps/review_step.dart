@@ -48,8 +48,16 @@ class ReviewStep extends StatelessWidget {
             step: KYCStep.nationalId,
             children: [
               _buildInfoRow('ID Number', controller.nationalIdNumber ?? 'N/A'),
-              _buildInfoRow('Front Photo', controller.nationalIdFront != null ? 'Uploaded' : 'Not uploaded'),
-              _buildInfoRow('Back Photo', controller.nationalIdBack != null ? 'Uploaded' : 'Not uploaded'),
+              _buildInfoRow(
+                'Front Photo',
+                controller.nationalIdFront != null
+                    ? 'Uploaded'
+                    : 'Not uploaded',
+              ),
+              _buildInfoRow(
+                'Back Photo',
+                controller.nationalIdBack != null ? 'Uploaded' : 'Not uploaded',
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -59,8 +67,14 @@ class ReviewStep extends StatelessWidget {
             icon: Icons.face_rounded,
             step: KYCStep.selfieWithId,
             children: [
-              _buildInfoRow('Selfie with ID', controller.selfieWithId != null ? 'Uploaded' : 'Not uploaded'),
-              _buildInfoRow('AI Auto-fill', controller.aiAutoFillAccepted ? 'Accepted' : 'Skipped'),
+              _buildInfoRow(
+                'Selfie with ID',
+                controller.selfieWithId != null ? 'Uploaded' : 'Not uploaded',
+              ),
+              _buildInfoRow(
+                'AI Auto-fill',
+                controller.aiAutoFillAccepted ? 'Accepted' : 'Skipped',
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -72,8 +86,18 @@ class ReviewStep extends StatelessWidget {
             children: [
               _buildInfoRow('ID Type', controller.secondaryIdType ?? 'N/A'),
               _buildInfoRow('ID Number', controller.secondaryIdNumber ?? 'N/A'),
-              _buildInfoRow('Front Photo', controller.secondaryIdFront != null ? 'Uploaded' : 'Not uploaded'),
-              _buildInfoRow('Back Photo', controller.secondaryIdBack != null ? 'Uploaded' : 'Not uploaded'),
+              _buildInfoRow(
+                'Front Photo',
+                controller.secondaryIdFront != null
+                    ? 'Uploaded'
+                    : 'Not uploaded',
+              ),
+              _buildInfoRow(
+                'Back Photo',
+                controller.secondaryIdBack != null
+                    ? 'Uploaded'
+                    : 'Not uploaded',
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -83,8 +107,17 @@ class ReviewStep extends StatelessWidget {
             icon: Icons.person_rounded,
             step: KYCStep.personalInfo,
             children: [
-              _buildInfoRow('Name', '${controller.firstName ?? ''} ${controller.middleName ?? ''} ${controller.lastName ?? ''}'.trim()),
-              _buildInfoRow('Date of Birth', controller.dateOfBirth != null ? _formatDate(controller.dateOfBirth!) : 'N/A'),
+              _buildInfoRow(
+                'Name',
+                '${controller.firstName ?? ''} ${controller.middleName ?? ''} ${controller.lastName ?? ''}'
+                    .trim(),
+              ),
+              _buildInfoRow(
+                'Date of Birth',
+                controller.dateOfBirth != null
+                    ? _formatDate(controller.dateOfBirth!)
+                    : 'N/A',
+              ),
               _buildInfoRow('Sex', controller.sex ?? 'N/A'),
             ],
           ),
@@ -96,9 +129,14 @@ class ReviewStep extends StatelessWidget {
             step: KYCStep.accountInfo,
             children: [
               _buildInfoRow('Email', controller.email ?? 'N/A'),
-              _buildInfoRow('Phone', '+63${controller.phoneNumber ?? ''}'),
-              _buildInfoRow('Terms & Conditions', controller.termsAccepted ? 'Accepted' : 'Not accepted'),
-              _buildInfoRow('Privacy Policy', controller.privacyAccepted ? 'Accepted' : 'Not accepted'),
+              _buildInfoRow(
+                'Terms & Conditions',
+                controller.termsAccepted ? 'Accepted' : 'Not accepted',
+              ),
+              _buildInfoRow(
+                'Privacy Policy',
+                controller.privacyAccepted ? 'Accepted' : 'Not accepted',
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -108,10 +146,16 @@ class ReviewStep extends StatelessWidget {
             icon: Icons.verified_user_rounded,
             step: KYCStep.otpVerification,
             children: [
-              _buildInfoRow('Phone Verified', controller.phoneOtpVerified ? 'Yes' : 'No',
-                verified: controller.phoneOtpVerified),
-              _buildInfoRow('Email Verified', controller.emailOtpVerified ? 'Yes' : 'No',
-                verified: controller.emailOtpVerified),
+              _buildInfoRow(
+                'Phone Verified',
+                controller.phoneOtpVerified ? 'Yes' : 'No',
+                verified: controller.phoneOtpVerified,
+              ),
+              _buildInfoRow(
+                'Email Verified',
+                controller.emailOtpVerified ? 'Yes' : 'No',
+                verified: controller.emailOtpVerified,
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -136,7 +180,10 @@ class ReviewStep extends StatelessWidget {
             icon: Icons.description_rounded,
             step: KYCStep.proofOfAddress,
             children: [
-              _buildInfoRow('Document', controller.proofOfAddress != null ? 'Uploaded' : 'Not uploaded'),
+              _buildInfoRow(
+                'Document',
+                controller.proofOfAddress != null ? 'Uploaded' : 'Not uploaded',
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -187,10 +234,14 @@ class ReviewStep extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Column(
@@ -205,11 +256,7 @@ class ReviewStep extends StatelessWidget {
                   color: ColorConstants.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  icon,
-                  color: ColorConstants.primary,
-                  size: 20,
-                ),
+                child: Icon(icon, color: ColorConstants.primary, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
