@@ -144,9 +144,6 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
           'current_price': auction['current_price'],
           'starting_price': auction['starting_price'],
           'total_bids': auction['total_bids'],
-          'current_price': auction['current_price'],
-          'starting_price': auction['starting_price'],
-          'total_bids': auction['total_bids'],
         };
       }).toList();
 
