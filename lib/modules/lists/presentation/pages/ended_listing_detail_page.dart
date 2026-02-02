@@ -3,6 +3,7 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
+import '../widgets/detail_sections/seller_bid_history_section.dart';
 
 /// Detail page for ended auctions awaiting seller decision
 /// Seller can choose to proceed to transaction or cancel the auction
@@ -18,11 +19,40 @@ class EndedListingDetailPage extends StatefulWidget {
 class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   bool _isProcessing = false;
   late final ListingSupabaseDataSource _datasource;
+  List<Map<String, dynamic>> _bids = [];
+  bool _isLoadingBids = false;
 
   @override
   void initState() {
     super.initState();
     _datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+    _loadBids();
+  }
+
+  Future<void> _loadBids() async {
+    setState(() => _isLoadingBids = true);
+    try {
+      final bids = await _datasource.getBids(widget.listing.id);
+      if (mounted) {
+        setState(() {
+          _bids = bids;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading bids: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load bid history: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingBids = false);
+      }
+    }
   }
 
   Future<void> _reauction() async {
@@ -303,6 +333,13 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
 
                   // Decision Guidance
                   _buildGuidanceCard(isReserveMet),
+                  const SizedBox(height: 24),
+
+                  // Bid History (Added)
+                  SellerBidHistorySection(
+                    bids: _bids,
+                    isLoading: _isLoadingBids,
+                  ),
                   const SizedBox(height: 24),
 
                   // Bid Statistics

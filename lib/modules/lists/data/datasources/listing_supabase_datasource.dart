@@ -1719,20 +1719,59 @@ class ListingSupabaseDataSource {
   }
 
   /// Get bid history for a listing
+  /// Performs manual join with user_profiles to ensure data availability
   Future<List<Map<String, dynamic>>> getBids(String auctionId) async {
     try {
-      final response = await _supabase
+      // 1. Fetch bids
+      final bidsResponse = await _supabase
           .from('bids')
-          .select('''
-            id,
-            bid_amount,
-            created_at,
-            user_profiles(username, full_name, profile_photo_url)
-          ''')
+          .select('id, bid_amount, created_at, bidder_id')
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);
+      
+      final bids = List<Map<String, dynamic>>.from(bidsResponse);
+      
+      if (bids.isEmpty) return [];
 
-      return List<Map<String, dynamic>>.from(response);
+      // 2. Extract unique bidder IDs
+      final bidderIds = bids
+          .map((b) => b['bidder_id'] as String?)
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+
+      if (bidderIds.isEmpty) return bids;
+
+      // 3. Fetch user profiles for these bidders
+      // Try fetching from user_profiles first
+      final profilesResponse = await _supabase
+          .from('user_profiles')
+          .select('id, username, full_name, profile_photo_url')
+          .inFilter('id', bidderIds);
+      
+      final profilesMap = {
+        for (var p in profilesResponse) p['id'] as String: p
+      };
+
+      // 4. Merge profiles into bids
+      return bids.map((bid) {
+        final bidderId = bid['bidder_id'] as String?;
+        final profile = profilesMap[bidderId];
+        
+        // Add the nested user_profiles object structure that the UI expects
+        final bidWithProfile = Map<String, dynamic>.from(bid);
+        if (profile != null) {
+          bidWithProfile['user_profiles'] = profile;
+        } else {
+           // Fallback if profile not found (optional: try fetching from 'users' table if needed)
+           bidWithProfile['user_profiles'] = {
+             'username': 'Unknown Bidder',
+             'full_name': 'Unknown Bidder'
+           };
+        }
+        return bidWithProfile;
+      }).toList();
+
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch bids: ${e.message}');
     } catch (e) {

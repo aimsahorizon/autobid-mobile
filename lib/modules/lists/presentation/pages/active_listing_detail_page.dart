@@ -47,6 +47,14 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
       }
     } catch (e) {
       debugPrint('Error loading bids: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load bid history: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoadingBids = false);
