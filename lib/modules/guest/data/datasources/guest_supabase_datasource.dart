@@ -100,56 +100,59 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
     try {
       debugPrint('[GuestDataSource] Fetching guest auctions from database...');
 
-      // Query auctions with joined data
-      // Filter for 'live' auctions (guests should see live auctions)
+      // Use auction_browse_listings view which filters for live auctions
+      // This view is accessible to anonymous users and already has proper RLS
       final response = await _supabase
-          .from('auctions')
+          .from('auction_browse_listings')
           .select('''
             id,
+            title,
+            primary_image_url,
+            starting_price,
+            current_price,
             start_time,
             end_time,
-            auction_statuses!inner(status_name),
-            auction_vehicles(year, make, model),
-            auction_photos(photo_url, is_primary)
+            total_bids,
+            vehicle_year,
+            vehicle_make,
+            vehicle_model
           ''')
-          .eq('auction_statuses.status_name', 'live')
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+          .order('end_time', ascending: true)
+          .limit(limit);
 
       debugPrint(
-        '[GuestDataSource] Retrieved ${response.length} auctions from database',
+        '[GuestDataSource] Retrieved ${response.length} live auctions from auction_browse_listings view',
       );
 
       // Transform to match guest UI expectations
       final auctions = (response as List).map((auction) {
-        final vehicle = auction['auction_vehicles'] as Map<String, dynamic>? ?? {};
-        final photos = auction['auction_photos'] as List<dynamic>? ?? [];
-        
-        // Find primary photo
-        String? imageUrl;
-        if (photos.isNotEmpty) {
-          final primary = photos.firstWhere(
-            (p) => p['is_primary'] == true,
-            orElse: () => photos.first,
-          );
-          imageUrl = primary['photo_url'] as String?;
-        }
+        final make = auction['vehicle_make'] as String? ?? 'Unknown';
+        final model = auction['vehicle_model'] as String? ?? 'Vehicle';
+        final year = auction['vehicle_year'] as int? ?? 0;
 
-        final make = vehicle['make'] as String? ?? 'Unknown';
-        final model = vehicle['model'] as String? ?? 'Vehicle';
-        final year = vehicle['year'] as int? ?? 0;
+        final title = auction['title'] as String? ?? '$year $make $model';
 
         return {
           'id': auction['id'],
-          'title': '$year $make $model',
+          'title': title,
           'description': 'Active auction for $make $model',
           'category': make,
-          'image_url': imageUrl,
+          'image_url': auction['primary_image_url'],
           'status': 'live',
           'start_date': auction['start_time'],
           'end_date': auction['end_time'],
+          'current_price': auction['current_price'],
+          'starting_price': auction['starting_price'],
+          'total_bids': auction['total_bids'],
+          'current_price': auction['current_price'],
+          'starting_price': auction['starting_price'],
+          'total_bids': auction['total_bids'],
         };
       }).toList();
+
+      debugPrint(
+        '[GuestDataSource] Mapped ${auctions.length} auctions for guest display',
+      );
 
       return auctions;
     } on PostgrestException catch (e) {
