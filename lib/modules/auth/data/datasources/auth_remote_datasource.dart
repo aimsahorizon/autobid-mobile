@@ -81,7 +81,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             .maybeSingle();
 
         if (debugRecord != null) {
-          throw const AuthException('Invalid username or password. Note: Username is case-sensitive.');
+          throw const AuthException(
+            'Invalid username or password. Note: Username is case-sensitive.',
+          );
         }
 
         throw const AuthException('Invalid username or password');
@@ -115,7 +117,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           id: response.user!.id,
           email: response.user!.email ?? '',
           username: username,
-          displayName: displayName ?? response.user!.userMetadata?['display_name'] as String?,
+          displayName:
+              displayName ??
+              response.user!.userMetadata?['display_name'] as String?,
           photoUrl: response.user!.userMetadata?['avatar_url'] as String?,
           phoneNumber: phoneNumber,
         );
@@ -126,7 +130,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             'Invalid username or password. If you registered via OTP, please use "Forgot Password" to set a password first.',
           );
         } else if (authError.message.contains('Email not confirmed')) {
-          throw const AuthException('Email not verified. Please verify your email first.');
+          throw const AuthException(
+            'Email not verified. Please verify your email first.',
+          );
         } else {
           throw AuthException(authError.message);
         }
@@ -216,10 +222,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             .maybeSingle();
 
         if (debugRecord != null) {
-          throw const AuthException('Username found but with different case. Usernames are case-sensitive.');
+          throw const AuthException(
+            'Username found but with different case. Usernames are case-sensitive.',
+          );
         }
 
-        throw const AuthException('Username not found. Please check your username and try again.');
+        throw const AuthException(
+          'Username not found. Please check your username and try again.',
+        );
       }
 
       final email = userRecord['email'] as String;
@@ -232,12 +242,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       } on supabase.AuthException catch (authError) {
         // Check if email sending is configured
-        if (authError.message.contains('Email') || authError.message.contains('SMTP')) {
+        if (authError.message.contains('Email') ||
+            authError.message.contains('SMTP')) {
           throw const ServerException(
             'Email service not configured. Please contact support or use OTP verification instead.',
           );
         } else {
-          throw ServerException('Failed to send reset email: ${authError.message}');
+          throw ServerException(
+            'Failed to send reset email: ${authError.message}',
+          );
         }
       }
     } on supabase.PostgrestException catch (e) {
@@ -304,10 +317,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Update password for the authenticated user
       await _supabase.auth.updateUser(
-        supabase.UserAttributes(
-          email: email,
-          password: newPassword,
-        ),
+        supabase.UserAttributes(email: email, password: newPassword),
       );
     } on supabase.PostgrestException catch (e) {
       throw ServerException('Failed to find user: ${e.message}');
@@ -428,43 +438,55 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // Get current authenticated user
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        throw const AuthException('User not authenticated. Please verify OTP first.');
+        throw const AuthException(
+          'User not authenticated. Please verify OTP first.',
+        );
       }
 
       // Use RPC function
-      final result = await _supabase.rpc('register_user_with_kyc', params: {
-        'p_user_id': kycData.id,
-        'p_email': kycData.email,
-        'p_username': kycData.username,
-        'p_phone_number': kycData.phoneNumber,
-        'p_first_name': kycData.firstName,
-        'p_last_name': kycData.lastName,
-        'p_middle_name': kycData.middleName ?? '',
-        'p_date_of_birth': kycData.dateOfBirth.toIso8601String().split('T')[0],
-        'p_sex': kycData.sex.toLowerCase(),
-        'p_region': kycData.region,
-        'p_province': kycData.province,
-        'p_city': kycData.city,
-        'p_barangay': kycData.barangay,
-        'p_street_address': kycData.streetAddress,
-        'p_zipcode': kycData.zipcode,
-        'p_national_id_number': kycData.nationalIdNumber,
-        'p_national_id_front_url': kycData.nationalIdFrontUrl,
-        'p_national_id_back_url': kycData.nationalIdBackUrl,
-        'p_secondary_gov_id_type': kycData.secondaryGovIdType.toLowerCase().replaceAll(' ', '_'),
-        'p_secondary_gov_id_number': kycData.secondaryGovIdNumber,
-        'p_secondary_gov_id_front_url': kycData.secondaryGovIdFrontUrl,
-        'p_secondary_gov_id_back_url': kycData.secondaryGovIdBackUrl,
-        'p_proof_of_address_type': kycData.proofOfAddressType.toLowerCase().replaceAll(' ', '_'),
-        'p_proof_of_address_url': kycData.proofOfAddressUrl,
-        'p_selfie_with_id_url': kycData.selfieWithIdUrl,
-        'p_accepted_terms_at': kycData.acceptedTermsAt.toIso8601String(),
-        'p_accepted_privacy_at': kycData.acceptedPrivacyAt.toIso8601String(),
-      });
+      final result = await _supabase.rpc(
+        'register_user_with_kyc',
+        params: {
+          'p_user_id': kycData.id,
+          'p_email': kycData.email,
+          'p_username': kycData.username,
+          'p_first_name': kycData.firstName,
+          'p_last_name': kycData.lastName,
+          'p_middle_name': kycData.middleName ?? '',
+          'p_date_of_birth': kycData.dateOfBirth.toIso8601String().split(
+            'T',
+          )[0],
+          'p_sex': kycData.sex.toLowerCase(),
+          'p_region': kycData.region,
+          'p_province': kycData.province,
+          'p_city': kycData.city,
+          'p_barangay': kycData.barangay,
+          'p_street_address': kycData.streetAddress,
+          'p_zipcode': kycData.zipcode,
+          'p_national_id_number': kycData.nationalIdNumber,
+          'p_national_id_front_url': kycData.nationalIdFrontUrl,
+          'p_national_id_back_url': kycData.nationalIdBackUrl,
+          'p_secondary_gov_id_type': kycData.secondaryGovIdType
+              .toLowerCase()
+              .replaceAll(' ', '_'),
+          'p_secondary_gov_id_number': kycData.secondaryGovIdNumber,
+          'p_secondary_gov_id_front_url': kycData.secondaryGovIdFrontUrl,
+          'p_secondary_gov_id_back_url': kycData.secondaryGovIdBackUrl,
+          'p_proof_of_address_type': kycData.proofOfAddressType
+              .toLowerCase()
+              .replaceAll(' ', '_'),
+          'p_proof_of_address_url': kycData.proofOfAddressUrl,
+          'p_selfie_with_id_url': kycData.selfieWithIdUrl,
+          'p_accepted_terms_at': kycData.acceptedTermsAt.toIso8601String(),
+          'p_accepted_privacy_at': kycData.acceptedPrivacyAt.toIso8601String(),
+        },
+      );
 
       // Check if registration was successful
       if (result['success'] != true) {
-        throw ServerException(result['error'] ?? 'Failed to submit KYC registration');
+        throw ServerException(
+          result['error'] ?? 'Failed to submit KYC registration',
+        );
       }
     } on supabase.PostgrestException catch (e) {
       throw ServerException('Failed to submit KYC registration: ${e.message}');
@@ -505,7 +527,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       return KycRegistrationModel.fromJson(response);
     } on supabase.PostgrestException catch (e) {
-      throw ServerException('Failed to get KYC registration status: ${e.message}');
+      throw ServerException(
+        'Failed to get KYC registration status: ${e.message}',
+      );
     } catch (e) {
       throw ServerException('Failed to get KYC registration status: $e');
     }
@@ -522,7 +546,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       return response == null;
     } on supabase.PostgrestException catch (e) {
-      throw ServerException('Failed to check username availability: ${e.message}');
+      throw ServerException(
+        'Failed to check username availability: ${e.message}',
+      );
     } catch (e) {
       throw ServerException('Failed to check username availability: $e');
     }

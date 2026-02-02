@@ -12,23 +12,21 @@ import 'package:autobid_mobile/core/services/file_encryption_service.dart';
 import '../../data/datasources/demo_data_generator.dart';
 
 enum KYCStep {
-  accountInfo,        // Step 1: Username, email, phone, password, T&C
-  otpVerification,    // Step 2: Verify email and phone
-  nationalId,         // Step 3: Upload National ID for AI extraction
-  selfieWithId,       // Step 4: Selfie verification
-  secondaryId,        // Step 5: Secondary ID - triggers AI autofill
-  personalInfo,       // Step 6: Personal details (auto-filled from AI)
-  address,            // Step 7: Address details (auto-filled from AI)
-  proofOfAddress,     // Step 8: Proof of address document
-  review,             // Step 9: Final review before submission
+  accountInfo, // Step 1: Username, email, phone, password, T&C
+  otpVerification, // Step 2: Verify email and phone
+  nationalId, // Step 3: Upload National ID for AI extraction
+  selfieWithId, // Step 4: Selfie verification
+  secondaryId, // Step 5: Secondary ID - triggers AI autofill
+  personalInfo, // Step 6: Personal details (auto-filled from AI)
+  address, // Step 7: Address details (auto-filled from AI)
+  proofOfAddress, // Step 8: Proof of address document
+  review, // Step 9: Final review before submission
 }
 
 class KYCRegistrationController extends ChangeNotifier {
   final AuthRemoteDataSource? _authDataSource;
   final SendEmailOtpUseCase? _sendEmailOtpUseCase;
-  final SendPhoneOtpUseCase? _sendPhoneOtpUseCase;
   final VerifyEmailOtpUseCase? _verifyEmailOtpUseCase;
-  final VerifyPhoneOtpUseCase? _verifyPhoneOtpUseCase;
   final IAiIdExtractionService _aiService;
   final FileEncryptionService? _fileEncryptionService;
 
@@ -44,9 +42,7 @@ class KYCRegistrationController extends ChangeNotifier {
     FileEncryptionService? fileEncryptionService,
   }) : _authDataSource = authDataSource,
        _sendEmailOtpUseCase = sendEmailOtpUseCase,
-       _sendPhoneOtpUseCase = sendPhoneOtpUseCase,
        _verifyEmailOtpUseCase = verifyEmailOtpUseCase,
-       _verifyPhoneOtpUseCase = verifyPhoneOtpUseCase,
        _aiService = aiService ?? MockAiIdExtractionService(),
        _fileEncryptionService = fileEncryptionService;
 
@@ -79,7 +75,6 @@ class KYCRegistrationController extends ChangeNotifier {
   // Step 5: Account Info
   String? _username;
   String? _email;
-  String? _phoneNumber;
   String? _password;
   bool _termsAccepted = false;
   bool _privacyAccepted = false;
@@ -131,7 +126,6 @@ class KYCRegistrationController extends ChangeNotifier {
   // Step 5 getters
   String? get username => _username;
   String? get email => _email;
-  String? get phoneNumber => _phoneNumber;
   String? get password => _password;
   bool get termsAccepted => _termsAccepted;
   bool get privacyAccepted => _privacyAccepted;
@@ -240,15 +234,6 @@ class KYCRegistrationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setPhoneNumber(String value) {
-    // Reset phone OTP verification if phone number changed
-    if (_phoneNumber != null && _phoneNumber != value) {
-      _phoneOtpVerified = false;
-    }
-    _phoneNumber = value;
-    notifyListeners();
-  }
-
   void setPassword(String value) {
     _password = value;
     notifyListeners();
@@ -275,23 +260,6 @@ class KYCRegistrationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Step 6: OTP sending and verification methods
-  Future<void> sendPhoneOtp() async {
-    if (_phoneNumber == null || _sendPhoneOtpUseCase == null) {
-      throw Exception('Phone number not set or use case not available');
-    }
-
-    try {
-      final result = await _sendPhoneOtpUseCase.call(_phoneNumber!);
-      result.fold(
-        (l) => throw Exception(l.message),
-        (r) => null,
-      );
-    } catch (e) {
-      throw Exception('Failed to send phone OTP: $e');
-    }
-  }
-
   Future<void> sendEmailOtp() async {
     if (_email == null || _sendEmailOtpUseCase == null) {
       throw Exception('Email not set or use case not available');
@@ -299,33 +267,9 @@ class KYCRegistrationController extends ChangeNotifier {
 
     try {
       final result = await _sendEmailOtpUseCase.call(_email!);
-      result.fold(
-        (l) => throw Exception(l.message),
-        (r) => null,
-      );
+      result.fold((l) => throw Exception(l.message), (r) => null);
     } catch (e) {
       throw Exception('Failed to send email OTP: $e');
-    }
-  }
-
-  Future<bool> verifyPhoneOtp(String otp) async {
-    if (_phoneNumber == null || _verifyPhoneOtpUseCase == null) {
-      return false;
-    }
-
-    try {
-      final result = await _verifyPhoneOtpUseCase.call(_phoneNumber!, otp);
-      return result.fold(
-        (l) => throw Exception(l.message),
-        (isVerified) {
-          if (isVerified) {
-            setPhoneOtpVerified(true);
-          }
-          return isVerified;
-        },
-      );
-    } catch (e) {
-      throw Exception('Phone OTP verification failed: $e');
     }
   }
 
@@ -336,15 +280,12 @@ class KYCRegistrationController extends ChangeNotifier {
 
     try {
       final result = await _verifyEmailOtpUseCase.call(_email!, otp);
-      return result.fold(
-        (l) => throw Exception(l.message),
-        (isVerified) {
-          if (isVerified) {
-            setEmailOtpVerified(true);
-          }
-          return isVerified;
-        },
-      );
+      return result.fold((l) => throw Exception(l.message), (isVerified) {
+        if (isVerified) {
+          setEmailOtpVerified(true);
+        }
+        return isVerified;
+      });
     } catch (e) {
       throw Exception('Email OTP verification failed: $e');
     }
@@ -430,7 +371,9 @@ class KYCRegistrationController extends ChangeNotifier {
   /// This is called after secondary ID upload
   Future<ExtractedIdData> extractDataFromIds() async {
     if (_secondaryIdFront == null || _nationalIdFront == null) {
-      throw Exception('Both secondary and national ID are required for extraction');
+      throw Exception(
+        'Both secondary and national ID are required for extraction',
+      );
     }
 
     _isLoading = true;
@@ -446,9 +389,11 @@ class KYCRegistrationController extends ChangeNotifier {
 
       // Autofill the extracted data
       if (extractedData.firstName != null) _firstName = extractedData.firstName;
-      if (extractedData.middleName != null) _middleName = extractedData.middleName;
+      if (extractedData.middleName != null)
+        _middleName = extractedData.middleName;
       if (extractedData.lastName != null) _lastName = extractedData.lastName;
-      if (extractedData.dateOfBirth != null) _dateOfBirth = extractedData.dateOfBirth;
+      if (extractedData.dateOfBirth != null)
+        _dateOfBirth = extractedData.dateOfBirth;
       if (extractedData.sex != null) _sex = extractedData.sex;
       if (extractedData.province != null) _province = extractedData.province;
       if (extractedData.city != null) _city = extractedData.city;
@@ -535,10 +480,6 @@ class KYCRegistrationController extends ChangeNotifier {
     }
     if (_email == null || _email!.isEmpty) {
       setError('Please enter your email');
-      return false;
-    }
-    if (_phoneNumber == null || _phoneNumber!.isEmpty) {
-      setError('Please enter your phone number');
       return false;
     }
     if (_password == null || _password!.isEmpty) {
@@ -698,40 +639,64 @@ class KYCRegistrationController extends ChangeNotifier {
               path: path,
             );
           } else {
-             // Fallback for mock/testing without encryption service
-             // Note: In strict production this should throw, but allowing for now.
-             await Supabase.instance.client.storage
-              .from('kyc-documents')
-              .upload(path, file);
-             return Supabase.instance.client.storage
-              .from('kyc-documents')
-              .getPublicUrl(path);
+            // Fallback for mock/testing without encryption service
+            // Note: In strict production this should throw, but allowing for now.
+            await Supabase.instance.client.storage
+                .from('kyc-documents')
+                .upload(path, file);
+            return Supabase.instance.client.storage
+                .from('kyc-documents')
+                .getPublicUrl(path);
           }
         }
 
         // Upload national ID front
-        final nationalIdFrontPath = '$userId/national_id_front_$timestamp.${_nationalIdFront!.path.split('.').last}';
-        final nationalIdFrontUrl = await uploadFile(_nationalIdFront!, nationalIdFrontPath);
+        final nationalIdFrontPath =
+            '$userId/national_id_front_$timestamp.${_nationalIdFront!.path.split('.').last}';
+        final nationalIdFrontUrl = await uploadFile(
+          _nationalIdFront!,
+          nationalIdFrontPath,
+        );
 
         // Upload national ID back
-        final nationalIdBackPath = '$userId/national_id_back_$timestamp.${_nationalIdBack!.path.split('.').last}';
-        final nationalIdBackUrl = await uploadFile(_nationalIdBack!, nationalIdBackPath);
+        final nationalIdBackPath =
+            '$userId/national_id_back_$timestamp.${_nationalIdBack!.path.split('.').last}';
+        final nationalIdBackUrl = await uploadFile(
+          _nationalIdBack!,
+          nationalIdBackPath,
+        );
 
         // Upload selfie with ID
-        final selfieWithIdPath = '$userId/selfie_with_id_$timestamp.${_selfieWithId!.path.split('.').last}';
-        final selfieWithIdUrl = await uploadFile(_selfieWithId!, selfieWithIdPath);
+        final selfieWithIdPath =
+            '$userId/selfie_with_id_$timestamp.${_selfieWithId!.path.split('.').last}';
+        final selfieWithIdUrl = await uploadFile(
+          _selfieWithId!,
+          selfieWithIdPath,
+        );
 
         // Upload secondary ID front
-        final secondaryIdFrontPath = '$userId/secondary_id_front_$timestamp.${_secondaryIdFront!.path.split('.').last}';
-        final secondaryIdFrontUrl = await uploadFile(_secondaryIdFront!, secondaryIdFrontPath);
+        final secondaryIdFrontPath =
+            '$userId/secondary_id_front_$timestamp.${_secondaryIdFront!.path.split('.').last}';
+        final secondaryIdFrontUrl = await uploadFile(
+          _secondaryIdFront!,
+          secondaryIdFrontPath,
+        );
 
         // Upload secondary ID back
-        final secondaryIdBackPath = '$userId/secondary_id_back_$timestamp.${_secondaryIdBack!.path.split('.').last}';
-        final secondaryIdBackUrl = await uploadFile(_secondaryIdBack!, secondaryIdBackPath);
+        final secondaryIdBackPath =
+            '$userId/secondary_id_back_$timestamp.${_secondaryIdBack!.path.split('.').last}';
+        final secondaryIdBackUrl = await uploadFile(
+          _secondaryIdBack!,
+          secondaryIdBackPath,
+        );
 
         // Upload proof of address
-        final proofOfAddressPath = '$userId/proof_of_address_$timestamp.${_proofOfAddress!.path.split('.').last}';
-        final proofOfAddressUrl = await uploadFile(_proofOfAddress!, proofOfAddressPath);
+        final proofOfAddressPath =
+            '$userId/proof_of_address_$timestamp.${_proofOfAddress!.path.split('.').last}';
+        final proofOfAddressUrl = await uploadFile(
+          _proofOfAddress!,
+          proofOfAddressPath,
+        );
 
         // Step 2: Create KYC registration model with all data
         // Convert sex to single character format (M/F) if needed
@@ -748,7 +713,6 @@ class KYCRegistrationController extends ChangeNotifier {
         final kycModel = KycRegistrationModel(
           id: userId,
           email: _email!,
-          phoneNumber: _phoneNumber!,
           username: _username!,
           firstName: _firstName!,
           lastName: _lastName!,
@@ -768,7 +732,8 @@ class KYCRegistrationController extends ChangeNotifier {
           secondaryGovIdNumber: _secondaryIdNumber!,
           secondaryGovIdFrontUrl: secondaryIdFrontUrl,
           secondaryGovIdBackUrl: secondaryIdBackUrl,
-          proofOfAddressType: 'Utility Bill', // You may want to add a field for this
+          proofOfAddressType:
+              'Utility Bill', // You may want to add a field for this
           proofOfAddressUrl: proofOfAddressUrl,
           selfieWithIdUrl: selfieWithIdUrl,
           acceptedTermsAt: DateTime.now(),

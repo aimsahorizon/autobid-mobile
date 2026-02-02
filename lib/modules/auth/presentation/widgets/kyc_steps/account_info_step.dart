@@ -6,10 +6,7 @@ import '../../controllers/kyc_registration_controller.dart';
 class AccountInfoStep extends StatefulWidget {
   final KYCRegistrationController controller;
 
-  const AccountInfoStep({
-    super.key,
-    required this.controller,
-  });
+  const AccountInfoStep({super.key, required this.controller});
 
   @override
   State<AccountInfoStep> createState() => _AccountInfoStepState();
@@ -36,9 +33,6 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     if (widget.controller.email != null) {
       _emailController.text = widget.controller.email!;
     }
-    if (widget.controller.phoneNumber != null) {
-      _phoneController.text = widget.controller.phoneNumber!;
-    }
     if (widget.controller.password != null) {
       _passwordController.text = widget.controller.password!;
       _confirmPasswordController.text = widget.controller.password!;
@@ -50,9 +44,6 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     });
     _emailController.addListener(() {
       widget.controller.setEmail(_emailController.text);
-    });
-    _phoneController.addListener(() {
-      widget.controller.setPhoneNumber(_phoneController.text);
     });
     _passwordController.addListener(() {
       widget.controller.setPassword(_passwordController.text);
@@ -94,7 +85,8 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     setState(() {
       _isCheckingUsername = false;
       // Mock: username available if doesn't contain 'admin' or 'test'
-      _isUsernameAvailable = !username.contains('admin') && !username.contains('test');
+      _isUsernameAvailable =
+          !username.contains('admin') && !username.contains('test');
     });
   }
 
@@ -139,20 +131,18 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                       ),
                     )
                   : _isUsernameAvailable == null
-                      ? null
-                      : Icon(
-                          _isUsernameAvailable!
-                              ? Icons.check_circle
-                              : Icons.cancel,
-                          color: _isUsernameAvailable!
-                              ? ColorConstants.success
-                              : ColorConstants.error,
-                        ),
+                  ? null
+                  : Icon(
+                      _isUsernameAvailable! ? Icons.check_circle : Icons.cancel,
+                      color: _isUsernameAvailable!
+                          ? ColorConstants.success
+                          : ColorConstants.error,
+                    ),
               helperText: _isUsernameAvailable == false
                   ? 'Username is already taken'
                   : _isUsernameAvailable == true
-                      ? 'Username is available'
-                      : null,
+                  ? 'Username is available'
+                  : null,
               helperStyle: TextStyle(
                 color: _isUsernameAvailable == false
                     ? ColorConstants.error
@@ -339,9 +329,9 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
         const SizedBox(width: 8),
         Text(
           text,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: ColorConstants.info,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: ColorConstants.info),
         ),
       ],
     );

@@ -13,12 +13,8 @@ class OtpVerificationStep extends StatefulWidget {
 }
 
 class _OtpVerificationStepState extends State<OtpVerificationStep> {
-  bool _isVerifyingPhone = false;
   bool _isVerifyingEmail = false;
-  bool _phoneSent = false;
   bool _emailSent = false;
-
-  String _phoneOtp = '';
   String _emailOtp = '';
 
   final List<TextEditingController> _phoneControllers = List.generate(
@@ -48,77 +44,6 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       node.dispose();
     }
     super.dispose();
-  }
-
-  Future<void> _sendPhoneOtp() async {
-    try {
-      await widget.controller.sendPhoneOtp();
-
-      setState(() {
-        _phoneSent = true;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'OTP sent to +63${widget.controller.phoneNumber ?? ''}',
-            ),
-            backgroundColor: ColorConstants.success,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send OTP: $e'),
-            backgroundColor: ColorConstants.error,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _verifyPhoneOtp() async {
-    setState(() {
-      _isVerifyingPhone = true;
-    });
-
-    try {
-      final isVerified = await widget.controller.verifyPhoneOtp(_phoneOtp);
-
-      if (mounted) {
-        if (isVerified) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Phone number verified successfully!'),
-              backgroundColor: ColorConstants.success,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Invalid OTP. Please try again.'),
-              backgroundColor: ColorConstants.error,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Verification failed: $e'),
-            backgroundColor: ColorConstants.error,
-          ),
-        );
-      }
-    } finally {
-      setState(() {
-        _isVerifyingPhone = false;
-      });
-    }
   }
 
   Future<void> _sendEmailOtp() async {
@@ -213,22 +138,6 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
                   ? ColorConstants.textSecondaryDark
                   : ColorConstants.textSecondaryLight,
             ),
-          ),
-          const SizedBox(height: 32),
-          _buildVerificationCard(
-            icon: Icons.phone_android_rounded,
-            title: 'Phone Number Verification',
-            subtitle: '+63${widget.controller.phoneNumber ?? ''}',
-            isVerified: widget.controller.phoneOtpVerified,
-            isSent: _phoneSent,
-            isVerifying: _isVerifyingPhone,
-            controllers: _phoneControllers,
-            focusNodes: _phoneFocusNodes,
-            onSend: _sendPhoneOtp,
-            onVerify: _verifyPhoneOtp,
-            onOtpChanged: (value) {
-              _phoneOtp = value;
-            },
           ),
           const SizedBox(height: 24),
           _buildVerificationCard(

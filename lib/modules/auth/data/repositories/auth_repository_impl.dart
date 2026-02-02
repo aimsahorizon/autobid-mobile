@@ -25,9 +25,15 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, UserEntity>> signInWithUsername(String username, String password) async {
+  Future<Either<Failure, UserEntity>> signInWithUsername(
+    String username,
+    String password,
+  ) async {
     try {
-      final user = await remoteDataSource.signInWithUsername(username, password);
+      final user = await remoteDataSource.signInWithUsername(
+        username,
+        password,
+      );
       return Right(user);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
@@ -65,7 +71,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> sendPasswordResetRequest(String username) async {
+  Future<Either<Failure, void>> sendPasswordResetRequest(
+    String username,
+  ) async {
     try {
       await remoteDataSource.sendPasswordResetRequest(username);
       return const Right(null);
@@ -89,7 +97,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> resetPassword(String username, String newPassword) async {
+  Future<Either<Failure, void>> resetPassword(
+    String username,
+    String newPassword,
+  ) async {
     try {
       await remoteDataSource.resetPassword(username, newPassword);
       return const Right(null);
@@ -101,9 +112,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, UserEntity>> signUp(String email, String password, {String? username}) async {
+  Future<Either<Failure, UserEntity>> signUp(
+    String email,
+    String password, {
+    String? username,
+  }) async {
     try {
-      final user = await remoteDataSource.signUp(email, password, username: username);
+      final user = await remoteDataSource.signUp(
+        email,
+        password,
+        username: username,
+      );
       return Right(user);
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
@@ -151,7 +170,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, bool>> verifyPhoneOtp(String phoneNumber, String otp) async {
+  Future<Either<Failure, bool>> verifyPhoneOtp(
+    String phoneNumber,
+    String otp,
+  ) async {
     try {
       final result = await remoteDataSource.verifyPhoneOtp(phoneNumber, otp);
       return Right(result);
@@ -163,13 +185,14 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> submitKycRegistration(KycRegistrationEntity kycData) async {
+  Future<Either<Failure, void>> submitKycRegistration(
+    KycRegistrationEntity kycData,
+  ) async {
     try {
       // Convert entity to model for data layer
       final kycModel = KycRegistrationModel(
         id: kycData.id,
         email: kycData.email,
-        phoneNumber: kycData.phoneNumber,
         username: kycData.username,
         firstName: kycData.firstName,
         lastName: kycData.lastName,
@@ -213,7 +236,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, KycRegistrationEntity?>> getKycRegistrationStatus(String userId) async {
+  Future<Either<Failure, KycRegistrationEntity?>> getKycRegistrationStatus(
+    String userId,
+  ) async {
     try {
       final result = await remoteDataSource.getKycRegistrationStatus(userId);
       return Right(result);

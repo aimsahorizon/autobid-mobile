@@ -4,7 +4,6 @@ class KycRegistrationModel extends KycRegistrationEntity {
   const KycRegistrationModel({
     required super.id,
     required super.email,
-    required super.phoneNumber,
     required super.username,
     required super.firstName,
     required super.lastName,
@@ -44,7 +43,6 @@ class KycRegistrationModel extends KycRegistrationEntity {
     return KycRegistrationModel(
       id: json['id'] as String,
       email: json['email'] as String,
-      phoneNumber: json['phone_number'] as String,
       username: json['username'] as String,
       firstName: json['first_name'] as String,
       lastName: json['last_name'] as String,
@@ -102,7 +100,6 @@ class KycRegistrationModel extends KycRegistrationEntity {
     return {
       'id': id,
       'email': email,
-      'phone_number': phoneNumber,
       'username': username,
       'first_name': firstName,
       'last_name': lastName,
@@ -144,7 +141,6 @@ class KycRegistrationModel extends KycRegistrationEntity {
   KycRegistrationModel copyWith({
     String? id,
     String? email,
-    String? phoneNumber,
     String? username,
     String? firstName,
     String? lastName,
@@ -181,7 +177,6 @@ class KycRegistrationModel extends KycRegistrationEntity {
     return KycRegistrationModel(
       id: id ?? this.id,
       email: email ?? this.email,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
       username: username ?? this.username,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,

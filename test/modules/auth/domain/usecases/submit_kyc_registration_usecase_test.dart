@@ -20,7 +20,6 @@ void main() {
   final testKycData = KycRegistrationEntity(
     id: 'user-123',
     email: 'test@example.com',
-    phoneNumber: '+1234567890',
     username: 'testuser',
     firstName: 'John',
     lastName: 'Doe',

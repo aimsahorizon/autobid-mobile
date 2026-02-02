@@ -198,7 +198,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     ],
                   ),
                   content: const Text(
-                    'This will automatically fill all fields with randomized demo data.\n\nNote: Email, phone number, and document uploads must still be filled manually.',
+                    'This will automatically fill all fields with randomized demo data.\n\nNote: Email and document uploads must still be filled manually.',
                   ),
                   actions: [
                     TextButton(
