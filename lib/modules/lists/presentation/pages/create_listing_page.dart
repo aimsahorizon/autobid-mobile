@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart'; // Add for kDebugMode
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/car_detection_service.dart';
@@ -266,6 +267,111 @@ class _CreateListingPageState extends State<CreateListingPage> {
       }
     }
   }
+  
+  /// DEMO MODE: Auto-fill fields for testing
+  void _demoFillListing() {
+    if (widget.controller.currentDraft == null) return;
+
+    final currentDraft = widget.controller.currentDraft!;
+    
+    // Sample data for a 2020 Toyota GR Yaris
+    final demoDraft = ListingDraftEntity(
+      id: currentDraft.id,
+      sellerId: currentDraft.sellerId,
+      currentStep: 9, // Jump to summary
+      lastSaved: DateTime.now(),
+      isComplete: false,
+      
+      // Step 2: Basic Info
+      brand: 'Toyota',
+      model: 'GR Yaris',
+      year: 2020,
+      variant: '1.6 Circuit Pack',
+      transmission: 'Manual',
+      mileage: 15000,
+      
+      // Step 3: Mechanical
+      engineType: 'In-line 3-cylinder Turbo',
+      engineDisplacement: 1.6,
+      cylinderCount: 3,
+      horsepower: 261,
+      torque: 360,
+      fuelType: 'Gasoline',
+      driveType: 'AWD',
+      
+      // Step 4: Dimensions
+      length: 3995,
+      width: 1805,
+      height: 1455,
+      wheelbase: 2560,
+      groundClearance: 124,
+      seatingCapacity: 4,
+      doorCount: 3,
+      fuelTankCapacity: 50,
+      curbWeight: 1280,
+      grossWeight: 1600,
+      
+      // Step 5: Exterior
+      exteriorColor: 'Platinum White Pearl',
+      paintType: 'Pearl',
+      rimType: 'Forged Alloy',
+      rimSize: '18',
+      tireSize: '225/40R18',
+      tireBrand: 'Michelin Pilot Sport 4S',
+      
+      // Step 6: Condition
+      condition: 'Used',
+      previousOwners: 1,
+      hasModifications: false,
+      modificationsDetails: '',
+      hasWarranty: true,
+      warrantyDetails: 'Factory warranty until 2025',
+      usageType: 'Personal',
+      knownIssues: 'None. Pristine condition.',
+      
+      // Step 7: Documentation
+      plateNumber: 'NGA 1234',
+      orcrStatus: 'On Hand',
+      registrationStatus: 'Registered',
+      registrationExpiry: DateTime.now().add(const Duration(days: 180)),
+      province: 'Metro Manila',
+      cityMunicipality: 'Quezon City',
+      deedOfSaleUrl: 'https://placehold.co/600x800/png?text=Deed+of+Sale',
+      
+      // Step 1: Photos (Using placeholders)
+      photoUrls: {
+        'Front': ['https://placehold.co/800x600/png?text=Front+View'],
+        'Rear': ['https://placehold.co/800x600/png?text=Rear+View'],
+        'Side': ['https://placehold.co/800x600/png?text=Side+View'],
+        'Interior': ['https://placehold.co/800x600/png?text=Interior'],
+        'Engine': ['https://placehold.co/800x600/png?text=Engine'],
+      },
+      
+      // Step 8: Final Details
+      description: 'The Toyota GR Yaris is a pure performance car, born from WRC. This unit is the Circuit Pack version with Torsen LSDs and tuned suspension. Mint condition, low mileage, always garage kept. Full service history available at Toyota dealer.',
+      features: ['Apple CarPlay', 'Android Auto', 'Adaptive Cruise Control', 'Lane Keep Assist', 'JBL Sound System', 'Carbon Fiber Roof'],
+      startingPrice: 3500000,
+      reservePrice: 3800000,
+      auctionEndDate: DateTime.now().add(const Duration(days: 7)),
+      biddingType: 'public',
+      bidIncrement: 10000,
+      minBidIncrement: 5000,
+      depositAmount: 50000,
+      enableIncrementalBidding: true,
+      
+      tags: ['Sports Car', 'JDM', 'Low Mileage', 'Turbo'],
+    );
+    
+    widget.controller.updateDraft(demoDraft);
+    widget.controller.goToStep(9);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('⚡ Demo Mode: All fields auto-filled!'),
+        backgroundColor: Colors.purple,
+      ),
+    );
+  }
 
   Future<void> _handleNextStep() async {
     // If Step 1 (Photos) and moving to Step 2
@@ -334,6 +440,13 @@ class _CreateListingPageState extends State<CreateListingPage> {
         appBar: AppBar(
           title: const Text('Create New Listing'),
           actions: [
+            if (kDebugMode)
+              IconButton(
+                onPressed: _demoFillListing,
+                icon: const Icon(Icons.bolt),
+                tooltip: 'Demo Fill',
+                color: Colors.purple,
+              ),
             ListenableBuilder(
               listenable: widget.controller,
               builder: (context, _) {
