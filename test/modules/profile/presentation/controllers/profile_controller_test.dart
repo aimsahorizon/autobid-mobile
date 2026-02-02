@@ -53,7 +53,6 @@ void main() {
       email: 'test@example.com',
       fullName: 'Test User',
       username: 'testuser',
-      contactNumber: '+1234567890',
       profilePhotoUrl: 'https://example.com/profile.jpg',
       coverPhotoUrl: 'https://example.com/cover.jpg',
     );

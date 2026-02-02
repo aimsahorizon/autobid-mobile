@@ -3,16 +3,12 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 
 class AccountSettingsSection extends StatelessWidget {
   final String email;
-  final String phone;
   final VoidCallback onUpdateEmail;
-  final VoidCallback onUpdatePhone;
 
   const AccountSettingsSection({
     super.key,
     required this.email,
-    required this.phone,
     required this.onUpdateEmail,
-    required this.onUpdatePhone,
   });
 
   @override
@@ -24,10 +20,14 @@ class AccountSettingsSection extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Column(
@@ -46,14 +46,6 @@ class AccountSettingsSection extends StatelessWidget {
             title: 'Email Address',
             subtitle: email,
             onTap: onUpdateEmail,
-          ),
-          const Divider(height: 1),
-          _buildSettingsTile(
-            context,
-            icon: Icons.phone_outlined,
-            title: 'Phone Number',
-            subtitle: phone,
-            onTap: onUpdatePhone,
           ),
         ],
       ),

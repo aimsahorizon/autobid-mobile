@@ -26,7 +26,6 @@ void main() {
     email: testEmail,
     fullName: 'Test User',
     username: 'testuser',
-    contactNumber: '09171234567',
     profilePhotoUrl: 'https://example.com/photo.jpg',
     coverPhotoUrl: 'https://example.com/cover.jpg',
   );
@@ -36,7 +35,6 @@ void main() {
     email: testEmail,
     fullName: 'Test User',
     username: 'testuser',
-    contactNumber: '09171234567',
     profilePhotoUrl: 'https://example.com/photo.jpg',
     coverPhotoUrl: 'https://example.com/cover.jpg',
   );
@@ -82,7 +80,6 @@ void main() {
             email: testEmail,
             fullName: 'Updated Name',
             username: 'updateduser',
-            contactNumber: testProfileModel.contactNumber,
             profilePhotoUrl: testProfileModel.profilePhotoUrl,
             coverPhotoUrl: testProfileModel.coverPhotoUrl,
           );
@@ -103,7 +100,6 @@ void main() {
             email: testEmail,
             fullName: 'Updated Name',
             username: 'updateduser',
-            contactNumber: testProfileEntity.contactNumber,
             profilePhotoUrl: testProfileEntity.profilePhotoUrl,
             coverPhotoUrl: testProfileEntity.coverPhotoUrl,
           );

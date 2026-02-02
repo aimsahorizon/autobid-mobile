@@ -51,7 +51,6 @@ void main() {
   final testProfile = UserProfileEntity(
     id: 'user-123',
     email: 'test@example.com',
-    contactNumber: '+1234567890',
     coverPhotoUrl: '',
     profilePhotoUrl: '',
     fullName: 'Test User',
@@ -228,7 +227,6 @@ void main() {
       expect(result, true);
       expect(controller.currentStep, LoginStep.otpVerification);
       expect(controller.userEmail, testProfile.email);
-      expect(controller.userPhoneNumber, testProfile.contactNumber);
       expect(controller.isLoading, false);
       expect(controller.errorMessage, isNull);
 

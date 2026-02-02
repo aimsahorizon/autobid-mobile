@@ -4,13 +4,8 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 
 class UpdatePhonePage extends StatefulWidget {
   final String currentEmail;
-  final String currentPhone;
 
-  const UpdatePhonePage({
-    super.key,
-    required this.currentEmail,
-    required this.currentPhone,
-  });
+  const UpdatePhonePage({super.key, required this.currentEmail});
 
   @override
   State<UpdatePhonePage> createState() => _UpdatePhonePageState();
@@ -119,9 +114,7 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Update Phone'),
-      ),
+      appBar: AppBar(title: const Text('Update Phone')),
       body: Stepper(
         currentStep: _currentStep,
         controlsBuilder: (context, details) => const SizedBox.shrink(),
@@ -163,8 +156,11 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
             labelText: 'Current Password',
             prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              icon: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -178,7 +174,10 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Text('Continue'),
           ),
@@ -226,7 +225,9 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
             decoration: InputDecoration(
               labelText: 'Enter OTP',
               prefixIcon: const Icon(Icons.pin_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               counterText: '',
             ),
           ),
@@ -239,7 +240,10 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Verify & Continue'),
             ),
@@ -258,7 +262,9 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? ColorConstants.surfaceDark : ColorConstants.backgroundSecondaryLight,
+            color: isDark
+                ? ColorConstants.surfaceDark
+                : ColorConstants.backgroundSecondaryLight,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -313,7 +319,9 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
             decoration: InputDecoration(
               labelText: 'Enter OTP',
               prefixIcon: const Icon(Icons.pin_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               counterText: '',
             ),
           ),
@@ -326,7 +334,10 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Update Phone'),
             ),

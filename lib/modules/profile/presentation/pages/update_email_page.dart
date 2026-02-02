@@ -4,13 +4,8 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 
 class UpdateEmailPage extends StatefulWidget {
   final String currentEmail;
-  final String currentPhone;
 
-  const UpdateEmailPage({
-    super.key,
-    required this.currentEmail,
-    required this.currentPhone,
-  });
+  const UpdateEmailPage({super.key, required this.currentEmail});
 
   @override
   State<UpdateEmailPage> createState() => _UpdateEmailPageState();
@@ -26,7 +21,6 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _emailOtpSent = false;
-  bool _phoneOtpSent = false;
 
   @override
   void dispose() {
@@ -63,22 +57,6 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('OTP sent to ${_newEmailController.text}')),
-      );
-    }
-  }
-
-  Future<void> _sendPhoneOtp() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Mock API call
-
-    setState(() {
-      _isLoading = false;
-      _phoneOtpSent = true;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP sent to ${widget.currentPhone}')),
       );
     }
   }
@@ -123,9 +101,7 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Update Email'),
-      ),
+      appBar: AppBar(title: const Text('Update Email')),
       body: Stepper(
         currentStep: _currentStep,
         controlsBuilder: (context, details) => const SizedBox.shrink(),
@@ -144,13 +120,6 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
             state: _currentStep > 1 ? StepState.complete : StepState.indexed,
             content: _buildEmailOtpStep(theme),
           ),
-          Step(
-            title: const Text('Phone Verification'),
-            subtitle: const Text('Confirm with your phone'),
-            isActive: _currentStep >= 2,
-            state: _currentStep > 2 ? StepState.complete : StepState.indexed,
-            content: _buildPhoneOtpStep(theme),
-          ),
         ],
       ),
     );
@@ -167,8 +136,11 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
             labelText: 'Current Password',
             prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              icon: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+              ),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -182,7 +154,10 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Text('Continue'),
           ),
@@ -228,7 +203,9 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
             decoration: InputDecoration(
               labelText: 'Enter OTP',
               prefixIcon: const Icon(Icons.pin_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               counterText: '',
             ),
           ),
@@ -241,96 +218,12 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Verify & Continue'),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildPhoneOtpStep(ThemeData theme) {
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isDark ? ColorConstants.surfaceDark : ColorConstants.backgroundSecondaryLight,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.phone_android, color: ColorConstants.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Verification will be sent to',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark
-                            ? ColorConstants.textSecondaryDark
-                            : ColorConstants.textSecondaryLight,
-                      ),
-                    ),
-                    Text(
-                      widget.currentPhone,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (!_phoneOtpSent)
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: _isLoading ? null : _sendPhoneOtp,
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Send OTP to Phone'),
-            ),
-          ),
-        if (_phoneOtpSent) ...[
-          TextField(
-            controller: _phoneOtpController,
-            keyboardType: TextInputType.number,
-            maxLength: 6,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              labelText: 'Enter OTP',
-              prefixIcon: const Icon(Icons.pin_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              counterText: '',
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _isLoading ? null : _completeUpdate,
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Text('Update Email'),
             ),
           ),
         ],

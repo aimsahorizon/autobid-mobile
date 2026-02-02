@@ -53,7 +53,6 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
         userId: profile.id,
         fullName: profile.fullName,
         username: profile.username,
-        contactNumber: profile.contactNumber,
         coverPhotoUrl: profile.coverPhotoUrl,
         profilePhotoUrl: profile.profilePhotoUrl,
       );

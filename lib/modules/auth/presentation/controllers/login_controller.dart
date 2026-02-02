@@ -78,13 +78,13 @@ class LoginController extends ChangeNotifier {
       (user) {
         _userEmail = user.email;
         _userPhoneNumber = user.phoneNumber;
-        
+
         if (_devModeBypassOtp) {
           _currentStep = LoginStep.completed;
         } else {
           _currentStep = LoginStep.otpVerification;
         }
-        
+
         _isLoading = false;
         notifyListeners();
         return true;
@@ -106,7 +106,7 @@ class LoginController extends ChangeNotifier {
       (user) async {
         // 2. Check Email Exists
         final emailCheckResult = await checkEmailExistsUseCase.call(user.email);
-        
+
         return await emailCheckResult.fold(
           (failure) async {
             _setError(failure);
@@ -121,8 +121,10 @@ class LoginController extends ChangeNotifier {
             }
 
             // 3. Get Profile
-            final profileResult = await getUserProfileByEmailUseCase.call(user.email);
-            
+            final profileResult = await getUserProfileByEmailUseCase.call(
+              user.email,
+            );
+
             return profileResult.fold(
               (failure) {
                 _setError(failure);
@@ -130,15 +132,14 @@ class LoginController extends ChangeNotifier {
               },
               (profile) {
                 if (profile == null) {
-                   _errorMessage = 'User profile not found. Please register.';
-                   _isLoading = false;
-                   notifyListeners();
-                   return false;
+                  _errorMessage = 'User profile not found. Please register.';
+                  _isLoading = false;
+                  notifyListeners();
+                  return false;
                 }
-                
+
                 _userEmail = profile.email;
-                _userPhoneNumber = profile.contactNumber;
-                
+
                 if (_devModeBypassOtp) {
                   _currentStep = LoginStep.completed;
                 } else {

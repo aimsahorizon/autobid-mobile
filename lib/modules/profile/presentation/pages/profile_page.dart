@@ -18,7 +18,6 @@ import '../widgets/support_section.dart';
 import 'subscription_page.dart';
 import 'token_purchase_page.dart';
 import 'update_email_page.dart';
-import 'update_phone_page.dart';
 import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
@@ -192,25 +191,7 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UpdateEmailPage(
-          currentEmail: profile.email,
-          currentPhone: profile.contactNumber,
-        ),
-      ),
-    );
-  }
-
-  void _navigateToUpdatePhone() {
-    final profile = widget.controller.profile;
-    if (profile == null) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UpdatePhonePage(
-          currentEmail: profile.email,
-          currentPhone: profile.contactNumber,
-        ),
+        builder: (context) => UpdateEmailPage(currentEmail: profile.email),
       ),
     );
   }
@@ -417,7 +398,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ProfileInfoSection(
                     fullName: profile.fullName,
                     username: profile.username,
-                    contactNumber: profile.contactNumber,
                     email: profile.email,
                   ),
                   const SizedBox(height: 16),
@@ -429,9 +409,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 16),
                   AccountSettingsSection(
                     email: profile.email,
-                    phone: profile.contactNumber,
                     onUpdateEmail: _navigateToUpdateEmail,
-                    onUpdatePhone: _navigateToUpdatePhone,
                   ),
                   const SizedBox(height: 16),
                   SupportSection(
