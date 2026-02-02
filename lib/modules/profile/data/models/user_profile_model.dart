@@ -8,7 +8,6 @@ class UserProfileModel extends UserProfileEntity {
     required super.profilePhotoUrl,
     required super.fullName,
     required super.username,
-    required super.contactNumber,
     required super.email,
   });
 
@@ -30,7 +29,6 @@ class UserProfileModel extends UserProfileEntity {
       profilePhotoUrl: json['profile_photo_url'] as String? ?? '',
       fullName: fullName.trim(),
       username: json['username'] as String,
-      contactNumber: json['phone_number'] as String? ?? '',
       email: json['email'] as String,
     );
   }
@@ -43,7 +41,6 @@ class UserProfileModel extends UserProfileEntity {
       'profile_photo_url': profilePhotoUrl,
       'full_name': fullName,
       'username': username,
-      'contact_number': contactNumber,
       'email': email,
     };
   }

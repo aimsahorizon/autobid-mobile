@@ -11,24 +11,22 @@ class ProfileSupabaseDataSource {
   ProfileSupabaseDataSource(this._supabase);
 
   /// Get current user's profile from users table (KYC users)
-  /// Uses phone or email to query, bypasses RLS with public policy
+  /// Get current user's profile from users table (KYC users)
+  /// Uses user ID or email to query, bypasses RLS with public policy
   Future<UserProfileModel?> getUserProfile(String userId) async {
     try {
       // Get current auth user
       final currentUser = _supabase.auth.currentUser;
       if (currentUser == null) return null;
 
-      // Query by phone number (with public RLS policy allowing approved users)
-      // This works because RLS policy 2 allows viewing approved active users
-      final phoneToQuery = currentUser.phone?.replaceAll('+63', '') ?? '';
-
+      // Query by user ID first (most direct)
       var response = await _supabase
           .from('users')
           .select()
-          .eq('phone_number', phoneToQuery)
+          .eq('id', userId)
           .maybeSingle();
 
-      // If not found by phone, try by email
+      // If not found by ID, try by email
       if (response == null && currentUser.email != null) {
         response = await _supabase
             .from('users')
@@ -97,7 +95,6 @@ class ProfileSupabaseDataSource {
       // Build update map with only non-null fields
       final Map<String, dynamic> updates = {};
       if (username != null) updates['username'] = username;
-      if (contactNumber != null) updates['phone_number'] = contactNumber;
       if (coverPhotoUrl != null) updates['cover_photo_url'] = coverPhotoUrl;
       if (profilePhotoUrl != null) {
         updates['profile_photo_url'] = profilePhotoUrl;

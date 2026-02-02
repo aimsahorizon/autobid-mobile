@@ -5,7 +5,6 @@ class UserProfileEntity {
   final String profilePhotoUrl;
   final String fullName;
   final String username;
-  final String contactNumber;
   final String email;
 
   const UserProfileEntity({
@@ -14,7 +13,6 @@ class UserProfileEntity {
     required this.profilePhotoUrl,
     required this.fullName,
     required this.username,
-    required this.contactNumber,
     required this.email,
   });
 }
