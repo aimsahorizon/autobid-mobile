@@ -1743,14 +1743,29 @@ class ListingSupabaseDataSource {
       if (bidderIds.isEmpty) return bids;
 
       // 3. Fetch user profiles for these bidders
-      // Try fetching from user_profiles first
+      // Fetch from 'users' table as 'user_profiles' is deprecated/merged
       final profilesResponse = await _supabase
-          .from('user_profiles')
-          .select('id, username, full_name, profile_photo_url')
+          .from('users')
+          .select('id, username, first_name, middle_name, last_name, profile_photo_url')
           .inFilter('id', bidderIds);
       
       final profilesMap = {
-        for (var p in profilesResponse) p['id'] as String: p
+        for (var p in profilesResponse) p['id'] as String: () {
+          // Construct full_name for UI compatibility
+          final firstName = p['first_name'] as String? ?? '';
+          final middleName = p['middle_name'] as String? ?? '';
+          final lastName = p['last_name'] as String? ?? '';
+          final fullName = middleName.isNotEmpty
+              ? '$firstName $middleName $lastName'
+              : '$firstName $lastName';
+          
+          return {
+            'id': p['id'],
+            'username': p['username'],
+            'full_name': fullName.trim(),
+            'profile_photo_url': p['profile_photo_url'],
+          };
+        }()
       };
 
       // 4. Merge profiles into bids
