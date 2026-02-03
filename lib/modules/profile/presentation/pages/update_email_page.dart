@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:autobid_mobile/core/constants/color_constants.dart';
+// import 'package:autobid_mobile/core/constants/color_constants.dart';
 
 class UpdateEmailPage extends StatefulWidget {
   final String currentEmail;
@@ -73,24 +73,24 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
     });
   }
 
-  Future<void> _completeUpdate() async {
-    if (_phoneOtpController.text.length != 6) return;
+  // Future<void> _completeUpdate() async {
+  //   if (_phoneOtpController.text.length != 6) return;
 
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Mock final update
+  //   setState(() => _isLoading = true);
+  //   await Future.delayed(const Duration(seconds: 1)); // Mock final update
 
-    setState(() => _isLoading = false);
+  //   setState(() => _isLoading = false);
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email updated successfully!'),
-          backgroundColor: ColorConstants.success,
-        ),
-      );
-      Navigator.pop(context, true);
-    }
-  }
+  //   if (mounted) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //         content: Text('Email updated successfully!'),
+  //         backgroundColor: ColorConstants.success,
+  //       ),
+  //     );
+  //     Navigator.pop(context, true);
+  //   }
+  // }
 
   bool _validateEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
