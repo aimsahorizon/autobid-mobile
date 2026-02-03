@@ -19,7 +19,10 @@ Future<void> initGuestModule() async {
 
   // Repositories
   sl.registerLazySingleton<GuestRepository>(
-    () => GuestRepositoryImpl(remoteDataSource: sl()),
+    () => GuestRepositoryImpl(
+      remoteDataSource: sl(),
+      networkInfo: sl(),
+    ),
   );
 
   // Use Cases

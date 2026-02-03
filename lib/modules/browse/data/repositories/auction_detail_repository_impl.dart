@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/network/network_info.dart';
 import '../../domain/entities/auction_detail_entity.dart';
 import '../../domain/entities/bid_history_entity.dart';
 import '../../domain/entities/qa_entity.dart';
@@ -9,14 +10,21 @@ import '../datasources/auction_detail_remote_datasource.dart';
 /// Implementation of AuctionDetailRepository using remote data source
 class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
   final AuctionDetailRemoteDataSource remoteDataSource;
+  final NetworkInfo networkInfo;
 
-  AuctionDetailRepositoryImpl({required this.remoteDataSource});
+  AuctionDetailRepositoryImpl({
+    required this.remoteDataSource,
+    required this.networkInfo,
+  });
 
   @override
   Future<Either<Failure, AuctionDetailEntity>> getAuctionDetail({
     required String auctionId,
     String? userId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.getAuctionDetail(
         auctionId: auctionId,
@@ -34,6 +42,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
   Future<Either<Failure, List<BidHistoryEntity>>> getBidHistory({
     required String auctionId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.getBidHistory(auctionId: auctionId);
       return Right(result);
@@ -51,6 +62,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
     double? maxAutoBid,
     double? autoBidIncrement,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.placeBid(
         auctionId: auctionId,
@@ -71,6 +85,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
     required String auctionId,
     String? currentUserId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.getQuestions(
         auctionId: auctionId,
@@ -89,6 +106,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
     required String category,
     required String question,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.postQuestion(
         auctionId: auctionId,
@@ -107,6 +127,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
     required String questionId,
     required String userId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.likeQuestion(
         questionId: questionId,
@@ -123,6 +146,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
     required String questionId,
     required String userId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.unlikeQuestion(
         questionId: questionId,
@@ -139,6 +165,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
     required String auctionId,
     required String userId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.getBidIncrement(
         auctionId: auctionId,
@@ -158,6 +187,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
     required String userId,
     required double increment,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.upsertBidIncrement(
         auctionId: auctionId,
@@ -176,6 +208,9 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
   Future<Either<Failure, void>> processDeposit({
     required String auctionId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.processDeposit(auctionId: auctionId);
       return const Right(null);

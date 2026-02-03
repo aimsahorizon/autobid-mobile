@@ -41,7 +41,7 @@ Future<void> initTransactionsModule() async {
 
   // Repositories
   sl.registerLazySingleton<TransactionRepository>(
-    () => TransactionRepositoryImpl(sl()),
+    () => TransactionRepositoryImpl(sl(), sl()),
   );
 
   // Use Cases

@@ -21,7 +21,7 @@ Future<void> initListsModule() async {
 
   // Repositories
   sl.registerLazySingleton<SellerRepository>(
-    () => SellerRepositoryImpl(sl()),
+    () => SellerRepositoryImpl(sl(), sl()),
   );
 
   // Use Cases

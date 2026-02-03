@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:autobid_mobile/core/controllers/network_status_controller.dart';
+import 'package:autobid_mobile/core/widgets/offline_banner.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import 'package:autobid_mobile/core/theme/app_theme.dart';
 import 'package:autobid_mobile/core/utils/navigator_key.dart';
@@ -14,10 +18,18 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   final ThemeController _themeController = ThemeController();
+  late final NetworkStatusController _networkController;
+
+  @override
+  void initState() {
+    super.initState();
+    _networkController = NetworkStatusController(GetIt.I<Connectivity>());
+  }
 
   @override
   void dispose() {
     _themeController.dispose();
+    _networkController.dispose();
     super.dispose();
   }
 
@@ -39,6 +51,14 @@ class _AppState extends State<App> {
               themeController: _themeController,
             ),
             initialRoute: '/',
+            builder: (context, child) {
+              return Column(
+                children: [
+                  OfflineBanner(controller: _networkController),
+                  Expanded(child: child ?? const SizedBox()),
+                ],
+              );
+            },
           ),
         );
       },

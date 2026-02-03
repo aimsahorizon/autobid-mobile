@@ -53,10 +53,13 @@ Future<void> initBrowseModule() async {
 
   // Repositories
   sl.registerLazySingleton<AuctionRepository>(
-    () => AuctionRepositorySupabaseImpl(sl()),
+    () => AuctionRepositorySupabaseImpl(sl(), sl()),
   );
   sl.registerLazySingleton<AuctionDetailRepository>(
-    () => AuctionDetailRepositoryImpl(remoteDataSource: sl()),
+    () => AuctionDetailRepositoryImpl(
+      remoteDataSource: sl(),
+      networkInfo: sl(),
+    ),
   );
 
   // Use Cases for Auction Detail
