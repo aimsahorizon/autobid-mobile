@@ -331,8 +331,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
       
       // Step 7: Documentation
       plateNumber: 'NGA 1234',
-      orcrStatus: 'On Hand',
-      registrationStatus: 'Registered',
+      orcrStatus: 'Available',
+      registrationStatus: 'Current',
       registrationExpiry: DateTime.now().add(const Duration(days: 180)),
       province: 'Metro Manila',
       cityMunicipality: 'Quezon City',

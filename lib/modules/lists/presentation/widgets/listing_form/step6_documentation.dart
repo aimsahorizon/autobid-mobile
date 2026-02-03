@@ -26,7 +26,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
   String? _orcrStatus;
   String? _registrationStatus;
   DateTime? _registrationExpiry;
-  
+
   // Validation State
   Timer? _debounce;
   String? _plateError;
@@ -45,7 +45,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     _registrationExpiry = draft.registrationExpiry;
 
     _plateController.addListener(_onPlateChanged);
-    
+
     // Initial validation if existing value
     if (_plateController.text.isNotEmpty) {
       _validatePlate(_plateController.text);
@@ -62,7 +62,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
 
   void _onPlateChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    
+
     // Convert to uppercase automatically
     final text = _plateController.text;
     final upper = text.toUpperCase();
@@ -95,8 +95,8 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     setState(() => _isValidatingPlate = true);
 
     final error = await _validatePlateUseCase(
-      value, 
-      widget.controller.currentDraft!.sellerId
+      value,
+      widget.controller.currentDraft!.sellerId,
     );
 
     if (mounted) {
@@ -105,12 +105,12 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         _plateError = error;
         _isPlateValid = error == null;
       });
-      
-      // If validation fails, update draft to clear invalid plate? 
+
+      // If validation fails, update draft to clear invalid plate?
       // Or keep it but block submission later?
-      // For now, we update draft anyway so typed value persists, 
+      // For now, we update draft anyway so typed value persists,
       // but UI shows error.
-      _updateDraft(); 
+      _updateDraft();
     }
   }
 
@@ -158,7 +158,9 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         hasWarranty: draft.hasWarranty,
         warrantyDetails: draft.warrantyDetails,
         usageType: draft.usageType,
-        plateNumber: _plateController.text.isEmpty ? null : _plateController.text,
+        plateNumber: _plateController.text.isEmpty
+            ? null
+            : _plateController.text,
         orcrStatus: _orcrStatus,
         registrationStatus: _registrationStatus,
         registrationExpiry: _registrationExpiry,
@@ -183,7 +185,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 6: Documentation & Location',
+          'Step 6: Documentation & Locations',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),
@@ -194,16 +196,16 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           errorText: _plateError,
           suffix: _isValidatingPlate
               ? const SizedBox(
-                  width: 16, 
-                  height: 16, 
+                  width: 16,
+                  height: 16,
                   child: Padding(
                     padding: EdgeInsets.all(12.0),
                     child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                  ),
                 )
               : (_isPlateValid && _plateController.text.isNotEmpty)
-                  ? const Icon(Icons.check_circle, color: Colors.green)
-                  : null,
+              ? const Icon(Icons.check_circle, color: Colors.green)
+              : null,
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
             LengthLimitingTextInputFormatter(8), // Standard max length roughly
@@ -239,7 +241,9 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           onTap: () async {
             final picked = await showDatePicker(
               context: context,
-              initialDate: _registrationExpiry ?? DateTime.now().add(const Duration(days: 365)),
+              initialDate:
+                  _registrationExpiry ??
+                  DateTime.now().add(const Duration(days: 365)),
               firstDate: DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
             );
@@ -251,14 +255,18 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           child: InputDecorator(
             decoration: InputDecoration(
               labelText: 'Registration Expiry',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(_registrationExpiry != null
-                    ? '${_registrationExpiry!.month}/${_registrationExpiry!.day}/${_registrationExpiry!.year}'
-                    : 'Select date'),
+                Text(
+                  _registrationExpiry != null
+                      ? '${_registrationExpiry!.month}/${_registrationExpiry!.day}/${_registrationExpiry!.year}'
+                      : 'Select date',
+                ),
                 const Icon(Icons.calendar_today, size: 20),
               ],
             ),
