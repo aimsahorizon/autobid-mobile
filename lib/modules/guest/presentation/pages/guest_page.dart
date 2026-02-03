@@ -170,20 +170,23 @@ class _GuestPageState extends State<GuestPage>
     );
   }
 
+  // DEPRECATED: Dark mode toggle hidden
+  // Uncomment to re-enable dark mode toggle
   Widget _buildThemeToggle() {
-    return ListenableBuilder(
-      listenable: widget.themeController,
-      builder: (context, _) {
-        return IconButton(
-          icon: Icon(
-            widget.themeController.isDarkMode
-                ? Icons.light_mode_rounded
-                : Icons.dark_mode_rounded,
-          ),
-          onPressed: widget.themeController.toggleTheme,
-        );
-      },
-    );
+    return const SizedBox.shrink(); // Hidden - dark mode deprecated
+    // return ListenableBuilder(
+    //   listenable: widget.themeController,
+    //   builder: (context, _) {
+    //     return IconButton(
+    //       icon: Icon(
+    //         widget.themeController.isDarkMode
+    //             ? Icons.light_mode_rounded
+    //             : Icons.dark_mode_rounded,
+    //       ),
+    //       onPressed: widget.themeController.toggleTheme,
+    //     );
+    //   },
+    // );
   }
 
   Widget _buildLoginFab(ThemeData theme, bool isDark) {

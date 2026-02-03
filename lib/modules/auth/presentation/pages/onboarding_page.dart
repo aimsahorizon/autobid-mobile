@@ -88,19 +88,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        ListenableBuilder(
-          listenable: widget.themeController,
-          builder: (context, _) {
-            return IconButton(
-              icon: Icon(
-                widget.themeController.isDarkMode
-                    ? Icons.light_mode_rounded
-                    : Icons.dark_mode_rounded,
-              ),
-              onPressed: widget.themeController.toggleTheme,
-            );
-          },
-        ),
+        // DEPRECATED: Dark mode toggle hidden
+        // Uncomment to re-enable dark mode toggle
+        const SizedBox(width: 48), // Placeholder for spacing
+        // ListenableBuilder(
+        //   listenable: widget.themeController,
+        //   builder: (context, _) {
+        //     return IconButton(
+        //       icon: Icon(
+        //         widget.themeController.isDarkMode
+        //             ? Icons.light_mode_rounded
+        //             : Icons.dark_mode_rounded,
+        //       ),
+        //       onPressed: widget.themeController.toggleTheme,
+        //     );
+        //   },
+        // ),
         TextButton(onPressed: _navigateToLogin, child: const Text('Skip')),
       ],
     );

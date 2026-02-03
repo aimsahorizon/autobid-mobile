@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// DEPRECATED: Theme toggle functionality is currently disabled
+/// Dark mode has been deprecated. This widget is kept for future use.
+/// To re-enable: Uncomment ThemeController methods and update usage sites
 class ThemeToggleButton extends StatelessWidget {
   final bool isDark;
   final VoidCallback onToggle;
@@ -13,9 +16,7 @@ class ThemeToggleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: Icon(
-        isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-      ),
+      icon: Icon(isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded),
       onPressed: onToggle,
       tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
     );

@@ -154,6 +154,9 @@ class AppTheme {
     );
   }
 
+  /// DEPRECATED: Dark theme is currently disabled in the app
+  /// This theme is kept for future implementation if dark mode is re-enabled
+  /// To re-enable: Uncomment ThemeController methods and update app.dart
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,

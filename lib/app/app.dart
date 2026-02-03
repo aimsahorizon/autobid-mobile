@@ -44,8 +44,10 @@ class _AppState extends State<App> {
             title: 'AutoBid',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
+            // DEPRECATED: Dark mode disabled - darkTheme still defined for future use
             darkTheme: AppTheme.darkTheme,
-            themeMode: _themeController.themeMode,
+            // DEPRECATED: ThemeController now always returns ThemeMode.light
+            themeMode: _themeController.themeMode, // Always light mode
             onGenerateRoute: (settings) => AppRouter.onGenerateRoute(
               settings,
               themeController: _themeController,
