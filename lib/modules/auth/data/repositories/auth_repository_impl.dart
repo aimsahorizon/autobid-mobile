@@ -273,21 +273,30 @@ class AuthRepositoryImpl implements AuthRepository {
     if (error is AuthException) {
       final msg = error.message.toLowerCase();
       
-      if (msg.contains('invalid login credentials')) {
-        return const AuthFailure('Incorrect email or password.');
+      // DataSource throws "Username not found" when lookup fails
+      if (msg.contains('username not found')) {
+        return const AuthFailure('Username not found.');
       }
+
+      // DataSource throws this specific string for password failures
+      if (msg.contains('invalid username or password')) {
+        return const AuthFailure('Incorrect password.');
+      }
+      
+      if (msg.contains('invalid login credentials')) {
+        return const AuthFailure('Incorrect password.');
+      }
+
       if (msg.contains('user not found') || msg.contains('not found')) {
         return const AuthFailure('Account does not exist.');
       }
+      
       if (msg.contains('email not confirmed')) {
         return const AuthFailure('Please verify your email address.');
       }
+      
       if (msg.contains('rate limit')) {
         return const AuthFailure('Too many attempts. Please try again later.');
-      }
-      if (msg.contains('password')) {
-        // Fallback for detailed password requirements if needed
-        return const AuthFailure('Password does not meet requirements.');
       }
       
       return AuthFailure(error.message);

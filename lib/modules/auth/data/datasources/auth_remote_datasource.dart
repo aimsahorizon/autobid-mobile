@@ -86,7 +86,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           );
         }
 
-        throw const AuthException('Invalid username or password');
+        throw const AuthException('Username not found');
       }
 
       final emailToUse = userRecord['email'] as String;
