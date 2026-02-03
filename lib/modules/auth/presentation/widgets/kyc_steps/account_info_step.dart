@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
 
@@ -158,21 +157,6 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
               labelText: 'Email Address',
               hintText: 'your.email@example.com',
               prefixIcon: Icon(Icons.email_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Phone Number',
-              hintText: '9XX XXX XXXX',
-              prefixIcon: Icon(Icons.phone_outlined),
-              prefixText: '+63 ',
             ),
           ),
           const SizedBox(height: 16),
