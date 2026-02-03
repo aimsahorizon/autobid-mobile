@@ -1649,9 +1649,12 @@ class ListingSupabaseDataSource {
         raw, // No spaces
         // Attempt to reconstruct standard format if raw is just letters+numbers
         if (RegExp(r'^[A-Z]+[0-9]+$').hasMatch(raw)) ...[
-           // Split letters and numbers
-           raw.replaceAllMapped(RegExp(r'^([A-Z]+)([0-9]+)$'), (m) => '${m[1]} ${m[2]}')
-        ]
+          // Split letters and numbers
+          raw.replaceAllMapped(
+            RegExp(r'^([A-Z]+)([0-9]+)$'),
+            (m) => '${m[1]} ${m[2]}',
+          ),
+        ],
       }.toList();
 
       final dupes = await _supabase
@@ -1721,13 +1724,17 @@ class ListingSupabaseDataSource {
           .from('auctions')
           .select('''
             *,
-            auction_statuses(status_name),
-            auction_vehicles(*),
+            auction_statuses!inner(status_name),
+            auction_vehicles!left(*),
             auction_photos(photo_url, category, display_order, is_primary),
             auction_transactions!auction_transactions_auction_id_fkey(id, status)
           ''')
           .eq('id', auctionId)
-          .single();
+          .maybeSingle();
+
+      if (response == null) {
+        throw Exception('Listing not found');
+      }
 
       // Check for transaction (for cancelled listings)
       final transactions = response['auction_transactions'] as List?;
@@ -1761,9 +1768,9 @@ class ListingSupabaseDataSource {
           .select('id, bid_amount, created_at, bidder_id')
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);
-      
+
       final bids = List<Map<String, dynamic>>.from(bidsResponse);
-      
+
       if (bids.isEmpty) return [];
 
       // 2. Extract unique bidder IDs
@@ -1779,47 +1786,49 @@ class ListingSupabaseDataSource {
       // Fetch from 'users' table as 'user_profiles' is deprecated/merged
       final profilesResponse = await _supabase
           .from('users')
-          .select('id, username, first_name, middle_name, last_name, profile_photo_url')
+          .select(
+            'id, username, first_name, middle_name, last_name, profile_photo_url',
+          )
           .inFilter('id', bidderIds);
-      
+
       final profilesMap = {
-        for (var p in profilesResponse) p['id'] as String: () {
-          // Construct full_name for UI compatibility
-          final firstName = p['first_name'] as String? ?? '';
-          final middleName = p['middle_name'] as String? ?? '';
-          final lastName = p['last_name'] as String? ?? '';
-          final fullName = middleName.isNotEmpty
-              ? '$firstName $middleName $lastName'
-              : '$firstName $lastName';
-          
-          return {
-            'id': p['id'],
-            'username': p['username'],
-            'full_name': fullName.trim(),
-            'profile_photo_url': p['profile_photo_url'],
-          };
-        }()
+        for (var p in profilesResponse)
+          p['id'] as String: () {
+            // Construct full_name for UI compatibility
+            final firstName = p['first_name'] as String? ?? '';
+            final middleName = p['middle_name'] as String? ?? '';
+            final lastName = p['last_name'] as String? ?? '';
+            final fullName = middleName.isNotEmpty
+                ? '$firstName $middleName $lastName'
+                : '$firstName $lastName';
+
+            return {
+              'id': p['id'],
+              'username': p['username'],
+              'full_name': fullName.trim(),
+              'profile_photo_url': p['profile_photo_url'],
+            };
+          }(),
       };
 
       // 4. Merge profiles into bids
       return bids.map((bid) {
         final bidderId = bid['bidder_id'] as String?;
         final profile = profilesMap[bidderId];
-        
+
         // Add the nested user_profiles object structure that the UI expects
         final bidWithProfile = Map<String, dynamic>.from(bid);
         if (profile != null) {
           bidWithProfile['user_profiles'] = profile;
         } else {
-           // Fallback if profile not found (optional: try fetching from 'users' table if needed)
-           bidWithProfile['user_profiles'] = {
-             'username': 'Unknown Bidder',
-             'full_name': 'Unknown Bidder'
-           };
+          // Fallback if profile not found (optional: try fetching from 'users' table if needed)
+          bidWithProfile['user_profiles'] = {
+            'username': 'Unknown Bidder',
+            'full_name': 'Unknown Bidder',
+          };
         }
         return bidWithProfile;
       }).toList();
-
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch bids: ${e.message}');
     } catch (e) {
