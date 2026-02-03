@@ -1,8 +1,10 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/services/file_encryption_service.dart';
+import '../../core/network/network_info.dart';
 // Import module initializers
 import '../../modules/auth/auth_module.dart';
 import '../../modules/profile/profile_module.dart';
@@ -22,6 +24,7 @@ Future<void> initDependencies() async {
   // 1. External Dependencies
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
+  sl.registerLazySingleton(() => Connectivity());
 
   // SupabaseClient - Lazy registration
   // Note: SupabaseConfig.initialize() is called in main.dart
@@ -29,6 +32,7 @@ Future<void> initDependencies() async {
 
   // 2. Core Dependencies
   sl.registerLazySingleton(() => FileEncryptionService(sl()));
+  sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
 
   // 3. Feature Modules
   await initProfileModule();

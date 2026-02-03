@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../core/network/network_info.dart';
 import '../profile/profile_module.dart';
 import 'data/datasources/auth_remote_datasource.dart';
 import 'data/repositories/auth_repository_impl.dart';
@@ -34,7 +36,7 @@ Future<void> initAuthModule() async {
 
   // Repositories
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(sl()),
+    () => AuthRepositoryImpl(sl(), sl()),
   );
 
   // Use Cases
@@ -123,7 +125,11 @@ class AuthModule {
     _remoteDataSource = AuthRemoteDataSourceImpl(SupabaseConfig.client);
 
     // Repositories
-    _authRepository = AuthRepositoryImpl(_remoteDataSource);
+    // Create NetworkInfo for manual injection
+    final connectivity = Connectivity();
+    final networkInfo = NetworkInfoImpl(connectivity);
+    
+    _authRepository = AuthRepositoryImpl(_remoteDataSource, networkInfo);
     final profileRepository = ProfileModule.instance.repository;
 
     // Use cases
