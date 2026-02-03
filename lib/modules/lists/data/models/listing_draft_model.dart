@@ -65,6 +65,9 @@ class ListingDraftModel extends ListingDraftEntity {
     super.minBidIncrement,
     super.depositAmount,
     super.enableIncrementalBidding,
+    super.snipeGuardEnabled,
+    super.snipeGuardThresholdSeconds,
+    super.snipeGuardExtendSeconds,
   });
 
   /// Convert database row to model
@@ -151,6 +154,9 @@ class ListingDraftModel extends ListingDraftEntity {
       depositAmount: _toDouble(json['deposit_amount']),
       enableIncrementalBidding:
           json['enable_incremental_bidding'] as bool? ?? true,
+      snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
+      snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int?,
+      snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int?,
     );
   }
 
@@ -231,6 +237,9 @@ class ListingDraftModel extends ListingDraftEntity {
       'min_bid_increment': minBidIncrement,
       'deposit_amount': depositAmount,
       'enable_incremental_bidding': enableIncrementalBidding,
+      'snipe_guard_enabled': snipeGuardEnabled,
+      'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
+      'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
     };
   }
 

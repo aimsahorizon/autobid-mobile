@@ -403,6 +403,67 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 24),
 
+        // Anti-Sniping Configuration
+        const Text(
+          'Anti-Sniping Protection',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Extend auction if bids are placed in the final minutes',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          decoration: InputDecoration(
+            labelText: 'Trigger Window',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          value: draft.snipeGuardThresholdSeconds ?? 1800,
+          items: const [
+            DropdownMenuItem(value: 600, child: Text('Last 10 minutes')),
+            DropdownMenuItem(value: 1200, child: Text('Last 20 minutes')),
+            DropdownMenuItem(value: 1800, child: Text('Last 30 minutes')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              widget.controller.updateDraft(
+                draft.copyWith(
+                  lastSaved: DateTime.now(),
+                  snipeGuardEnabled: true,
+                  snipeGuardThresholdSeconds: value,
+                  snipeGuardExtendSeconds: 300, // Fixed 5 min extension
+                ),
+              );
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.purple.withAlpha((0.1 * 255).toInt()),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.timer_outlined, size: 16, color: Colors.purple),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'If a bid is placed in the last ${(draft.snipeGuardThresholdSeconds ?? 1800) ~/ 60} minutes, the auction will automatically extend by 5 minutes.',
+                  style: const TextStyle(fontSize: 11, color: Colors.purple),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
         // Minimum Bid Increment
         const Text(
           'Minimum Bid Increment (₱) *',
@@ -614,6 +675,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           _enableIncrementalBidding
               ? '📊 Dynamic Increments'
               : '📝 Fixed Increment',
+        ),
+        const Divider(),
+        _summaryRow(
+          'Anti-Sniping',
+          '⏱️ ${(widget.controller.currentDraft?.snipeGuardThresholdSeconds ?? 1800) ~/ 60}m Window',
         ),
         const Divider(),
         _summaryRow(

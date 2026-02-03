@@ -83,6 +83,11 @@ class ListingDraftEntity {
   final double? depositAmount; // Required deposit to bid
   final bool? enableIncrementalBidding; // Allow price-based increments
 
+  // Snipe Guard Configuration
+  final bool? snipeGuardEnabled;
+  final int? snipeGuardThresholdSeconds; // Seconds before end to trigger extension
+  final int? snipeGuardExtendSeconds; // Seconds to extend by
+
   const ListingDraftEntity({
     required this.id,
     required this.sellerId,
@@ -145,6 +150,9 @@ class ListingDraftEntity {
     this.minBidIncrement,
     this.depositAmount,
     this.enableIncrementalBidding,
+    this.snipeGuardEnabled,
+    this.snipeGuardThresholdSeconds,
+    this.snipeGuardExtendSeconds,
   });
 
   /// Create a copy of this entity with updated fields
@@ -210,6 +218,9 @@ class ListingDraftEntity {
     double? minBidIncrement,
     double? depositAmount,
     bool? enableIncrementalBidding,
+    bool? snipeGuardEnabled,
+    int? snipeGuardThresholdSeconds,
+    int? snipeGuardExtendSeconds,
   }) {
     return ListingDraftEntity(
       id: id ?? this.id,
@@ -273,6 +284,9 @@ class ListingDraftEntity {
       minBidIncrement: minBidIncrement ?? this.minBidIncrement,
       depositAmount: depositAmount ?? this.depositAmount,
       enableIncrementalBidding: enableIncrementalBidding ?? this.enableIncrementalBidding,
+      snipeGuardEnabled: snipeGuardEnabled ?? this.snipeGuardEnabled,
+      snipeGuardThresholdSeconds: snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds: snipeGuardExtendSeconds ?? this.snipeGuardExtendSeconds,
     );
   }
 
