@@ -6,17 +6,17 @@ class ValidatePlateNumberUseCase {
   ValidatePlateNumberUseCase(this.repository);
 
   Future<String?> call(String plateNumber, String sellerId) async {
-    // 1. Format Validation (Philippine Standard)
-    // STRICT FORMAT: LLL DDD or LLL DDDD or LL DDDD (With Space)
+    // 1. Format Validation (Philippine Standard - Modern)
+    // STRICT FORMAT: LLL DDDD (3 Letters, Space, 4 Digits)
     // Regex explanation:
-    // ^[A-Z]{2,3} \d{3,4}$ : 2-3 letters, MANDATORY space, 3-4 digits
-    final formatRegex = RegExp(r'^[A-Z]{2,3} \d{3,4}$');
+    // ^[A-Z]{3} \d{4}$ : Exactly 3 letters, MANDATORY space, Exactly 4 digits
+    final formatRegex = RegExp(r'^[A-Z]{3} \d{4}$');
     
-    // Normalize input: uppercase, trim (internal space preserved if present)
+    // Normalize input: uppercase, trim
     final normalizedPlate = plateNumber.trim().toUpperCase();
 
     if (!formatRegex.hasMatch(normalizedPlate)) {
-      return 'Invalid format. Use LLL DDD or LLL DDDD (e.g., ABC 1234)';
+      return 'Invalid format. Use 3 letters and 4 digits (e.g., ABC 1234)';
     }
 
     // 2. Uniqueness Check via Repository

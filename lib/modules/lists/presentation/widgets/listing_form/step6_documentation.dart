@@ -60,14 +60,14 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     super.dispose();
   }
 
-    void _onPlateChanged() {
-      if (_debounce?.isActive ?? false) _debounce!.cancel();
-      
-      String text = _plateController.text.toUpperCase();
-      
-      // Auto-format: Insert space between letters and numbers if missing
-      // Matches if we have letters followed immediately by a digit (e.g., "ABC1")
-      final compactRegex = RegExp(r'^([A-Z]{2,3})([0-9]+.*)$');
+  void _onPlateChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    
+    String text = _plateController.text.toUpperCase();
+    
+    // Auto-format: Insert space after exactly 3 letters if missing
+    // Matches if we have exactly 3 letters followed immediately by a digit
+    final compactRegex = RegExp(r'^([A-Z]{3})([0-9]+.*)$');
       if (compactRegex.hasMatch(text)) {
         text = text.replaceAllMapped(compactRegex, (m) => '${m[1]} ${m[2]}');
       }
