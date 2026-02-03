@@ -17,11 +17,7 @@ void main() {
     controller = RegistrationController(signUpUseCase: mockSignUpUseCase);
   });
 
-  const testUser = UserEntity(
-    id: 'user-123',
-    email: 'test@example.com',
-    phoneNumber: '+1234567890',
-  );
+  const testUser = UserEntity(id: 'user-123', email: 'test@example.com');
 
   group('Initial State', () {
     test('should have correct initial values', () {

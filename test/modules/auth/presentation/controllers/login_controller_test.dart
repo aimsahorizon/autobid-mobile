@@ -42,11 +42,7 @@ void main() {
     );
   });
 
-  const testUser = UserEntity(
-    id: 'user-123',
-    email: 'test@example.com',
-    phoneNumber: '+1234567890',
-  );
+  const testUser = UserEntity(id: 'user-123', email: 'test@example.com');
 
   final testProfile = UserProfileEntity(
     id: 'user-123',
@@ -94,7 +90,6 @@ void main() {
       expect(result, true);
       expect(controller.currentStep, LoginStep.otpVerification);
       expect(controller.userEmail, testUser.email);
-      expect(controller.userPhoneNumber, testUser.phoneNumber);
       expect(controller.isLoading, false);
       expect(controller.errorMessage, isNull);
 

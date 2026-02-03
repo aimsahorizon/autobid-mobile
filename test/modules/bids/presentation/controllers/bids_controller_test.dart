@@ -25,10 +25,11 @@ void main() {
     mockGetUserBidsUseCase = MockGetUserBidsUseCase();
     mockStreamUserBidsUseCase = MockStreamUserBidsUseCase();
     mockAuthRepository = MockAuthRepository();
-    
+
     // Default mock behavior for stream
-    when(() => mockStreamUserBidsUseCase.call(any()))
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockStreamUserBidsUseCase.call(any()),
+    ).thenAnswer((_) => const Stream.empty());
 
     controller = BidsController(
       mockGetUserBidsUseCase,
@@ -41,11 +42,7 @@ void main() {
     controller.dispose();
   });
 
-  const testUser = UserEntity(
-    id: 'user-123',
-    email: 'test@example.com',
-    phoneNumber: '+1234567890',
-  );
+  const testUser = UserEntity(id: 'user-123', email: 'test@example.com');
 
   final activeBid1 = UserBidEntity(
     id: 'bid-1',

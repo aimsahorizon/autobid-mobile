@@ -29,8 +29,9 @@ void main() {
     mockAuthRepository = MockAuthRepository();
 
     // Default mock behavior for stream
-    when(() => mockStreamSellerListingsUseCase.call(any()))
-        .thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockStreamSellerListingsUseCase.call(any()),
+    ).thenAnswer((_) => const Stream.empty());
 
     controller = ListsController(
       mockGetSellerListingsUseCase,
@@ -43,11 +44,7 @@ void main() {
     controller.dispose();
   });
 
-  const testUser = UserEntity(
-    id: 'user-123',
-    email: 'test@example.com',
-    phoneNumber: '+1234567890',
-  );
+  const testUser = UserEntity(id: 'user-123', email: 'test@example.com');
 
   final activeListing = SellerListingEntity(
     id: 'listing-1',
