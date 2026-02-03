@@ -1,15 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-// ...existing code...
 import 'package:autobid_mobile/modules/guest/data/repositories/guest_repository_impl.dart';
 import 'package:autobid_mobile/modules/guest/data/datasources/guest_remote_datasource.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
 
 class MockGuestRemoteDataSource extends Mock implements GuestRemoteDataSource {}
+
+class MockNetworkInfo extends Mock implements NetworkInfo {}
 
 void main() {
   late GuestRepositoryImpl repository;
   late MockGuestRemoteDataSource mockDataSource;
+  late MockNetworkInfo mockNetworkInfo;
 
   final testListings = [
     {
@@ -30,11 +33,35 @@ void main() {
 
   setUp(() {
     mockDataSource = MockGuestRemoteDataSource();
-    repository = GuestRepositoryImpl(remoteDataSource: mockDataSource);
+    mockNetworkInfo = MockNetworkInfo();
+    when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => true);
+    repository = GuestRepositoryImpl(
+      remoteDataSource: mockDataSource,
+      networkInfo: mockNetworkInfo,
+    );
   });
 
   group('GuestRepositoryImpl', () {
     group('getGuestAuctionListings', () {
+      test('should return NetworkFailure when offline', () async {
+        // Arrange
+        when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
+
+        // Act
+        final result = await repository.getGuestAuctionListings(
+          limit: 20,
+          offset: 0,
+        );
+
+        // Assert
+        expect(result.isLeft(), true);
+        result.fold(
+          (failure) => expect(failure, isA<NetworkFailure>()),
+          (_) => fail('Should return failure'),
+        );
+        verifyZeroInteractions(mockDataSource);
+      });
+
       test('should return list of listings when datasource succeeds', () async {
         // Arrange
         when(

@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'data/datasources/pricing_supabase_datasource.dart';
 import 'data/datasources/profile_supabase_datasource.dart';
 import 'data/datasources/support_supabase_datasource.dart';
@@ -47,13 +49,13 @@ Future<void> initProfileModule() async {
 
   // Repositories
   sl.registerLazySingleton<ProfileRepository>(
-    () => ProfileRepositorySupabaseImpl(sl()),
+    () => ProfileRepositorySupabaseImpl(sl(), sl()),
   );
   sl.registerLazySingleton<SupportRepository>(
-    () => SupportRepositorySupabaseImpl(sl()),
+    () => SupportRepositorySupabaseImpl(sl(), sl()),
   );
   sl.registerLazySingleton<PricingRepository>(
-    () => PricingRepositoryImpl(datasource: sl()),
+    () => PricingRepositoryImpl(datasource: sl(), networkInfo: sl()),
   );
 
   // Use Cases
@@ -119,6 +121,9 @@ class ProfileModule {
   ProfileRepository? _repositoryInstance;
   ProfileController? _controllerInstance;
 
+  /// Helper to create legacy network info
+  NetworkInfo _createLegacyNetworkInfo() => NetworkInfoImpl(Connectivity());
+
   /// Create Supabase data source
   ProfileSupabaseDataSource _getOrCreateDataSource() {
     _dataSourceInstance ??= ProfileSupabaseDataSource(SupabaseConfig.client);
@@ -130,6 +135,7 @@ class ProfileModule {
     if (_repositoryInstance != null) return _repositoryInstance!;
     _repositoryInstance = ProfileRepositorySupabaseImpl(
       _getOrCreateDataSource(),
+      _createLegacyNetworkInfo(),
     );
     return _repositoryInstance!;
   }
@@ -174,7 +180,10 @@ class ProfileModule {
 
   /// Create support repository
   SupportRepository _createSupportRepository() {
-    return SupportRepositorySupabaseImpl(_createSupportDataSource());
+    return SupportRepositorySupabaseImpl(
+      _createSupportDataSource(),
+      _createLegacyNetworkInfo(),
+    );
   }
 
   /// Create support use cases
@@ -221,7 +230,10 @@ class ProfileModule {
 
   /// Create pricing repository
   PricingRepositoryImpl _createPricingRepository() {
-    return PricingRepositoryImpl(datasource: _createPricingDataSource());
+    return PricingRepositoryImpl(
+      datasource: _createPricingDataSource(),
+      networkInfo: _createLegacyNetworkInfo(),
+    );
   }
 
   /// Create pricing use cases

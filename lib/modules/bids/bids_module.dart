@@ -19,7 +19,7 @@ Future<void> initBidsModule() async {
 
   // Repositories
   sl.registerLazySingleton<BidsRepository>(
-    () => BidsRepositoryImpl(sl()),
+    () => BidsRepositoryImpl(sl(), sl()),
   );
 
   // Use Cases

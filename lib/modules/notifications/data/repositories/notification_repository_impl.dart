@@ -1,5 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/network/network_info.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../datasources/notification_datasource.dart';
@@ -7,8 +8,12 @@ import '../datasources/notification_datasource.dart';
 /// Implementation of NotificationRepository using datasource
 class NotificationRepositoryImpl implements NotificationRepository {
   final INotificationDataSource dataSource;
+  final NetworkInfo networkInfo;
 
-  NotificationRepositoryImpl({required this.dataSource});
+  NotificationRepositoryImpl({
+    required this.dataSource,
+    required this.networkInfo,
+  });
 
   @override
   Future<Either<Failure, List<NotificationEntity>>> getNotifications({
@@ -16,6 +21,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
     int? limit,
     int? offset,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await dataSource.getNotifications(
         userId: userId,
@@ -32,6 +40,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Either<Failure, int>> getUnreadCount({required String userId}) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await dataSource.getUnreadCount(userId: userId);
       return Right(result);
@@ -44,6 +55,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Future<Either<Failure, void>> markAsRead({
     required String notificationId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await dataSource.markAsRead(notificationId: notificationId);
       return const Right(null);
@@ -54,6 +68,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Either<Failure, int>> markAllAsRead() async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await dataSource.markAllAsRead();
       return Right(result);
@@ -66,6 +83,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Future<Either<Failure, void>> deleteNotification({
     required String notificationId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await dataSource.deleteNotification(notificationId: notificationId);
       return const Right(null);
@@ -80,6 +100,9 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Future<Either<Failure, List<NotificationEntity>>> getUnreadNotifications({
     required String userId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await dataSource.getUnreadNotifications(userId: userId);
       return Right(result);

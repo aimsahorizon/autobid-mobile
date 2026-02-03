@@ -1,3 +1,4 @@
+import 'package:autobid_mobile/core/network/network_info.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../../domain/repositories/pricing_repository.dart';
 import '../datasources/pricing_supabase_datasource.dart';
@@ -5,24 +6,37 @@ import '../datasources/pricing_supabase_datasource.dart';
 /// Implementation of PricingRepository using Supabase
 class PricingRepositoryImpl implements PricingRepository {
   final PricingSupabaseDatasource datasource;
+  final NetworkInfo networkInfo;
 
-  PricingRepositoryImpl({required this.datasource});
+  PricingRepositoryImpl({
+    required this.datasource,
+    required this.networkInfo,
+  });
 
   @override
   Future<TokenBalanceEntity> getTokenBalance(String userId) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     return await datasource.getTokenBalance(userId);
   }
 
   @override
   Future<UserSubscriptionEntity> getUserSubscription(String userId) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     return await datasource.getUserSubscription(userId);
   }
 
   @override
   Future<List<TokenPackageEntity>> getTokenPackages() async {
     // Define token packages as per business requirements
+    // This is static data, doesn't strictly need internet to display UI,
+    // but purchase would need it.
     return [
-      // Bidding token packages
+      // ... (existing packages) ...
+      // listing packages
       const TokenPackageEntity(
         id: 'bidding_small',
         type: TokenType.bidding,
@@ -81,6 +95,9 @@ class PricingRepositoryImpl implements PricingRepository {
     required String packageId,
     required double amount,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     // Get the package details
     final packages = await getTokenPackages();
     final package = packages.firstWhere((p) => p.id == packageId);
@@ -104,6 +121,9 @@ class PricingRepositoryImpl implements PricingRepository {
     required String userId,
     required SubscriptionPlan plan,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     final now = DateTime.now();
     DateTime? endDate;
 
@@ -146,6 +166,9 @@ class PricingRepositoryImpl implements PricingRepository {
 
   @override
   Future<void> cancelSubscription(String userId) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     await datasource.cancelSubscription(userId);
   }
 
@@ -154,6 +177,9 @@ class PricingRepositoryImpl implements PricingRepository {
     required String userId,
     required String referenceId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     return await datasource.consumeBiddingToken(
       userId: userId,
       referenceId: referenceId,
@@ -165,6 +191,9 @@ class PricingRepositoryImpl implements PricingRepository {
     required String userId,
     required String referenceId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     return await datasource.consumeListingToken(
       userId: userId,
       referenceId: referenceId,
@@ -177,6 +206,9 @@ class PricingRepositoryImpl implements PricingRepository {
     int limit = 50,
     int offset = 0,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     return await datasource.getTransactionHistory(
       userId: userId,
       limit: limit,
@@ -192,6 +224,9 @@ class PricingRepositoryImpl implements PricingRepository {
     required double price,
     required String transactionType,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     final tokenType = type == TokenType.bidding ? 'bidding' : 'listing';
     return await datasource.addTokens(
       userId: userId,

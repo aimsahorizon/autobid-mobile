@@ -1,19 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-// ...existing code...
+import 'package:autobid_mobile/core/network/network_info.dart';
 import 'package:autobid_mobile/modules/bids/data/repositories/bids_repository_impl.dart';
 import 'package:autobid_mobile/modules/bids/data/datasources/bids_remote_datasource.dart';
 import 'package:autobid_mobile/modules/bids/domain/entities/user_bid_entity.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:fpdart/fpdart.dart';
 
 class MockBidsRemoteDataSource extends Mock implements BidsRemoteDataSource {}
+
+class MockNetworkInfo extends Mock implements NetworkInfo {}
 
 void main() {
   late BidsRepositoryImpl repository;
   late MockBidsRemoteDataSource mockDataSource;
+  late MockNetworkInfo mockNetworkInfo;
 
   const testUserId = 'user-123';
 
+  // ... (existing test data) ...
   final testActiveBids = [
     UserBidEntity(
       id: 'bid-1',
@@ -73,11 +78,25 @@ void main() {
 
   setUp(() {
     mockDataSource = MockBidsRemoteDataSource();
-    repository = BidsRepositoryImpl(mockDataSource);
+    mockNetworkInfo = MockNetworkInfo();
+    when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => true);
+    repository = BidsRepositoryImpl(mockDataSource, mockNetworkInfo);
   });
 
   group('BidsRepositoryImpl', () {
     group('getUserBids', () {
+      test('should return NetworkFailure when offline', () async {
+        // Arrange
+        when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
+
+        // Act
+        final result = await repository.getUserBids(testUserId);
+
+        // Assert
+        expect(result, const Left(NetworkFailure('No internet connection')));
+        verifyZeroInteractions(mockDataSource);
+      });
+
       test(
         'should return categorized bids map when datasource succeeds',
         () async {

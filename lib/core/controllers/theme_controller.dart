@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 /// To re-enable: uncomment the toggle/set methods and update _themeMode initialization
 class ThemeController extends ChangeNotifier {
   // DEPRECATED: Dark mode disabled - always use light mode
-  ThemeMode _themeMode = ThemeMode.light;
 
   ThemeMode get themeMode => ThemeMode.light; // Force light mode
 

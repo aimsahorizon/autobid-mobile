@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
 
 import '../../domain/entities/user_profile_entity.dart';
 import '../../domain/repositories/profile_repository.dart';
@@ -11,11 +12,15 @@ import '../datasources/profile_supabase_datasource.dart';
 /// Handles user profile operations with real Supabase backend
 class ProfileRepositorySupabaseImpl implements ProfileRepository {
   final ProfileSupabaseDataSource _dataSource;
+  final NetworkInfo networkInfo;
 
-  ProfileRepositorySupabaseImpl(this._dataSource);
+  ProfileRepositorySupabaseImpl(this._dataSource, this.networkInfo);
 
   @override
   Future<Either<Failure, UserProfileEntity>> getUserProfile() async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       // Check if user is authenticated
       final currentUser = SupabaseConfig.currentUser;
@@ -47,6 +52,9 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
   Future<Either<Failure, UserProfileEntity>> updateProfile(
     UserProfileEntity profile,
   ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       // Convert entity to model for datasource
       final updated = await _dataSource.updateProfile(
@@ -65,6 +73,7 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
 
   @override
   Future<Either<Failure, void>> signOut() async {
+    // Sign out should be possible locally
     try {
       await SupabaseConfig.client.auth.signOut();
       return const Right(null);
@@ -77,6 +86,9 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
   Future<Either<Failure, UserProfileEntity?>> getUserProfileByEmail(
     String email,
   ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final profile = await _dataSource.getUserProfileByEmail(email);
       return Right(profile);
@@ -87,6 +99,9 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
 
   @override
   Future<Either<Failure, bool>> checkEmailExists(String email) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final exists = await _dataSource.checkEmailExists(email);
       return Right(exists);
@@ -100,6 +115,9 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
     String userId,
     File imageFile,
   ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final photoUrl = await _dataSource.uploadProfilePhoto(userId, imageFile);
       return Right(photoUrl);
@@ -113,6 +131,9 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
     String userId,
     File imageFile,
   ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final photoUrl = await _dataSource.uploadCoverPhoto(userId, imageFile);
       return Right(photoUrl);

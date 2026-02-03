@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'data/datasources/notification_datasource.dart';
 import 'data/datasources/notification_supabase_datasource.dart';
 import 'data/repositories/notification_repository_impl.dart';
@@ -26,7 +28,10 @@ Future<void> initNotificationsModule() async {
 
   // Repository
   sl.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepositoryImpl(dataSource: sl()),
+    () => NotificationRepositoryImpl(
+      dataSource: sl(),
+      networkInfo: sl(),
+    ),
   );
 
   // UseCases
@@ -61,6 +66,16 @@ class NotificationsModule {
   /// Singleton controller instance (deprecated)
   static NotificationController? _notificationController;
 
+  /// Helper to create legacy repository
+  NotificationRepository _createLegacyRepo() {
+    return NotificationRepositoryImpl(
+      dataSource: NotificationSupabaseDataSource(
+        supabase: SupabaseConfig.client,
+      ),
+      networkInfo: NetworkInfoImpl(Connectivity()),
+    );
+  }
+
   /// Get or create notification controller
   /// @deprecated Use GetIt.instance.get[NotificationController] instead
   @Deprecated('Use GetIt.instance.get<NotificationController>()')
@@ -71,41 +86,11 @@ class NotificationsModule {
     }
     // Fallback to legacy implementation using Supabase directly
     _notificationController ??= NotificationController(
-      getNotificationsUseCase: GetNotificationsUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
-      getUnreadCountUseCase: GetUnreadCountUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
-      markAsReadUseCase: MarkAsReadUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
-      markAllAsReadUseCase: MarkAllAsReadUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
-      deleteNotificationUseCase: DeleteNotificationUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
+      getNotificationsUseCase: GetNotificationsUseCase(_createLegacyRepo()),
+      getUnreadCountUseCase: GetUnreadCountUseCase(_createLegacyRepo()),
+      markAsReadUseCase: MarkAsReadUseCase(_createLegacyRepo()),
+      markAllAsReadUseCase: MarkAllAsReadUseCase(_createLegacyRepo()),
+      deleteNotificationUseCase: DeleteNotificationUseCase(_createLegacyRepo()),
     );
     return _notificationController!;
   }
@@ -115,41 +100,11 @@ class NotificationsModule {
   @Deprecated('Use GetIt.instance.get<NotificationController>()')
   NotificationController createNotificationController() {
     return NotificationController(
-      getNotificationsUseCase: GetNotificationsUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
-      getUnreadCountUseCase: GetUnreadCountUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
-      markAsReadUseCase: MarkAsReadUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
-      markAllAsReadUseCase: MarkAllAsReadUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
-      deleteNotificationUseCase: DeleteNotificationUseCase(
-        NotificationRepositoryImpl(
-          dataSource: NotificationSupabaseDataSource(
-            supabase: SupabaseConfig.client,
-          ),
-        ),
-      ),
+      getNotificationsUseCase: GetNotificationsUseCase(_createLegacyRepo()),
+      getUnreadCountUseCase: GetUnreadCountUseCase(_createLegacyRepo()),
+      markAsReadUseCase: MarkAsReadUseCase(_createLegacyRepo()),
+      markAllAsReadUseCase: MarkAllAsReadUseCase(_createLegacyRepo()),
+      deleteNotificationUseCase: DeleteNotificationUseCase(_createLegacyRepo()),
     );
   }
 

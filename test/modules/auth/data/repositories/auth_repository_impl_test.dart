@@ -9,14 +9,18 @@ import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
 import 'package:autobid_mobile/modules/auth/domain/entities/kyc_registration_entity.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/error/exceptions.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
 
 class MockAuthRemoteDataSource extends Mock implements AuthRemoteDataSource {}
+
+class MockNetworkInfo extends Mock implements NetworkInfo {}
 
 class FakeKycRegistrationModel extends Fake implements KycRegistrationModel {}
 
 void main() {
   late AuthRepositoryImpl repository;
   late MockAuthRemoteDataSource mockRemoteDataSource;
+  late MockNetworkInfo mockNetworkInfo;
 
   setUpAll(() {
     registerFallbackValue(FakeKycRegistrationModel());
@@ -24,7 +28,9 @@ void main() {
 
   setUp(() {
     mockRemoteDataSource = MockAuthRemoteDataSource();
-    repository = AuthRepositoryImpl(mockRemoteDataSource);
+    mockNetworkInfo = MockNetworkInfo();
+    when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => true);
+    repository = AuthRepositoryImpl(mockRemoteDataSource, mockNetworkInfo);
   });
 
   final testUser = UserModel(
@@ -131,6 +137,21 @@ void main() {
   });
 
   group('signInWithUsername', () {
+    test('should return NetworkFailure when offline', () async {
+      // Arrange
+      when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
+
+      // Act
+      final result = await repository.signInWithUsername(
+        'testuser',
+        'password123',
+      );
+
+      // Assert
+      expect(result, const Left(NetworkFailure('No internet connection')));
+      verifyZeroInteractions(mockRemoteDataSource);
+    });
+
     test('should return UserEntity when sign in succeeds', () async {
       // Arrange
       when(
