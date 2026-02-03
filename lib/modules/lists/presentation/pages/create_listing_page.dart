@@ -267,13 +267,13 @@ class _CreateListingPageState extends State<CreateListingPage> {
       }
     }
   }
-  
+
   /// DEMO MODE: Auto-fill fields for testing
   void _demoFillListing() {
     if (widget.controller.currentDraft == null) return;
 
     final currentDraft = widget.controller.currentDraft!;
-    
+
     // Sample data for a 2020 Toyota GR Yaris
     final demoDraft = ListingDraftEntity(
       id: currentDraft.id,
@@ -281,7 +281,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       currentStep: 9, // Jump to summary
       lastSaved: DateTime.now(),
       isComplete: false,
-      
+
       // Step 2: Basic Info
       brand: 'Toyota',
       model: 'GR Yaris',
@@ -289,7 +289,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       variant: '1.6 Circuit Pack',
       transmission: 'Manual',
       mileage: 15000,
-      
+
       // Step 3: Mechanical
       engineType: 'In-line 3-cylinder Turbo',
       engineDisplacement: 1.6,
@@ -298,7 +298,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       torque: 360,
       fuelType: 'Gasoline',
       driveType: 'AWD',
-      
+
       // Step 4: Dimensions
       length: 3995,
       width: 1805,
@@ -310,7 +310,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       fuelTankCapacity: 50,
       curbWeight: 1280,
       grossWeight: 1600,
-      
+
       // Step 5: Exterior
       exteriorColor: 'Platinum White Pearl',
       paintType: 'Pearl',
@@ -318,7 +318,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       rimSize: '18',
       tireSize: '225/40R18',
       tireBrand: 'Michelin Pilot Sport 4S',
-      
+
       // Step 6: Condition
       condition: 'Used',
       previousOwners: 1,
@@ -328,7 +328,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       warrantyDetails: 'Factory warranty until 2025',
       usageType: 'Personal',
       knownIssues: 'None. Pristine condition.',
-      
+
       // Step 7: Documentation
       plateNumber: 'NGA 1234',
       orcrStatus: 'Available',
@@ -337,7 +337,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       province: 'Metro Manila',
       cityMunicipality: 'Quezon City',
       deedOfSaleUrl: 'https://placehold.co/600x800/png?text=Deed+of+Sale',
-      
+
       // Step 1: Photos (Using placeholders)
       photoUrls: {
         'Front': ['https://placehold.co/800x600/png?text=Front+View'],
@@ -346,10 +346,18 @@ class _CreateListingPageState extends State<CreateListingPage> {
         'Interior': ['https://placehold.co/800x600/png?text=Interior'],
         'Engine': ['https://placehold.co/800x600/png?text=Engine'],
       },
-      
+
       // Step 8: Final Details
-      description: 'The Toyota GR Yaris is a pure performance car, born from WRC. This unit is the Circuit Pack version with Torsen LSDs and tuned suspension. Mint condition, low mileage, always garage kept. Full service history available at Toyota dealer.',
-      features: ['Apple CarPlay', 'Android Auto', 'Adaptive Cruise Control', 'Lane Keep Assist', 'JBL Sound System', 'Carbon Fiber Roof'],
+      description:
+          'The Toyota GR Yaris is a pure performance car, born from WRC. This unit is the Circuit Pack version with Torsen LSDs and tuned suspension. Mint condition, low mileage, always garage kept. Full service history available at Toyota dealer.',
+      features: [
+        'Apple CarPlay',
+        'Android Auto',
+        'Adaptive Cruise Control',
+        'Lane Keep Assist',
+        'JBL Sound System',
+        'Carbon Fiber Roof',
+      ],
       startingPrice: 3500000,
       reservePrice: 3800000,
       auctionEndDate: DateTime.now().add(const Duration(days: 7)),
@@ -358,13 +366,13 @@ class _CreateListingPageState extends State<CreateListingPage> {
       minBidIncrement: 5000,
       depositAmount: 50000,
       enableIncrementalBidding: true,
-      
+
       tags: ['Sports Car', 'JDM', 'Low Mileage', 'Turbo'],
     );
-    
+
     widget.controller.updateDraft(demoDraft);
     widget.controller.goToStep(9);
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('⚡ Demo Mode: All fields auto-filled!'),
