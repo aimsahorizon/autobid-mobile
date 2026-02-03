@@ -67,7 +67,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // Step 1: Look up user by username and check account status
       final userRecord = await _supabase
           .from('users')
-          .select('email, phone_number, is_active, is_verified, display_name')
+          .select('email, is_active, is_verified, display_name')
           .eq('username', username)
           .maybeSingle();
 
@@ -90,7 +90,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       final emailToUse = userRecord['email'] as String;
-      final phoneNumber = userRecord['phone_number'] as String?;
       final displayName = userRecord['display_name'] as String?;
       final isActive = userRecord['is_active'] as bool? ?? true;
 
@@ -112,7 +111,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           throw const AuthException('Invalid username or password');
         }
 
-        // Convert to UserModel with phone number from users table
+        // Convert to UserModel
         return UserModel(
           id: response.user!.id,
           email: response.user!.email ?? '',
@@ -121,7 +120,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
               displayName ??
               response.user!.userMetadata?['display_name'] as String?,
           photoUrl: response.user!.userMetadata?['avatar_url'] as String?,
-          phoneNumber: phoneNumber,
         );
       } on supabase.AuthException catch (authError) {
         // Provide more specific error messages for auth failures

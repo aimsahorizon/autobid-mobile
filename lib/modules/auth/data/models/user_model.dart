@@ -7,7 +7,6 @@ class UserModel extends UserEntity {
     super.username,
     super.displayName,
     super.photoUrl,
-    super.phoneNumber,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {

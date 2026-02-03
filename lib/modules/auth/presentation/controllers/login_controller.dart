@@ -77,7 +77,7 @@ class LoginController extends ChangeNotifier {
       },
       (user) {
         _userEmail = user.email;
-        _userPhoneNumber = user.phoneNumber;
+        _userPhoneNumber = null; // Phone number removed from user entity
 
         if (_devModeBypassOtp) {
           _currentStep = LoginStep.completed;
