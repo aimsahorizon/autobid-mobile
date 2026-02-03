@@ -372,6 +372,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     icon: const Icon(Icons.refresh_rounded),
                     label: const Text('Retry'),
                   ),
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: _handleSignOut,
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Sign Out'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: ColorConstants.error,
+                    ),
+                  ),
                 ],
               ),
             );
