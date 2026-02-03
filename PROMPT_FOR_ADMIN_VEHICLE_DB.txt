@@ -2,6 +2,7 @@
 
 **Objective:**
 Create a management interface in the Admin Portal to manage Vehicle Brands, Models, and Variants. This data drives the car selection dropdowns in the mobile app's listing creation flow.
+FOCUS ON THE BRANDS THAT ARE AVAILABLE IN ZAMBOANGA CITY or PHILIPPINES IF MUST
 
 **Database Schema (Already Created):**
 - `vehicle_brands` (id, name, logo_url, is_active)
