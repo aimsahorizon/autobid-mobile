@@ -18,21 +18,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Either<Failure, UserEntity?>> getCurrentUser() async {
     try {
       if (!await networkInfo.isConnected) {
-        // Can optionally return cached user here if implemented
-        // For now, just return NetworkFailure or proceed to try remote?
-        // Usually getCurrentUser might check local session first.
-        // Supabase remoteDataSource.getCurrentUser() likely checks local session.
-        // So we might NOT want to block this one on network check strictly if it's local.
-        // However, user asked "offline doesn't make the user in".
-        // If session is valid locally, they ARE "in".
-        // But "signIn" actions should definitely require network.
+        // Allow cached user check? Or fail?
+        // Supabase might have local session.
       }
       final user = await remoteDataSource.getCurrentUser();
       return Right(user);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -50,12 +42,8 @@ class AuthRepositoryImpl implements AuthRepository {
         password,
       );
       return Right(user);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -67,26 +55,18 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = await remoteDataSource.signInWithGoogle();
       return Right(user);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
   Future<Either<Failure, void>> signOut() async {
-    // Sign out should be possible locally even if offline?
-    // Supabase signout clears local session.
     try {
       await remoteDataSource.signOut();
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -100,10 +80,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await remoteDataSource.sendPasswordResetRequest(username);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -115,10 +93,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final result = await remoteDataSource.verifyOtp(username, otp);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -133,10 +109,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await remoteDataSource.resetPassword(username, newPassword);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -156,12 +130,8 @@ class AuthRepositoryImpl implements AuthRepository {
         username: username,
       );
       return Right(user);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -173,10 +143,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await remoteDataSource.sendEmailOtp(email);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -188,10 +156,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await remoteDataSource.sendPhoneOtp(phoneNumber);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -203,10 +169,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final result = await remoteDataSource.verifyEmailOtp(email, otp);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -221,10 +185,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final result = await remoteDataSource.verifyPhoneOtp(phoneNumber, otp);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -236,7 +198,6 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Left(NetworkFailure('No internet connection'));
     }
     try {
-      // Convert entity to model for data layer
       final kycModel = KycRegistrationModel(
         id: kycData.id,
         email: kycData.email,
@@ -275,10 +236,8 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       await remoteDataSource.submitKycRegistration(kycModel);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -292,10 +251,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final result = await remoteDataSource.getKycRegistrationStatus(userId);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -307,10 +264,43 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final result = await remoteDataSource.checkUsernameAvailable(username);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
+  }
+
+  Failure _handleError(dynamic error) {
+    if (error is AuthException) {
+      final msg = error.message.toLowerCase();
+      
+      if (msg.contains('invalid login credentials')) {
+        return const AuthFailure('Incorrect email or password.');
+      }
+      if (msg.contains('user not found') || msg.contains('not found')) {
+        return const AuthFailure('Account does not exist.');
+      }
+      if (msg.contains('email not confirmed')) {
+        return const AuthFailure('Please verify your email address.');
+      }
+      if (msg.contains('rate limit')) {
+        return const AuthFailure('Too many attempts. Please try again later.');
+      }
+      if (msg.contains('password')) {
+        // Fallback for detailed password requirements if needed
+        return const AuthFailure('Password does not meet requirements.');
+      }
+      
+      return AuthFailure(error.message);
+    }
+    
+    if (error is ServerException) {
+      return ServerFailure(error.message);
+    }
+    
+    if (error is Exception) {
+      return GeneralFailure(error.toString());
+    }
+    
+    return GeneralFailure(error.toString());
   }
 }
