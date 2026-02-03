@@ -389,11 +389,13 @@ class KYCRegistrationController extends ChangeNotifier {
 
       // Autofill the extracted data
       if (extractedData.firstName != null) _firstName = extractedData.firstName;
-      if (extractedData.middleName != null)
+      if (extractedData.middleName != null) {
         _middleName = extractedData.middleName;
+      }
       if (extractedData.lastName != null) _lastName = extractedData.lastName;
-      if (extractedData.dateOfBirth != null)
+      if (extractedData.dateOfBirth != null) {
         _dateOfBirth = extractedData.dateOfBirth;
+      }
       if (extractedData.sex != null) _sex = extractedData.sex;
       if (extractedData.province != null) _province = extractedData.province;
       if (extractedData.city != null) _city = extractedData.city;
