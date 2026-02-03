@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/seller_listing_entity.dart';
+import '../../domain/entities/listing_detail_entity.dart';
 import 'listing_card.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../controllers/listing_draft_controller.dart';
@@ -62,8 +63,21 @@ class ListingsGrid extends StatelessWidget {
     try {
       // Fetch full listing details from Supabase
       final datasource = ListingSupabaseDataSource(SupabaseConfig.client);
-      final listingModel = await datasource.getSellerListing(listing.id);
-      final detailEntity = listingModel.toListingDetailEntity();
+      
+      ListingDetailEntity detailEntity;
+      
+      if (listing.status == ListingStatus.draft) {
+        // Fetch from listing_drafts table
+        final draftModel = await datasource.getDraft(listing.id);
+        if (draftModel == null) {
+          throw Exception('Draft not found');
+        }
+        detailEntity = draftModel.toListingDetailEntity();
+      } else {
+        // Fetch from auctions table
+        final listingModel = await datasource.getSellerListing(listing.id);
+        detailEntity = listingModel.toListingDetailEntity();
+      }
 
       if (!context.mounted) return;
       Navigator.pop(context); // Close loading dialog

@@ -1,3 +1,6 @@
+import 'listing_detail_entity.dart';
+import 'seller_listing_entity.dart';
+
 /// Represents a car listing draft that can be saved at any step
 /// Supports the 9-step create listing flow with partial data
 class ListingDraftEntity {
@@ -270,6 +273,70 @@ class ListingDraftEntity {
       minBidIncrement: minBidIncrement ?? this.minBidIncrement,
       depositAmount: depositAmount ?? this.depositAmount,
       enableIncrementalBidding: enableIncrementalBidding ?? this.enableIncrementalBidding,
+    );
+  }
+
+  /// Convert to ListingDetailEntity for viewing in detail page
+  ListingDetailEntity toListingDetailEntity() {
+    return ListingDetailEntity(
+      id: id,
+      status: ListingStatus.draft,
+      startingPrice: startingPrice ?? 0,
+      createdAt: lastSaved,
+      endTime: auctionEndDate,
+      brand: brand,
+      model: model,
+      variant: variant,
+      year: year,
+      engineType: engineType,
+      engineDisplacement: engineDisplacement,
+      cylinderCount: cylinderCount,
+      horsepower: horsepower,
+      torque: torque,
+      transmission: transmission,
+      fuelType: fuelType,
+      driveType: driveType,
+      length: length,
+      width: width,
+      height: height,
+      wheelbase: wheelbase,
+      groundClearance: groundClearance,
+      seatingCapacity: seatingCapacity,
+      doorCount: doorCount,
+      fuelTankCapacity: fuelTankCapacity,
+      curbWeight: curbWeight,
+      grossWeight: grossWeight,
+      exteriorColor: exteriorColor,
+      paintType: paintType,
+      rimType: rimType,
+      rimSize: rimSize,
+      tireSize: tireSize,
+      tireBrand: tireBrand,
+      condition: condition,
+      mileage: mileage,
+      previousOwners: previousOwners,
+      hasModifications: hasModifications,
+      modificationsDetails: modificationsDetails,
+      hasWarranty: hasWarranty,
+      warrantyDetails: warrantyDetails,
+      usageType: usageType,
+      plateNumber: plateNumber,
+      orcrStatus: orcrStatus,
+      registrationStatus: registrationStatus,
+      registrationExpiry: registrationExpiry,
+      province: province,
+      cityMunicipality: cityMunicipality,
+      photoUrls: photoUrls,
+      description: description,
+      knownIssues: knownIssues,
+      features: features,
+      auctionEndDate: auctionEndDate,
+      biddingType: biddingType ?? 'public',
+      bidIncrement: bidIncrement ?? 1000,
+      minBidIncrement: minBidIncrement ?? 1000,
+      depositAmount: depositAmount ?? 0,
+      enableIncrementalBidding: enableIncrementalBidding ?? true,
+      deedOfSaleUrl: deedOfSaleUrl,
     );
   }
 
