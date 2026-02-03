@@ -34,7 +34,9 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     }
     if (widget.controller.password != null) {
       _passwordController.text = widget.controller.password!;
-      _confirmPasswordController.text = widget.controller.password!;
+    }
+    if (widget.controller.confirmPassword != null) {
+      _confirmPasswordController.text = widget.controller.confirmPassword!;
     }
 
     _usernameController.addListener(() {
@@ -46,6 +48,9 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     });
     _passwordController.addListener(() {
       widget.controller.setPassword(_passwordController.text);
+    });
+    _confirmPasswordController.addListener(() {
+      widget.controller.setConfirmPassword(_confirmPasswordController.text);
     });
   }
 

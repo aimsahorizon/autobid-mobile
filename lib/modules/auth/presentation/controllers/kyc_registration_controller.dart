@@ -76,6 +76,7 @@ class KYCRegistrationController extends ChangeNotifier {
   String? _username;
   String? _email;
   String? _password;
+  String? _confirmPassword;
   bool _termsAccepted = false;
   bool _privacyAccepted = false;
 
@@ -127,6 +128,7 @@ class KYCRegistrationController extends ChangeNotifier {
   String? get username => _username;
   String? get email => _email;
   String? get password => _password;
+  String? get confirmPassword => _confirmPassword;
   bool get termsAccepted => _termsAccepted;
   bool get privacyAccepted => _privacyAccepted;
 
@@ -236,6 +238,11 @@ class KYCRegistrationController extends ChangeNotifier {
 
   void setPassword(String value) {
     _password = value;
+    notifyListeners();
+  }
+
+  void setConfirmPassword(String value) {
+    _confirmPassword = value;
     notifyListeners();
   }
 
@@ -484,10 +491,43 @@ class KYCRegistrationController extends ChangeNotifier {
       setError('Please enter your email');
       return false;
     }
+    
+    // Valid Email Check
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+',
+    );
+    if (!emailRegex.hasMatch(_email!)) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
     if (_password == null || _password!.isEmpty) {
       setError('Please enter a password');
       return false;
     }
+
+    // Password Complexity Check
+    final hasMinLength = _password!.length >= 8;
+    final hasUppercase = _password!.contains(RegExp(r'[A-Z]'));
+    final hasLowercase = _password!.contains(RegExp(r'[a-z]'));
+    final hasDigits = _password!.contains(RegExp(r'[0-9]'));
+    final hasSpecialCharacters = _password!.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+
+    if (!hasMinLength || !hasUppercase || !hasLowercase || !hasDigits || !hasSpecialCharacters) {
+      setError('Password must meet all requirements');
+      return false;
+    }
+
+    if (_confirmPassword == null || _confirmPassword!.isEmpty) {
+      setError('Please confirm your password');
+      return false;
+    }
+
+    if (_password != _confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+
     if (!_termsAccepted) {
       setError('Please accept the Terms & Conditions');
       return false;
