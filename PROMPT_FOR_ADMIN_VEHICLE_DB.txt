@@ -1,0 +1,33 @@
+**Task: Implement Vehicle Database Management in Admin Portal**
+
+**Objective:**
+Create a management interface in the Admin Portal to manage Vehicle Brands, Models, and Variants. This data drives the car selection dropdowns in the mobile app's listing creation flow.
+
+**Database Schema (Already Created):**
+- `vehicle_brands` (id, name, logo_url, is_active)
+- `vehicle_models` (id, brand_id, name, body_type, is_active)
+- `vehicle_variants` (id, model_id, name, transmission, fuel_type, is_active)
+
+**Requirements:**
+1.  **Brands Management:**
+    -   List all brands.
+    -   Add/Edit/Delete brands.
+    -   Upload logo for brands (to storage bucket `vehicle-logos` - please create if needed).
+2.  **Models Management:**
+    -   List models (filterable by brand).
+    -   Add/Edit/Delete models.
+3.  **Variants Management:**
+    -   List variants (filterable by model).
+    -   Add/Edit/Delete variants.
+    -   Include fields for transmission and fuel type.
+
+**Tech Stack:**
+-   Next.js (App Router)
+-   Supabase
+-   Tailwind CSS
+-   Shadcn UI (if available)
+
+**Deliverables:**
+-   New route: `/admin/vehicles` with tabs for Brands, Models, Variants.
+-   Forms for creating/editing each entity.
+-   Supabase integration for CRUD operations.

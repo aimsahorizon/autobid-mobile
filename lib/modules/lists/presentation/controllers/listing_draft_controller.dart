@@ -4,6 +4,8 @@ import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entit
 import '../../domain/usecases/draft_management_usecases.dart';
 import '../../domain/usecases/submission_usecases.dart';
 import '../../domain/usecases/media_management_usecases.dart';
+import '../../domain/usecases/get_vehicle_data_usecases.dart';
+import '../../domain/entities/vehicle_entities.dart';
 
 /// Controller for managing listing draft creation and editing
 /// Handles 9-step form flow with auto-save and validation
@@ -18,6 +20,11 @@ class ListingDraftController extends ChangeNotifier {
   final UploadListingPhotoUseCase _uploadListingPhotoUseCase;
   final UploadDeedOfSaleUseCase _uploadDeedOfSaleUseCase;
   final DeleteDeedOfSaleUseCase _deleteDeedOfSaleUseCase;
+  
+  // Vehicle Data Use Cases
+  final GetVehicleBrandsUseCase _getVehicleBrandsUseCase;
+  final GetVehicleModelsUseCase _getVehicleModelsUseCase;
+  final GetVehicleVariantsUseCase _getVehicleVariantsUseCase;
 
   ListingDraftController({
     required GetSellerDraftsUseCase getSellerDraftsUseCase,
@@ -30,6 +37,9 @@ class ListingDraftController extends ChangeNotifier {
     required UploadListingPhotoUseCase uploadListingPhotoUseCase,
     required UploadDeedOfSaleUseCase uploadDeedOfSaleUseCase,
     required DeleteDeedOfSaleUseCase deleteDeedOfSaleUseCase,
+    required GetVehicleBrandsUseCase getVehicleBrandsUseCase,
+    required GetVehicleModelsUseCase getVehicleModelsUseCase,
+    required GetVehicleVariantsUseCase getVehicleVariantsUseCase,
   }) : _getSellerDraftsUseCase = getSellerDraftsUseCase,
        _getDraftUseCase = getDraftUseCase,
        _createDraftUseCase = createDraftUseCase,
@@ -39,7 +49,10 @@ class ListingDraftController extends ChangeNotifier {
        _submitListingUseCase = submitListingUseCase,
        _uploadListingPhotoUseCase = uploadListingPhotoUseCase,
        _uploadDeedOfSaleUseCase = uploadDeedOfSaleUseCase,
-       _deleteDeedOfSaleUseCase = deleteDeedOfSaleUseCase;
+       _deleteDeedOfSaleUseCase = deleteDeedOfSaleUseCase,
+       _getVehicleBrandsUseCase = getVehicleBrandsUseCase,
+       _getVehicleModelsUseCase = getVehicleModelsUseCase,
+       _getVehicleVariantsUseCase = getVehicleVariantsUseCase;
 
   // State
   ListingDraftEntity? _currentDraft;
@@ -48,6 +61,12 @@ class ListingDraftController extends ChangeNotifier {
   bool _isSaving = false;
   bool _isSubmitting = false;
   String? _errorMessage;
+  
+  // Vehicle Data State
+  List<VehicleBrand> _brands = [];
+  List<VehicleModel> _models = [];
+  List<VehicleVariant> _variants = [];
+  bool _isLoadingVehicleData = false;
 
   // Getters
   ListingDraftEntity? get currentDraft => _currentDraft;
@@ -57,11 +76,90 @@ class ListingDraftController extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
+  
+  List<VehicleBrand> get brands => _brands;
+  List<VehicleModel> get models => _models;
+  List<VehicleVariant> get variants => _variants;
+  bool get isLoadingVehicleData => _isLoadingVehicleData;
 
   int get currentStep => _currentDraft?.currentStep ?? 1;
   bool get canGoNext => _currentDraft != null && currentStep < 9;
   bool get canGoPrevious => _currentDraft != null && currentStep > 1;
   bool get canSubmit => (_currentDraft?.completionPercentage ?? 0) >= 100;
+
+  // ... (rest of methods) ...
+
+  /// Load vehicle brands
+  Future<void> loadBrands() async {
+    if (_brands.isNotEmpty) return; // Cache check
+    
+    _isLoadingVehicleData = true;
+    notifyListeners();
+    
+    final result = await _getVehicleBrandsUseCase.call();
+    result.fold(
+      (failure) => debugPrint('Error loading brands: ${failure.message}'), // Non-blocking
+      (brands) => _brands = brands,
+    );
+    
+    _isLoadingVehicleData = false;
+    notifyListeners();
+  }
+
+  /// Load models for a brand
+  Future<void> loadModels(String brandName) async {
+    _models = [];
+    _variants = []; // Reset variants too
+    
+    if (brandName.isEmpty) {
+      notifyListeners();
+      return;
+    }
+    
+    // Find brand ID from name (since UI stores name)
+    // If brand list is empty, try to load it first? No, assume loaded.
+    // If name not found, maybe custom entry?
+    
+    final brand = _brands.where((b) => b.name == brandName).firstOrNull;
+    if (brand == null) return;
+
+    _isLoadingVehicleData = true;
+    notifyListeners();
+    
+    final result = await _getVehicleModelsUseCase.call(brand.id);
+    result.fold(
+      (failure) => debugPrint('Error loading models: ${failure.message}'),
+      (models) => _models = models,
+    );
+    
+    _isLoadingVehicleData = false;
+    notifyListeners();
+  }
+
+  /// Load variants for a model
+  Future<void> loadVariants(String modelName) async {
+    _variants = [];
+    
+    if (modelName.isEmpty) {
+      notifyListeners();
+      return;
+    }
+    
+    final model = _models.where((m) => m.name == modelName).firstOrNull;
+    if (model == null) return;
+
+    _isLoadingVehicleData = true;
+    notifyListeners();
+    
+    final result = await _getVehicleVariantsUseCase.call(model.id);
+    result.fold(
+      (failure) => debugPrint('Error loading variants: ${failure.message}'),
+      (variants) => _variants = variants,
+    );
+    
+    _isLoadingVehicleData = false;
+    notifyListeners();
+  }
 
   /// Load all drafts for seller
   Future<void> loadDrafts(String sellerId) async {

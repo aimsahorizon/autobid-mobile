@@ -2,15 +2,19 @@ import 'package:get_it/get_it.dart';
 import 'presentation/controllers/lists_controller.dart';
 import 'presentation/controllers/listing_draft_controller.dart';
 import 'data/datasources/listing_supabase_datasource.dart';
+import 'data/datasources/vehicle_supabase_datasource.dart';
 
 import 'domain/usecases/draft_management_usecases.dart';
 import 'domain/usecases/submission_usecases.dart';
 import 'domain/usecases/media_management_usecases.dart';
 import 'data/repositories/seller_repository_impl.dart';
+import 'data/repositories/vehicle_repository_impl.dart';
 import 'domain/repositories/seller_repository.dart';
+import 'domain/repositories/vehicle_repository.dart';
 import 'domain/usecases/get_seller_listings_usecase.dart';
 import 'domain/usecases/stream_seller_listings_usecase.dart';
 import 'domain/usecases/validate_plate_number_usecase.dart';
+import 'domain/usecases/get_vehicle_data_usecases.dart';
 
 /// Initialize Lists module dependencies
 Future<void> initListsModule() async {
@@ -18,10 +22,14 @@ Future<void> initListsModule() async {
 
   // Datasources
   sl.registerLazySingleton(() => ListingSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => VehicleSupabaseDataSource(sl()));
 
   // Repositories
   sl.registerLazySingleton<SellerRepository>(
     () => SellerRepositoryImpl(sl(), sl()),
+  );
+  sl.registerLazySingleton<VehicleRepository>(
+    () => VehicleRepositoryImpl(sl(), sl()),
   );
 
   // Use Cases
@@ -39,6 +47,11 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => DeleteDeedOfSaleUseCase(sl()));
   sl.registerLazySingleton(() => StreamSellerListingsUseCase(sl()));
   sl.registerLazySingleton(() => ValidatePlateNumberUseCase(sl()));
+  
+  // Vehicle Data Use Cases
+  sl.registerLazySingleton(() => GetVehicleBrandsUseCase(sl()));
+  sl.registerLazySingleton(() => GetVehicleModelsUseCase(sl()));
+  sl.registerLazySingleton(() => GetVehicleVariantsUseCase(sl()));
 
   // Controllers (Factory)
   sl.registerFactory(() => ListsController(sl(), sl(), sl()));
@@ -53,5 +66,8 @@ Future<void> initListsModule() async {
     uploadListingPhotoUseCase: sl(),
     uploadDeedOfSaleUseCase: sl(),
     deleteDeedOfSaleUseCase: sl(),
+    getVehicleBrandsUseCase: sl(),
+    getVehicleModelsUseCase: sl(),
+    getVehicleVariantsUseCase: sl(),
   ));
 }

@@ -22,45 +22,6 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
   String? _model;
   String? _variant;
 
-  static const _brands = [
-    'Toyota',
-    'Honda',
-    'Ford',
-    'Mitsubishi',
-    'Nissan',
-    'Hyundai',
-    'Mazda',
-    'Suzuki',
-    'Isuzu',
-    'Chevrolet',
-  ];
-
-  static const _models = [
-    'Corolla',
-    'Civic',
-    'Mustang',
-    'Vios',
-    'City',
-    'Fortuner',
-    'CR-V',
-    'Ranger',
-    'Hilux',
-    'Wigo',
-  ];
-
-  static const _variants = [
-    'Altis',
-    'RS',
-    'GT',
-    'XLE',
-    'Base',
-    'V',
-    'Sport',
-    'Limited',
-    'Premium',
-    'Standard',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -70,6 +31,17 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
     _variant = draft.variant;
     _yearController = TextEditingController(text: draft.year?.toString());
     _yearController.addListener(_updateDraft);
+
+    // Initial load
+    widget.controller.loadBrands().then((_) {
+      if (_brand != null && mounted) {
+        widget.controller.loadModels(_brand!).then((_) {
+          if (_model != null && mounted) {
+            widget.controller.loadVariants(_model!);
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -110,14 +82,24 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
             style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 24),
+          if (widget.controller.isLoadingVehicleData && widget.controller.brands.isEmpty)
+             const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator())),
+          
           ComboBoxWidget(
             label: 'Brand *',
             value: _brand,
-            items: _brands,
-            hint: 'e.g., Toyota, Honda, Ford',
+            items: widget.controller.brands.map((e) => e.name).toList(),
+            hint: 'Select Brand',
             onChanged: (v) {
-              setState(() => _brand = v);
+              setState(() {
+                _brand = v;
+                _model = null; // Reset dependent fields
+                _variant = null;
+              });
               _updateDraft();
+              if (v != null) {
+                widget.controller.loadModels(v);
+              }
             },
             validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
           ),
@@ -125,25 +107,33 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
           ComboBoxWidget(
             label: 'Model *',
             value: _model,
-            items: _models,
-            hint: 'e.g., Corolla, Civic, Mustang',
+            items: widget.controller.models.map((e) => e.name).toList(),
+            hint: 'Select Model',
             onChanged: (v) {
-              setState(() => _model = v);
+              setState(() {
+                _model = v;
+                _variant = null; // Reset dependent field
+              });
               _updateDraft();
+              if (v != null) {
+                widget.controller.loadVariants(v);
+              }
             },
             validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+            enabled: _brand != null,
           ),
           const SizedBox(height: 16),
           ComboBoxWidget(
             label: 'Variant *',
             value: _variant,
-            items: _variants,
-            hint: 'e.g., Altis, RS, GT',
+            items: widget.controller.variants.map((e) => e.name).toList(),
+            hint: 'Select Variant',
             onChanged: (v) {
               setState(() => _variant = v);
               _updateDraft();
             },
             validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+            enabled: _model != null,
           ),
           const SizedBox(height: 16),
           FormFieldWidget(
