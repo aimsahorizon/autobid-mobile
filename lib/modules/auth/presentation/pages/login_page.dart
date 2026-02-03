@@ -60,7 +60,9 @@ class _LoginPageState extends State<LoginPage> {
         if (widget.controller.currentStep == LoginStep.otpVerification) {
           _navigateToOtpPage();
         } else if (widget.controller.currentStep == LoginStep.completed) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/home', (route) => false);
         }
       }
     }
@@ -359,7 +361,7 @@ class _LoginPageState extends State<LoginPage> {
               style: TextStyle(fontSize: 11),
             ),
             value: widget.controller.devModeBypassOtp,
-            activeColor: Colors.purple,
+            activeThumbColor: Colors.purple,
             onChanged: (value) {
               widget.controller.toggleDevModeBypassOtp(value);
             },
