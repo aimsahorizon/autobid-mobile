@@ -1642,13 +1642,25 @@ class ListingSupabaseDataSource {
     String? excludeAuctionId,
   }) async {
     try {
+      // Create variations to check (Spaced and No-Space) to prevent "NGA 1234" vs "NGA1234" dupes
+      final raw = plateNumber.toUpperCase().replaceAll(' ', '');
+      final variants = {
+        plateNumber, // As provided
+        raw, // No spaces
+        // Attempt to reconstruct standard format if raw is just letters+numbers
+        if (RegExp(r'^[A-Z]+[0-9]+$').hasMatch(raw)) ...[
+           // Split letters and numbers
+           raw.replaceAllMapped(RegExp(r'^([A-Z]+)([0-9]+)$'), (m) => '${m[1]} ${m[2]}')
+        ]
+      }.toList();
+
       final dupes = await _supabase
           .from('auctions')
           .select(
             '''id, auction_statuses(status_name), auction_vehicles!inner(plate_number)''',
           )
           .eq('seller_id', sellerId)
-          .eq('auction_vehicles.plate_number', plateNumber)
+          .inFilter('auction_vehicles.plate_number', variants)
           .inFilter('auction_statuses.status_name', [
             'pending_approval',
             'approved',

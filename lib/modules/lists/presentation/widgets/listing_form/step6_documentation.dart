@@ -60,28 +60,34 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     super.dispose();
   }
 
-  void _onPlateChanged() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-    // Convert to uppercase automatically
-    final text = _plateController.text;
-    final upper = text.toUpperCase();
-    if (text != upper) {
-      _plateController.value = _plateController.value.copyWith(
-        text: upper,
-        selection: TextSelection.collapsed(offset: upper.length),
-      );
-      return; // Listener will trigger again
+    void _onPlateChanged() {
+      if (_debounce?.isActive ?? false) _debounce!.cancel();
+      
+      String text = _plateController.text.toUpperCase();
+      
+      // Auto-format: Insert space between letters and numbers if missing
+      // Matches if we have letters followed immediately by a digit (e.g., "ABC1")
+      final compactRegex = RegExp(r'^([A-Z]{2,3})([0-9]+.*)$');
+      if (compactRegex.hasMatch(text)) {
+        text = text.replaceAllMapped(compactRegex, (m) => '${m[1]} ${m[2]}');
+      }
+  
+      // Update controller if text changed (uppercase or space insertion)
+      if (text != _plateController.text) {
+        _plateController.value = _plateController.value.copyWith(
+          text: text,
+          selection: TextSelection.collapsed(offset: text.length),
+        );
+        return; // Listener will trigger again with new text
+      }
+  
+      _debounce = Timer(const Duration(milliseconds: 600), () {
+        _validatePlate(text);
+      });
+  
+      // Update draft immediately for simple text change
+      _updateDraft();
     }
-
-    _debounce = Timer(const Duration(milliseconds: 600), () {
-      _validatePlate(text);
-    });
-
-    // Update draft immediately for simple text change
-    _updateDraft();
-  }
-
   Future<void> _validatePlate(String value) async {
     if (value.isEmpty) {
       setState(() {

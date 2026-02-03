@@ -7,13 +7,12 @@ class ValidatePlateNumberUseCase {
 
   Future<String?> call(String plateNumber, String sellerId) async {
     // 1. Format Validation (Philippine Standard)
-    // LLL DDD or LLL DDDD or LL DDDD (Old/New formats)
-    // Also handling conduction stickers (usually L DDDD or similar variants, but kept simple here)
+    // STRICT FORMAT: LLL DDD or LLL DDDD or LL DDDD (With Space)
     // Regex explanation:
-    // ^[A-Z]{2,3} ?\d{3,4}$ : 2-3 letters, optional space, 3-4 digits
-    final formatRegex = RegExp(r'^[A-Z]{2,3} ?\d{3,4}$');
+    // ^[A-Z]{2,3} \d{3,4}$ : 2-3 letters, MANDATORY space, 3-4 digits
+    final formatRegex = RegExp(r'^[A-Z]{2,3} \d{3,4}$');
     
-    // Normalize input: uppercase, trim
+    // Normalize input: uppercase, trim (internal space preserved if present)
     final normalizedPlate = plateNumber.trim().toUpperCase();
 
     if (!formatRegex.hasMatch(normalizedPlate)) {
