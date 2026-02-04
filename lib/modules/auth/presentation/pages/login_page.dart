@@ -39,14 +39,25 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _otpController = sl<LoginOtpController>();
+    widget.controller.addListener(_onControllerUpdate);
+    widget.controller.loadCachedCredentials();
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_onControllerUpdate);
     _usernameController.dispose();
     _passwordController.dispose();
     _otpController.dispose();
     super.dispose();
+  }
+
+  void _onControllerUpdate() {
+    if (widget.controller.cachedUsername != null &&
+        _usernameController.text.isEmpty &&
+        widget.controller.rememberMe) {
+      _usernameController.text = widget.controller.cachedUsername!;
+    }
   }
 
   void _handleLogin() async {
@@ -103,8 +114,14 @@ class _LoginPageState extends State<LoginPage> {
                 _buildUsernameField(),
                 const SizedBox(height: 20),
                 _buildPasswordField(),
-                const SizedBox(height: 16),
-                _buildForgotPasswordLink(),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildRememberMeCheckbox(),
+                    _buildForgotPasswordLink(),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 _buildLoginButton(),
                 const SizedBox(height: 32),
@@ -202,14 +219,32 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildForgotPasswordLink() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: () {
-          Navigator.of(context).pushNamed(AuthRoutes.forgotPassword);
-        },
-        child: const Text('Forgot Password?'),
-      ),
+    return TextButton(
+      onPressed: () {
+        Navigator.of(context).pushNamed(AuthRoutes.forgotPassword);
+      },
+      child: const Text('Forgot Password?'),
+    );
+  }
+
+  Widget _buildRememberMeCheckbox() {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Checkbox(
+              value: widget.controller.rememberMe,
+              onChanged: (value) {
+                widget.controller.toggleRememberMe(value ?? false);
+              },
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            const Text('Remember Me'),
+          ],
+        );
+      },
     );
   }
 

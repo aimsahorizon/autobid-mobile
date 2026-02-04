@@ -3,6 +3,7 @@ import '../../../profile/domain/usecases/check_email_exists_usecase.dart';
 import '../../../profile/domain/usecases/get_user_profile_by_email_usecase.dart';
 import '../../domain/usecases/sign_in_usecase.dart';
 import '../../domain/usecases/sign_in_with_google_usecase.dart';
+import '../../domain/usecases/manage_local_auth_usecase.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 
 enum LoginStep { credentials, otpVerification, completed }
@@ -12,12 +13,14 @@ class LoginController extends ChangeNotifier {
   final SignInWithGoogleUseCase signInWithGoogleUseCase;
   final CheckEmailExistsUseCase checkEmailExistsUseCase;
   final GetUserProfileByEmailUseCase getUserProfileByEmailUseCase;
+  final ManageLocalAuthUseCase manageLocalAuthUseCase;
 
   LoginController({
     required this.signInUseCase,
     required this.signInWithGoogleUseCase,
     required this.checkEmailExistsUseCase,
     required this.getUserProfileByEmailUseCase,
+    required this.manageLocalAuthUseCase,
   });
 
   bool _isLoading = false;
@@ -28,6 +31,8 @@ class LoginController extends ChangeNotifier {
 
   String? _userEmail;
   String? _userPhoneNumber;
+  bool _rememberMe = false;
+  String? _cachedUsername;
 
   bool get isLoading => _isLoading;
   bool get obscurePassword => _obscurePassword;
@@ -36,6 +41,8 @@ class LoginController extends ChangeNotifier {
   LoginStep get currentStep => _currentStep;
   String? get userEmail => _userEmail;
   String? get userPhoneNumber => _userPhoneNumber;
+  bool get rememberMe => _rememberMe;
+  String? get cachedUsername => _cachedUsername;
 
   void togglePasswordVisibility() {
     _obscurePassword = !_obscurePassword;
@@ -44,6 +51,22 @@ class LoginController extends ChangeNotifier {
 
   void toggleDevModeBypassOtp(bool value) {
     _devModeBypassOtp = value;
+    notifyListeners();
+  }
+
+  void toggleRememberMe(bool value) {
+    _rememberMe = value;
+    notifyListeners();
+  }
+
+  Future<void> loadCachedCredentials() async {
+    final rememberMeResult = await manageLocalAuthUseCase.getRememberMe();
+    rememberMeResult.fold((l) => null, (r) => _rememberMe = r);
+
+    if (_rememberMe) {
+      final usernameResult = await manageLocalAuthUseCase.getCachedUsername();
+      usernameResult.fold((l) => null, (r) => _cachedUsername = r);
+    }
     notifyListeners();
   }
 
@@ -75,7 +98,16 @@ class LoginController extends ChangeNotifier {
         _setError(failure);
         return false;
       },
-      (user) {
+      (user) async {
+        // Handle Remember Me
+        if (_rememberMe) {
+          await manageLocalAuthUseCase.cacheRememberMe(true);
+          await manageLocalAuthUseCase.cacheUsername(username);
+        } else {
+          await manageLocalAuthUseCase.cacheRememberMe(false);
+          await manageLocalAuthUseCase.clearCachedUsername();
+        }
+
         _userEmail = user.email;
         _userPhoneNumber = null; // Phone number removed from user entity
 

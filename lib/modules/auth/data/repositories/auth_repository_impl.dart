@@ -6,13 +6,69 @@ import '../../domain/entities/user_entity.dart';
 import '../../domain/entities/kyc_registration_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
+import '../datasources/auth_local_datasource.dart';
 import '../models/kyc_registration_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
   final NetworkInfo networkInfo;
+  final AuthLocalDataSource localDataSource;
 
-  AuthRepositoryImpl(this.remoteDataSource, this.networkInfo);
+  AuthRepositoryImpl(
+    this.remoteDataSource,
+    this.networkInfo,
+    this.localDataSource,
+  );
+
+  @override
+  Future<Either<Failure, void>> cacheRememberMe(bool value) async {
+    try {
+      await localDataSource.cacheRememberMe(value);
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to cache Remember Me preference'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> getRememberMe() async {
+    try {
+      final result = await localDataSource.getRememberMe();
+      return Right(result);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to get Remember Me preference'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> cacheUsername(String username) async {
+    try {
+      await localDataSource.cacheUsername(username);
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to cache username'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String?>> getCachedUsername() async {
+    try {
+      final result = await localDataSource.getCachedUsername();
+      return Right(result);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to get cached username'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> clearCachedUsername() async {
+    try {
+      await localDataSource.clearCachedUsername();
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to clear cached username'));
+    }
+  }
 
   @override
   Future<Either<Failure, UserEntity?>> getCurrentUser() async {
