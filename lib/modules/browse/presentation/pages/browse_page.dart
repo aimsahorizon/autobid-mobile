@@ -451,7 +451,7 @@ class _BrowsePageState extends State<BrowsePage> {
                             size: 64,
                             color: ColorConstants.textSecondaryLight,
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           Text(
                             'No auctions found',
                             style: TextStyle(
