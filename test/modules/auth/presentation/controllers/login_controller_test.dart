@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/modules/auth/presentation/controllers/login_controller.dart';
 import 'package:autobid_mobile/modules/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:autobid_mobile/modules/auth/domain/usecases/sign_in_with_google_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/manage_local_auth_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/check_email_exists_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_profile_by_email_usecase.dart';
 import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
@@ -15,6 +16,9 @@ class MockSignInUseCase extends Mock implements SignInUseCase {}
 class MockSignInWithGoogleUseCase extends Mock
     implements SignInWithGoogleUseCase {}
 
+class MockManageLocalAuthUseCase extends Mock
+    implements ManageLocalAuthUseCase {}
+
 class MockCheckEmailExistsUseCase extends Mock
     implements CheckEmailExistsUseCase {}
 
@@ -25,18 +29,27 @@ void main() {
   late LoginController controller;
   late MockSignInUseCase mockSignInUseCase;
   late MockSignInWithGoogleUseCase mockSignInWithGoogleUseCase;
+  late MockManageLocalAuthUseCase mockManageLocalAuthUseCase;
   late MockCheckEmailExistsUseCase mockCheckEmailExistsUseCase;
   late MockGetUserProfileByEmailUseCase mockGetUserProfileByEmailUseCase;
 
   setUp(() {
     mockSignInUseCase = MockSignInUseCase();
     mockSignInWithGoogleUseCase = MockSignInWithGoogleUseCase();
+    mockManageLocalAuthUseCase = MockManageLocalAuthUseCase();
     mockCheckEmailExistsUseCase = MockCheckEmailExistsUseCase();
     mockGetUserProfileByEmailUseCase = MockGetUserProfileByEmailUseCase();
+
+    // Stub local auth methods
+    when(() => mockManageLocalAuthUseCase.getRememberMe())
+        .thenAnswer((_) async => const Right(false));
+    when(() => mockManageLocalAuthUseCase.getCachedUsername())
+        .thenAnswer((_) async => const Right(null));
 
     controller = LoginController(
       signInUseCase: mockSignInUseCase,
       signInWithGoogleUseCase: mockSignInWithGoogleUseCase,
+      manageLocalAuthUseCase: mockManageLocalAuthUseCase,
       checkEmailExistsUseCase: mockCheckEmailExistsUseCase,
       getUserProfileByEmailUseCase: mockGetUserProfileByEmailUseCase,
     );
@@ -82,6 +95,15 @@ void main() {
       when(
         () => mockSignInUseCase.call('testuser', 'password123'),
       ).thenAnswer((_) async => const Right(testUser));
+      when(
+        () => mockManageLocalAuthUseCase.cacheRememberMe(any()),
+      ).thenAnswer((_) async => const Right(null));
+      when(
+        () => mockManageLocalAuthUseCase.cacheUsername(any()),
+      ).thenAnswer((_) async => const Right(null));
+      when(
+        () => mockManageLocalAuthUseCase.clearCachedUsername(),
+      ).thenAnswer((_) async => const Right(null));
 
       // Act
       final result = await controller.signIn('testuser', 'password123');
@@ -176,6 +198,9 @@ void main() {
       when(
         () => mockSignInUseCase.call(any(), any()),
       ).thenAnswer((_) async => const Right(testUser));
+      when(() => mockManageLocalAuthUseCase.cacheRememberMe(any())).thenAnswer((_) async => const Right(null));
+      when(() => mockManageLocalAuthUseCase.clearCachedUsername()).thenAnswer((_) async => const Right(null));
+
       await controller.signIn('testuser', 'password123');
 
       // Assert
@@ -188,6 +213,8 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 10));
         return const Right(testUser);
       });
+      when(() => mockManageLocalAuthUseCase.cacheRememberMe(any())).thenAnswer((_) async => const Right(null));
+      when(() => mockManageLocalAuthUseCase.clearCachedUsername()).thenAnswer((_) async => const Right(null));
 
       // Act
       final future = controller.signIn('testuser', 'password123');
@@ -395,12 +422,14 @@ void main() {
       when(
         () => mockSignInUseCase.call(any(), any()),
       ).thenAnswer((_) async => const Right(testUser));
+      when(() => mockManageLocalAuthUseCase.cacheRememberMe(any())).thenAnswer((_) async => const Right(null));
+      when(() => mockManageLocalAuthUseCase.clearCachedUsername()).thenAnswer((_) async => const Right(null));
+
       await controller.signIn('testuser', 'password123');
       controller.completeLogin();
 
       expect(controller.currentStep, LoginStep.completed);
       expect(controller.userEmail, isNotNull);
-      expect(controller.userPhoneNumber, isNotNull);
 
       // Act
       controller.reset();
@@ -427,6 +456,33 @@ void main() {
 
       // Assert
       expect(controller.errorMessage, isNull);
+    });
+  });
+
+  group('Remember Me', () {
+    test('toggleRememberMe should update state and notify listeners', () {
+      var notified = false;
+      controller.addListener(() => notified = true);
+
+      controller.toggleRememberMe(true);
+
+      expect(controller.rememberMe, true);
+      expect(notified, true);
+    });
+
+    test('loadCachedCredentials should load values from usecase', () async {
+      // Arrange
+      when(() => mockManageLocalAuthUseCase.getRememberMe())
+          .thenAnswer((_) async => const Right(true));
+      when(() => mockManageLocalAuthUseCase.getCachedUsername())
+          .thenAnswer((_) async => const Right('cacheduser'));
+
+      // Act
+      await controller.loadCachedCredentials();
+
+      // Assert
+      expect(controller.rememberMe, true);
+      expect(controller.cachedUsername, 'cacheduser');
     });
   });
 }

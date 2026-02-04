@@ -3,6 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/modules/auth/data/repositories/auth_repository_impl.dart';
 import 'package:autobid_mobile/modules/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:autobid_mobile/modules/auth/data/datasources/auth_local_datasource.dart';
 import 'package:autobid_mobile/modules/auth/data/models/user_model.dart';
 import 'package:autobid_mobile/modules/auth/data/models/kyc_registration_model.dart';
 import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
@@ -13,6 +14,8 @@ import 'package:autobid_mobile/core/network/network_info.dart';
 
 class MockAuthRemoteDataSource extends Mock implements AuthRemoteDataSource {}
 
+class MockAuthLocalDataSource extends Mock implements AuthLocalDataSource {}
+
 class MockNetworkInfo extends Mock implements NetworkInfo {}
 
 class FakeKycRegistrationModel extends Fake implements KycRegistrationModel {}
@@ -20,6 +23,7 @@ class FakeKycRegistrationModel extends Fake implements KycRegistrationModel {}
 void main() {
   late AuthRepositoryImpl repository;
   late MockAuthRemoteDataSource mockRemoteDataSource;
+  late MockAuthLocalDataSource mockLocalDataSource;
   late MockNetworkInfo mockNetworkInfo;
 
   setUpAll(() {
@@ -28,9 +32,14 @@ void main() {
 
   setUp(() {
     mockRemoteDataSource = MockAuthRemoteDataSource();
+    mockLocalDataSource = MockAuthLocalDataSource();
     mockNetworkInfo = MockNetworkInfo();
     when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => true);
-    repository = AuthRepositoryImpl(mockRemoteDataSource, mockNetworkInfo);
+    repository = AuthRepositoryImpl(
+      mockRemoteDataSource,
+      mockNetworkInfo,
+      mockLocalDataSource,
+    );
   });
 
   final testUser = UserModel(
@@ -624,6 +633,92 @@ void main() {
 
       // Assert
       expect(result, Left(ServerFailure('Failed to check username')));
+    });
+  });
+
+  group('Local Auth', () {
+    test('cacheRememberMe should succeed', () async {
+      // Arrange
+      when(() => mockLocalDataSource.cacheRememberMe(any())).thenAnswer((_) async => Future.value());
+
+      // Act
+      final result = await repository.cacheRememberMe(true);
+
+      // Assert
+      expect(result, const Right(null));
+      verify(() => mockLocalDataSource.cacheRememberMe(true)).called(1);
+    });
+
+    test('getRememberMe should return value', () async {
+      // Arrange
+      when(() => mockLocalDataSource.getRememberMe()).thenAnswer((_) async => true);
+
+      // Act
+      final result = await repository.getRememberMe();
+
+      // Assert
+      expect(result, const Right(true));
+      verify(() => mockLocalDataSource.getRememberMe()).called(1);
+    });
+
+    test('cacheUsername should succeed', () async {
+      // Arrange
+      when(() => mockLocalDataSource.cacheUsername(any())).thenAnswer((_) async => Future.value());
+
+      // Act
+      final result = await repository.cacheUsername('testuser');
+
+      // Assert
+      expect(result, const Right(null));
+      verify(() => mockLocalDataSource.cacheUsername('testuser')).called(1);
+    });
+
+    test('getCachedUsername should return value', () async {
+      // Arrange
+      when(() => mockLocalDataSource.getCachedUsername()).thenAnswer((_) async => 'testuser');
+
+      // Act
+      final result = await repository.getCachedUsername();
+
+      // Assert
+      expect(result, const Right('testuser'));
+      verify(() => mockLocalDataSource.getCachedUsername()).called(1);
+    });
+
+    test('clearCachedUsername should succeed', () async {
+      // Arrange
+      when(() => mockLocalDataSource.clearCachedUsername()).thenAnswer((_) async => Future.value());
+
+      // Act
+      final result = await repository.clearCachedUsername();
+
+      // Assert
+      expect(result, const Right(null));
+      verify(() => mockLocalDataSource.clearCachedUsername()).called(1);
+    });
+
+    test('cacheOnboardingCompleted should succeed', () async {
+      // Arrange
+      when(() => mockLocalDataSource.cacheOnboardingCompleted()).thenAnswer((_) async => Future.value());
+
+      // Act
+      final result = await repository.cacheOnboardingCompleted();
+
+      // Assert
+      expect(result, const Right(null));
+      verify(() => mockLocalDataSource.cacheOnboardingCompleted()).called(1);
+    });
+
+    test('getOnboardingCompleted should return value', () async {
+      // Arrange
+      when(() => mockLocalDataSource.getOnboardingCompleted()).thenAnswer((_) async => true);
+
+      // Act
+      final result = await repository.getOnboardingCompleted();
+
+      // Assert
+      expect(result, const Right(true));
+      verify(() => mockLocalDataSource.getOnboardingCompleted()).called(1);
     });
   });
 }
