@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
@@ -16,6 +17,9 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
   bool _isVerifyingEmail = false;
   bool _emailSent = false;
   String _emailOtp = '';
+  
+  int _resendCountdown = 0;
+  Timer? _countdownTimer;
 
   final List<TextEditingController> _phoneControllers = List.generate(
     6,
@@ -31,6 +35,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     for (var controller in _phoneControllers) {
       controller.dispose();
     }
@@ -46,6 +51,18 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
     super.dispose();
   }
 
+  void _startResendTimer() {
+    _countdownTimer?.cancel();
+    setState(() => _resendCountdown = 60);
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendCountdown > 0) {
+        setState(() => _resendCountdown--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
   Future<void> _sendEmailOtp() async {
     try {
       await widget.controller.sendEmailOtp();
@@ -53,6 +70,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       setState(() {
         _emailSent = true;
       });
+      _startResendTimer();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -66,7 +84,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send OTP: $e'),
+            content: Text(e.toString()),
             backgroundColor: ColorConstants.error,
           ),
         );
@@ -109,9 +127,11 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
         );
       }
     } finally {
-      setState(() {
-        _isVerifyingEmail = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isVerifyingEmail = false;
+        });
+      }
     }
   }
 
@@ -132,7 +152,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Verify your phone number and email address',
+            'Verify your email address',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isDark
                   ? ColorConstants.textSecondaryDark
@@ -297,8 +317,12 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
               const SizedBox(height: 12),
               Center(
                 child: TextButton(
-                  onPressed: onSend,
-                  child: const Text('Resend OTP'),
+                  onPressed: _resendCountdown > 0 ? null : onSend,
+                  child: Text(
+                    _resendCountdown > 0
+                        ? 'Resend OTP (${_resendCountdown}s)'
+                        : 'Resend OTP',
+                  ),
                 ),
               ),
             ],

@@ -275,14 +275,17 @@ class KYCRegistrationController extends ChangeNotifier {
 
   Future<void> sendEmailOtp() async {
     if (_email == null || _sendEmailOtpUseCase == null) {
-      throw Exception('Email not set or use case not available');
+      throw 'Email not set or use case not available';
     }
 
     try {
       final result = await _sendEmailOtpUseCase.call(_email!);
-      result.fold((l) => throw Exception(l.message), (r) => null);
+      result.fold(
+        (l) => throw l.message, // Throw the failure message directly
+        (r) => null,
+      );
     } catch (e) {
-      throw Exception('Failed to send email OTP: $e');
+      rethrow;
     }
   }
 
@@ -293,14 +296,17 @@ class KYCRegistrationController extends ChangeNotifier {
 
     try {
       final result = await _verifyEmailOtpUseCase.call(_email!, otp);
-      return result.fold((l) => throw Exception(l.message), (isVerified) {
-        if (isVerified) {
-          setEmailOtpVerified(true);
-        }
-        return isVerified;
-      });
+      return result.fold(
+        (l) => throw l.message, // Throw the failure message directly
+        (isVerified) {
+          if (isVerified) {
+            setEmailOtpVerified(true);
+          }
+          return isVerified;
+        },
+      );
     } catch (e) {
-      throw Exception('Email OTP verification failed: $e');
+      rethrow;
     }
   }
 
