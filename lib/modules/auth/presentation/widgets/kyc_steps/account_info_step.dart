@@ -48,6 +48,7 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     });
     _passwordController.addListener(() {
       widget.controller.setPassword(_passwordController.text);
+      if (mounted) setState(() {});
     });
     _confirmPasswordController.addListener(() {
       widget.controller.setConfirmPassword(_confirmPasswordController.text);
@@ -292,13 +293,32 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _buildRequirement('At least 8 characters'),
+                _buildRequirement(
+                  'At least 8 characters',
+                  _passwordController.text.length >= 8,
+                ),
                 const SizedBox(height: 4),
-                _buildRequirement('At least one uppercase letter'),
+                _buildRequirement(
+                  'At least one uppercase letter',
+                  _passwordController.text.contains(RegExp(r'[A-Z]')),
+                ),
                 const SizedBox(height: 4),
-                _buildRequirement('At least one lowercase letter'),
+                _buildRequirement(
+                  'At least one lowercase letter',
+                  _passwordController.text.contains(RegExp(r'[a-z]')),
+                ),
                 const SizedBox(height: 4),
-                _buildRequirement('At least one number'),
+                _buildRequirement(
+                  'At least one number',
+                  _passwordController.text.contains(RegExp(r'[0-9]')),
+                ),
+                const SizedBox(height: 4),
+                _buildRequirement(
+                  'At least one special character',
+                  _passwordController.text.contains(
+                    RegExp(r'[!@#$%^&*(),.?":{}|<>]'),
+                  ),
+                ),
               ],
             ),
           ),
@@ -307,20 +327,21 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     );
   }
 
-  Widget _buildRequirement(String text) {
+  Widget _buildRequirement(String text, bool isMet) {
     return Row(
       children: [
-        const Icon(
-          Icons.check_circle_outline,
-          color: ColorConstants.info,
+        Icon(
+          isMet ? Icons.check_circle : Icons.radio_button_unchecked,
+          color: isMet ? ColorConstants.success : ColorConstants.info,
           size: 14,
         ),
         const SizedBox(width: 8),
         Text(
           text,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: ColorConstants.info),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: isMet ? ColorConstants.success : ColorConstants.info,
+            fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
       ],
     );
