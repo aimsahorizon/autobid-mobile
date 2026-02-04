@@ -63,7 +63,25 @@ class _SplashPageState extends State<SplashPage> {
         }
       }
     } else {
-      Navigator.of(context).pushReplacementNamed(AuthRoutes.onboarding);
+      try {
+        final authRepo = GetIt.I<AuthRepository>();
+        final result = await authRepo.getOnboardingCompleted();
+        
+        bool isOnboardingCompleted = false;
+        result.fold((l) => null, (r) => isOnboardingCompleted = r);
+
+        if (mounted) {
+          if (isOnboardingCompleted) {
+            Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+          } else {
+            Navigator.of(context).pushReplacementNamed(AuthRoutes.onboarding);
+          }
+        }
+      } catch (_) {
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed(AuthRoutes.onboarding);
+        }
+      }
     }
   }
 

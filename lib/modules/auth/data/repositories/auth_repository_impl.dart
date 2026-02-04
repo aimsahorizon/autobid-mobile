@@ -71,6 +71,26 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> cacheOnboardingCompleted() async {
+    try {
+      await localDataSource.cacheOnboardingCompleted();
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to cache onboarding status'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> getOnboardingCompleted() async {
+    try {
+      final result = await localDataSource.getOnboardingCompleted();
+      return Right(result);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to get onboarding status'));
+    }
+  }
+
+  @override
   Future<Either<Failure, UserEntity?>> getCurrentUser() async {
     try {
       if (!await networkInfo.isConnected) {

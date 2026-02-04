@@ -31,4 +31,6 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> cacheUsername(String username);
   Future<Either<Failure, String?>> getCachedUsername();
   Future<Either<Failure, void>> clearCachedUsername();
+  Future<Either<Failure, void>> cacheOnboardingCompleted();
+  Future<Either<Failure, bool>> getOnboardingCompleted();
 }

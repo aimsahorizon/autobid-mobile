@@ -26,4 +26,12 @@ class ManageLocalAuthUseCase {
   Future<Either<Failure, void>> clearCachedUsername() {
     return _repository.clearCachedUsername();
   }
+
+  Future<Either<Failure, void>> cacheOnboardingCompleted() {
+    return _repository.cacheOnboardingCompleted();
+  }
+
+  Future<Either<Failure, bool>> getOnboardingCompleted() {
+    return _repository.getOnboardingCompleted();
+  }
 }

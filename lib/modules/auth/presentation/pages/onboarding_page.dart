@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import '../../auth_routes.dart';
+import '../../domain/usecases/manage_local_auth_usecase.dart';
 import '../controllers/onboarding_controller.dart';
 import '../widgets/onboarding_slide.dart';
 import '../widgets/page_indicators.dart';
@@ -58,8 +60,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
-  void _navigateToLogin() {
-    Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+  Future<void> _navigateToLogin() async {
+    if (_dontShowAgain) {
+      await GetIt.I<ManageLocalAuthUseCase>().cacheOnboardingCompleted();
+    }
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+    }
   }
 
   @override

@@ -6,10 +6,13 @@ abstract class AuthLocalDataSource {
   Future<void> cacheUsername(String username);
   Future<String?> getCachedUsername();
   Future<void> clearCachedUsername();
+  Future<void> cacheOnboardingCompleted();
+  Future<bool> getOnboardingCompleted();
 }
 
 const String CACHED_REMEMBER_ME = 'CACHED_REMEMBER_ME';
 const String CACHED_USERNAME = 'CACHED_USERNAME';
+const String CACHED_ONBOARDING_COMPLETED = 'CACHED_ONBOARDING_COMPLETED';
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   final SharedPreferences sharedPreferences;
@@ -39,5 +42,15 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> clearCachedUsername() async {
     await sharedPreferences.remove(CACHED_USERNAME);
+  }
+
+  @override
+  Future<void> cacheOnboardingCompleted() async {
+    await sharedPreferences.setBool(CACHED_ONBOARDING_COMPLETED, true);
+  }
+
+  @override
+  Future<bool> getOnboardingCompleted() async {
+    return sharedPreferences.getBool(CACHED_ONBOARDING_COMPLETED) ?? false;
   }
 }
