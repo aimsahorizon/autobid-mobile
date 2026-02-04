@@ -130,10 +130,10 @@ class AuthModule {
     return _instance!;
   }
 
-  void _initializeDependencies() async {
+  void _initializeDependencies() {
     // Datasources - inject Supabase client
     _remoteDataSource = AuthRemoteDataSourceImpl(SupabaseConfig.client);
-    final sharedPreferences = await SharedPreferences.getInstance();
+    final sharedPreferences = GetIt.instance<SharedPreferences>();
     _localDataSource = AuthLocalDataSourceImpl(sharedPreferences);
 
     // Repositories
