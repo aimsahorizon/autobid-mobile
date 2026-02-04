@@ -151,6 +151,33 @@ class KYCRegistrationController extends ChangeNotifier {
   // Step 8 getters
   File? get proofOfAddress => _proofOfAddress;
 
+  /// Check if any registration data has been entered
+  bool hasAnyDataEntered() {
+    return _nationalIdNumber != null ||
+        _nationalIdFront != null ||
+        _nationalIdBack != null ||
+        _selfieWithId != null ||
+        _secondaryIdType != null ||
+        _secondaryIdNumber != null ||
+        _secondaryIdFront != null ||
+        _secondaryIdBack != null ||
+        _firstName != null ||
+        _middleName != null ||
+        _lastName != null ||
+        _dateOfBirth != null ||
+        _sex != null ||
+        _username != null ||
+        _email != null ||
+        _password != null ||
+        _region != null ||
+        _province != null ||
+        _city != null ||
+        _barangay != null ||
+        _street != null ||
+        _zipCode != null ||
+        _proofOfAddress != null;
+  }
+
   // Step 1 setters
   void setNationalIdNumber(String value) {
     _nationalIdNumber = value;
@@ -496,7 +523,7 @@ class KYCRegistrationController extends ChangeNotifier {
 
   Future<void> checkUsernameAvailability(String username) async {
     if (_authDataSource == null) return;
-    
+
     // Check for reserved keywords first
     final lower = username.toLowerCase();
     if (lower.contains('admin') || lower.contains('test')) {
@@ -506,7 +533,9 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     try {
-      _isUsernameAvailable = await _authDataSource.checkUsernameAvailable(username);
+      _isUsernameAvailable = await _authDataSource.checkUsernameAvailable(
+        username,
+      );
     } catch (e) {
       // On error (e.g. network), assume unavailable or keep null?
       // Better to keep null so validation fails/shows error
@@ -535,10 +564,11 @@ class KYCRegistrationController extends ChangeNotifier {
       return false;
     }
     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(_username!)) {
-      if (reportError) setError('Username can only contain letters, numbers, and underscores');
+      if (reportError)
+        setError('Username can only contain letters, numbers, and underscores');
       return false;
     }
-    
+
     final lowerUsername = _username!.toLowerCase();
     if (lowerUsername.contains('admin') || lowerUsername.contains('test')) {
       if (reportError) setError('Username contains reserved words');
@@ -549,24 +579,22 @@ class KYCRegistrationController extends ChangeNotifier {
       if (reportError) setError('Username is already taken');
       return false;
     }
-    
+
     // If username availability is unchecked (null), we block progress.
     // However, for silent check (button state), we just return false without error
     if (_isUsernameAvailable == null && _authDataSource != null) {
-       // Only block if we are actually validating for progression
-       // But silent check should return false so button is disabled
-       return false;
+      // Only block if we are actually validating for progression
+      // But silent check should return false so button is disabled
+      return false;
     }
 
     if (_email == null || _email!.isEmpty) {
       if (reportError) setError('Please enter your email');
       return false;
     }
-    
+
     // Valid Email Check
-    final emailRegex = RegExp(
-      r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+',
-    );
+    final emailRegex = RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
     if (!emailRegex.hasMatch(_email!)) {
       if (reportError) setError('Please enter a valid email address');
       return false;
@@ -576,9 +604,9 @@ class KYCRegistrationController extends ChangeNotifier {
       if (reportError) setError('Email is already registered');
       return false;
     }
-    
+
     if (_isEmailAvailable == null && _authDataSource != null) {
-       return false;
+      return false;
     }
 
     if (_password == null || _password!.isEmpty) {
@@ -591,9 +619,15 @@ class KYCRegistrationController extends ChangeNotifier {
     final hasUppercase = _password!.contains(RegExp(r'[A-Z]'));
     final hasLowercase = _password!.contains(RegExp(r'[a-z]'));
     final hasDigits = _password!.contains(RegExp(r'[0-9]'));
-    final hasSpecialCharacters = _password!.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+    final hasSpecialCharacters = _password!.contains(
+      RegExp(r'[!@#$%^&*(),.?":{}|<>]'),
+    );
 
-    if (!hasMinLength || !hasUppercase || !hasLowercase || !hasDigits || !hasSpecialCharacters) {
+    if (!hasMinLength ||
+        !hasUppercase ||
+        !hasLowercase ||
+        !hasDigits ||
+        !hasSpecialCharacters) {
       if (reportError) setError('Password must meet all requirements');
       return false;
     }
@@ -741,6 +775,64 @@ class KYCRegistrationController extends ChangeNotifier {
     _street = demoData['street'];
     _zipCode = demoData['zipCode'];
 
+    notifyListeners();
+  }
+
+  /// Save current registration progress as draft to shared preferences
+  Future<void> saveDraft() async {
+    // TODO: Implement actual draft saving to SharedPreferences or Supabase
+    // For now, just keep data in memory
+    // In a real implementation, you would:
+    // 1. Serialize current state to JSON
+    // 2. Save to SharedPreferences or Supabase draft table
+    // 3. Include user identifier (email) to retrieve later
+
+    // Placeholder implementation - data remains in controller
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  /// Load saved draft from storage
+  Future<void> loadDraft(String email) async {
+    // TODO: Implement loading draft from SharedPreferences or Supabase
+    // For now, this is a placeholder
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  /// Clear all registration data
+  void clearAllData() {
+    // Reset all fields to null/default
+    _nationalIdNumber = null;
+    _nationalIdFront = null;
+    _nationalIdBack = null;
+    _selfieWithId = null;
+    _aiAutoFillAccepted = false;
+    _secondaryIdType = null;
+    _secondaryIdNumber = null;
+    _secondaryIdFront = null;
+    _secondaryIdBack = null;
+    _firstName = null;
+    _middleName = null;
+    _lastName = null;
+    _dateOfBirth = null;
+    _sex = null;
+    _username = null;
+    _email = null;
+    _password = null;
+    _confirmPassword = null;
+    _termsAccepted = false;
+    _privacyAccepted = false;
+    _isUsernameAvailable = null;
+    _isEmailAvailable = null;
+    _phoneOtpVerified = false;
+    _emailOtpVerified = false;
+    _region = null;
+    _province = null;
+    _city = null;
+    _barangay = null;
+    _street = null;
+    _zipCode = null;
+    _proofOfAddress = null;
+    _currentStep = KYCStep.accountInfo;
     notifyListeners();
   }
 

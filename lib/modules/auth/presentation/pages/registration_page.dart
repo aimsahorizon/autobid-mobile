@@ -67,7 +67,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     // or just proceed.
     // Since button is disabled if invalid, we can assume it's valid here.
     // However, some async checks (like secondary ID AI) might need explicit trigger.
-    
+
     // Trigger AI extraction for secondary ID step before proceeding
     if (_controller.currentStep == KYCStep.secondaryId) {
       _secondaryIdKey.currentState?.triggerAiExtraction();
@@ -93,7 +93,66 @@ class _RegistrationPageState extends State<RegistrationPage> {
       _controller.previousStep();
       setState(() {});
     } else {
-      Navigator.of(context).pop();
+      _showExitConfirmationDialog();
+    }
+  }
+
+  Future<void> _showExitConfirmationDialog() async {
+    // Check if user has entered any data
+    final hasData = _controller.hasAnyDataEntered();
+
+    if (!hasData) {
+      // No data entered, just go back to login
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+      }
+      return;
+    }
+
+    // Show dialog asking to save or discard
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save Your Progress?'),
+        content: const Text(
+          'You have entered some registration information. Would you like to save it for later or discard it?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'discard'),
+            child: const Text('Discard', style: TextStyle(color: Colors.red)),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context, 'save'),
+            child: const Text('Save Draft'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result == 'save') {
+      // Save draft and show confirmation
+      await _controller.saveDraft();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Registration progress saved. You can continue later.',
+            ),
+            backgroundColor: ColorConstants.success,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+      }
+    } else if (result == 'discard') {
+      // Clear data and go back
+      _controller.clearAllData();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+      }
     }
   }
 
@@ -193,7 +252,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         _controller.autoFillDemoData();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Demo data auto-filled successfully!'),
+                            content: Text(
+                              'Demo data auto-filled successfully!',
+                            ),
                             backgroundColor: ColorConstants.success,
                             duration: Duration(seconds: 2),
                           ),
@@ -242,7 +303,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   Widget _buildProgressIndicator() {
-    final progress = (_controller.currentStepIndex + 1) / _controller.totalSteps;
+    final progress =
+        (_controller.currentStepIndex + 1) / _controller.totalSteps;
 
     return Column(
       children: [
@@ -257,9 +319,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
               Text(
                 '${(progress * 100).toInt()}%',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -267,7 +329,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
         LinearProgressIndicator(
           value: progress,
           backgroundColor: ColorConstants.primary.withValues(alpha: 0.2),
-          valueColor: const AlwaysStoppedAnimation<Color>(ColorConstants.primary),
+          valueColor: const AlwaysStoppedAnimation<Color>(
+            ColorConstants.primary,
+          ),
         ),
       ],
     );
@@ -337,9 +401,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
               Expanded(
                 flex: 2,
                 child: FilledButton(
-                  onPressed: _controller.isCurrentStepValid ? _handleNext : null,
+                  onPressed: _controller.isCurrentStepValid
+                      ? _handleNext
+                      : null,
                   child: Text(
-                    _controller.currentStep == KYCStep.review ? 'Submit' : 'Next',
+                    _controller.currentStep == KYCStep.review
+                        ? 'Submit'
+                        : 'Next',
                   ),
                 ),
               ),
@@ -356,7 +424,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+                    Navigator.of(
+                      context,
+                    ).pushReplacementNamed(AuthRoutes.login);
                   },
                   child: const Text(
                     'Sign In',
