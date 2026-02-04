@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
@@ -42,7 +43,12 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       _idNumberController.text = widget.controller.secondaryIdNumber!;
     }
     _idNumberController.addListener(() {
-      widget.controller.setSecondaryIdNumber(_idNumberController.text);
+      // Strip formatting (dashes, spaces) before saving to controller
+      final rawNumber = _idNumberController.text.replaceAll(
+        RegExp(r'[-\s]'),
+        '',
+      );
+      widget.controller.setSecondaryIdNumber(rawNumber);
     });
   }
 
@@ -296,11 +302,25 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _idNumberController,
-            decoration: const InputDecoration(
-              labelText: 'ID Number',
-              hintText: 'Enter your ID number',
-              prefixIcon: Icon(Icons.numbers_rounded),
+            keyboardType: _getKeyboardType(widget.controller.secondaryIdType),
+            inputFormatters: _getInputFormatters(
+              widget.controller.secondaryIdType,
             ),
+            decoration: InputDecoration(
+              labelText: 'ID Number',
+              hintText: _getHintText(widget.controller.secondaryIdType),
+              helperText: _getHelperText(widget.controller.secondaryIdType),
+              prefixIcon: const Icon(Icons.numbers_rounded),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'ID number is required';
+              }
+              return _validateIdFormat(
+                value,
+                widget.controller.secondaryIdType,
+              );
+            },
           ),
           const SizedBox(height: 24),
           ImagePickerCard(
@@ -350,6 +370,221 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
           ),
         ],
       ),
+    );
+  }
+
+  // Get keyboard type based on ID type
+  TextInputType _getKeyboardType(String? idType) {
+    if (idType == 'Passport') {
+      return TextInputType.text; // Alphanumeric
+    }
+    return TextInputType.number;
+  }
+
+  // Get input formatters based on ID type
+  List<TextInputFormatter> _getInputFormatters(String? idType) {
+    switch (idType) {
+      case 'Driver\'s License':
+        return [
+          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9-]')),
+          LengthLimitingTextInputFormatter(13),
+          _DriverLicenseFormatter(),
+        ];
+      case 'Passport':
+        return [
+          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
+          LengthLimitingTextInputFormatter(9),
+          TextInputFormatter.withFunction((oldValue, newValue) {
+            return TextEditingValue(
+              text: newValue.text.toUpperCase(),
+              selection: newValue.selection,
+            );
+          }),
+        ];
+      case 'SSS ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+          _SSSIdFormatter(),
+        ];
+      case 'UMID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(12),
+          _UMIDFormatter(),
+        ];
+      case 'PRC ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(7),
+        ];
+      default:
+        return [
+          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9-]')),
+          LengthLimitingTextInputFormatter(20),
+        ];
+    }
+  }
+
+  // Get hint text based on ID type
+  String _getHintText(String? idType) {
+    switch (idType) {
+      case 'Driver\'s License':
+        return 'N00-00-000000';
+      case 'Passport':
+        return 'XX0000000';
+      case 'SSS ID':
+        return '00-0000000-0';
+      case 'UMID':
+        return '0000-0000000-0';
+      case 'PRC ID':
+        return '0000000';
+      default:
+        return 'Enter your ID number';
+    }
+  }
+
+  // Get helper text based on ID type
+  // Note: Formatting is for display only. Numbers are stored without dashes in database.
+  String? _getHelperText(String? idType) {
+    switch (idType) {
+      case 'Driver\'s License':
+        return 'Format: N00-00-000000';
+      case 'Passport':
+        return 'Format: 2 letters + 7 digits';
+      case 'SSS ID':
+        return 'Format: 00-0000000-0';
+      case 'UMID':
+        return 'Format: 0000-0000000-0';
+      case 'PRC ID':
+        return '7-digit PRC number';
+      default:
+        return null;
+    }
+  }
+
+  // Validate ID format
+  String? _validateIdFormat(String value, String? idType) {
+    switch (idType) {
+      case 'Driver\'s License':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 11) {
+          return 'Driver\'s License must be 11 characters';
+        }
+        break;
+      case 'Passport':
+        if (value.length != 9) {
+          return 'Passport must be 9 characters';
+        }
+        if (!RegExp(r'^[A-Z]{2}[0-9]{7}$').hasMatch(value)) {
+          return 'Invalid passport format (XX0000000)';
+        }
+        break;
+      case 'SSS ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 10) {
+          return 'SSS ID must be 10 digits';
+        }
+        break;
+      case 'UMID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 12) {
+          return 'UMID must be 12 digits';
+        }
+        break;
+      case 'PRC ID':
+        if (value.length != 7) {
+          return 'PRC ID must be 7 digits';
+        }
+        break;
+    }
+    return null;
+  }
+}
+
+/// Formatter for Philippine Driver's License
+/// Format: N00-00-000000 (Letter + 2 digits + dash + 2 digits + dash + 6 digits)
+class _DriverLicenseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '').toUpperCase();
+    if (text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 11; i++) {
+      buffer.write(text[i]);
+      if (i == 2 || i == 4) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for SSS ID
+/// Format: 00-0000000-0 (2 digits + dash + 7 digits + dash + 1 digit)
+class _SSSIdFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 10; i++) {
+      buffer.write(text[i]);
+      if (i == 1 || i == 8) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for UMID
+/// Format: 0000-0000000-0 (4 digits + dash + 7 digits + dash + 1 digit)
+class _UMIDFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 12; i++) {
+      buffer.write(text[i]);
+      if (i == 3 || i == 10) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

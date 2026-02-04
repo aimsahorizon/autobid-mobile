@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
@@ -25,7 +26,9 @@ class _NationalIdStepState extends State<NationalIdStep> {
       _idNumberController.text = widget.controller.nationalIdNumber!;
     }
     _idNumberController.addListener(() {
-      widget.controller.setNationalIdNumber(_idNumberController.text);
+      // Strip formatting (dashes) before saving to controller
+      final rawNumber = _idNumberController.text.replaceAll('-', '');
+      widget.controller.setNationalIdNumber(rawNumber);
     });
   }
 
@@ -88,11 +91,27 @@ class _NationalIdStepState extends State<NationalIdStep> {
           TextFormField(
             controller: _idNumberController,
             keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(12),
+              _NationalIdFormatter(),
+            ],
             decoration: const InputDecoration(
-              labelText: 'National ID Number',
-              hintText: 'Enter your 12-digit National ID number',
+              labelText: 'Philippine National ID (PhilSys ID)',
+              hintText: 'XXXX-XXXX-XXXX',
+              helperText: '12-digit PhilSys ID number',
               prefixIcon: Icon(Icons.badge_rounded),
             ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'National ID number is required';
+              }
+              final digitsOnly = value.replaceAll('-', '');
+              if (digitsOnly.length != 12) {
+                return 'National ID must be 12 digits';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 24),
           ImagePickerCard(
@@ -142,6 +161,37 @@ class _NationalIdStepState extends State<NationalIdStep> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Formatter for Philippine National ID (PhilSys ID)
+/// Format: XXXX-XXXX-XXXX (12 digits with dashes)
+/// Note: Formatted for display, but stored without dashes in database
+class _NationalIdFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      buffer.write(text[i]);
+      final nonZeroIndex = i + 1;
+      if (nonZeroIndex % 4 == 0 && nonZeroIndex != text.length) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
