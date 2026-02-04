@@ -269,6 +269,19 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, bool>> checkEmailAvailable(String email) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.checkEmailAvailable(email);
+      return Right(result);
+    } catch (e) {
+      return Left(_handleError(e));
+    }
+  }
+
   Failure _handleError(dynamic error) {
     if (error is AuthException) {
       final msg = error.message.toLowerCase();

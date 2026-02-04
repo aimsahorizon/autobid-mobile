@@ -23,4 +23,5 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> submitKycRegistration(KycRegistrationEntity kycData);
   Future<Either<Failure, KycRegistrationEntity?>> getKycRegistrationStatus(String userId);
   Future<Either<Failure, bool>> checkUsernameAvailable(String username);
+  Future<Either<Failure, bool>> checkEmailAvailable(String email);
 }

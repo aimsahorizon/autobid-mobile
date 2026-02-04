@@ -25,6 +25,7 @@ abstract class AuthRemoteDataSource {
   Future<void> submitKycRegistration(KycRegistrationModel kycData);
   Future<KycRegistrationModel?> getKycRegistrationStatus(String userId);
   Future<bool> checkUsernameAvailable(String username);
+  Future<bool> checkEmailAvailable(String email);
   Future<void> setPasswordForOtpUser(String password);
 }
 
@@ -549,6 +550,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to check username availability: $e');
+    }
+  }
+
+  @override
+  Future<bool> checkEmailAvailable(String email) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('email')
+          .eq('email', email)
+          .maybeSingle();
+
+      return response == null;
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException(
+        'Failed to check email availability: ${e.message}',
+      );
+    } catch (e) {
+      throw ServerException('Failed to check email availability: $e');
     }
   }
 }

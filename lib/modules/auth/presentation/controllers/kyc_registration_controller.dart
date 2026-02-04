@@ -79,6 +79,8 @@ class KYCRegistrationController extends ChangeNotifier {
   String? _confirmPassword;
   bool _termsAccepted = false;
   bool _privacyAccepted = false;
+  bool? _isUsernameAvailable;
+  bool? _isEmailAvailable;
 
   // Step 6: OTP
   bool _phoneOtpVerified = false;
@@ -131,6 +133,8 @@ class KYCRegistrationController extends ChangeNotifier {
   String? get confirmPassword => _confirmPassword;
   bool get termsAccepted => _termsAccepted;
   bool get privacyAccepted => _privacyAccepted;
+  bool? get isUsernameAvailable => _isUsernameAvailable;
+  bool? get isEmailAvailable => _isEmailAvailable;
 
   // Step 6 getters
   bool get phoneOtpVerified => _phoneOtpVerified;
@@ -224,6 +228,7 @@ class KYCRegistrationController extends ChangeNotifier {
   // Step 5 setters
   void setUsername(String value) {
     _username = value;
+    _isUsernameAvailable = null;
     notifyListeners();
   }
 
@@ -231,6 +236,7 @@ class KYCRegistrationController extends ChangeNotifier {
     // Reset email OTP verification if email changed
     if (_email != null && _email != value) {
       _emailOtpVerified = false;
+      _isEmailAvailable = null;
     }
     _email = value;
     notifyListeners();
@@ -482,6 +488,37 @@ class KYCRegistrationController extends ChangeNotifier {
     return true;
   }
 
+  Future<void> checkUsernameAvailability(String username) async {
+    if (_authDataSource == null) return;
+    
+    // Check for reserved keywords first
+    final lower = username.toLowerCase();
+    if (lower.contains('admin') || lower.contains('test')) {
+      _isUsernameAvailable = false;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      _isUsernameAvailable = await _authDataSource.checkUsernameAvailable(username);
+    } catch (e) {
+      // On error (e.g. network), assume unavailable or keep null?
+      // Better to keep null so validation fails/shows error
+      _isUsernameAvailable = null;
+    }
+    notifyListeners();
+  }
+
+  Future<void> checkEmailAvailability(String email) async {
+    if (_authDataSource == null) return;
+    try {
+      _isEmailAvailable = await _authDataSource.checkEmailAvailable(email);
+    } catch (e) {
+      _isEmailAvailable = null;
+    }
+    notifyListeners();
+  }
+
   bool validateAccountInfoStep({bool reportError = true}) {
     if (_username == null || _username!.isEmpty) {
       if (reportError) setError('Please enter a username');
@@ -494,6 +531,25 @@ class KYCRegistrationController extends ChangeNotifier {
     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(_username!)) {
       if (reportError) setError('Username can only contain letters, numbers, and underscores');
       return false;
+    }
+    
+    final lowerUsername = _username!.toLowerCase();
+    if (lowerUsername.contains('admin') || lowerUsername.contains('test')) {
+      if (reportError) setError('Username contains reserved words');
+      return false;
+    }
+
+    if (_isUsernameAvailable == false) {
+      if (reportError) setError('Username is already taken');
+      return false;
+    }
+    
+    // If username availability is unchecked (null), we block progress.
+    // However, for silent check (button state), we just return false without error
+    if (_isUsernameAvailable == null && _authDataSource != null) {
+       // Only block if we are actually validating for progression
+       // But silent check should return false so button is disabled
+       return false;
     }
 
     if (_email == null || _email!.isEmpty) {
@@ -508,6 +564,15 @@ class KYCRegistrationController extends ChangeNotifier {
     if (!emailRegex.hasMatch(_email!)) {
       if (reportError) setError('Please enter a valid email address');
       return false;
+    }
+
+    if (_isEmailAvailable == false) {
+      if (reportError) setError('Email is already registered');
+      return false;
+    }
+    
+    if (_isEmailAvailable == null && _authDataSource != null) {
+       return false;
     }
 
     if (_password == null || _password!.isEmpty) {
