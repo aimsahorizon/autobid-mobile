@@ -100,50 +100,88 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
     try {
       debugPrint('[GuestDataSource] Fetching guest auctions from database...');
 
-      // Use auction_browse_listings view which filters for live auctions
-      // This view is accessible to anonymous users and already has proper RLS
+      // Query auctions table directly to get real vehicle data
+      // Filter for live auctions that haven't ended
       final response = await _supabase
-          .from('auction_browse_listings')
+          .from('auctions')
           .select('''
             id,
             title,
-            primary_image_url,
             starting_price,
             current_price,
             start_time,
             end_time,
             total_bids,
-            vehicle_year,
-            vehicle_make,
-            vehicle_model
+            auction_statuses!inner(status_name),
+            auction_vehicles!inner(
+              year,
+              brand,
+              model,
+              mileage,
+              province,
+              city_municipality
+            ),
+            auction_photos(
+              photo_url,
+              is_primary,
+              display_order
+            )
           ''')
+          .eq('auction_statuses.status_name', 'live')
+          .gt('end_time', DateTime.now().toIso8601String())
           .order('end_time', ascending: true)
-          .limit(limit);
+          .range(offset, offset + limit - 1);
 
       debugPrint(
-        '[GuestDataSource] Retrieved ${response.length} live auctions from auction_browse_listings view',
+        '[GuestDataSource] Retrieved ${response.length} live auctions',
       );
 
       // Transform to match guest UI expectations
       final auctions = (response as List).map((auction) {
-        final make = auction['vehicle_make'] as String? ?? 'Unknown';
-        final model = auction['vehicle_model'] as String? ?? 'Vehicle';
-        final year = auction['vehicle_year'] as int? ?? 0;
-
+        // Extract vehicle info
+        final vehicle = auction['auction_vehicles'] as Map<String, dynamic>? ?? {};
+        final make = vehicle['brand'] as String? ?? 'Unknown';
+        final model = vehicle['model'] as String? ?? 'Vehicle';
+        final year = vehicle['year'] as int? ?? 0;
+        final mileage = vehicle['mileage'] as int?;
+        final city = vehicle['city_municipality'] as String?;
+        final province = vehicle['province'] as String?;
+        
         final title = auction['title'] as String? ?? '$year $make $model';
+        
+        // Extract primary photo
+        String? imageUrl;
+        final photos = auction['auction_photos'] as List?;
+        if (photos != null && photos.isNotEmpty) {
+          // Sort by is_primary then display_order
+          photos.sort((a, b) {
+            final aPrimary = (a['is_primary'] as bool?) ?? false;
+            final bPrimary = (b['is_primary'] as bool?) ?? false;
+            if (aPrimary && !bPrimary) return -1;
+            if (!aPrimary && bPrimary) return 1;
+            return ((a['display_order'] as int?) ?? 0)
+                .compareTo((b['display_order'] as int?) ?? 0);
+          });
+          imageUrl = photos.first['photo_url'] as String?;
+        }
 
         return {
           'id': auction['id'],
           'title': title,
           'description': 'Active auction for $make $model',
-          'category': make,
-          'image_url': auction['primary_image_url'],
+          'category': make, // Used as subtitle/brand
+          'image_url': imageUrl,
           'status': 'live',
           'start_date': auction['start_time'],
           'end_date': auction['end_time'],
           'current_price': auction['current_price'],
           'starting_price': auction['starting_price'],
           'total_bids': auction['total_bids'],
+          'mileage': mileage,
+          'location': city != null && province != null ? '$city, $province' : province ?? city,
+          'vehicle_year': year,
+          'vehicle_make': make,
+          'vehicle_model': model,
         };
       }).toList();
 
