@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
+import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/deposit_supabase_datasource.dart';
 
@@ -11,6 +12,10 @@ class DepositPaymentPage extends StatefulWidget {
   final String userId;
   final double depositAmount;
   final VoidCallback onSuccess;
+  
+  // Dependencies for testing
+  final IPayMongoService? payMongoService;
+  final DepositSupabaseDataSource? depositDataSource;
 
   const DepositPaymentPage({
     super.key,
@@ -18,6 +23,8 @@ class DepositPaymentPage extends StatefulWidget {
     required this.userId,
     required this.depositAmount,
     required this.onSuccess,
+    this.payMongoService,
+    this.depositDataSource,
   });
 
   @override
@@ -25,58 +32,46 @@ class DepositPaymentPage extends StatefulWidget {
 }
 
 class _DepositPaymentPageState extends State<DepositPaymentPage> {
-  final _payMongoService = PayMongoService();
-
+  late final IPayMongoService _payMongoService;
+  late final DepositSupabaseDataSource _depositDataSource;
   bool _isProcessing = false;
 
   // Billing form fields
-
   final _nameController = TextEditingController();
-
   final _emailController = TextEditingController();
-
   final _phoneController = TextEditingController();
-
   final _cardNumberController = TextEditingController();
-
   final _expMonthController = TextEditingController();
-
   final _expYearController = TextEditingController();
-
   final _cvcController = TextEditingController();
-
   final _formKey = GlobalKey<FormState>();
 
   // Focus Nodes
-
   final _monthFocus = FocusNode();
-
   final _yearFocus = FocusNode();
-
   final _cvcFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _payMongoService = widget.payMongoService ?? PayMongoService();
+    // In production, SupabaseConfig.client should be initialized. 
+    // In tests, we pass a mock datasource so SupabaseConfig.client access is avoided if mocked.
+    _depositDataSource = widget.depositDataSource ?? DepositSupabaseDataSource(SupabaseConfig.client);
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
-
     _emailController.dispose();
-
     _phoneController.dispose();
-
     _cardNumberController.dispose();
-
     _expMonthController.dispose();
-
     _expYearController.dispose();
-
     _cvcController.dispose();
-
     _monthFocus.dispose();
-
     _yearFocus.dispose();
-
     _cvcFocus.dispose();
-
     super.dispose();
   }
 
@@ -85,7 +80,6 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         .toStringAsFixed(0)
         .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-
           (Match m) => '${m[1]},',
         );
   }
@@ -95,21 +89,14 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
     setState(() => _isProcessing = true);
 
-    final service = _payMongoService;
-
     try {
       // Step 1: Create payment intent
-
-      final paymentIntent = await service.createPaymentIntent(
+      final paymentIntent = await _payMongoService.createPaymentIntent(
         amount: widget.depositAmount,
-
         description: 'Auction Participation Deposit',
-
         metadata: {
           'auction_id': widget.auctionId,
-
           'user_id': widget.userId,
-
           'type': 'auction_deposit',
         },
       );
@@ -117,26 +104,17 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final paymentIntentId = paymentIntent['id'] as String;
 
       // Convert 2-digit year to 4-digit
-
       final twoDigitYear = _expYearController.text;
-
       final fullYear = int.parse('20$twoDigitYear');
 
       // Step 2: Create payment method (simplified - card only for now)
-
-      final paymentMethod = await service.createPaymentMethod(
+      final paymentMethod = await _payMongoService.createPaymentMethod(
         cardNumber: _cardNumberController.text.replaceAll(' ', ''),
-
         expMonth: int.parse(_expMonthController.text),
-
         expYear: fullYear,
-
         cvc: _cvcController.text,
-
         billingName: _nameController.text,
-
         billingEmail: _emailController.text,
-
         billingPhone: _phoneController.text.isNotEmpty
             ? _phoneController.text
             : null,
@@ -145,15 +123,12 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final paymentMethodId = paymentMethod['id'] as String;
 
       // Step 3: Attach payment method to payment intent
-
-      final result = await service.attachPaymentMethod(
+      final result = await _payMongoService.attachPaymentMethod(
         paymentIntentId: paymentIntentId,
-
         paymentMethodId: paymentMethodId,
       );
 
       // Check payment status
-
       final status = result['attributes']['status'] as String;
 
       if (status != 'succeeded' && status != 'awaiting_payment_method') {
@@ -161,16 +136,10 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       }
 
       // Step 4: Record deposit in database
-
-      final datasource = DepositSupabaseDataSource(SupabaseConfig.client);
-
-      final depositId = await datasource.createDeposit(
+      final depositId = await _depositDataSource.createDeposit(
         auctionId: widget.auctionId,
-
         userId: widget.userId,
-
         amount: widget.depositAmount,
-
         paymentIntentId: paymentIntentId,
       );
 
@@ -179,22 +148,17 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       }
 
       // Payment and deposit record successful
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               'Deposit payment successful! You can now participate in this auction.',
             ),
-
             backgroundColor: ColorConstants.success,
-
             duration: const Duration(seconds: 4),
           ),
         );
-
         widget.onSuccess();
-
         Navigator.pop(context, true);
       }
     } on PayMongoException catch (e) {
@@ -202,7 +166,6 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message),
-
             backgroundColor: ColorConstants.error,
           ),
         );
@@ -212,7 +175,6 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Payment failed: ${e.toString()}'),
-
             backgroundColor: ColorConstants.error,
           ),
         );
