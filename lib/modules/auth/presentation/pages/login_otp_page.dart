@@ -6,14 +6,12 @@ import '../widgets/otp_input_fields.dart';
 
 class LoginOtpPage extends StatefulWidget {
   final String email;
-  final String phoneNumber;
   final LoginOtpController otpController;
   final LoginController loginController;
 
   const LoginOtpPage({
     super.key,
     required this.email,
-    required this.phoneNumber,
     required this.otpController,
     required this.loginController,
   });

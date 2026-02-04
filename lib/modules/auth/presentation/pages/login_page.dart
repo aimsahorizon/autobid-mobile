@@ -84,7 +84,6 @@ class _LoginPageState extends State<LoginPage> {
       MaterialPageRoute(
         builder: (context) => LoginOtpPage(
           email: widget.controller.userEmail!,
-          phoneNumber: widget.controller.userPhoneNumber!,
           otpController: _otpController,
           loginController: widget.controller,
         ),
