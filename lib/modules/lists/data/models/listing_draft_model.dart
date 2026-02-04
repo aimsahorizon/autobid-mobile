@@ -68,6 +68,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.snipeGuardEnabled,
     super.snipeGuardThresholdSeconds,
     super.snipeGuardExtendSeconds,
+    super.isPlateValid,
   });
 
   /// Convert database row to model
@@ -157,6 +158,7 @@ class ListingDraftModel extends ListingDraftEntity {
       snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
       snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int?,
       snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int?,
+      isPlateValid: json['is_plate_valid'] as bool? ?? false,
     );
   }
 
@@ -240,6 +242,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'snipe_guard_enabled': snipeGuardEnabled,
       'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
       'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
+      'is_plate_valid': isPlateValid,
     };
   }
 

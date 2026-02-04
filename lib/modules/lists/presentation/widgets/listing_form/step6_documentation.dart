@@ -179,6 +179,11 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         startingPrice: draft.startingPrice,
         reservePrice: draft.reservePrice,
         auctionEndDate: draft.auctionEndDate,
+        snipeGuardEnabled: draft.snipeGuardEnabled,
+        snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
+        snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,
+        // Set plate validation state
+        isPlateValid: _isPlateValid,
         // Only valid if no error
         isComplete: draft.isComplete && _isPlateValid,
       ),

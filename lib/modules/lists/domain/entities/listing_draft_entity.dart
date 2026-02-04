@@ -88,6 +88,9 @@ class ListingDraftEntity {
   final int? snipeGuardThresholdSeconds; // Seconds before end to trigger extension
   final int? snipeGuardExtendSeconds; // Seconds to extend by
 
+  // Validation State
+  final bool? isPlateValid;
+
   const ListingDraftEntity({
     required this.id,
     required this.sellerId,
@@ -153,6 +156,7 @@ class ListingDraftEntity {
     this.snipeGuardEnabled,
     this.snipeGuardThresholdSeconds,
     this.snipeGuardExtendSeconds,
+    this.isPlateValid,
   });
 
   /// Create a copy of this entity with updated fields
@@ -221,6 +225,7 @@ class ListingDraftEntity {
     bool? snipeGuardEnabled,
     int? snipeGuardThresholdSeconds,
     int? snipeGuardExtendSeconds,
+    bool? isPlateValid,
   }) {
     return ListingDraftEntity(
       id: id ?? this.id,
@@ -287,6 +292,7 @@ class ListingDraftEntity {
       snipeGuardEnabled: snipeGuardEnabled ?? this.snipeGuardEnabled,
       snipeGuardThresholdSeconds: snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
       snipeGuardExtendSeconds: snipeGuardExtendSeconds ?? this.snipeGuardExtendSeconds,
+      isPlateValid: isPlateValid ?? this.isPlateValid,
     );
   }
 
@@ -391,7 +397,10 @@ class ListingDraftEntity {
         return condition != null && mileage != null && previousOwners != null;
       case 7:
         // Step 7: Documentation & Location
-        return plateNumber != null && orcrStatus != null && province != null;
+        return plateNumber != null && 
+               isPlateValid == true && 
+               orcrStatus != null && 
+               province != null;
       case 8:
         // Step 8: Final Details, Pricing & Bidding
         return description != null &&
