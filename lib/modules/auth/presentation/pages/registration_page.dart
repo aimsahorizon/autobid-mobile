@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
 import '../controllers/kyc_registration_controller.dart';
+import '../../auth_routes.dart';
 import '../widgets/kyc_steps/national_id_step.dart';
 import '../widgets/kyc_steps/selfie_with_id_step.dart';
 import '../widgets/kyc_steps/secondary_id_step.dart';
@@ -339,25 +340,54 @@ class _RegistrationPageState extends State<RegistrationPage> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (_controller.currentStepIndex > 0)
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _handleBack,
-                child: const Text('Back'),
+          Row(
+            children: [
+              if (_controller.currentStepIndex > 0)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _handleBack,
+                    child: const Text('Back'),
+                  ),
+                ),
+              if (_controller.currentStepIndex > 0) const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  onPressed: _handleNext,
+                  child: Text(
+                    _controller.currentStep == KYCStep.review ? 'Submit' : 'Next',
+                  ),
+                ),
               ),
-            ),
-          if (_controller.currentStepIndex > 0) const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: FilledButton(
-              onPressed: _handleNext,
-              child: Text(
-                _controller.currentStep == KYCStep.review ? 'Submit' : 'Next',
-              ),
-            ),
+            ],
           ),
+          if (_controller.currentStepIndex == 0) ...[
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Already have an account? ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+                  },
+                  child: const Text(
+                    'Sign In',
+                    style: TextStyle(
+                      color: ColorConstants.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
