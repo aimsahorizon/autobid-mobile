@@ -26,27 +26,57 @@ class DepositPaymentPage extends StatefulWidget {
 
 class _DepositPaymentPageState extends State<DepositPaymentPage> {
   final _payMongoService = PayMongoService();
+
   bool _isProcessing = false;
 
   // Billing form fields
+
   final _nameController = TextEditingController();
+
   final _emailController = TextEditingController();
+
   final _phoneController = TextEditingController();
+
   final _cardNumberController = TextEditingController();
+
   final _expMonthController = TextEditingController();
+
   final _expYearController = TextEditingController();
+
   final _cvcController = TextEditingController();
+
   final _formKey = GlobalKey<FormState>();
+
+  // Focus Nodes
+
+  final _monthFocus = FocusNode();
+
+  final _yearFocus = FocusNode();
+
+  final _cvcFocus = FocusNode();
 
   @override
   void dispose() {
     _nameController.dispose();
+
     _emailController.dispose();
+
     _phoneController.dispose();
+
     _cardNumberController.dispose();
+
     _expMonthController.dispose();
+
     _expYearController.dispose();
+
     _cvcController.dispose();
+
+    _monthFocus.dispose();
+
+    _yearFocus.dispose();
+
+    _cvcFocus.dispose();
+
     super.dispose();
   }
 
@@ -55,6 +85,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         .toStringAsFixed(0)
         .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+
           (Match m) => '${m[1]},',
         );
   }
@@ -68,26 +99,44 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
     try {
       // Step 1: Create payment intent
+
       final paymentIntent = await service.createPaymentIntent(
         amount: widget.depositAmount,
+
         description: 'Auction Participation Deposit',
+
         metadata: {
           'auction_id': widget.auctionId,
+
           'user_id': widget.userId,
+
           'type': 'auction_deposit',
         },
       );
 
       final paymentIntentId = paymentIntent['id'] as String;
 
+      // Convert 2-digit year to 4-digit
+
+      final twoDigitYear = _expYearController.text;
+
+      final fullYear = int.parse('20$twoDigitYear');
+
       // Step 2: Create payment method (simplified - card only for now)
+
       final paymentMethod = await service.createPaymentMethod(
         cardNumber: _cardNumberController.text.replaceAll(' ', ''),
+
         expMonth: int.parse(_expMonthController.text),
-        expYear: int.parse(_expYearController.text),
+
+        expYear: fullYear,
+
         cvc: _cvcController.text,
+
         billingName: _nameController.text,
+
         billingEmail: _emailController.text,
+
         billingPhone: _phoneController.text.isNotEmpty
             ? _phoneController.text
             : null,
@@ -96,12 +145,15 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final paymentMethodId = paymentMethod['id'] as String;
 
       // Step 3: Attach payment method to payment intent
+
       final result = await service.attachPaymentMethod(
         paymentIntentId: paymentIntentId,
+
         paymentMethodId: paymentMethodId,
       );
 
       // Check payment status
+
       final status = result['attributes']['status'] as String;
 
       if (status != 'succeeded' && status != 'awaiting_payment_method') {
@@ -109,12 +161,16 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       }
 
       // Step 4: Record deposit in database
+
       final datasource = DepositSupabaseDataSource(SupabaseConfig.client);
 
       final depositId = await datasource.createDeposit(
         auctionId: widget.auctionId,
+
         userId: widget.userId,
+
         amount: widget.depositAmount,
+
         paymentIntentId: paymentIntentId,
       );
 
@@ -123,17 +179,22 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       }
 
       // Payment and deposit record successful
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               'Deposit payment successful! You can now participate in this auction.',
             ),
+
             backgroundColor: ColorConstants.success,
+
             duration: const Duration(seconds: 4),
           ),
         );
+
         widget.onSuccess();
+
         Navigator.pop(context, true);
       }
     } on PayMongoException catch (e) {
@@ -141,6 +202,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message),
+
             backgroundColor: ColorConstants.error,
           ),
         );
@@ -150,6 +212,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Payment failed: ${e.toString()}'),
+
             backgroundColor: ColorConstants.error,
           ),
         );
@@ -164,319 +227,586 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Auction Deposit')),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Deposit info card
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? ColorConstants.surfaceDark
-                      : ColorConstants.surfaceLight,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
+
+      body: AutofillGroup(
+        child: Form(
+          key: _formKey,
+
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+
+              children: [
+                // Deposit info card
+                Container(
+                  padding: const EdgeInsets.all(20),
+
+                  decoration: BoxDecoration(
                     color: isDark
-                        ? ColorConstants.borderDark
-                        : ColorConstants.borderLight,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: ColorConstants.primary.withValues(
-                              alpha: 0.1,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.gavel,
-                            color: ColorConstants.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Auction Deposit',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Required to participate in bidding',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          '₱${_formatPrice(widget.depositAmount)}',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: ColorConstants.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Divider(
+                        ? ColorConstants.surfaceDark
+                        : ColorConstants.surfaceLight,
+
+                    borderRadius: BorderRadius.circular(16),
+
+                    border: Border.all(
                       color: isDark
                           ? ColorConstants.borderDark
                           : ColorConstants.borderLight,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Deposit Terms',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildInfoRow(
-                      Icons.check_circle_outline,
-                      'Fully refundable if you don\'t win',
-                    ),
-                    const SizedBox(height: 4),
-                    _buildInfoRow(
-                      Icons.check_circle_outline,
-                      'Applied to purchase if you win',
-                    ),
-                    const SizedBox(height: 4),
-                    _buildInfoRow(
-                      Icons.warning_amber_rounded,
-                      'Forfeited if winner doesn\'t complete purchase',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Billing information
-              Text(
-                'Billing Information',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  hintText: 'Juan Dela Cruz',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'juan@example.com',
-                  prefixIcon: Icon(Icons.email_outlined),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Please enter valid email';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Phone (optional)',
-                  hintText: '+639171234567',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Card Details Section
-              Text(
-                'Card Details',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _cardNumberController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  _CardNumberFormatter(),
-                  LengthLimitingTextInputFormatter(19),
-                ],
-                decoration: const InputDecoration(
-                  labelText: 'Card Number',
-                  hintText: '4343 4343 4343 4345',
-                  prefixIcon: Icon(Icons.credit_card),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter card number';
-                  }
-                  final digits = value.replaceAll(' ', '');
-                  if (digits.length < 13) {
-                    return 'Card number too short';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _expMonthController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(2),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Month',
-                        hintText: 'MM',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Required';
-                        }
-                        final month = int.tryParse(value);
-                        if (month == null || month < 1 || month > 12) {
-                          return 'Invalid';
-                        }
-                        return null;
-                      },
-                    ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 3,
-                    child: TextFormField(
-                      controller: _expYearController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(4),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'Year',
-                        hintText: 'YYYY',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Required';
-                        }
-                        final year = int.tryParse(value);
-                        if (year == null || year < DateTime.now().year) {
-                          return 'Invalid';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _cvcController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(4),
-                      ],
-                      decoration: const InputDecoration(
-                        labelText: 'CVC',
-                        hintText: '123',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Required';
-                        }
-                        if (value.length < 3) {
-                          return 'Invalid';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
 
-              // Pay button
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: FilledButton(
-                  onPressed: _isProcessing ? null : _processPayment,
-                  child: _isProcessing
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          'Pay Deposit ₱${_formatPrice(widget.depositAmount)}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+
+                            decoration: BoxDecoration(
+                              color: ColorConstants.primary.withValues(
+                                alpha: 0.1,
+                              ),
+
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+
+                            child: Icon(
+                              Icons.gavel,
+
+                              color: ColorConstants.primary,
+                            ),
                           ),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 16),
 
-              // Security notice
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                          const SizedBox(width: 16),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+
+                              children: [
+                                Text(
+                                  'Auction Deposit',
+
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                Text(
+                                  'Required to participate in bidding',
+
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          Text(
+                            '₱${_formatPrice(widget.depositAmount)}',
+
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: ColorConstants.primary,
+
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      Divider(
+                        color: isDark
+                            ? ColorConstants.borderDark
+                            : ColorConstants.borderLight,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      Text(
+                        'Deposit Terms',
+
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      _buildInfoRow(
+                        Icons.check_circle_outline,
+
+                        'Fully refundable if you don\'t win',
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      _buildInfoRow(
+                        Icons.check_circle_outline,
+
+                        'Applied to purchase if you win',
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      _buildInfoRow(
+                        Icons.warning_amber_rounded,
+
+                        'Forfeited if winner doesn\'t complete purchase',
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Billing information
+                Text(
+                  'Billing Information',
+
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _nameController,
+
+                  autofillHints: const [AutofillHints.name],
+
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+
+                    hintText: 'Juan Dela Cruz',
+
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your name';
+                    }
+
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _emailController,
+
+                  keyboardType: TextInputType.emailAddress,
+
+                  autofillHints: const [AutofillHints.email],
+
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+
+                    hintText: 'juan@example.com',
+
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+
+                    if (!value.contains('@')) {
+                      return 'Please enter valid email';
+                    }
+
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _phoneController,
+
+                  keyboardType: TextInputType.phone,
+
+                  autofillHints: const [AutofillHints.telephoneNumber],
+
+                  decoration: const InputDecoration(
+                    labelText: 'Phone (optional)',
+
+                    hintText: '+639171234567',
+
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Card Details Section
+                Text(
+                  'Card Details',
+
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _cardNumberController,
+
+                  keyboardType: TextInputType.number,
+
+                  autofillHints: const [AutofillHints.creditCardNumber],
+
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+
+                    _CardNumberFormatter(),
+
+                    LengthLimitingTextInputFormatter(19),
+                  ],
+
+                  decoration: const InputDecoration(
+                    labelText: 'Card Number',
+
+                    hintText: '4343 4343 4343 4345',
+
+                    prefixIcon: Icon(Icons.credit_card),
+                  ),
+
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter card number';
+                    }
+
+                    final digits = value.replaceAll(' ', '');
+
+                    if (digits.length < 13) {
+                      return 'Card number too short';
+                    }
+
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
                   children: [
-                    const Icon(Icons.lock_outline, size: 16),
+                    Expanded(
+                      flex: 2,
+
+                      child: TextFormField(
+                        controller: _expMonthController,
+
+                        focusNode: _monthFocus,
+
+                        keyboardType: TextInputType.number,
+
+                        autofillHints: const [
+                          AutofillHints.creditCardExpirationMonth,
+                        ],
+
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+
+                          LengthLimitingTextInputFormatter(2),
+                        ],
+
+                        decoration: const InputDecoration(
+                          labelText: 'Month',
+
+                          hintText: 'MM',
+                        ),
+
+                        onChanged: (value) {
+                          if (value.length == 2) {
+                            _yearFocus.requestFocus();
+                          }
+                        },
+
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Required';
+                          }
+
+                          final month = int.tryParse(value);
+
+                          if (month == null || month < 1 || month > 12) {
+                            return 'Invalid';
+                          }
+
+                          return null;
+                        },
+                      ),
+                    ),
+
                     const SizedBox(width: 8),
-                    Text('Secured by PayMongo', style: theme.textTheme.bodySmall),
+
+                    Expanded(
+                      flex: 2,
+
+                      child: TextFormField(
+                        controller: _expYearController,
+
+                        focusNode: _yearFocus,
+
+                        keyboardType: TextInputType.number,
+
+                        autofillHints: const [
+                          AutofillHints.creditCardExpirationYear,
+                        ],
+
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+
+                          LengthLimitingTextInputFormatter(2),
+                        ],
+
+                        decoration: const InputDecoration(
+                          labelText: 'Year',
+
+                          hintText: 'YY',
+                        ),
+
+                        onChanged: (value) {
+                          if (value.length == 2) {
+                            _cvcFocus.requestFocus();
+                          }
+                        },
+
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Required';
+                          }
+
+                          if (value.length != 2) return 'Invalid';
+
+                          // Simple validation: assumed 20xx
+
+                          // PayMongo handles actual expiration check
+
+                          return null;
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    Expanded(
+                      flex: 3,
+
+                      child: TextFormField(
+                        controller: _cvcController,
+
+                        focusNode: _cvcFocus,
+
+                        keyboardType: TextInputType.number,
+
+                        autofillHints: const [
+                          AutofillHints.creditCardSecurityCode,
+                        ],
+
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+
+                          LengthLimitingTextInputFormatter(4),
+                        ],
+
+                        decoration: const InputDecoration(
+                          labelText: 'CVC',
+
+                          hintText: '123',
+                        ),
+
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Required';
+                          }
+
+                          if (value.length < 3) {
+                            return 'Invalid';
+                          }
+
+                          return null;
+                        },
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 32),
+
+                // Pay button
+                SizedBox(
+                  width: double.infinity,
+
+                  height: 54,
+
+                  child: FilledButton(
+                    onPressed: _isProcessing ? null : _processPayment,
+
+                    child: _isProcessing
+                        ? const SizedBox(
+                            height: 20,
+
+                            width: 20,
+
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            'Pay Deposit ₱${_formatPrice(widget.depositAmount)}',
+
+                            style: const TextStyle(
+                              fontSize: 16,
+
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Security notice
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+
+                    children: [
+                      const Icon(Icons.lock_outline, size: 16),
+
+                      const SizedBox(width: 8),
+
+                      Text(
+                        'Secured by PayMongo',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Test Cards Guide
+                Container(
+                  padding: const EdgeInsets.all(16),
+
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+
+                    borderRadius: BorderRadius.circular(12),
+
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.3),
+                    ),
+                  ),
+
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: Colors.blue,
+                            size: 20,
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          Text(
+                            'Test Credentials',
+
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: Colors.blue,
+
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      const Text('Use these cards for testing:'),
+
+                      const SizedBox(height: 8),
+
+                      _buildCopyableRow('Visa', '4242 4242 4242 4242'),
+
+                      const SizedBox(height: 4),
+
+                      _buildCopyableRow('Mastercard', '5454 5454 5454 5454'),
+
+                      const SizedBox(height: 8),
+
+                      const Text('Any future expiry date (e.g., 12/25)'),
+
+                      const Text('Any 3-digit CVC (e.g., 123)'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCopyableRow(String label, String value) {
+    return InkWell(
+      onTap: () {
+        Clipboard.setData(ClipboardData(text: value));
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$label card copied'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+      },
+
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+
+        child: Row(
+          children: [
+            SizedBox(
+              width: 80,
+
+              child: Text(
+                label,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+
+            Expanded(
+              child: Text(
+                value,
+
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+            ),
+
+            const Icon(Icons.copy, size: 16, color: Colors.grey),
+          ],
         ),
       ),
     );
@@ -486,15 +816,15 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     return Row(
       children: [
         Icon(icon, size: 16, color: ColorConstants.success),
+
         const SizedBox(width: 8),
+
         Expanded(
           child: Text(text, style: Theme.of(context).textTheme.bodySmall),
         ),
       ],
     );
   }
-
-
 }
 
 // Card number formatter to add spaces every 4 digits
