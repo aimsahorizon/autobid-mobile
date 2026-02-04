@@ -86,24 +86,101 @@ class SellerRepositoryImpl implements SellerRepository {
 
       // 5. Active
       try {
-        final active = await dataSource.getActiveListings(sellerId);
-        result[ListingStatus.active] = active
+        final activeModels = await dataSource.getActiveListings(sellerId);
+        final activeEntities = activeModels
             .map((l) => l.toSellerListingEntity())
             .toList();
+
+        // Filter expired listings from active
+        final now = DateTime.now();
+        final expiredListings = activeEntities.where((l) {
+          return l.endTime != null && l.endTime!.isBefore(now);
+        }).toList();
+
+        // Keep only truly active listings
+        result[ListingStatus.active] = activeEntities.where((l) {
+          return l.endTime == null || l.endTime!.isAfter(now);
+        }).toList();
+
+        // 6. Ended
+        try {
+          final endedModels = await dataSource.getEndedListings(sellerId);
+          final endedEntities = endedModels
+              .map((l) => l.toSellerListingEntity())
+              .toList();
+          
+          // Add DB-ended listings
+          result[ListingStatus.ended] = endedEntities;
+
+          // Add client-detected expired listings to Ended tab
+          // We must create new entities with updated status
+          final convertedExpired = expiredListings.map((l) {
+            return SellerListingEntity(
+              id: l.id,
+              imageUrl: l.imageUrl,
+              year: l.year,
+              make: l.make,
+              model: l.model,
+              status: ListingStatus.ended, // Force status to ended
+              startingPrice: l.startingPrice,
+              startTime: l.startTime,
+              currentBid: l.currentBid,
+              reservePrice: l.reservePrice,
+              totalBids: l.totalBids,
+              watchersCount: l.watchersCount,
+              viewsCount: l.viewsCount,
+              createdAt: l.createdAt,
+              endTime: l.endTime,
+              winnerName: l.winnerName,
+              soldPrice: l.soldPrice,
+              sellerId: l.sellerId,
+              transactionId: l.transactionId,
+            );
+          }).toList();
+
+          result[ListingStatus.ended]!.addAll(convertedExpired);
+          
+          // Sort ended list by end time (most recent first)
+          result[ListingStatus.ended]!.sort((a, b) {
+            final aTime = a.endTime ?? DateTime(0);
+            final bTime = b.endTime ?? DateTime(0);
+            return bTime.compareTo(aTime);
+          });
+
+        } catch (e) {
+          debugPrint('Error loading ended listings: $e');
+          // If DB fetch fails, at least show the locally expired ones
+          result[ListingStatus.ended] = expiredListings.map((l) {
+             return SellerListingEntity(
+              id: l.id,
+              imageUrl: l.imageUrl,
+              year: l.year,
+              make: l.make,
+              model: l.model,
+              status: ListingStatus.ended,
+              startingPrice: l.startingPrice,
+              startTime: l.startTime,
+              currentBid: l.currentBid,
+              reservePrice: l.reservePrice,
+              totalBids: l.totalBids,
+              watchersCount: l.watchersCount,
+              viewsCount: l.viewsCount,
+              createdAt: l.createdAt,
+              endTime: l.endTime,
+              winnerName: l.winnerName,
+              soldPrice: l.soldPrice,
+              sellerId: l.sellerId,
+              transactionId: l.transactionId,
+            );
+          }).toList();
+        }
       } catch (e) {
         debugPrint('Error loading active listings: $e');
         result[ListingStatus.active] = [];
-      }
-
-      // 6. Ended
-      try {
-        final ended = await dataSource.getEndedListings(sellerId);
-        result[ListingStatus.ended] = ended
-            .map((l) => l.toSellerListingEntity())
-            .toList();
-      } catch (e) {
-        debugPrint('Error loading ended listings: $e');
-        result[ListingStatus.ended] = [];
+        // Ensure ended list is initialized if active failed entirely
+        if (!result.containsKey(ListingStatus.ended)) {
+           result[ListingStatus.ended] = [];
+        }
       }
 
       // 7. Cancelled
