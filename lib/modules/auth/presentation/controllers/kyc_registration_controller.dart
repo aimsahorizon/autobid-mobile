@@ -620,10 +620,7 @@ class KYCRegistrationController extends ChangeNotifier {
   }
 
   bool validateOtpStep({bool reportError = true}) {
-    if (!_phoneOtpVerified) {
-      if (reportError) setError('Please verify your phone number');
-      return false;
-    }
+    // Phone verification removed as per requirement
     if (!_emailOtpVerified) {
       if (reportError) setError('Please verify your email');
       return false;
