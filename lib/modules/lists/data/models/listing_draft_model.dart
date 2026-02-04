@@ -226,12 +226,8 @@ class ListingDraftModel extends ListingDraftEntity {
       'description': description,
       'known_issues': knownIssues,
       'features': features,
-      'starting_price': (startingPrice != null && startingPrice! > 0)
-          ? startingPrice
-          : null,
-      'reserve_price': (reservePrice != null && reservePrice! > 0)
-          ? reservePrice
-          : null,
+      'starting_price': startingPrice,
+      'reserve_price': reservePrice,
       'auction_end_date': auctionEndDate?.toIso8601String(),
       // Step 8: Bidding Configuration
       'bidding_type': biddingType,

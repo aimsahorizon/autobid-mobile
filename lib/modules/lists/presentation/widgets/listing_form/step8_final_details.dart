@@ -39,16 +39,16 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _issuesController = TextEditingController(text: draft?.knownIssues);
     _featureController = TextEditingController();
     _startingPriceController = TextEditingController(
-      text: draft?.startingPrice?.toString(),
+      text: _formatDouble(draft?.startingPrice),
     );
     _reservePriceController = TextEditingController(
-      text: draft?.reservePrice?.toString(),
+      text: _formatDouble(draft?.reservePrice),
     );
     _bidIncrementController = TextEditingController(
-      text: (draft?.bidIncrement ?? draft?.minBidIncrement ?? 1000).toString(),
+      text: _formatDouble(draft?.bidIncrement ?? draft?.minBidIncrement ?? 1000),
     );
     _depositAmountController = TextEditingController(
-      text: (draft?.depositAmount ?? 50000).toString(),
+      text: _formatDouble(draft?.depositAmount ?? 50000),
     );
     _features = draft?.features ?? [];
     _auctionEndDate = draft?.auctionEndDate;
@@ -61,6 +61,14 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _reservePriceController.addListener(_updateDraft);
     _bidIncrementController.addListener(_updateDraft);
     _depositAmountController.addListener(_updateDraft);
+  }
+
+  String? _formatDouble(double? value) {
+    if (value == null) return null;
+    if (value == value.truncateToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toString();
   }
 
   @override

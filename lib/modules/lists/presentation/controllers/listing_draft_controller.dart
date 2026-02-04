@@ -397,7 +397,21 @@ class ListingDraftController extends ChangeNotifier {
 
     try {
       // 1. Save one last time
-      await _saveDraftUseCase.call(_currentDraft!);
+      final saveResult = await _saveDraftUseCase.call(_currentDraft!);
+      
+      final saveSuccess = saveResult.fold(
+        (failure) {
+          _errorMessage = 'Failed to save draft: ${failure.message}';
+          return false;
+        },
+        (_) => true,
+      );
+
+      if (!saveSuccess) {
+        _isSubmitting = false;
+        notifyListeners();
+        return false;
+      }
 
       // 2. Mark draft as complete (CRITICAL: Required by submit_listing_from_draft RPC)
       final markCompleteResult = await _markDraftCompleteUseCase.call(_currentDraft!.id);
