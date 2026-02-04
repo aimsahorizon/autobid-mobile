@@ -61,43 +61,24 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
   }
 
-  bool _canProceed() {
-    switch (_controller.currentStep) {
-      case KYCStep.accountInfo:
-        return _controller.validateAccountInfoStep();
-      case KYCStep.otpVerification:
-        return _controller.validateOtpStep();
-      case KYCStep.nationalId:
-        return _controller.validateNationalIdStep();
-      case KYCStep.selfieWithId:
-        return _controller.validateSelfieStep();
-      case KYCStep.secondaryId:
-        return _controller.validateSecondaryIdStep();
-      case KYCStep.personalInfo:
-        return _controller.validatePersonalInfoStep();
-      case KYCStep.address:
-        return _controller.validateAddressStep();
-      case KYCStep.proofOfAddress:
-        return _controller.validateProofOfAddressStep();
-      case KYCStep.review:
-        return true;
-    }
-  }
-
   void _handleNext() {
-    if (_canProceed()) {
-      // Trigger AI extraction for secondary ID step before proceeding
-      if (_controller.currentStep == KYCStep.secondaryId) {
-        _secondaryIdKey.currentState?.triggerAiExtraction();
-        return; // AI dialog will handle next step
-      }
+    // Validation is already checked via isCurrentStepValid for button state
+    // But we trigger one last check with error reporting enabled to show any hidden errors if needed
+    // or just proceed.
+    // Since button is disabled if invalid, we can assume it's valid here.
+    // However, some async checks (like secondary ID AI) might need explicit trigger.
+    
+    // Trigger AI extraction for secondary ID step before proceeding
+    if (_controller.currentStep == KYCStep.secondaryId) {
+      _secondaryIdKey.currentState?.triggerAiExtraction();
+      return; // AI dialog will handle next step
+    }
 
-      if (_controller.currentStep == KYCStep.review) {
-        _handleSubmit();
-      } else {
-        _controller.nextStep();
-        setState(() {});
-      }
+    if (_controller.currentStep == KYCStep.review) {
+      _handleSubmit();
+    } else {
+      _controller.nextStep();
+      setState(() {});
     }
   }
 
@@ -356,7 +337,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               Expanded(
                 flex: 2,
                 child: FilledButton(
-                  onPressed: _handleNext,
+                  onPressed: _controller.isCurrentStepValid ? _handleNext : null,
                   child: Text(
                     _controller.currentStep == KYCStep.review ? 'Submit' : 'Next',
                   ),

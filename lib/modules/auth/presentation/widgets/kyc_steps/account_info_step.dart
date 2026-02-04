@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import '../../../../profile/presentation/pages/legal_page.dart';
 import '../../controllers/kyc_registration_controller.dart';
 
 class AccountInfoStep extends StatefulWidget {
@@ -223,7 +224,15 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                 const Text('I agree to the '),
                 GestureDetector(
                   onTap: () {
-                    // Show terms & conditions
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LegalPage(
+                          title: 'Terms & Conditions',
+                          type: 'terms',
+                        ),
+                      ),
+                    );
                   },
                   child: const Text(
                     'Terms & Conditions',
@@ -249,7 +258,15 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                 const Text('I agree to the '),
                 GestureDetector(
                   onTap: () {
-                    // Show privacy policy
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LegalPage(
+                          title: 'Privacy Policy',
+                          type: 'privacy',
+                        ),
+                      ),
+                    );
                   },
                   child: const Text(
                     'Privacy Policy',
