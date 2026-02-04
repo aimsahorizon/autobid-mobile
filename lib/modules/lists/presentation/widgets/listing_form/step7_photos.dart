@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/image_helper.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import '../../../data/datasources/sample_photo_guide_datasource.dart';
@@ -40,11 +41,6 @@ class _Step7PhotosState extends State<Step7Photos> {
               title: const Text('Choose from Gallery'),
               onTap: () => Navigator.pop(context, 'gallery'),
             ),
-            ListTile(
-              leading: const Icon(Icons.collections),
-              title: const Text('Choose Multiple from Gallery'),
-              onTap: () => Navigator.pop(context, 'multiple'),
-            ),
           ],
         ),
       ),
@@ -61,167 +57,92 @@ class _Step7PhotosState extends State<Step7Photos> {
 
     try {
       final picker = ImagePicker();
+      XFile? pickedFile;
 
-      if (action == 'multiple') {
-        // Pick multiple images
-        debugPrint(
-          'DEBUG [Step7Photos]: Opening gallery for multiple selection...',
-        );
-        final pickedFiles = await picker.pickMultiImage(
+      if (action == 'camera') {
+        debugPrint('DEBUG [Step7Photos]: Opening camera...');
+        pickedFile = await picker.pickImage(
+          source: ImageSource.camera,
           maxWidth: 1920,
           maxHeight: 1080,
           imageQuality: 85,
         );
-
-        if (pickedFiles.isEmpty) {
-          debugPrint('DEBUG [Step7Photos]: No images selected');
-          if (context.mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('No images selected')));
-          }
-          return;
-        }
-
-        debugPrint(
-          'DEBUG [Step7Photos]: ${pickedFiles.length} images selected',
+      } else {
+        debugPrint('DEBUG [Step7Photos]: Opening gallery...');
+        pickedFile = await picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1920,
+          maxHeight: 1080,
+          imageQuality: 85,
         );
+      }
 
-        // Show progress dialog
+      if (pickedFile == null) {
+        debugPrint('DEBUG [Step7Photos]: No image selected');
         if (context.mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const PopScope(
-              canPop: false,
-              child: Center(
-                child: Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Uploading photos...'),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No image selected')));
+        }
+        return;
+      }
+
+      // Crop the image
+      final croppedFile = await ImageHelper.cropImage(
+        file: File(pickedFile.path),
+        title: 'Crop $category',
+      );
+
+      if (croppedFile == null) {
+        debugPrint('DEBUG [Step7Photos]: Image cropping cancelled');
+        return;
+      }
+
+      debugPrint(
+        'DEBUG [Step7Photos]: Image picked and cropped - Path: ${croppedFile.path}',
+      );
+      debugPrint(
+        'DEBUG [Step7Photos]: Image size: ${await croppedFile.length()} bytes',
+      );
+      debugPrint('DEBUG [Step7Photos]: Uploading to controller...');
+
+      // Clear existing photo for this category if any (Enforce 1 photo per view)
+      final currentPhotos = widget.controller.currentDraft?.photoUrls ?? {};
+      if (currentPhotos.containsKey(category) &&
+          currentPhotos[category]!.isNotEmpty) {
+        final updatedPhotoUrls = Map<String, List<String>>.from(currentPhotos);
+        updatedPhotoUrls.remove(category);
+
+        widget.controller.updateDraft(
+          widget.controller.currentDraft!.copyWith(
+            photoUrls: updatedPhotoUrls,
+            lastSaved: DateTime.now(),
+          ),
+        );
+      }
+
+      final success = await widget.controller.uploadPhoto(
+        category,
+        croppedFile.path,
+      );
+
+      debugPrint('DEBUG [Step7Photos]: Upload result: $success');
+
+      if (context.mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Photo uploaded for $category'),
+              backgroundColor: Colors.green,
             ),
           );
-        }
-
-        int successCount = 0;
-        int failCount = 0;
-
-        for (int i = 0; i < pickedFiles.length; i++) {
-          final pickedFile = pickedFiles[i];
-          debugPrint(
-            'DEBUG [Step7Photos]: Uploading ${i + 1}/${pickedFiles.length}...',
-          );
-
-          final success = await widget.controller.uploadPhoto(
-            category,
-            pickedFile.path,
-          );
-
-          if (success) {
-            successCount++;
-          } else {
-            failCount++;
-          }
-        }
-
-        debugPrint(
-          'DEBUG [Step7Photos]: Upload complete: $successCount success, $failCount failed',
-        );
-
-        if (context.mounted) {
-          Navigator.pop(context); // Close progress dialog
-
-          if (successCount > 0) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  '✅ $successCount photo${successCount > 1 ? 's' : ''} uploaded${failCount > 0 ? ', $failCount failed' : ''}',
-                ),
-                backgroundColor: failCount > 0 ? Colors.orange : Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('❌ Failed to upload photos'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } else {
-        // Single image selection (camera or gallery)
-        XFile? pickedFile;
-
-        if (action == 'camera') {
-          debugPrint('DEBUG [Step7Photos]: Opening camera...');
-          pickedFile = await picker.pickImage(
-            source: ImageSource.camera,
-            maxWidth: 1920,
-            maxHeight: 1080,
-            imageQuality: 85,
-          );
         } else {
-          debugPrint('DEBUG [Step7Photos]: Opening gallery...');
-          pickedFile = await picker.pickImage(
-            source: ImageSource.gallery,
-            maxWidth: 1920,
-            maxHeight: 1080,
-            imageQuality: 85,
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Failed to upload photo for $category'),
+              backgroundColor: Colors.red,
+            ),
           );
-        }
-
-        if (pickedFile == null) {
-          debugPrint('DEBUG [Step7Photos]: No image selected');
-          if (context.mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('No image selected')));
-          }
-          return;
-        }
-
-        debugPrint(
-          'DEBUG [Step7Photos]: Image picked - Path: ${pickedFile.path}',
-        );
-        debugPrint(
-          'DEBUG [Step7Photos]: Image size: ${await pickedFile.length()} bytes',
-        );
-        debugPrint('DEBUG [Step7Photos]: Uploading to controller...');
-
-        final success = await widget.controller.uploadPhoto(
-          category,
-          pickedFile.path,
-        );
-
-        debugPrint('DEBUG [Step7Photos]: Upload result: $success');
-
-        if (context.mounted) {
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('✅ Photo uploaded for $category'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('❌ Failed to upload photo for $category'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
         }
       }
     } catch (e, stackTrace) {
@@ -229,11 +150,6 @@ class _Step7PhotosState extends State<Step7Photos> {
       debugPrint('STACK [Step7Photos]: $stackTrace');
 
       if (context.mounted) {
-        // Close progress dialog if open
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
@@ -270,7 +186,15 @@ class _Step7PhotosState extends State<Step7Photos> {
         return;
       }
 
-      final url = await widget.controller.uploadDeedOfSale(pickedFile.path);
+      // Crop the deed of sale
+      final croppedFile = await ImageHelper.cropImage(
+        file: File(pickedFile.path),
+        title: 'Crop Deed of Sale',
+      );
+
+      if (croppedFile == null) return;
+
+      final url = await widget.controller.uploadDeedOfSale(croppedFile.path);
 
       if (context.mounted) {
         if (url != null) {
@@ -457,14 +381,17 @@ class _Step7PhotosState extends State<Step7Photos> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    deedOfSaleUrl.toLowerCase().endsWith('.pdf')
-                        ? Icons.picture_as_pdf
-                        : Icons.image,
-                    color: deedOfSaleUrl.toLowerCase().endsWith('.pdf')
-                        ? Colors.red
-                        : Colors.blue,
-                    size: 40,
+                  GestureDetector(
+                    onTap: () => _showFullImage(context, deedOfSaleUrl),
+                    child: Icon(
+                      deedOfSaleUrl.toLowerCase().endsWith('.pdf')
+                          ? Icons.picture_as_pdf
+                          : Icons.image,
+                      color: deedOfSaleUrl.toLowerCase().endsWith('.pdf')
+                          ? Colors.red
+                          : Colors.blue,
+                      size: 40,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -482,7 +409,7 @@ class _Step7PhotosState extends State<Step7Photos> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Tap to view',
+                          'Tap icon to view',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -950,6 +877,9 @@ class _Step7PhotosState extends State<Step7Photos> {
         enableIncrementalBidding: currentDraft.enableIncrementalBidding,
         tags: currentDraft.tags,
         deedOfSaleUrl: currentDraft.deedOfSaleUrl,
+        snipeGuardEnabled: currentDraft.snipeGuardEnabled,
+        snipeGuardThresholdSeconds: currentDraft.snipeGuardThresholdSeconds,
+        snipeGuardExtendSeconds: currentDraft.snipeGuardExtendSeconds,
       );
 
       widget.controller.updateDraft(updatedDraft);
@@ -1174,15 +1104,20 @@ class _Step7PhotosState extends State<Step7Photos> {
                                     ElevatedButton.icon(
                                       onPressed: () =>
                                           _pickImage(context, category),
-                                      icon: const Icon(
-                                        Icons.add_photo_alternate,
+                                      icon: Icon(
+                                        hasPhoto
+                                            ? Icons.swap_horiz
+                                            : Icons.add_photo_alternate,
                                         size: 18,
                                       ),
                                       label: Text(
-                                        hasPhoto ? 'Add More' : 'Upload',
+                                        hasPhoto ? 'Replace' : 'Upload',
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: ColorConstants.primary,
+                                        backgroundColor:
+                                            hasPhoto
+                                                ? Colors.orange
+                                                : ColorConstants.primary,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 12,
@@ -1245,3 +1180,4 @@ class _Step7PhotosState extends State<Step7Photos> {
     return allCategories.sublist(startIndex, startIndex + count);
   }
 }
+

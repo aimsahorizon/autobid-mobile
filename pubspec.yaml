@@ -64,6 +64,7 @@ dependencies:
   encrypt: ^5.0.3
   intl: ^0.20.2
   connectivity_plus: ^7.0.0
+  image_cropper: ^11.0.0
 
 dev_dependencies:
   flutter_test:
