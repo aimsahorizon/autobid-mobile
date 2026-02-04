@@ -238,7 +238,8 @@ class ListingDraftModel extends ListingDraftEntity {
       'snipe_guard_enabled': snipeGuardEnabled,
       'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
       'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
-      'is_plate_valid': isPlateValid,
+      // TODO: Uncomment after migration 00073 is applied to production DB
+      // 'is_plate_valid': isPlateValid,
     };
   }
 
