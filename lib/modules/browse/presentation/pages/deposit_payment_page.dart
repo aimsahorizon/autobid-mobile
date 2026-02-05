@@ -186,6 +186,18 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     }
   }
 
+  void _autoFillTestCard(String cardNumber) {
+    setState(() {
+      _nameController.text = 'Juan Dela Cruz';
+      _emailController.text = 'juan@example.com';
+      _phoneController.text = '+639171234567';
+      _cardNumberController.text = cardNumber;
+      _expMonthController.text = '12';
+      _expYearController.text = '25';
+      _cvcController.text = '123';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -198,6 +210,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       body: AutofillGroup(
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
 
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -388,8 +401,9 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                       return 'Please enter your email';
                     }
 
-                    if (!value.contains('@')) {
-                      return 'Please enter valid email';
+                    final emailRegex = RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
+                    if (!emailRegex.hasMatch(value)) {
+                      return 'Please enter a valid email address';
                     }
 
                     return null;
@@ -412,6 +426,16 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
+
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty) {
+                      final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      if (digits.length < 10) {
+                        return 'Phone number is too short';
+                      }
+                    }
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 24),
@@ -457,8 +481,8 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
                     final digits = value.replaceAll(' ', '');
 
-                    if (digits.length < 13) {
-                      return 'Card number too short';
+                    if (digits.length < 13 || digits.length > 19) {
+                      return 'Enter a valid card number (13-19 digits)';
                     }
 
                     return null;
@@ -710,11 +734,11 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
                       const SizedBox(height: 8),
 
-                      _buildCopyableRow('Visa', '4242 4242 4242 4242'),
+                      _buildCopyableRow('Visa', '4242 4242 4242 4242', onAutoFill: () => _autoFillTestCard('4242 4242 4242 4242')),
 
                       const SizedBox(height: 4),
 
-                      _buildCopyableRow('Mastercard', '5454 5454 5454 5454'),
+                      _buildCopyableRow('Mastercard', '5454 5454 5454 5454', onAutoFill: () => _autoFillTestCard('5454 5454 5454 5454')),
 
                       const SizedBox(height: 8),
 
@@ -732,44 +756,62 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     );
   }
 
-  Widget _buildCopyableRow(String label, String value) {
-    return InkWell(
-      onTap: () {
-        Clipboard.setData(ClipboardData(text: value));
+  Widget _buildCopyableRow(String label, String value, {VoidCallback? onAutoFill}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$label card copied'),
-            duration: const Duration(seconds: 1),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: value));
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$label card copied'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 80,
+
+                    child: Text(
+                      label,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+
+                  Expanded(
+                    child: Text(
+                      value,
+
+                      style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                    ),
+                  ),
+
+                  const Icon(Icons.copy, size: 14, color: Colors.grey),
+                ],
+              ),
+            ),
           ),
-        );
-      },
-
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-
-        child: Row(
-          children: [
-            SizedBox(
-              width: 80,
-
-              child: Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+          if (onAutoFill != null) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onAutoFill,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: Colors.blue.withValues(alpha: 0.1),
               ),
+              child: const Text('Fill', style: TextStyle(fontSize: 12)),
             ),
-
-            Expanded(
-              child: Text(
-                value,
-
-                style: const TextStyle(fontFamily: 'monospace'),
-              ),
-            ),
-
-            const Icon(Icons.copy, size: 16, color: Colors.grey),
           ],
-        ),
+        ],
       ),
     );
   }
