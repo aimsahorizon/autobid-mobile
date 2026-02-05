@@ -844,7 +844,7 @@ class KYCRegistrationController extends ChangeNotifier {
       };
 
       final jsonString = jsonEncode(data);
-      final success = await _sharedPreferences!.setString(
+      final success = await _sharedPreferences.setString(
         'kyc_registration_draft',
         jsonString,
       );
@@ -866,13 +866,13 @@ class KYCRegistrationController extends ChangeNotifier {
   /// Load saved draft from storage
   Future<bool> hasSavedDraft() async {
     if (_sharedPreferences == null) return false;
-    return _sharedPreferences!.containsKey('kyc_registration_draft');
+    return _sharedPreferences.containsKey('kyc_registration_draft');
   }
 
   Future<void> loadDraft([String? email]) async {
     if (_sharedPreferences == null) return;
 
-    final draft = _sharedPreferences!.getString('kyc_registration_draft');
+    final draft = _sharedPreferences.getString('kyc_registration_draft');
     if (draft == null) return;
 
     try {
@@ -931,7 +931,7 @@ class KYCRegistrationController extends ChangeNotifier {
   /// Clear all registration data
   void clearAllData() {
     if (_sharedPreferences != null) {
-      _sharedPreferences!.remove('kyc_registration_draft');
+      _sharedPreferences.remove('kyc_registration_draft');
     }
 
     // Reset all fields to null/default
