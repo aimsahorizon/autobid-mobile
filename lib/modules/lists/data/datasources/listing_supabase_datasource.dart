@@ -156,8 +156,7 @@ class ListingSupabaseDataSource {
     }
   }
 
-  /// Delete draft (soft delete)
-  /// Sets deleted_at timestamp to soft-delete the draft
+  /// Delete draft (Hard delete)
   /// Requires proper authentication - the current user must be the draft owner
   Future<void> deleteDraft(String draftId) async {
     try {
@@ -171,14 +170,14 @@ class ListingSupabaseDataSource {
         '[ListingSupabaseDataSource] Deleting draft: $draftId for user: ${currentUser.id}',
       );
 
-      // Soft delete: set deleted_at timestamp
+      // Hard delete: remove the row completely
       final response = await _supabase
           .from('listing_drafts')
-          .update({'deleted_at': DateTime.now().toIso8601String()})
+          .delete()
           .eq('id', draftId)
-          .select(); // Returns updated rows if any
+          .select(); // Returns deleted rows if any
 
-      // Check if any rows were actually updated
+      // Check if any rows were actually deleted
       if (response.isEmpty) {
         throw Exception(
           'Draft not found or access denied. Ensure you own this draft.',
