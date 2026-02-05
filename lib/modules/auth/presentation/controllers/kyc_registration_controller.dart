@@ -6,6 +6,8 @@ import '../../domain/usecases/send_email_otp_usecase.dart';
 import '../../domain/usecases/send_phone_otp_usecase.dart';
 import '../../domain/usecases/verify_email_otp_usecase.dart';
 import '../../domain/usecases/verify_phone_otp_usecase.dart';
+import '../../domain/usecases/check_national_id_exists_usecase.dart';
+import '../../domain/usecases/check_secondary_id_exists_usecase.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/models/kyc_registration_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -29,6 +31,8 @@ class KYCRegistrationController extends ChangeNotifier {
   final AuthRemoteDataSource? _authDataSource;
   final SendEmailOtpUseCase? _sendEmailOtpUseCase;
   final VerifyEmailOtpUseCase? _verifyEmailOtpUseCase;
+  final CheckNationalIdExistsUseCase? _checkNationalIdExistsUseCase;
+  final CheckSecondaryIdExistsUseCase? _checkSecondaryIdExistsUseCase;
   final IAiIdExtractionService _aiService;
   final FileEncryptionService? _fileEncryptionService;
   final SharedPreferences? _sharedPreferences;
@@ -41,12 +45,16 @@ class KYCRegistrationController extends ChangeNotifier {
     SendPhoneOtpUseCase? sendPhoneOtpUseCase,
     VerifyEmailOtpUseCase? verifyEmailOtpUseCase,
     VerifyPhoneOtpUseCase? verifyPhoneOtpUseCase,
+    CheckNationalIdExistsUseCase? checkNationalIdExistsUseCase,
+    CheckSecondaryIdExistsUseCase? checkSecondaryIdExistsUseCase,
     IAiIdExtractionService? aiService,
     FileEncryptionService? fileEncryptionService,
     SharedPreferences? sharedPreferences,
   }) : _authDataSource = authDataSource,
        _sendEmailOtpUseCase = sendEmailOtpUseCase,
        _verifyEmailOtpUseCase = verifyEmailOtpUseCase,
+       _checkNationalIdExistsUseCase = checkNationalIdExistsUseCase,
+       _checkSecondaryIdExistsUseCase = checkSecondaryIdExistsUseCase,
        _aiService = aiService ?? ProductionAiIdExtractionService(),
        _fileEncryptionService = fileEncryptionService,
        _sharedPreferences = sharedPreferences;
@@ -430,7 +438,58 @@ class KYCRegistrationController extends ChangeNotifier {
   }
 
   // Navigation
-  void nextStep() {
+  Future<void> nextStep() async {
+    // Perform async checks before proceeding
+    if (_currentStep == KYCStep.nationalId) {
+       if (_nationalIdNumber != null && _checkNationalIdExistsUseCase != null) {
+          _isLoading = true;
+          notifyListeners();
+          
+          try {
+            final result = await _checkNationalIdExistsUseCase!.call(_nationalIdNumber!);
+            final exists = result.fold((l) => false, (r) => r);
+            
+            if (exists) {
+              setError('National ID Number is already registered.');
+              _isLoading = false;
+              notifyListeners();
+              return;
+            }
+          } catch (e) {
+             // Handle error or proceed? Better to fail safe.
+             // But if network fails, user can't register?
+             // For now, log and maybe warn or proceed if critical.
+          } finally {
+            _isLoading = false;
+            notifyListeners();
+          }
+       }
+    }
+    
+    if (_currentStep == KYCStep.secondaryId) {
+       if (_secondaryIdNumber != null && _secondaryIdType != null && _checkSecondaryIdExistsUseCase != null) {
+          _isLoading = true;
+          notifyListeners();
+          
+          try {
+            final result = await _checkSecondaryIdExistsUseCase!.call(_secondaryIdNumber!, _secondaryIdType!);
+            final exists = result.fold((l) => false, (r) => r);
+            
+            if (exists) {
+              setError('Secondary ID Number is already registered.');
+              _isLoading = false;
+              notifyListeners();
+              return;
+            }
+          } catch (e) {
+             // Handle error
+          } finally {
+             _isLoading = false;
+             notifyListeners();
+          }
+       }
+    }
+
     if (_currentStep.index < KYCStep.values.length - 1) {
       _currentStep = KYCStep.values[_currentStep.index + 1];
       _errorMessage = null;

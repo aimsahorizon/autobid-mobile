@@ -26,6 +26,8 @@ abstract class AuthRemoteDataSource {
   Future<KycRegistrationModel?> getKycRegistrationStatus(String userId);
   Future<bool> checkUsernameAvailable(String username);
   Future<bool> checkEmailAvailable(String email);
+  Future<bool> checkNationalIdExists(String idNumber);
+  Future<bool> checkSecondaryIdExists(String idNumber, String type);
   Future<void> setPasswordForOtpUser(String password);
 }
 
@@ -574,6 +576,47 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     } catch (e) {
       throw ServerException('Failed to check email availability: $e');
+    }
+  }
+
+  @override
+  Future<bool> checkNationalIdExists(String idNumber) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('national_id_number')
+          .eq('national_id_number', idNumber)
+          .maybeSingle();
+
+      return response != null;
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException(
+        'Failed to check national ID existence: ${e.message}',
+      );
+    } catch (e) {
+      throw ServerException('Failed to check national ID existence: $e');
+    }
+  }
+
+  @override
+  Future<bool> checkSecondaryIdExists(String idNumber, String type) async {
+    try {
+      // Check both number and type to ensure uniqueness for that specific ID type
+      // Or just number if it should be unique globally across that type column
+      final response = await _supabase
+          .from('users')
+          .select('secondary_gov_id_number')
+          .eq('secondary_gov_id_number', idNumber)
+          .eq('secondary_gov_id_type', type)
+          .maybeSingle();
+
+      return response != null;
+    } on supabase.PostgrestException catch (e) {
+      throw ServerException(
+        'Failed to check secondary ID existence: ${e.message}',
+      );
+    } catch (e) {
+      throw ServerException('Failed to check secondary ID existence: $e');
     }
   }
 }

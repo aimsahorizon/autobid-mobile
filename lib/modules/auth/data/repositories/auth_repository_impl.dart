@@ -358,6 +358,38 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
+  Future<Either<Failure, bool>> checkNationalIdExists(String idNumber) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.checkNationalIdExists(idNumber);
+      return Right(result);
+    } catch (e) {
+      return Left(_handleError(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> checkSecondaryIdExists(
+    String idNumber,
+    String type,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.checkSecondaryIdExists(
+        idNumber,
+        type,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(_handleError(e));
+    }
+  }
+
   Failure _handleError(dynamic error) {
     if (error is AuthException) {
       final msg = error.message.toLowerCase();

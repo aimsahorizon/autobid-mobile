@@ -20,6 +20,8 @@ import 'domain/usecases/verify_otp_usecase.dart';
 import 'domain/usecases/verify_phone_otp_usecase.dart';
 import 'domain/usecases/reset_password_usecase.dart';
 import 'domain/usecases/manage_local_auth_usecase.dart';
+import 'domain/usecases/check_national_id_exists_usecase.dart';
+import 'domain/usecases/check_secondary_id_exists_usecase.dart';
 import '../profile/domain/usecases/check_email_exists_usecase.dart';
 import '../profile/domain/usecases/get_user_profile_by_email_usecase.dart';
 
@@ -58,6 +60,8 @@ Future<void> initAuthModule() async {
   sl.registerLazySingleton(() => VerifyEmailOtpUseCase(sl()));
   sl.registerLazySingleton(() => VerifyPhoneOtpUseCase(sl()));
   sl.registerLazySingleton(() => ManageLocalAuthUseCase(sl()));
+  sl.registerLazySingleton(() => CheckNationalIdExistsUseCase(sl()));
+  sl.registerLazySingleton(() => CheckSecondaryIdExistsUseCase(sl()));
 
   // Controllers (Factory)
   sl.registerFactory(
@@ -96,6 +100,8 @@ Future<void> initAuthModule() async {
       sendPhoneOtpUseCase: sl(),
       verifyEmailOtpUseCase: sl(),
       verifyPhoneOtpUseCase: sl(),
+      checkNationalIdExistsUseCase: sl(),
+      checkSecondaryIdExistsUseCase: sl(),
       sharedPreferences: sl(),
       aiService: sl(),
     ),
@@ -124,6 +130,8 @@ class AuthModule {
   late final VerifyEmailOtpUseCase _verifyEmailOtpUseCase;
   late final VerifyPhoneOtpUseCase _verifyPhoneOtpUseCase;
   late final ManageLocalAuthUseCase _manageLocalAuthUseCase;
+  late final CheckNationalIdExistsUseCase _checkNationalIdExistsUseCase;
+  late final CheckSecondaryIdExistsUseCase _checkSecondaryIdExistsUseCase;
 
   // Profile Use Cases (Cross-module)
   late final CheckEmailExistsUseCase _checkEmailExistsUseCase;
@@ -174,6 +182,8 @@ class AuthModule {
     _verifyEmailOtpUseCase = VerifyEmailOtpUseCase(_authRepository);
     _verifyPhoneOtpUseCase = VerifyPhoneOtpUseCase(_authRepository);
     _manageLocalAuthUseCase = ManageLocalAuthUseCase(_authRepository);
+    _checkNationalIdExistsUseCase = CheckNationalIdExistsUseCase(_authRepository);
+    _checkSecondaryIdExistsUseCase = CheckSecondaryIdExistsUseCase(_authRepository);
 
     // Profile Use Cases
     _checkEmailExistsUseCase = CheckEmailExistsUseCase(profileRepository);
@@ -223,6 +233,8 @@ class AuthModule {
       sendPhoneOtpUseCase: _sendPhoneOtpUseCase,
       verifyEmailOtpUseCase: _verifyEmailOtpUseCase,
       verifyPhoneOtpUseCase: _verifyPhoneOtpUseCase,
+      checkNationalIdExistsUseCase: _checkNationalIdExistsUseCase,
+      checkSecondaryIdExistsUseCase: _checkSecondaryIdExistsUseCase,
       aiService: _aiService,
     );
   }

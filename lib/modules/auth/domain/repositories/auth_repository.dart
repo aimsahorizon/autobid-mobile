@@ -24,6 +24,8 @@ abstract class AuthRepository {
   Future<Either<Failure, KycRegistrationEntity?>> getKycRegistrationStatus(String userId);
   Future<Either<Failure, bool>> checkUsernameAvailable(String username);
   Future<Either<Failure, bool>> checkEmailAvailable(String email);
+  Future<Either<Failure, bool>> checkNationalIdExists(String idNumber);
+  Future<Either<Failure, bool>> checkSecondaryIdExists(String idNumber, String type);
 
   // Local Auth
   Future<Either<Failure, void>> cacheRememberMe(bool value);
