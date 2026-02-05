@@ -194,6 +194,31 @@ class SellerRepositoryImpl implements SellerRepository {
         result[ListingStatus.cancelled] = [];
       }
 
+      // 8. In Transaction
+      try {
+        final inTransactionModels = await dataSource.getSellerListingsByStatus(
+          sellerId,
+          'in_transaction',
+        );
+        result[ListingStatus.inTransaction] = inTransactionModels
+            .map((l) => l.toSellerListingEntity())
+            .toList();
+      } catch (e) {
+        debugPrint('Error loading in_transaction listings: $e');
+        result[ListingStatus.inTransaction] = [];
+      }
+
+      // 9. Sold
+      try {
+        final soldModels = await dataSource.getSoldListings(sellerId);
+        result[ListingStatus.sold] = soldModels
+            .map((l) => l.toSellerListingEntity())
+            .toList();
+      } catch (e) {
+        debugPrint('Error loading sold listings: $e');
+        result[ListingStatus.sold] = [];
+      }
+
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));

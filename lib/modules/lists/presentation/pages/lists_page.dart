@@ -28,6 +28,8 @@ class _ListsPageState extends State<ListsPage>
     ListingStatus.pending,
     ListingStatus.approved,
     ListingStatus.scheduled,
+    ListingStatus.inTransaction,
+    ListingStatus.sold,
     ListingStatus.ended,
     ListingStatus.draft,
     ListingStatus.cancelled,
