@@ -37,10 +37,12 @@ void main() {
     expect(find.text('Test Credentials'), findsOneWidget);
     expect(find.text('Use these cards for testing:'), findsOneWidget);
     expect(find.text('Visa'), findsOneWidget);
-    expect(find.text('4242 4242 4242 4242'), findsOneWidget);
+    expect(find.text('4343 4343 4343 4345'), findsOneWidget);
   });
 
-  testWidgets('Focus moves automatically: Month -> Year -> CVC', (WidgetTester tester) async {
+  testWidgets('Focus moves automatically: Month -> Year -> CVC', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(createWidgetUnderTest());
     await tester.pumpAndSettle();
 
@@ -59,79 +61,122 @@ void main() {
     // we primarily rely on the logic test below which confirms data was processed correctly.
   });
 
-  testWidgets('Submitting form calls PayMongo with correct data (Year conversion)', (WidgetTester tester) async {
-    await tester.pumpWidget(createWidgetUnderTest());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Submitting form calls PayMongo with correct data (Year conversion)',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
 
-    // Fill form
-    await tester.enterText(find.widgetWithText(TextFormField, 'Full Name'), 'Test User');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Email'), 'test@example.com');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Card Number'), '4242 4242 4242 4242');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Month'), '12');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Year'), '25'); // 2-digit year
-    await tester.enterText(find.widgetWithText(TextFormField, 'CVC'), '123');
+      // Fill form
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Full Name'),
+        'Test User',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Email'),
+        'test@example.com',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Card Number'),
+        '4343 4343 4343 4345',
+      );
+      await tester.enterText(find.widgetWithText(TextFormField, 'Month'), '12');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Year'),
+        '25',
+      ); // 2-digit year
+      await tester.enterText(find.widgetWithText(TextFormField, 'CVC'), '123');
 
-    // Mock successful responses
-    when(mockPayMongoService.createPaymentIntent(
-      amount: anyNamed('amount'),
-      description: anyNamed('description'),
-      metadata: anyNamed('metadata'),
-    )).thenAnswer((_) async => {'id': 'pi_123'});
+      // Mock successful responses
+      when(
+        mockPayMongoService.createPaymentIntent(
+          amount: anyNamed('amount'),
+          description: anyNamed('description'),
+          metadata: anyNamed('metadata'),
+        ),
+      ).thenAnswer(
+        (_) async => {
+          'id': 'pi_123',
+          'attributes': {'client_key': 'pi_client_key_123'},
+        },
+      );
 
-    when(mockPayMongoService.createPaymentMethod(
-      cardNumber: anyNamed('cardNumber'),
-      expMonth: anyNamed('expMonth'),
-      expYear: anyNamed('expYear'), // We want to verify this receives 2025
-      cvc: anyNamed('cvc'),
-      billingName: anyNamed('billingName'),
-      billingEmail: anyNamed('billingEmail'),
-      billingPhone: anyNamed('billingPhone'),
-    )).thenAnswer((_) async => {'id': 'pm_123'});
+      when(
+        mockPayMongoService.createPaymentMethod(
+          cardNumber: anyNamed('cardNumber'),
+          expMonth: anyNamed('expMonth'),
+          expYear: anyNamed('expYear'), // We want to verify this receives 2025
+          cvc: anyNamed('cvc'),
+          billingName: anyNamed('billingName'),
+          billingEmail: anyNamed('billingEmail'),
+          billingPhone: anyNamed('billingPhone'),
+        ),
+      ).thenAnswer(
+        (_) async => {
+          'id': 'pm_123',
+          'attributes': {'type': 'card'},
+        },
+      );
 
-    when(mockPayMongoService.attachPaymentMethod(
-      paymentIntentId: anyNamed('paymentIntentId'),
-      paymentMethodId: anyNamed('paymentMethodId'),
-    )).thenAnswer((_) async => {
-      'attributes': {'status': 'succeeded'}
-    });
+      when(
+        mockPayMongoService.attachPaymentMethod(
+          paymentIntentId: 'pi_123',
+          paymentMethodId: 'pm_123',
+          clientKey: anyNamed('clientKey'),
+          returnUrl: anyNamed('returnUrl'),
+        ),
+      ).thenAnswer(
+        (_) async => {
+          'attributes': {'status': 'succeeded'},
+        },
+      );
 
-    when(mockDepositDataSource.createDeposit(
-      auctionId: anyNamed('auctionId'),
-      userId: anyNamed('userId'),
-      amount: anyNamed('amount'),
-      paymentIntentId: anyNamed('paymentIntentId'),
-    )).thenAnswer((_) async => 'deposit_123');
+      when(
+        mockDepositDataSource.createDeposit(
+          auctionId: anyNamed('auctionId'),
+          userId: anyNamed('userId'),
+          amount: anyNamed('amount'),
+          paymentIntentId: anyNamed('paymentIntentId'),
+        ),
+      ).thenAnswer((_) async => 'deposit_123');
 
-    // Tap Pay button
-    final payButton = find.textContaining('Pay Deposit');
-    await tester.ensureVisible(payButton);
-    await tester.tap(payButton);
-    await tester.pump(); // Start async
-    await tester.pump(const Duration(milliseconds: 100)); // Process
+      // Tap Pay button
+      final payButton = find.textContaining('Pay Deposit');
+      await tester.ensureVisible(payButton);
+      await tester.tap(payButton);
+      await tester.pump(); // Start async
+      await tester.pump(const Duration(milliseconds: 100)); // Process
 
-    // Verify calls
-    verify(mockPayMongoService.createPaymentIntent(
-      amount: 5000,
-      description: anyNamed('description'),
-      metadata: anyNamed('metadata'),
-    )).called(1);
+      // Verify calls
+      verify(
+        mockPayMongoService.createPaymentIntent(
+          amount: 5000,
+          description: anyNamed('description'),
+          metadata: anyNamed('metadata'),
+        ),
+      ).called(1);
 
-    // CRITICAL: Verify Year is 2025, not 25
-    verify(mockPayMongoService.createPaymentMethod(
-      cardNumber: '4242424242424242',
-      expMonth: 12,
-      expYear: 2025, // Check for 2025
-      cvc: '123',
-      billingName: 'Test User',
-      billingEmail: 'test@example.com',
-      billingPhone: null,
-    )).called(1);
+      // CRITICAL: Verify Year is 2025, not 25
+      verify(
+        mockPayMongoService.createPaymentMethod(
+          cardNumber: '4343434343434345',
+          expMonth: 12,
+          expYear: 2025, // Check for 2025
+          cvc: '123',
+          billingName: 'Test User',
+          billingEmail: 'test@example.com',
+          billingPhone: null,
+        ),
+      ).called(1);
 
-    verify(mockDepositDataSource.createDeposit(
-      auctionId: 'auction_123',
-      userId: 'user_123',
-      amount: 5000,
-      paymentIntentId: 'pi_123',
-    )).called(1);
-  });
+      verify(
+        mockDepositDataSource.createDeposit(
+          auctionId: 'auction_123',
+          userId: 'user_123',
+          amount: 5000,
+          paymentIntentId: 'pi_123',
+        ),
+      ).called(1);
+    },
+  );
 }

@@ -45,22 +45,27 @@ class MockIPayMongoService extends Mock implements IPayMongoService {
 
   @override
   Future<Map<String, dynamic>> attachPaymentMethod({
-    required String? paymentIntentId,
-    required String? paymentMethodId,
+    required String paymentIntentId,
+    required String paymentMethodId,
     String? clientKey,
+    String? returnUrl,
   }) {
     return super.noSuchMethod(
       Invocation.method(#attachPaymentMethod, [], {
         #paymentIntentId: paymentIntentId,
         #paymentMethodId: paymentMethodId,
         #clientKey: clientKey,
+        #returnUrl: returnUrl,
       }),
-      returnValue: Future.value({'attributes': {'status': 'succeeded'}}),
+      returnValue: Future.value({
+        'attributes': {'status': 'succeeded'},
+      }),
     );
   }
 }
 
-class MockDepositSupabaseDataSource extends Mock implements DepositSupabaseDataSource {
+class MockDepositSupabaseDataSource extends Mock
+    implements DepositSupabaseDataSource {
   @override
   Future<String?> createDeposit({
     required String? auctionId,
