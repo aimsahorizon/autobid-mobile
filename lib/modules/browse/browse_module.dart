@@ -23,6 +23,7 @@ import 'domain/usecases/upsert_bid_increment_usecase.dart';
 import 'domain/usecases/process_deposit_usecase.dart';
 import 'domain/usecases/stream_auction_updates_usecase.dart';
 import 'domain/usecases/stream_bid_updates_usecase.dart';
+import 'domain/usecases/stream_active_auctions_usecase.dart';
 import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
 
@@ -75,9 +76,10 @@ Future<void> initBrowseModule() async {
   sl.registerLazySingleton(() => ProcessDepositUseCase(sl()));
   sl.registerLazySingleton(() => StreamAuctionUpdatesUseCase(sl()));
   sl.registerLazySingleton(() => StreamBidUpdatesUseCase(sl()));
+  sl.registerLazySingleton(() => StreamActiveAuctionsUseCase(sl()));
 
   // Controllers (Factory - create new instance each time)
-  sl.registerFactory(() => BrowseController(sl()));
+  sl.registerFactory(() => BrowseController(sl(), sl()));
   sl.registerFactory(
     () => AuctionDetailController(
       getAuctionDetailUseCase: sl(),

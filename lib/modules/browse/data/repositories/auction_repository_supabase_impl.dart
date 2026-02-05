@@ -53,4 +53,9 @@ class AuctionRepositorySupabaseImpl implements AuctionRepository {
       throw Exception('Failed to search auctions: $e');
     }
   }
+
+  @override
+  Stream<void> streamActiveAuctions() {
+    return _supabaseDataSource.streamAuctionsTable();
+  }
 }

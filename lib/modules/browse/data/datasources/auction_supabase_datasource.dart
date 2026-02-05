@@ -390,4 +390,9 @@ class AuctionSupabaseDataSource {
         .stream(primaryKey: ['id'])
         .eq('id', auctionId);
   }
+
+  /// Stream updates for all auctions (signal for Browse page refresh)
+  Stream<List<Map<String, dynamic>>> streamAuctionsTable() {
+    return _supabase.from('auctions').stream(primaryKey: ['id']);
+  }
 }
