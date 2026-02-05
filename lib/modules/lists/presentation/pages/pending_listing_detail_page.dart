@@ -161,6 +161,49 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
       initialTime: TimeOfDay.fromDateTime(
         widget.listing.endTime ?? DateTime.now().add(const Duration(hours: 1)),
       ),
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              dayPeriodColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary.withOpacity(0.2);
+                }
+                return Colors.transparent;
+              }),
+              dayPeriodTextColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary;
+                }
+                return isDark ? Colors.white70 : Colors.black87;
+              }),
+              hourMinuteColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary.withOpacity(0.2);
+                }
+                return isDark ? const Color(0xFF2A0D3D) : Colors.grey.shade200;
+              }),
+              hourMinuteTextColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary;
+                }
+                return isDark ? Colors.white : Colors.black87;
+              }),
+              dialHandColor: ColorConstants.primary,
+              dialBackgroundColor: isDark
+                  ? const Color(0xFF2A0D3D)
+                  : Colors.grey.shade50,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: ColorConstants.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (pickedTime == null || !context.mounted) return;
