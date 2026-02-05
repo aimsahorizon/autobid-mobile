@@ -267,90 +267,100 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_getStepTitle()),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: _handleExit,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_awesome, color: ColorConstants.warning),
-            tooltip: 'Auto-fill Demo Data',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Row(
-                    children: [
-                      Icon(Icons.auto_awesome, color: ColorConstants.warning),
-                      SizedBox(width: 12),
-                      Text('Auto-fill Demo Data'),
-                    ],
-                  ),
-                  content: const Text(
-                    'This will automatically fill all fields with randomized demo data.\n\nNote: Email and document uploads must still be filled manually.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _controller.autoFillDemoData();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Demo data auto-filled successfully!',
-                            ),
-                            backgroundColor: ColorConstants.success,
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      child: const Text('Auto-fill'),
-                    ),
-                  ],
-                ),
-              );
-            },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        _handleExit();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_getStepTitle()),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: _handleExit,
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: ListenableBuilder(
-        listenable: _controller,
-        builder: (context, _) {
-          return Column(
-            children: [
-              _buildProgressIndicator(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      if (_controller.errorMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: AuthErrorMessage(
-                            message: _controller.errorMessage!,
-                            onDismiss: _controller.clearError,
-                          ),
-                        ),
-                      _buildCurrentStep(),
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.auto_awesome,
+                color: ColorConstants.warning,
+              ),
+              tooltip: 'Auto-fill Demo Data',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Row(
+                      children: [
+                        Icon(Icons.auto_awesome, color: ColorConstants.warning),
+                        SizedBox(width: 12),
+                        Text('Auto-fill Demo Data'),
+                      ],
+                    ),
+                    content: const Text(
+                      'This will automatically fill all fields with randomized demo data.\n\nNote: Email and document uploads must still be filled manually.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _controller.autoFillDemoData();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Demo data auto-filled successfully!',
+                              ),
+                              backgroundColor: ColorConstants.success,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: const Text('Auto-fill'),
+                      ),
                     ],
                   ),
+                );
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) {
+            return Column(
+              children: [
+                _buildProgressIndicator(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      children: [
+                        if (_controller.errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: AuthErrorMessage(
+                              message: _controller.errorMessage!,
+                              onDismiss: _controller.clearError,
+                            ),
+                          ),
+                        _buildCurrentStep(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              _buildNavigationButtons(),
-            ],
-          );
-        },
+                _buildNavigationButtons(),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

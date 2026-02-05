@@ -23,7 +23,7 @@ final sl = GetIt.instance;
 Future<void> initDependencies() async {
   // 1. External Dependencies
   final sharedPreferences = await SharedPreferences.getInstance();
-  sl.registerLazySingleton(() => sharedPreferences);
+  sl.registerSingleton<SharedPreferences>(sharedPreferences);
   sl.registerLazySingleton(() => Connectivity());
 
   // SupabaseClient - Lazy registration

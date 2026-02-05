@@ -158,29 +158,31 @@ class KYCRegistrationController extends ChangeNotifier {
 
   /// Check if any registration data has been entered
   bool hasAnyDataEntered() {
-    return _nationalIdNumber != null ||
+    return (_nationalIdNumber?.isNotEmpty ?? false) ||
         _nationalIdFront != null ||
         _nationalIdBack != null ||
         _selfieWithId != null ||
-        _secondaryIdType != null ||
-        _secondaryIdNumber != null ||
+        (_secondaryIdType?.isNotEmpty ?? false) ||
+        (_secondaryIdNumber?.isNotEmpty ?? false) ||
         _secondaryIdFront != null ||
         _secondaryIdBack != null ||
-        _firstName != null ||
-        _middleName != null ||
-        _lastName != null ||
+        (_firstName?.isNotEmpty ?? false) ||
+        (_middleName?.isNotEmpty ?? false) ||
+        (_lastName?.isNotEmpty ?? false) ||
         _dateOfBirth != null ||
-        _sex != null ||
-        _username != null ||
-        _email != null ||
-        _password != null ||
-        _region != null ||
-        _province != null ||
-        _city != null ||
-        _barangay != null ||
-        _street != null ||
-        _zipCode != null ||
-        _proofOfAddress != null;
+        (_sex?.isNotEmpty ?? false) ||
+        (_username?.isNotEmpty ?? false) ||
+        (_email?.isNotEmpty ?? false) ||
+        (_password?.isNotEmpty ?? false) ||
+        (_region?.isNotEmpty ?? false) ||
+        (_province?.isNotEmpty ?? false) ||
+        (_city?.isNotEmpty ?? false) ||
+        (_barangay?.isNotEmpty ?? false) ||
+        (_street?.isNotEmpty ?? false) ||
+        (_zipCode?.isNotEmpty ?? false) ||
+        _proofOfAddress != null ||
+        _termsAccepted ||
+        _privacyAccepted;
   }
 
   // Step 1 setters
@@ -822,41 +824,58 @@ class KYCRegistrationController extends ChangeNotifier {
 
   /// Save current registration progress as draft to shared preferences
   Future<void> saveDraft() async {
-    if (_sharedPreferences == null) return;
+    if (_sharedPreferences == null) {
+      debugPrint('[KYCRegistrationController] Cannot save draft: SharedPreferences is null');
+      return;
+    }
 
-    final data = {
-      'currentStep': _currentStep.index,
-      'nationalIdNumber': _nationalIdNumber,
-      'secondaryIdType': _secondaryIdType,
-      'secondaryIdNumber': _secondaryIdNumber,
-      'firstName': _firstName,
-      'middleName': _middleName,
-      'lastName': _lastName,
-      'dateOfBirth': _dateOfBirth?.toIso8601String(),
-      'sex': _sex,
-      'username': _username,
-      'email': _email,
-      'password': _password,
-      'confirmPassword': _confirmPassword,
-      'region': _region,
-      'province': _province,
-      'city': _city,
-      'barangay': _barangay,
-      'street': _street,
-      'zipCode': _zipCode,
-      // Save file paths - checking existence on load
-      'nationalIdFrontPath': _nationalIdFront?.path,
-      'nationalIdBackPath': _nationalIdBack?.path,
-      'selfieWithIdPath': _selfieWithId?.path,
-      'secondaryIdFrontPath': _secondaryIdFront?.path,
-      'secondaryIdBackPath': _secondaryIdBack?.path,
-      'proofOfAddressPath': _proofOfAddress?.path,
-    };
+    try {
+      final data = {
+        'currentStep': _currentStep.index,
+        'nationalIdNumber': _nationalIdNumber,
+        'secondaryIdType': _secondaryIdType,
+        'secondaryIdNumber': _secondaryIdNumber,
+        'firstName': _firstName,
+        'middleName': _middleName,
+        'lastName': _lastName,
+        'dateOfBirth': _dateOfBirth?.toIso8601String(),
+        'sex': _sex,
+        'username': _username,
+        'email': _email,
+        'password': _password,
+        'confirmPassword': _confirmPassword,
+        'region': _region,
+        'province': _province,
+        'city': _city,
+        'barangay': _barangay,
+        'street': _street,
+        'zipCode': _zipCode,
+        'termsAccepted': _termsAccepted,
+        'privacyAccepted': _privacyAccepted,
+        'emailOtpVerified': _emailOtpVerified,
+        // Save file paths - checking existence on load
+        'nationalIdFrontPath': _nationalIdFront?.path,
+        'nationalIdBackPath': _nationalIdBack?.path,
+        'selfieWithIdPath': _selfieWithId?.path,
+        'secondaryIdFrontPath': _secondaryIdFront?.path,
+        'secondaryIdBackPath': _secondaryIdBack?.path,
+        'proofOfAddressPath': _proofOfAddress?.path,
+      };
 
-    await _sharedPreferences!.setString(
-      'kyc_registration_draft',
-      jsonEncode(data),
-    );
+      final jsonString = jsonEncode(data);
+      final success = await _sharedPreferences!.setString(
+        'kyc_registration_draft',
+        jsonString,
+      );
+      
+      if (success) {
+        debugPrint('[KYCRegistrationController] Draft saved successfully');
+      } else {
+        debugPrint('[KYCRegistrationController] Failed to save draft to SharedPreferences');
+      }
+    } catch (e) {
+      debugPrint('[KYCRegistrationController] Error encoding or saving draft: $e');
+    }
   }
 
   /// Load saved draft from storage
@@ -895,6 +914,9 @@ class KYCRegistrationController extends ChangeNotifier {
       _barangay = data['barangay'];
       _street = data['street'];
       _zipCode = data['zipCode'];
+      _termsAccepted = data['termsAccepted'] ?? false;
+      _privacyAccepted = data['privacyAccepted'] ?? false;
+      _emailOtpVerified = data['emailOtpVerified'] ?? false;
 
       // Helper to load file if exists
       File? loadFile(String? path) {
@@ -911,8 +933,9 @@ class KYCRegistrationController extends ChangeNotifier {
       _proofOfAddress = loadFile(data['proofOfAddressPath']);
 
       notifyListeners();
+      debugPrint('[KYCRegistrationController] Draft loaded successfully');
     } catch (e) {
-      debugPrint('Error loading draft: $e');
+      debugPrint('[KYCRegistrationController] Error loading draft: $e');
     }
   }
 
