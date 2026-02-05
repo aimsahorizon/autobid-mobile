@@ -19,14 +19,18 @@ class NotificationModel extends NotificationEntity {
   /// Create model from JSON (Supabase response)
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      type: _notificationTypeFromString(json['type'] as String),
-      priority: _notificationPriorityFromString(json['priority'] as String),
-      title: json['title'] as String,
-      message: json['message'] as String,
-      isRead: json['is_read'] as bool,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      id: json['id'] as String? ?? '',
+      userId: json['user_id'] as String? ?? '',
+      type: _notificationTypeFromString(json['type'] as String? ?? 'system'),
+      priority: _notificationPriorityFromString(
+        json['priority'] as String? ?? 'normal',
+      ),
+      title: json['title'] as String? ?? 'Notification',
+      message: json['message'] as String? ?? '',
+      isRead: json['is_read'] as bool? ?? false,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
       relatedEntityId: json['related_entity_id'] as String?,
       relatedEntityType: json['related_entity_type'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
