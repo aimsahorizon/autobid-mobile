@@ -6,7 +6,6 @@ import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import '../../../domain/usecases/validate_plate_number_usecase.dart';
 import 'form_field_widget.dart';
-import 'province_city_picker.dart';
 
 class Step6Documentation extends StatefulWidget {
   final ListingDraftController controller;
@@ -38,11 +37,18 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     super.initState();
     final draft = widget.controller.currentDraft!;
     _plateController = TextEditingController(text: draft.plateNumber);
-    _province = draft.province;
-    _city = draft.cityMunicipality;
+
+    // Hardcode location to Zamboanga City
+    _province = 'Zamboanga del Sur';
+    _city = 'Zamboanga City';
+
     _orcrStatus = draft.orcrStatus;
     _registrationStatus = draft.registrationStatus;
     _registrationExpiry = draft.registrationExpiry;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateDraft();
+    });
 
     _plateController.addListener(_onPlateChanged);
 
@@ -62,32 +68,33 @@ class _Step6DocumentationState extends State<Step6Documentation> {
 
   void _onPlateChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    
+
     String text = _plateController.text.toUpperCase();
-    
+
     // Auto-format: Insert space after exactly 3 letters if missing
     // Matches if we have exactly 3 letters followed immediately by a digit
     final compactRegex = RegExp(r'^([A-Z]{3})([0-9]+.*)$');
-      if (compactRegex.hasMatch(text)) {
-        text = text.replaceAllMapped(compactRegex, (m) => '${m[1]} ${m[2]}');
-      }
-  
-      // Update controller if text changed (uppercase or space insertion)
-      if (text != _plateController.text) {
-        _plateController.value = _plateController.value.copyWith(
-          text: text,
-          selection: TextSelection.collapsed(offset: text.length),
-        );
-        return; // Listener will trigger again with new text
-      }
-  
-      _debounce = Timer(const Duration(milliseconds: 600), () {
-        _validatePlate(text);
-      });
-  
-      // Update draft immediately for simple text change
-      _updateDraft();
+    if (compactRegex.hasMatch(text)) {
+      text = text.replaceAllMapped(compactRegex, (m) => '${m[1]} ${m[2]}');
     }
+
+    // Update controller if text changed (uppercase or space insertion)
+    if (text != _plateController.text) {
+      _plateController.value = _plateController.value.copyWith(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+      return; // Listener will trigger again with new text
+    }
+
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      _validatePlate(text);
+    });
+
+    // Update draft immediately for simple text change
+    _updateDraft();
+  }
+
   Future<void> _validatePlate(String value) async {
     if (value.isEmpty) {
       setState(() {
@@ -284,17 +291,33 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           ),
         ),
         const SizedBox(height: 16),
-        ProvinceCityPicker(
-          province: _province,
-          city: _city,
-          onChanged: (province, city) {
-            setState(() {
-              _province = province;
-              _city = city;
-            });
-            _updateDraft();
-          },
-          provinceValidator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+        // Province (Locked)
+        DropdownButtonFormField<String>(
+          value: _province,
+          decoration: InputDecoration(
+            labelText: 'Province',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            prefixIcon: const Icon(Icons.location_city_outlined),
+          ),
+          items: _province != null
+              ? [DropdownMenuItem(value: _province, child: Text(_province!))]
+              : [],
+          onChanged: null, // Disabled
+        ),
+        const SizedBox(height: 16),
+        // City (Locked)
+        DropdownButtonFormField<String>(
+          value: _city,
+          decoration: InputDecoration(
+            labelText: 'City/Municipality',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            prefixIcon: const Icon(Icons.apartment_outlined),
+            helperText: 'Service currently limited to Zamboanga City',
+          ),
+          items: _city != null
+              ? [DropdownMenuItem(value: _city, child: Text(_city!))]
+              : [],
+          onChanged: null, // Disabled
         ),
       ],
     );
