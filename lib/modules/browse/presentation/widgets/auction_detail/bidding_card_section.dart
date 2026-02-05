@@ -207,11 +207,8 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                   ),
                   onChanged: (value) {
                     final customValue = double.tryParse(value);
-                    if (customValue != null && customValue > 0) {
-                      final effective = customValue < widget.minBidIncrement
-                          ? widget.minBidIncrement
-                          : customValue;
-                      setDialogState(() => selectedIncrement = effective);
+                    if (customValue != null) {
+                      setDialogState(() => selectedIncrement = customValue);
                     }
                   },
                 ),
@@ -275,7 +272,19 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                       backgroundColor: ColorConstants.error,
                     ),
                   );
-                  selectedIncrement = widget.minBidIncrement;
+                  return;
+                }
+                
+                // Enforce increment is a multiple of min increment (optional but cleaner)
+                if (selectedIncrement % widget.minBidIncrement != 0) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Increment must be a multiple of ₱${_formatNumber(widget.minBidIncrement)}',
+                      ),
+                      backgroundColor: ColorConstants.error,
+                    ),
+                  );
                   return;
                 }
 
@@ -377,11 +386,11 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                   return;
                 }
                 
-                if (amount % 1000 != 0) {
+                if (amount % widget.minBidIncrement != 0) {
                    ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
-                        'Increment must be a multiple of ₱1,000',
+                        'Increment must be a multiple of ₱${_formatNumber(widget.minBidIncrement)}',
                       ),
                       backgroundColor: ColorConstants.error,
                     ),
