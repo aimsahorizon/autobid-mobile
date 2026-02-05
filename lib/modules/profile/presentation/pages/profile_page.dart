@@ -21,7 +21,7 @@ import 'update_email_page.dart';
 import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
-import 'notifications_page.dart';
+import '../../../notifications/presentation/pages/notifications_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ProfileController controller;
