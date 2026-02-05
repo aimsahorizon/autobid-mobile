@@ -217,4 +217,9 @@ class AuctionRemoteDataSource {
       throw Exception('Failed to search auctions: $e');
     }
   }
+
+  /// Stream updates for all auctions (signal for Browse page refresh)
+  Stream<List<Map<String, dynamic>>> streamAuctionsTable() {
+    return _supabaseService.client.from('auctions').stream(primaryKey: ['id']);
+  }
 }

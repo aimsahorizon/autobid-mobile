@@ -76,6 +76,35 @@ class _ListsPageState extends State<ListsPage>
     });
   }
 
+  Future<void> _confirmDelete() async {
+    final count = _controller.selectedCount;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete $count items?'),
+        content: const Text(
+          'Are you sure you want to delete the selected items? '
+          'Active listings will be cancelled, drafts and ended listings will be permanently deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _controller.deleteSelected();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -96,9 +125,26 @@ class _ListsPageState extends State<ListsPage>
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('My Listings'),
-        actions: [
-          // Notification bell with unread count badge
+        leading: _controller.isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _controller.clearSelection,
+              )
+            : null,
+        title: _controller.isSelectionMode
+            ? Text('${_controller.selectedCount} Selected')
+            : const Text('My Listings'),
+        actions: _controller.isSelectionMode
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  color: Colors.red,
+                  onPressed: _confirmDelete,
+                  tooltip: 'Delete Selected',
+                ),
+              ]
+            : [
+                // Notification bell with unread count badge
           ListenableBuilder(
             listenable: sl<NotificationController>(),
             builder: (context, _) {
@@ -223,12 +269,15 @@ class _ListsPageState extends State<ListsPage>
                 emptyTitle: _getEmptyTitle(status),
                 emptySubtitle: _getEmptySubtitle(status),
                 emptyIcon: _getEmptyIcon(status),
-                enableNavigation: true,
+                enableNavigation: !_controller.isSelectionMode,
                 draftController: needsController
                     ? sl<ListingDraftController>()
                     : null,
                 sellerId: needsSellerId ? userId : null,
                 onListingUpdated: () => _controller.loadListings(),
+                isSelectionMode: _controller.isSelectionMode,
+                selectedIds: _controller.selectedListingIds,
+                onSelectionToggle: _controller.toggleSelection,
               );
             }).toList(),
             ),

@@ -89,6 +89,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
   }
 
   // Public method to trigger AI extraction (called from parent when Next is pressed)
+  // DEPRECATED: AI auto-fill temporarily disabled. Directly proceeding to manual entry.
   void triggerAiExtraction() async {
     // Check if required images exist
     if (widget.controller.secondaryIdFront == null ||
@@ -96,10 +97,17 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       return;
     }
 
-    await _showAiExtractionDialog();
+    // Skip AI dialog and proceed directly
+    if (mounted && widget.onRequestAiExtraction != null) {
+      widget.onRequestAiExtraction!();
+    }
+
+    // await _showAiExtractionDialog();
   }
 
   // Shows AI extraction dialog with mock processing
+  // DEPRECATED: Temporarily disabled
+  // ignore: unused_element
   Future<void> _showAiExtractionDialog() async {
     final useAI = await showDialog<bool>(
       context: context,

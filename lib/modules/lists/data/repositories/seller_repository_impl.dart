@@ -392,6 +392,25 @@ class SellerRepositoryImpl implements SellerRepository {
   }
 
   @override
+  Future<Either<Failure, void>> deleteListing(String auctionId) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      // Get seller ID from current session to ensure ownership
+      final sellerId = dataSource.client.auth.currentUser?.id;
+      if (sellerId == null) {
+        return const Left(AuthFailure('User not authenticated'));
+      }
+      
+      await dataSource.deleteListing(auctionId, sellerId);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Stream<void> streamSellerListings(String sellerId) {
     // Merge streams from both auctions and drafts to trigger updates for any change
     final auctionsStream = dataSource.streamSellerListings(sellerId);

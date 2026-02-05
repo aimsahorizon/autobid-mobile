@@ -8,12 +8,18 @@ class ListingCard extends StatefulWidget {
   final SellerListingEntity listing;
   final bool isGridView;
   final VoidCallback? onTap;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback? onLongPress;
 
   const ListingCard({
     super.key,
     required this.listing,
     this.isGridView = true,
     this.onTap,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onLongPress,
   });
 
   @override
@@ -56,63 +62,104 @@ class _ListingCardState extends State<ListingCard> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.isGridView
+    final card = widget.isGridView
         ? _buildGridCard(context)
         : _buildListCard(context);
+    
+    if (widget.isSelectionMode) {
+      return Stack(
+        children: [
+          card,
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: widget.onTap,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: widget.isSelected
+                      ? ColorConstants.primary.withValues(alpha: 0.1)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                  border: widget.isSelected
+                      ? Border.all(color: ColorConstants.primary, width: 2)
+                      : null,
+                ),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Icon(
+                      widget.isSelected
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      color: widget.isSelected
+                          ? ColorConstants.primary
+                          : Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    
+    return GestureDetector(
+      onLongPress: widget.onLongPress,
+      onTap: widget.onTap,
+      child: card,
+    );
   }
 
   Widget _buildGridCard(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        decoration: BoxDecoration(
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
           color: isDark
-              ? ColorConstants.surfaceDark
-              : ColorConstants.surfaceLight,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark
-                ? ColorConstants.borderDark
-                : ColorConstants.borderLight,
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CardImage(
+            imageUrl: widget.listing.imageUrl,
+            status: widget.listing.status,
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CardImage(
-              imageUrl: widget.listing.imageUrl,
-              status: widget.listing.status,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.listing.carName,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.listing.carName,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 8),
-                  _PriceInfo(listing: widget.listing),
-                  const SizedBox(height: 8),
-                  _StatsRow(listing: widget.listing),
-                  const SizedBox(height: 8),
-                  _StatusInfo(
-                    listing: widget.listing,
-                    timeRemaining: _timeRemaining,
-                  ),
-                ],
-              ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                _PriceInfo(listing: widget.listing),
+                const SizedBox(height: 8),
+                _StatsRow(listing: widget.listing),
+                const SizedBox(height: 8),
+                _StatusInfo(
+                  listing: widget.listing,
+                  timeRemaining: _timeRemaining,
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -121,67 +168,64 @@ class _ListingCardState extends State<ListingCard> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
           color: isDark
-              ? ColorConstants.surfaceDark
-              : ColorConstants.surfaceLight,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark
-                ? ColorConstants.borderDark
-                : ColorConstants.borderLight,
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
+        ),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: CachedNetworkImage(
+              imageUrl: widget.listing.imageUrl,
+              width: 100,
+              height: 80,
+              fit: BoxFit.cover,
+              placeholder: (_, __) =>
+                  Container(color: ColorConstants.backgroundSecondaryLight),
+              errorWidget: (_, __, ___) => Container(
+                color: ColorConstants.backgroundSecondaryLight,
+                child: const Icon(Icons.directions_car),
+              ),
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: widget.listing.imageUrl,
-                width: 100,
-                height: 80,
-                fit: BoxFit.cover,
-                placeholder: (_, __) =>
-                    Container(color: ColorConstants.backgroundSecondaryLight),
-                errorWidget: (_, __, ___) => Container(
-                  color: ColorConstants.backgroundSecondaryLight,
-                  child: const Icon(Icons.directions_car),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.listing.carName,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.listing.carName,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      _StatusBadge(status: widget.listing.status),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  _PriceInfo(listing: widget.listing, compact: true),
-                  const SizedBox(height: 4),
-                  _StatsRow(listing: widget.listing, compact: true),
-                ],
-              ),
+                    ),
+                    _StatusBadge(status: widget.listing.status),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                _PriceInfo(listing: widget.listing, compact: true),
+                const SizedBox(height: 4),
+                _StatsRow(listing: widget.listing, compact: true),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../../domain/usecases/get_seller_listings_usecase.dart';
 import '../../domain/usecases/stream_seller_listings_usecase.dart';
+import '../../domain/usecases/submission_usecases.dart';
+import '../../domain/usecases/delete_listing_usecase.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 
 /// Controller for managing seller listings across all tabs
@@ -11,11 +13,17 @@ class ListsController extends ChangeNotifier {
   final GetSellerListingsUseCase _getSellerListingsUseCase;
   final StreamSellerListingsUseCase _streamSellerListingsUseCase;
   final AuthRepository _authRepository;
+  final DeleteDraftUseCase _deleteDraftUseCase;
+  final DeleteListingUseCase _deleteListingUseCase;
+  final CancelListingUseCase _cancelListingUseCase;
 
   ListsController(
     this._getSellerListingsUseCase,
     this._streamSellerListingsUseCase,
     this._authRepository,
+    this._deleteDraftUseCase,
+    this._deleteListingUseCase,
+    this._cancelListingUseCase,
   );
 
   Map<ListingStatus, List<SellerListingEntity>> _listings = {};
@@ -23,16 +31,110 @@ class ListsController extends ChangeNotifier {
   bool _isGridView = true;
   String? _errorMessage;
   StreamSubscription? _listingsSubscription;
+  
+  // Selection state
+  final Set<String> _selectedListingIds = {};
+  bool _isSelectionMode = false;
 
   Map<ListingStatus, List<SellerListingEntity>> get listings => _listings;
   bool get isLoading => _isLoading;
   bool get isGridView => _isGridView;
   String? get errorMessage => _errorMessage;
+  bool get isSelectionMode => _isSelectionMode;
+  Set<String> get selectedListingIds => _selectedListingIds;
+  int get selectedCount => _selectedListingIds.length;
 
   @override
   void dispose() {
     _listingsSubscription?.cancel();
     super.dispose();
+  }
+
+  // Selection methods
+  void toggleSelectionMode() {
+    _isSelectionMode = !_isSelectionMode;
+    if (!_isSelectionMode) {
+      _selectedListingIds.clear();
+    }
+    notifyListeners();
+  }
+
+  void toggleSelection(String id) {
+    if (_selectedListingIds.contains(id)) {
+      _selectedListingIds.remove(id);
+      if (_selectedListingIds.isEmpty) {
+        _isSelectionMode = false;
+      }
+    } else {
+      _selectedListingIds.add(id);
+      _isSelectionMode = true;
+    }
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedListingIds.clear();
+    _isSelectionMode = false;
+    notifyListeners();
+  }
+
+  void selectAll(List<SellerListingEntity> currentList) {
+    if (_selectedListingIds.length == currentList.length) {
+      _selectedListingIds.clear();
+    } else {
+      _selectedListingIds.addAll(currentList.map((e) => e.id));
+    }
+    notifyListeners();
+  }
+
+  // Bulk Delete
+  Future<void> deleteSelected() async {
+    if (_selectedListingIds.isEmpty) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Find all selected listings to check their status
+      final allListings = _listings.values.expand((l) => l).toList();
+      final selectedListings = allListings.where((l) => _selectedListingIds.contains(l.id)).toList();
+
+      for (final listing in selectedListings) {
+        try {
+          if (listing.status == ListingStatus.draft) {
+            await _deleteDraftUseCase(listing.id);
+          } else if (listing.status == ListingStatus.cancelled || 
+                     listing.status == ListingStatus.ended ||
+                     listing.status == ListingStatus.sold || // Cleanup old sold
+                     listing.status == ListingStatus.dealFailed) {
+            await _deleteListingUseCase(listing.id);
+          } else {
+            // Active, Pending, Scheduled -> Soft Cancel
+            await _cancelListingUseCase(listing.id);
+          }
+        } catch (e) {
+          debugPrint('Failed to delete/cancel listing ${listing.id}: $e');
+          // Continue with others
+        }
+      }
+      
+      _selectedListingIds.clear();
+      _isSelectionMode = false;
+      
+      // Reload happens via stream automatically usually, but force refresh to be sure
+      // Get current user ID
+      final userResult = await _authRepository.getCurrentUser();
+      final userId = userResult.fold((l) => null, (r) => r?.id);
+      if (userId != null) {
+        await _reloadListingsQuietly(userId);
+      }
+
+    } catch (e) {
+      _errorMessage = 'Failed to delete selected items';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   List<SellerListingEntity> getListingsByStatus(ListingStatus status) =>

@@ -31,6 +31,9 @@ class ListingsGrid extends StatelessWidget {
   final VoidCallback? onListingUpdated;
   final Future<void> Function(BuildContext, SellerListingEntity)?
   onTransactionCardTap;
+  final bool isSelectionMode;
+  final Set<String> selectedIds;
+  final Function(String)? onSelectionToggle;
 
   const ListingsGrid({
     super.key,
@@ -45,6 +48,9 @@ class ListingsGrid extends StatelessWidget {
     this.sellerId,
     this.onListingUpdated,
     this.onTransactionCardTap,
+    this.isSelectionMode = false,
+    this.selectedIds = const {},
+    this.onSelectionToggle,
   });
 
   void _navigateToDetail(
@@ -242,7 +248,16 @@ class ListingsGrid extends StatelessWidget {
         itemBuilder: (context, index) => ListingCard(
           listing: listings[index],
           isGridView: true,
-          onTap: () => _navigateToDetail(context, listings[index]),
+          onTap: () {
+            if (isSelectionMode) {
+              onSelectionToggle?.call(listings[index].id);
+            } else {
+              _navigateToDetail(context, listings[index]);
+            }
+          },
+          isSelectionMode: isSelectionMode,
+          isSelected: selectedIds.contains(listings[index].id),
+          onLongPress: () => onSelectionToggle?.call(listings[index].id),
         ),
       );
     }
@@ -254,7 +269,16 @@ class ListingsGrid extends StatelessWidget {
       itemBuilder: (context, index) => ListingCard(
         listing: listings[index],
         isGridView: false,
-        onTap: () => _navigateToDetail(context, listings[index]),
+        onTap: () {
+          if (isSelectionMode) {
+            onSelectionToggle?.call(listings[index].id);
+          } else {
+            _navigateToDetail(context, listings[index]);
+          }
+        },
+        isSelectionMode: isSelectionMode,
+        isSelected: selectedIds.contains(listings[index].id),
+        onLongPress: () => onSelectionToggle?.call(listings[index].id),
       ),
     );
   }

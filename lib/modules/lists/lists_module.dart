@@ -6,6 +6,7 @@ import 'data/datasources/vehicle_supabase_datasource.dart';
 
 import 'domain/usecases/draft_management_usecases.dart';
 import 'domain/usecases/submission_usecases.dart';
+import 'domain/usecases/delete_listing_usecase.dart';
 import 'domain/usecases/media_management_usecases.dart';
 import 'data/repositories/seller_repository_impl.dart';
 import 'data/repositories/vehicle_repository_impl.dart';
@@ -42,6 +43,7 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => DeleteDraftUseCase(sl()));
   sl.registerLazySingleton(() => SubmitListingUseCase(sl()));
   sl.registerLazySingleton(() => CancelListingUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteListingUseCase(sl()));
   sl.registerLazySingleton(() => UploadListingPhotoUseCase(sl()));
   sl.registerLazySingleton(() => UploadDeedOfSaleUseCase(sl()));
   sl.registerLazySingleton(() => DeleteDeedOfSaleUseCase(sl()));
@@ -54,7 +56,7 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => GetVehicleVariantsUseCase(sl()));
 
   // Controllers (Factory)
-  sl.registerFactory(() => ListsController(sl(), sl(), sl()));
+  sl.registerFactory(() => ListsController(sl(), sl(), sl(), sl(), sl(), sl()));
   sl.registerFactory(() => ListingDraftController(
     getSellerDraftsUseCase: sl(),
     getDraftUseCase: sl(),

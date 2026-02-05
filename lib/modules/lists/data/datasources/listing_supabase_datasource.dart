@@ -10,6 +10,8 @@ import '../../domain/entities/listing_draft_entity.dart';
 class ListingSupabaseDataSource {
   final SupabaseClient _supabase;
 
+  SupabaseClient get client => _supabase;
+
   ListingSupabaseDataSource(this._supabase);
 
   // ============================================================================

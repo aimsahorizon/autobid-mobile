@@ -4,6 +4,8 @@ import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/modules/lists/presentation/controllers/lists_controller.dart';
 import 'package:autobid_mobile/modules/lists/domain/usecases/get_seller_listings_usecase.dart';
 import 'package:autobid_mobile/modules/lists/domain/usecases/stream_seller_listings_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/submission_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/delete_listing_usecase.dart';
 import 'package:autobid_mobile/modules/auth/domain/repositories/auth_repository.dart';
 import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
 import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
@@ -17,16 +19,28 @@ class MockStreamSellerListingsUseCase extends Mock
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
+class MockDeleteDraftUseCase extends Mock implements DeleteDraftUseCase {}
+
+class MockDeleteListingUseCase extends Mock implements DeleteListingUseCase {}
+
+class MockCancelListingUseCase extends Mock implements CancelListingUseCase {}
+
 void main() {
   late ListsController controller;
   late MockGetSellerListingsUseCase mockGetSellerListingsUseCase;
   late MockStreamSellerListingsUseCase mockStreamSellerListingsUseCase;
   late MockAuthRepository mockAuthRepository;
+  late MockDeleteDraftUseCase mockDeleteDraftUseCase;
+  late MockDeleteListingUseCase mockDeleteListingUseCase;
+  late MockCancelListingUseCase mockCancelListingUseCase;
 
   setUp(() {
     mockGetSellerListingsUseCase = MockGetSellerListingsUseCase();
     mockStreamSellerListingsUseCase = MockStreamSellerListingsUseCase();
     mockAuthRepository = MockAuthRepository();
+    mockDeleteDraftUseCase = MockDeleteDraftUseCase();
+    mockDeleteListingUseCase = MockDeleteListingUseCase();
+    mockCancelListingUseCase = MockCancelListingUseCase();
 
     // Default mock behavior for stream
     when(
@@ -37,6 +51,9 @@ void main() {
       mockGetSellerListingsUseCase,
       mockStreamSellerListingsUseCase,
       mockAuthRepository,
+      mockDeleteDraftUseCase,
+      mockDeleteListingUseCase,
+      mockCancelListingUseCase,
     );
   });
 
