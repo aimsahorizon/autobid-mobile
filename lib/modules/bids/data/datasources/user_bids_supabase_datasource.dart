@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:async/async.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/user_bid_entity.dart';
 import 'bids_remote_datasource.dart';
@@ -390,13 +391,22 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
     return allBids['lost'] ?? [];
   }
 
-  /// Stream user's bid updates (e.g. outbid notifications)
-  /// Listens to changes in 'bids' table for this user
+  /// Stream user's bid updates and auction updates
+  /// Listens to changes in 'bids' (for own status) and 'auctions' (for price/status changes)
   @override
   Stream<List<Map<String, dynamic>>> streamUserBids(String userId) {
-    return _supabase
+    // Stream user's own bids (for direct status updates)
+    final myBidsStream = _supabase
         .from('bids')
         .stream(primaryKey: ['id'])
         .eq('bidder_id', userId);
+
+    // Stream auctions (for outbid detection via current_price/total_bids updates)
+    // Note: Streaming all auctions is a trade-off for realtime updates without complex backend sockets
+    final auctionsStream = _supabase
+        .from('auctions')
+        .stream(primaryKey: ['id']);
+
+    return StreamGroup.merge([myBidsStream, auctionsStream]);
   }
 }

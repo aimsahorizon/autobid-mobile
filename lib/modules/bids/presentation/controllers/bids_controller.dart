@@ -176,7 +176,7 @@ class BidsController extends ChangeNotifier {
     super.dispose();
   }
 
-  /// Refreshes only active bids for real-time updates
+  /// Refreshes all bids for real-time updates
   Future<void> refreshActiveBids() async {
     try {
       final userId = (await _authRepository.getCurrentUser()).fold(
@@ -189,6 +189,9 @@ class BidsController extends ChangeNotifier {
 
       result.fold((failure) => null, (bidsMap) {
         _activeBids = bidsMap['active'] ?? [];
+        _wonBids = bidsMap['won'] ?? [];
+        _lostBids = bidsMap['lost'] ?? [];
+        _cancelledBids = bidsMap['cancelled'] ?? [];
         notifyListeners();
       });
     } catch (e) {
