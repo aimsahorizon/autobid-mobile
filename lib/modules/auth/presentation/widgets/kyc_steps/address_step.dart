@@ -6,10 +6,7 @@ import '../../../data/datasources/philippine_address_data.dart';
 class AddressStep extends StatefulWidget {
   final KYCRegistrationController controller;
 
-  const AddressStep({
-    super.key,
-    required this.controller,
-  });
+  const AddressStep({super.key, required this.controller});
 
   @override
   State<AddressStep> createState() => _AddressStepState();
@@ -29,11 +26,20 @@ class _AddressStepState extends State<AddressStep> {
     super.initState();
     _regions = PhilippineAddressData.getRegions();
 
+    // Lock to Zamboanga City
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setFixedLocation();
+    });
+
     if (widget.controller.street != null) {
       _streetController.text = widget.controller.street!;
     }
     if (widget.controller.zipCode != null) {
       _zipCodeController.text = widget.controller.zipCode!;
+    } else {
+      // Default Zamboanga City Zip Code
+      _zipCodeController.text = '7000';
+      widget.controller.setZipCode('7000');
     }
 
     _streetController.addListener(() {
@@ -42,17 +48,22 @@ class _AddressStepState extends State<AddressStep> {
     _zipCodeController.addListener(() {
       widget.controller.setZipCode(_zipCodeController.text);
     });
+  }
 
-    // Load existing data if any
-    if (widget.controller.region != null) {
-      _provinces = PhilippineAddressData.getProvinces(widget.controller.region!);
-    }
-    if (widget.controller.province != null) {
-      _cities = PhilippineAddressData.getCities(widget.controller.province!);
-    }
-    if (widget.controller.city != null) {
-      _barangays = PhilippineAddressData.getBarangays(widget.controller.city!);
-    }
+  void _setFixedLocation() {
+    const fixedRegion = 'Region IX (Zamboanga Peninsula)';
+    const fixedProvince = 'Zamboanga del Sur';
+    const fixedCity = 'Zamboanga City';
+
+    widget.controller.setRegion(fixedRegion);
+    widget.controller.setProvince(fixedProvince);
+    widget.controller.setCity(fixedCity);
+
+    setState(() {
+      _provinces = PhilippineAddressData.getProvinces(fixedRegion);
+      _cities = PhilippineAddressData.getCities(fixedProvince);
+      _barangays = PhilippineAddressData.getBarangays(fixedCity);
+    });
   }
 
   @override
@@ -117,14 +128,14 @@ class _AddressStepState extends State<AddressStep> {
             ),
           ),
           const SizedBox(height: 32),
+          // Region (Locked)
           DropdownButtonFormField<String>(
-            initialValue: _regions.contains(widget.controller.region)
-                ? widget.controller.region
-                : null,
+            value: widget.controller.region,
             decoration: const InputDecoration(
               labelText: 'Region',
               hintText: 'Select your region',
               prefixIcon: Icon(Icons.map_outlined),
+              helperText: 'Service is currently limited to Region IX',
             ),
             items: _regions.toSet().toList().map((region) {
               return DropdownMenuItem(
@@ -132,59 +143,60 @@ class _AddressStepState extends State<AddressStep> {
                 child: Text(region, style: const TextStyle(fontSize: 14)),
               );
             }).toList(),
-            onChanged: _onRegionChanged,
+            onChanged: null, // Disabled
           ),
           const SizedBox(height: 16),
+          // Province (Locked)
           DropdownButtonFormField<String>(
-            initialValue: _provinces.contains(widget.controller.province)
-                ? widget.controller.province
-                : null,
+            value: widget.controller.province,
             decoration: const InputDecoration(
               labelText: 'Province',
               hintText: 'Select your province',
               prefixIcon: Icon(Icons.location_city_outlined),
             ),
-            items: _provinces.toSet().toList().map((province) {
-              return DropdownMenuItem(
-                value: province,
-                child: Text(province),
-              );
-            }).toList(),
-            onChanged: _provinces.isEmpty ? null : _onProvinceChanged,
+            items: widget.controller.province != null
+                ? [
+                    DropdownMenuItem(
+                      value: widget.controller.province,
+                      child: Text(widget.controller.province!),
+                    ),
+                  ]
+                : [],
+            onChanged: null, // Disabled
           ),
           const SizedBox(height: 16),
+          // City (Locked)
           DropdownButtonFormField<String>(
-            initialValue: _cities.contains(widget.controller.city)
-                ? widget.controller.city
-                : null,
+            value: widget.controller.city,
             decoration: const InputDecoration(
               labelText: 'City/Municipality',
               hintText: 'Select your city',
               prefixIcon: Icon(Icons.apartment_outlined),
+              helperText:
+                  'Only Zamboanga City residents are accepted at this time',
             ),
-            items: _cities.toSet().toList().map((city) {
-              return DropdownMenuItem(
-                value: city,
-                child: Text(city),
-              );
-            }).toList(),
-            onChanged: _cities.isEmpty ? null : _onCityChanged,
+            items: widget.controller.city != null
+                ? [
+                    DropdownMenuItem(
+                      value: widget.controller.city,
+                      child: Text(widget.controller.city!),
+                    ),
+                  ]
+                : [],
+            onChanged: null, // Disabled
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            initialValue: _barangays.contains(widget.controller.barangay)
+            value: _barangays.contains(widget.controller.barangay)
                 ? widget.controller.barangay
-                : null,
+                : null, // Use value instead of initialValue
             decoration: const InputDecoration(
               labelText: 'Barangay',
               hintText: 'Select your barangay',
               prefixIcon: Icon(Icons.home_outlined),
             ),
             items: _barangays.toSet().toList().map((barangay) {
-              return DropdownMenuItem(
-                value: barangay,
-                child: Text(barangay),
-              );
+              return DropdownMenuItem(value: barangay, child: Text(barangay));
             }).toList(),
             onChanged: _barangays.isEmpty
                 ? null
@@ -209,10 +221,13 @@ class _AddressStepState extends State<AddressStep> {
           TextFormField(
             controller: _zipCodeController,
             keyboardType: TextInputType.number,
+            readOnly: true,
+            enabled: false,
             decoration: const InputDecoration(
               labelText: 'ZIP Code',
               hintText: 'Enter ZIP code',
               prefixIcon: Icon(Icons.pin_outlined),
+              helperText: 'Fixed for Zamboanga City (7000)',
             ),
             maxLength: 4,
           ),
