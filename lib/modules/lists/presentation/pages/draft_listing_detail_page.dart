@@ -26,11 +26,28 @@ class DraftListingDetailPage extends StatefulWidget {
 
 class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
   late final ListingSupabaseDataSource _datasource;
+  bool _isDeleteEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+  }
+
+  void _toggleDeleteEnabled() {
+    setState(() {
+      _isDeleteEnabled = !_isDeleteEnabled;
+    });
+    
+    if (_isDeleteEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Deletion enabled. You can now delete this draft.'),
+          backgroundColor: ColorConstants.warning,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _continueDraft(BuildContext context) async {
@@ -123,9 +140,18 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
         title: const Text('Draft Listing'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _deleteDraft(context),
+            icon: Icon(
+              _isDeleteEnabled ? Icons.lock_open : Icons.lock_outline,
+              color: _isDeleteEnabled ? Colors.red : null,
+            ),
+            tooltip: _isDeleteEnabled ? 'Disable Deletion' : 'Enable Deletion',
+            onPressed: _toggleDeleteEnabled,
           ),
+          if (_isDeleteEnabled)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _deleteDraft(context),
+            ),
         ],
       ),
       backgroundColor: isDark
@@ -327,18 +353,20 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
       child: SafeArea(
         child: Row(
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _deleteDraft(context),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(color: Colors.red),
-                  foregroundColor: Colors.red,
+            if (_isDeleteEnabled) ...[
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _deleteDraft(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: const BorderSide(color: Colors.red),
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('Delete Draft'),
                 ),
-                child: const Text('Delete Draft'),
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               flex: 2,
               child: ElevatedButton.icon(

@@ -32,6 +32,7 @@ class _CancelledListingDetailPageState
     extends State<CancelledListingDetailPage> {
   late final ListingSupabaseDataSource _datasource;
   late final String? _effectiveSellerId;
+  bool _isDeleteEnabled = false;
 
   @override
   void initState() {
@@ -40,6 +41,22 @@ class _CancelledListingDetailPageState
     // Use provided sellerId or try to get from current user
     _effectiveSellerId =
         widget.sellerId ?? SupabaseConfig.client.auth.currentUser?.id;
+  }
+
+  void _toggleDeleteEnabled() {
+    setState(() {
+      _isDeleteEnabled = !_isDeleteEnabled;
+    });
+
+    if (_isDeleteEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Deletion enabled. You can now delete this listing.'),
+          backgroundColor: ColorConstants.warning,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _editListing(BuildContext context) async {
@@ -304,7 +321,19 @@ class _CancelledListingDetailPageState
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cancelled Listing')),
+      appBar: AppBar(
+        title: const Text('Cancelled Listing'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isDeleteEnabled ? Icons.lock_open : Icons.lock_outline,
+              color: _isDeleteEnabled ? Colors.red : null,
+            ),
+            tooltip: _isDeleteEnabled ? 'Disable Deletion' : 'Enable Deletion',
+            onPressed: _toggleDeleteEnabled,
+          ),
+        ],
+      ),
       backgroundColor: isDark
           ? ColorConstants.backgroundDark
           : ColorConstants.backgroundLight,
@@ -487,15 +516,17 @@ class _CancelledListingDetailPageState
             onTap: () => _reAuction(context),
             isDark: isDark,
           ),
-          const SizedBox(height: 12),
-          _ActionOption(
-            icon: Icons.delete,
-            title: 'Delete Listing',
-            description: 'Permanently remove this listing',
-            color: Colors.red,
-            onTap: () => _deleteListing(context),
-            isDark: isDark,
-          ),
+          if (_isDeleteEnabled) ...[
+            const SizedBox(height: 12),
+            _ActionOption(
+              icon: Icons.delete,
+              title: 'Delete Listing',
+              description: 'Permanently remove this listing',
+              color: Colors.red,
+              onTap: () => _deleteListing(context),
+              isDark: isDark,
+            ),
+          ],
         ],
       ),
     );

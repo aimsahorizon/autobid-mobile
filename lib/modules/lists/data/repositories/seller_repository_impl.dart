@@ -97,6 +97,16 @@ class SellerRepositoryImpl implements SellerRepository {
           return l.endTime != null && l.endTime!.isBefore(now);
         }).toList();
 
+        // Trigger DB update for expired listings (Lazy expiration)
+        // This ensures the status in DB actually changes to 'ended'
+        for (final listing in expiredListings) {
+           dataSource.updateListingStatusByName(listing.id, 'ended').then((_) {
+             debugPrint('[SellerRepository] Auto-expired listing: ${listing.id}');
+           }).catchError((e) {
+             debugPrint('[SellerRepository] Failed to auto-expire listing ${listing.id}: $e');
+           });
+        }
+
         // Keep only truly active listings
         result[ListingStatus.active] = activeEntities.where((l) {
           return l.endTime == null || l.endTime!.isAfter(now);
