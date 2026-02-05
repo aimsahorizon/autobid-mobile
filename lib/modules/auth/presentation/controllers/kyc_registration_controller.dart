@@ -261,10 +261,15 @@ class KYCRegistrationController extends ChangeNotifier {
 
   // Password validation flags
   bool get hasMinLength => _password != null && _password!.length >= 8;
-  bool get hasUppercase => _password != null && _password!.contains(RegExp(r'[A-Z]'));
-  bool get hasLowercase => _password != null && _password!.contains(RegExp(r'[a-z]'));
-  bool get hasDigits => _password != null && _password!.contains(RegExp(r'[0-9]'));
-  bool get hasSpecialCharacters => _password != null && _password!.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+  bool get hasUppercase =>
+      _password != null && _password!.contains(RegExp(r'[A-Z]'));
+  bool get hasLowercase =>
+      _password != null && _password!.contains(RegExp(r'[a-z]'));
+  bool get hasDigits =>
+      _password != null && _password!.contains(RegExp(r'[0-9]'));
+  bool get hasSpecialCharacters =>
+      _password != null &&
+      _password!.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 
   double get passwordStrength {
     if (_password == null || _password!.isEmpty) return 0.0;
@@ -792,40 +797,12 @@ class KYCRegistrationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Demo auto-fill for testing (excludes email, phone, and documents)
-  void autoFillDemoData() {
-    final demoData = DemoDataGenerator.generateCompleteData();
-
-    // Personal info
-    _firstName = demoData['firstName'];
-    _middleName = demoData['middleName'];
-    _lastName = demoData['lastName'];
-    _dateOfBirth = demoData['dateOfBirth'];
-    _sex = demoData['sex'];
-
-    // Generate username from name if not set
-    if (_username == null || _username!.isEmpty) {
-      _username = demoData['username'];
-    }
-
-    // National ID
-    _nationalIdNumber = demoData['nationalIdNumber'];
-
-    // Address
-    _region = demoData['region'];
-    _province = demoData['province'];
-    _city = demoData['city'];
-    _barangay = demoData['barangay'];
-    _street = demoData['street'];
-    _zipCode = demoData['zipCode'];
-
-    notifyListeners();
-  }
-
   /// Save current registration progress as draft to shared preferences
   Future<void> saveDraft() async {
     if (_sharedPreferences == null) {
-      debugPrint('[KYCRegistrationController] Cannot save draft: SharedPreferences is null');
+      debugPrint(
+        '[KYCRegistrationController] Cannot save draft: SharedPreferences is null',
+      );
       return;
     }
 
@@ -853,6 +830,10 @@ class KYCRegistrationController extends ChangeNotifier {
         'termsAccepted': _termsAccepted,
         'privacyAccepted': _privacyAccepted,
         'emailOtpVerified': _emailOtpVerified,
+        'phoneOtpVerified': _phoneOtpVerified,
+        'aiAutoFillAccepted': _aiAutoFillAccepted,
+        'isUsernameAvailable': _isUsernameAvailable,
+        'isEmailAvailable': _isEmailAvailable,
         // Save file paths - checking existence on load
         'nationalIdFrontPath': _nationalIdFront?.path,
         'nationalIdBackPath': _nationalIdBack?.path,
@@ -867,14 +848,18 @@ class KYCRegistrationController extends ChangeNotifier {
         'kyc_registration_draft',
         jsonString,
       );
-      
+
       if (success) {
         debugPrint('[KYCRegistrationController] Draft saved successfully');
       } else {
-        debugPrint('[KYCRegistrationController] Failed to save draft to SharedPreferences');
+        debugPrint(
+          '[KYCRegistrationController] Failed to save draft to SharedPreferences',
+        );
       }
     } catch (e) {
-      debugPrint('[KYCRegistrationController] Error encoding or saving draft: $e');
+      debugPrint(
+        '[KYCRegistrationController] Error encoding or saving draft: $e',
+      );
     }
   }
 
@@ -917,6 +902,10 @@ class KYCRegistrationController extends ChangeNotifier {
       _termsAccepted = data['termsAccepted'] ?? false;
       _privacyAccepted = data['privacyAccepted'] ?? false;
       _emailOtpVerified = data['emailOtpVerified'] ?? false;
+      _phoneOtpVerified = data['phoneOtpVerified'] ?? false;
+      _aiAutoFillAccepted = data['aiAutoFillAccepted'] ?? false;
+      _isUsernameAvailable = data['isUsernameAvailable'];
+      _isEmailAvailable = data['isEmailAvailable'];
 
       // Helper to load file if exists
       File? loadFile(String? path) {
