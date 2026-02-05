@@ -25,7 +25,9 @@ class _QATabState extends State<QATab> {
 
   List<QAEntity> get _filteredQuestions {
     if (_selectedCategory == QACategory.all) return widget.questions;
-    return widget.questions.where((q) => q.category == _selectedCategory).toList();
+    return widget.questions
+        .where((q) => q.category == _selectedCategory)
+        .toList();
   }
 
   @override
@@ -41,11 +43,11 @@ class _QATabState extends State<QATab> {
           child: widget.isLoading
               ? const Center(child: CircularProgressIndicator())
               : _filteredQuestions.isEmpty
-                  ? const _EmptyQuestions()
-                  : _QuestionsList(
-                      questions: _filteredQuestions,
-                      onToggleLike: widget.onToggleLike,
-                    ),
+              ? const _EmptyQuestions()
+              : _QuestionsList(
+                  questions: _filteredQuestions,
+                  onToggleLike: widget.onToggleLike,
+                ),
         ),
       ],
     );
@@ -58,9 +60,7 @@ class _QATabState extends State<QATab> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => _AskQuestionSheet(
-        onSubmit: widget.onAskQuestion,
-      ),
+      builder: (context) => _AskQuestionSheet(onSubmit: widget.onAskQuestion),
     );
   }
 }
@@ -76,6 +76,9 @@ class _CategoryChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -88,8 +91,25 @@ class _CategoryChips extends StatelessWidget {
               selected: isSelected,
               label: Text(QACategory.formatForDisplay(category)),
               onSelected: (_) => onCategorySelected(category),
+              backgroundColor: isDark
+                  ? ColorConstants.surfaceDark
+                  : ColorConstants.surfaceLight,
               selectedColor: ColorConstants.primary.withValues(alpha: 0.2),
               checkmarkColor: ColorConstants.primary,
+              labelStyle: TextStyle(
+                color: isSelected
+                    ? ColorConstants.primary
+                    : (isDark
+                          ? ColorConstants.textPrimaryDark
+                          : ColorConstants.textPrimaryLight),
+              ),
+              side: BorderSide(
+                color: isSelected
+                    ? ColorConstants.primary
+                    : (isDark
+                          ? ColorConstants.borderDark
+                          : ColorConstants.borderLight),
+              ),
             ),
           );
         }).toList(),
@@ -137,8 +157,8 @@ class _EmptyQuestions extends StatelessWidget {
           Text(
             'No questions yet',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: ColorConstants.textSecondaryLight,
-                ),
+              color: ColorConstants.textSecondaryLight,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -155,10 +175,7 @@ class _QuestionsList extends StatelessWidget {
   final List<QAEntity> questions;
   final Function(String) onToggleLike;
 
-  const _QuestionsList({
-    required this.questions,
-    required this.onToggleLike,
-  });
+  const _QuestionsList({required this.questions, required this.onToggleLike});
 
   @override
   Widget build(BuildContext context) {
@@ -178,10 +195,7 @@ class _QuestionCard extends StatelessWidget {
   final QAEntity question;
   final VoidCallback onToggleLike;
 
-  const _QuestionCard({
-    required this.question,
-    required this.onToggleLike,
-  });
+  const _QuestionCard({required this.question, required this.onToggleLike});
 
   @override
   Widget build(BuildContext context) {
@@ -191,10 +205,14 @@ class _QuestionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Column(
@@ -242,10 +260,7 @@ class _QuestionCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        question.answer!,
-                        style: theme.textTheme.bodyMedium,
-                      ),
+                      Text(question.answer!, style: theme.textTheme.bodyMedium),
                     ],
                   ),
                 ),
@@ -259,7 +274,10 @@ class _QuestionCard extends StatelessWidget {
                 onTap: onToggleLike,
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: question.isLikedByUser
                         ? ColorConstants.primary.withValues(alpha: 0.1)
@@ -268,14 +286,18 @@ class _QuestionCard extends StatelessWidget {
                     border: Border.all(
                       color: question.isLikedByUser
                           ? ColorConstants.primary
-                          : (isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+                          : (isDark
+                                ? ColorConstants.borderDark
+                                : ColorConstants.borderLight),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        question.isLikedByUser ? Icons.thumb_up : Icons.thumb_up_outlined,
+                        question.isLikedByUser
+                            ? Icons.thumb_up
+                            : Icons.thumb_up_outlined,
                         size: 16,
                         color: question.isLikedByUser
                             ? ColorConstants.primary
@@ -324,10 +346,7 @@ class _CategoryBadge extends StatelessWidget {
       ),
       child: Text(
         QACategory.formatForDisplay(category),
-        style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-        ),
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
       ),
     );
   }
@@ -362,7 +381,9 @@ class _StatusBadge extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: isAnswered ? ColorConstants.success : ColorConstants.warning,
+              color: isAnswered
+                  ? ColorConstants.success
+                  : ColorConstants.warning,
             ),
           ),
         ],
@@ -425,11 +446,36 @@ class _AskQuestionSheetState extends State<_AskQuestionSheet> {
               runSpacing: 8,
               children: QACategory.categories
                   .where((c) => c != QACategory.all)
-                  .map((cat) => ChoiceChip(
-                        label: Text(QACategory.formatForDisplay(cat)),
-                        selected: _selectedCategory == cat,
-                        onSelected: (_) => setState(() => _selectedCategory = cat),
-                      ))
+                  .map((cat) {
+                    final isSelected = _selectedCategory == cat;
+                    final isDark = theme.brightness == Brightness.dark;
+                    return ChoiceChip(
+                      label: Text(QACategory.formatForDisplay(cat)),
+                      selected: isSelected,
+                      onSelected: (_) =>
+                          setState(() => _selectedCategory = cat),
+                      backgroundColor: isDark
+                          ? ColorConstants.surfaceDark
+                          : ColorConstants.surfaceLight,
+                      selectedColor: ColorConstants.primary.withValues(
+                        alpha: 0.2,
+                      ),
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? ColorConstants.primary
+                            : (isDark
+                                  ? ColorConstants.textPrimaryDark
+                                  : ColorConstants.textPrimaryLight),
+                      ),
+                      side: BorderSide(
+                        color: isSelected
+                            ? ColorConstants.primary
+                            : (isDark
+                                  ? ColorConstants.borderDark
+                                  : ColorConstants.borderLight),
+                      ),
+                    );
+                  })
                   .toList(),
             ),
             const SizedBox(height: 16),
@@ -440,21 +486,21 @@ class _AskQuestionSheetState extends State<_AskQuestionSheet> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: SuggestedQuestions.questions
-                    .map((q) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ActionChip(
-                            label: Text(
-                              q['question']!.length > 25
-                                  ? '${q['question']!.substring(0, 25)}...'
-                                  : q['question']!,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            onPressed: () => _selectSuggested(
-                              q['category']!,
-                              q['question']!,
-                            ),
+                    .map(
+                      (q) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ActionChip(
+                          label: Text(
+                            q['question']!.length > 25
+                                ? '${q['question']!.substring(0, 25)}...'
+                                : q['question']!,
+                            style: const TextStyle(fontSize: 12),
                           ),
-                        ))
+                          onPressed: () =>
+                              _selectSuggested(q['category']!, q['question']!),
+                        ),
+                      ),
+                    )
                     .toList(),
               ),
             ),
@@ -474,7 +520,10 @@ class _AskQuestionSheetState extends State<_AskQuestionSheet> {
               child: FilledButton(
                 onPressed: () {
                   if (_questionController.text.isNotEmpty) {
-                    widget.onSubmit(_selectedCategory, _questionController.text);
+                    widget.onSubmit(
+                      _selectedCategory,
+                      _questionController.text,
+                    );
                     Navigator.pop(context);
                   }
                 },
