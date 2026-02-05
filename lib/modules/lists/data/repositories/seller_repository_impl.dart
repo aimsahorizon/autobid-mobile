@@ -102,18 +102,33 @@ class SellerRepositoryImpl implements SellerRepository {
           return l.endTime == null || l.endTime!.isAfter(now);
         }).toList();
 
-        // 6. Ended
+        // 6. Ended (Includes Ended, Unsold, Sold, In Transaction)
+        // Aggregating all post-active statuses into 'Ended' tab as per requirement
+        result[ListingStatus.ended] = [];
+        
         try {
+          // Fetch Ended & Unsold
           final endedModels = await dataSource.getEndedListings(sellerId);
-          final endedEntities = endedModels
-              .map((l) => l.toSellerListingEntity())
-              .toList();
-          
-          // Add DB-ended listings
-          result[ListingStatus.ended] = endedEntities;
+          result[ListingStatus.ended]!.addAll(
+            endedModels.map((l) => l.toSellerListingEntity()),
+          );
 
-          // Add client-detected expired listings to Ended tab
-          // We must create new entities with updated status
+          // Fetch In Transaction (Manually ended with winner)
+          final inTransactionModels = await dataSource.getSellerListingsByStatus(
+            sellerId,
+            'in_transaction',
+          );
+          result[ListingStatus.ended]!.addAll(
+            inTransactionModels.map((l) => l.toSellerListingEntity()),
+          );
+
+          // Fetch Sold
+          final soldModels = await dataSource.getSoldListings(sellerId);
+          result[ListingStatus.ended]!.addAll(
+            soldModels.map((l) => l.toSellerListingEntity()),
+          );
+
+          // Add client-detected expired active listings
           final convertedExpired = expiredListings.map((l) {
             return SellerListingEntity(
               id: l.id,
@@ -192,31 +207,6 @@ class SellerRepositoryImpl implements SellerRepository {
       } catch (e) {
         debugPrint('Error loading cancelled listings: $e');
         result[ListingStatus.cancelled] = [];
-      }
-
-      // 8. In Transaction
-      try {
-        final inTransactionModels = await dataSource.getSellerListingsByStatus(
-          sellerId,
-          'in_transaction',
-        );
-        result[ListingStatus.inTransaction] = inTransactionModels
-            .map((l) => l.toSellerListingEntity())
-            .toList();
-      } catch (e) {
-        debugPrint('Error loading in_transaction listings: $e');
-        result[ListingStatus.inTransaction] = [];
-      }
-
-      // 9. Sold
-      try {
-        final soldModels = await dataSource.getSoldListings(sellerId);
-        result[ListingStatus.sold] = soldModels
-            .map((l) => l.toSellerListingEntity())
-            .toList();
-      } catch (e) {
-        debugPrint('Error loading sold listings: $e');
-        result[ListingStatus.sold] = [];
       }
 
       return Right(result);
