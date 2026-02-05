@@ -59,38 +59,45 @@ Future<void> initAuthModule() async {
   sl.registerLazySingleton(() => ManageLocalAuthUseCase(sl()));
 
   // Controllers (Factory)
-  sl.registerFactory(() => LoginController(
-    signInUseCase: sl(),
-    signInWithGoogleUseCase: sl(),
-    checkEmailExistsUseCase: sl(), // Registered in initProfileModule
-    getUserProfileByEmailUseCase: sl(), // Registered in initProfileModule
-    manageLocalAuthUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => LoginController(
+      signInUseCase: sl(),
+      signInWithGoogleUseCase: sl(),
+      checkEmailExistsUseCase: sl(), // Registered in initProfileModule
+      getUserProfileByEmailUseCase: sl(), // Registered in initProfileModule
+      manageLocalAuthUseCase: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => LoginOtpController(
-    sendEmailOtpUseCase: sl(),
-    sendPhoneOtpUseCase: sl(),
-    verifyEmailOtpUseCase: sl(),
-    verifyPhoneOtpUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => LoginOtpController(
+      sendEmailOtpUseCase: sl(),
+      sendPhoneOtpUseCase: sl(),
+      verifyEmailOtpUseCase: sl(),
+      verifyPhoneOtpUseCase: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => ForgotPasswordController(
-    sendPasswordResetUseCase: sl(),
-    verifyOtpUseCase: sl(),
-    resetPasswordUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => ForgotPasswordController(
+      sendPasswordResetUseCase: sl(),
+      verifyOtpUseCase: sl(),
+      resetPasswordUseCase: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => RegistrationController(
-    signUpUseCase: sl(),
-  ));
+  sl.registerFactory(() => RegistrationController(signUpUseCase: sl()));
 
-  sl.registerFactory(() => KYCRegistrationController(
-    authDataSource: sl(), // Needs AuthRemoteDataSource
-    sendEmailOtpUseCase: sl(),
-    sendPhoneOtpUseCase: sl(),
-    verifyEmailOtpUseCase: sl(),
-    verifyPhoneOtpUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => KYCRegistrationController(
+      authDataSource: sl(), // Needs AuthRemoteDataSource
+      sendEmailOtpUseCase: sl(),
+      sendPhoneOtpUseCase: sl(),
+      verifyEmailOtpUseCase: sl(),
+      verifyPhoneOtpUseCase: sl(),
+      sharedPreferences: sl(),
+    ),
+  );
 }
 
 class AuthModule {
@@ -120,7 +127,6 @@ class AuthModule {
   late final CheckEmailExistsUseCase _checkEmailExistsUseCase;
   late final GetUserProfileByEmailUseCase _getUserProfileByEmailUseCase;
 
-
   AuthModule._() {
     _initializeDependencies();
   }
@@ -140,8 +146,12 @@ class AuthModule {
     // Create NetworkInfo for manual injection
     final connectivity = Connectivity();
     final networkInfo = NetworkInfoImpl(connectivity);
-    
-    _authRepository = AuthRepositoryImpl(_remoteDataSource, networkInfo, _localDataSource);
+
+    _authRepository = AuthRepositoryImpl(
+      _remoteDataSource,
+      networkInfo,
+      _localDataSource,
+    );
     final profileRepository = ProfileModule.instance.repository;
 
     // Use cases
@@ -156,10 +166,12 @@ class AuthModule {
     _verifyEmailOtpUseCase = VerifyEmailOtpUseCase(_authRepository);
     _verifyPhoneOtpUseCase = VerifyPhoneOtpUseCase(_authRepository);
     _manageLocalAuthUseCase = ManageLocalAuthUseCase(_authRepository);
-    
+
     // Profile Use Cases
     _checkEmailExistsUseCase = CheckEmailExistsUseCase(profileRepository);
-    _getUserProfileByEmailUseCase = GetUserProfileByEmailUseCase(profileRepository);
+    _getUserProfileByEmailUseCase = GetUserProfileByEmailUseCase(
+      profileRepository,
+    );
   }
 
   // Controllers
@@ -191,9 +203,7 @@ class AuthModule {
   }
 
   RegistrationController createRegistrationController() {
-    return RegistrationController(
-      signUpUseCase: _signUpUseCase,
-    );
+    return RegistrationController(signUpUseCase: _signUpUseCase);
   }
 
   /// Create KYC registration controller with Supabase integration

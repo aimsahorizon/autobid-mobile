@@ -30,6 +30,57 @@ class _RegistrationPageState extends State<RegistrationPage> {
     super.initState();
     // Use GetIt to create controller
     _controller = sl<KYCRegistrationController>();
+
+    // Check for saved draft
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForDraft();
+    });
+  }
+
+  Future<void> _checkForDraft() async {
+    final hasDraft = await _controller.hasSavedDraft();
+    if (!hasDraft || !mounted) return;
+
+    final resume = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Resume Registration?'),
+        content: const Text(
+          'We found a saved draft of your registration. Would you like to continue where you left off?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Start Fresh'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Resume'),
+          ),
+        ],
+      ),
+    );
+
+    if (resume == true) {
+      // Show loading
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      await _controller.loadDraft();
+
+      if (mounted) {
+        Navigator.pop(context); // Remove loading
+        setState(() {}); // Refresh UI
+      }
+    } else {
+      _controller.clearAllData(); // Clear draft if starting fresh
+    }
   }
 
   @override
@@ -88,13 +139,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
     setState(() {});
   }
 
-  void _handleBack() {
+  void _handlePreviousStep() {
     if (_controller.currentStepIndex > 0) {
       _controller.previousStep();
       setState(() {});
-    } else {
-      _showExitConfirmationDialog();
     }
+  }
+
+  void _handleExit() {
+    _showExitConfirmationDialog();
   }
 
   Future<void> _showExitConfirmationDialog() async {
@@ -221,7 +274,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: _handleBack,
+          onPressed: _handleExit,
         ),
         actions: [
           IconButton(
@@ -393,7 +446,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
               if (_controller.currentStepIndex > 0)
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _handleBack,
+                    onPressed: _handlePreviousStep,
                     child: const Text('Back'),
                   ),
                 ),

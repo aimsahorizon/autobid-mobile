@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../domain/usecases/send_email_otp_usecase.dart';
 import '../../domain/usecases/send_phone_otp_usecase.dart';
 import '../../domain/usecases/verify_email_otp_usecase.dart';
@@ -29,6 +31,7 @@ class KYCRegistrationController extends ChangeNotifier {
   final VerifyEmailOtpUseCase? _verifyEmailOtpUseCase;
   final IAiIdExtractionService _aiService;
   final FileEncryptionService? _fileEncryptionService;
+  final SharedPreferences? _sharedPreferences;
 
   /// Constructor with optional dependencies for Supabase integration
   /// If not provided, registration will use mock implementation
@@ -40,11 +43,13 @@ class KYCRegistrationController extends ChangeNotifier {
     VerifyPhoneOtpUseCase? verifyPhoneOtpUseCase,
     IAiIdExtractionService? aiService,
     FileEncryptionService? fileEncryptionService,
+    SharedPreferences? sharedPreferences,
   }) : _authDataSource = authDataSource,
        _sendEmailOtpUseCase = sendEmailOtpUseCase,
        _verifyEmailOtpUseCase = verifyEmailOtpUseCase,
        _aiService = aiService ?? MockAiIdExtractionService(),
-       _fileEncryptionService = fileEncryptionService;
+       _fileEncryptionService = fileEncryptionService,
+       _sharedPreferences = sharedPreferences;
 
   KYCStep _currentStep = KYCStep.accountInfo;
   bool _isLoading = false;
@@ -780,26 +785,106 @@ class KYCRegistrationController extends ChangeNotifier {
 
   /// Save current registration progress as draft to shared preferences
   Future<void> saveDraft() async {
-    // TODO: Implement actual draft saving to SharedPreferences or Supabase
-    // For now, just keep data in memory
-    // In a real implementation, you would:
-    // 1. Serialize current state to JSON
-    // 2. Save to SharedPreferences or Supabase draft table
-    // 3. Include user identifier (email) to retrieve later
+    if (_sharedPreferences == null) return;
 
-    // Placeholder implementation - data remains in controller
-    await Future.delayed(const Duration(milliseconds: 500));
+    final data = {
+      'currentStep': _currentStep.index,
+      'nationalIdNumber': _nationalIdNumber,
+      'secondaryIdType': _secondaryIdType,
+      'secondaryIdNumber': _secondaryIdNumber,
+      'firstName': _firstName,
+      'middleName': _middleName,
+      'lastName': _lastName,
+      'dateOfBirth': _dateOfBirth?.toIso8601String(),
+      'sex': _sex,
+      'username': _username,
+      'email': _email,
+      'password': _password,
+      'confirmPassword': _confirmPassword,
+      'region': _region,
+      'province': _province,
+      'city': _city,
+      'barangay': _barangay,
+      'street': _street,
+      'zipCode': _zipCode,
+      // Save file paths - checking existence on load
+      'nationalIdFrontPath': _nationalIdFront?.path,
+      'nationalIdBackPath': _nationalIdBack?.path,
+      'selfieWithIdPath': _selfieWithId?.path,
+      'secondaryIdFrontPath': _secondaryIdFront?.path,
+      'secondaryIdBackPath': _secondaryIdBack?.path,
+      'proofOfAddressPath': _proofOfAddress?.path,
+    };
+
+    await _sharedPreferences!.setString(
+      'kyc_registration_draft',
+      jsonEncode(data),
+    );
   }
 
   /// Load saved draft from storage
-  Future<void> loadDraft(String email) async {
-    // TODO: Implement loading draft from SharedPreferences or Supabase
-    // For now, this is a placeholder
-    await Future.delayed(const Duration(milliseconds: 500));
+  Future<bool> hasSavedDraft() async {
+    if (_sharedPreferences == null) return false;
+    return _sharedPreferences!.containsKey('kyc_registration_draft');
+  }
+
+  Future<void> loadDraft([String? email]) async {
+    if (_sharedPreferences == null) return;
+
+    final draft = _sharedPreferences!.getString('kyc_registration_draft');
+    if (draft == null) return;
+
+    try {
+      final data = jsonDecode(draft) as Map<String, dynamic>;
+
+      _currentStep = KYCStep.values[data['currentStep'] ?? 0];
+      _nationalIdNumber = data['nationalIdNumber'];
+      _secondaryIdType = data['secondaryIdType'];
+      _secondaryIdNumber = data['secondaryIdNumber'];
+      _firstName = data['firstName'];
+      _middleName = data['middleName'];
+      _lastName = data['lastName'];
+      if (data['dateOfBirth'] != null) {
+        _dateOfBirth = DateTime.tryParse(data['dateOfBirth']);
+      }
+      _sex = data['sex'];
+      _username = data['username'];
+      _email = data['email'];
+      _password = data['password'];
+      _confirmPassword = data['confirmPassword'];
+      _region = data['region'];
+      _province = data['province'];
+      _city = data['city'];
+      _barangay = data['barangay'];
+      _street = data['street'];
+      _zipCode = data['zipCode'];
+
+      // Helper to load file if exists
+      File? loadFile(String? path) {
+        if (path == null) return null;
+        final file = File(path);
+        return file.existsSync() ? file : null;
+      }
+
+      _nationalIdFront = loadFile(data['nationalIdFrontPath']);
+      _nationalIdBack = loadFile(data['nationalIdBackPath']);
+      _selfieWithId = loadFile(data['selfieWithIdPath']);
+      _secondaryIdFront = loadFile(data['secondaryIdFrontPath']);
+      _secondaryIdBack = loadFile(data['secondaryIdBackPath']);
+      _proofOfAddress = loadFile(data['proofOfAddressPath']);
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading draft: $e');
+    }
   }
 
   /// Clear all registration data
   void clearAllData() {
+    if (_sharedPreferences != null) {
+      _sharedPreferences!.remove('kyc_registration_draft');
+    }
+
     // Reset all fields to null/default
     _nationalIdNumber = null;
     _nationalIdFront = null;
