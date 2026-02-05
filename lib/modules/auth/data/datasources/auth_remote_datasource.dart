@@ -444,7 +444,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Use RPC function
       final result = await _supabase.rpc(
-        'register_user_with_kyc',
+        'register_user_with_kyc_v2',
         params: {
           'p_user_id': kycData.id,
           'p_email': kycData.email,
@@ -507,6 +507,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw const AuthException('Failed to set password');
       }
     } on supabase.AuthException catch (e) {
+      // If the password is already set to the same value, ignore the error
+      // This can happen if the registration is retried after a partial failure
+      if (e.message.toLowerCase().contains('different from the old password')) {
+        return;
+      }
       throw AuthException('Failed to set password: ${e.message}');
     } catch (e) {
       throw ServerException('Failed to set password: $e');
