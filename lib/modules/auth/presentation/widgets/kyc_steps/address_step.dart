@@ -130,7 +130,7 @@ class _AddressStepState extends State<AddressStep> {
           const SizedBox(height: 32),
           // Region (Locked)
           DropdownButtonFormField<String>(
-            value: widget.controller.region,
+            initialValue: widget.controller.region,
             decoration: const InputDecoration(
               labelText: 'Region',
               hintText: 'Select your region',
@@ -148,7 +148,7 @@ class _AddressStepState extends State<AddressStep> {
           const SizedBox(height: 16),
           // Province (Locked)
           DropdownButtonFormField<String>(
-            value: widget.controller.province,
+            initialValue: widget.controller.province,
             decoration: const InputDecoration(
               labelText: 'Province',
               hintText: 'Select your province',
@@ -167,7 +167,7 @@ class _AddressStepState extends State<AddressStep> {
           const SizedBox(height: 16),
           // City (Locked)
           DropdownButtonFormField<String>(
-            value: widget.controller.city,
+            initialValue: widget.controller.city,
             decoration: const InputDecoration(
               labelText: 'City/Municipality',
               hintText: 'Select your city',
@@ -187,7 +187,7 @@ class _AddressStepState extends State<AddressStep> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: _barangays.contains(widget.controller.barangay)
+            initialValue: _barangays.contains(widget.controller.barangay)
                 ? widget.controller.barangay
                 : null, // Use value instead of initialValue
             decoration: const InputDecoration(
