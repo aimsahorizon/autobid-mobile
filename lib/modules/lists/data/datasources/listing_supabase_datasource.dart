@@ -428,7 +428,6 @@ class ListingSupabaseDataSource {
           ''')
           .eq('seller_id', sellerId)
           .eq('status_id', liveStatusId)
-          .isFilter('deleted_at', null)
           .order('start_time', ascending: false);
 
       return (response as List)
@@ -456,7 +455,6 @@ class ListingSupabaseDataSource {
           ''')
           .eq('seller_id', sellerId)
           .eq('status_id', scheduledStatusId)
-          .isFilter('deleted_at', null)
           .order('start_time', ascending: true);
 
       return (response as List)
@@ -485,7 +483,6 @@ class ListingSupabaseDataSource {
           ''')
           .eq('seller_id', sellerId)
           .inFilter('status_id', [endedStatusId, unsoldStatusId])
-          .isFilter('deleted_at', null)
           .order('end_time', ascending: false);
 
       return (response as List)
@@ -513,7 +510,6 @@ class ListingSupabaseDataSource {
           ''')
           .eq('seller_id', sellerId)
           .eq('status_id', soldStatusId)
-          .isFilter('deleted_at', null)
           .order('end_time', ascending: false);
 
       return (response as List)
