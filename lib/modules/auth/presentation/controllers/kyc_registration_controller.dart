@@ -257,6 +257,43 @@ class KYCRegistrationController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Password validation flags
+  bool get hasMinLength => _password != null && _password!.length >= 8;
+  bool get hasUppercase => _password != null && _password!.contains(RegExp(r'[A-Z]'));
+  bool get hasLowercase => _password != null && _password!.contains(RegExp(r'[a-z]'));
+  bool get hasDigits => _password != null && _password!.contains(RegExp(r'[0-9]'));
+  bool get hasSpecialCharacters => _password != null && _password!.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+
+  double get passwordStrength {
+    if (_password == null || _password!.isEmpty) return 0.0;
+    int score = 0;
+    if (hasMinLength) score++;
+    if (hasUppercase) score++;
+    if (hasLowercase) score++;
+    if (hasDigits) score++;
+    if (hasSpecialCharacters) score++;
+    return score / 5.0;
+  }
+
+  String get passwordStrengthText {
+    final strength = passwordStrength;
+    if (strength == 0) return '';
+    if (strength <= 0.2) return 'Very Weak';
+    if (strength <= 0.4) return 'Weak';
+    if (strength <= 0.6) return 'Fair';
+    if (strength <= 0.8) return 'Good';
+    return 'Strong';
+  }
+
+  Color get passwordStrengthColor {
+    final strength = passwordStrength;
+    if (strength <= 0.2) return Colors.red;
+    if (strength <= 0.4) return Colors.orange;
+    if (strength <= 0.6) return Colors.yellow;
+    if (strength <= 0.8) return Colors.blue;
+    return Colors.green;
+  }
+
   // Step 5 setters
   void setUsername(String value) {
     _username = value;

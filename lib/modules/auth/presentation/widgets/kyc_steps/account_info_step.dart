@@ -210,6 +210,34 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                   ),
                 ),
               ),
+              if (_passwordController.text.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: widget.controller.passwordStrength,
+                          backgroundColor: (isDark ? Colors.grey[800] : Colors.grey[200]),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            widget.controller.passwordStrengthColor,
+                          ),
+                          minHeight: 6,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      widget.controller.passwordStrengthText,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: widget.controller.passwordStrengthColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
               TextFormField(
                 controller: _confirmPasswordController,
@@ -333,29 +361,27 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                     const SizedBox(height: 12),
                     _buildRequirement(
                       'At least 8 characters',
-                      _passwordController.text.length >= 8,
+                      widget.controller.hasMinLength,
                     ),
                     const SizedBox(height: 4),
                     _buildRequirement(
                       'At least one uppercase letter',
-                      _passwordController.text.contains(RegExp(r'[A-Z]')),
+                      widget.controller.hasUppercase,
                     ),
                     const SizedBox(height: 4),
                     _buildRequirement(
                       'At least one lowercase letter',
-                      _passwordController.text.contains(RegExp(r'[a-z]')),
+                      widget.controller.hasLowercase,
                     ),
                     const SizedBox(height: 4),
                     _buildRequirement(
                       'At least one number',
-                      _passwordController.text.contains(RegExp(r'[0-9]')),
+                      widget.controller.hasDigits,
                     ),
                     const SizedBox(height: 4),
                     _buildRequirement(
                       'At least one special character',
-                      _passwordController.text.contains(
-                        RegExp(r'[!@#$%^&*(),.?":{}|<>]'),
-                      ),
+                      widget.controller.hasSpecialCharacters,
                     ),
                   ],
                 ),
