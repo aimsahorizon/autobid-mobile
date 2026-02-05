@@ -13,6 +13,7 @@ import '../../data/models/kyc_registration_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/services/ai_id_extraction_service.dart';
 import 'package:autobid_mobile/core/services/file_encryption_service.dart';
+import 'package:autobid_mobile/core/utils/philippine_id_validators.dart';
 import '../../data/datasources/demo_data_generator.dart';
 
 enum KYCStep {
@@ -570,6 +571,13 @@ class KYCRegistrationController extends ChangeNotifier {
       if (reportError) setError('Please enter your National ID number');
       return false;
     }
+    
+    // Strict Format Check
+    if (!PhilippineIdValidator.validateNationalId(_nationalIdNumber!)) {
+      if (reportError) setError('Invalid National ID format. Must be 12 digits.');
+      return false;
+    }
+
     if (_nationalIdFront == null) {
       if (reportError) setError('Please upload the front of your National ID');
       return false;
@@ -598,6 +606,13 @@ class KYCRegistrationController extends ChangeNotifier {
       if (reportError) setError('Please enter your secondary ID number');
       return false;
     }
+
+    // Strict Format Check based on Type
+    if (!PhilippineIdValidator.validateSecondaryId(_secondaryIdNumber!, _secondaryIdType!)) {
+      if (reportError) setError('Invalid format for $_secondaryIdType number');
+      return false;
+    }
+
     if (_secondaryIdFront == null) {
       if (reportError) setError('Please upload the front of your secondary ID');
       return false;
