@@ -54,6 +54,7 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     });
     _confirmPasswordController.addListener(() {
       widget.controller.setConfirmPassword(_confirmPasswordController.text);
+      if (mounted) setState(() {});
     });
   }
 
@@ -86,9 +87,10 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
   // Check email availability in database
   void _checkEmailAvailability() {
     if (_emailDebounce?.isActive ?? false) _emailDebounce!.cancel();
-    
+
     final email = _emailController.text.trim();
-    if (email.isEmpty || !RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+').hasMatch(email)) {
+    if (email.isEmpty ||
+        !RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+').hasMatch(email)) {
       return;
     }
 
@@ -146,7 +148,9 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                       : isUsernameAvailable == null
                       ? null
                       : Icon(
-                          isUsernameAvailable ? Icons.check_circle : Icons.cancel,
+                          isUsernameAvailable
+                              ? Icons.check_circle
+                              : Icons.cancel,
                           color: isUsernameAvailable
                               ? ColorConstants.success
                               : ColorConstants.error,
@@ -183,9 +187,7 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                   helperText: isEmailAvailable == false
                       ? 'Email is already registered'
                       : null,
-                  helperStyle: TextStyle(
-                    color: ColorConstants.error,
-                  ),
+                  helperStyle: TextStyle(color: ColorConstants.error),
                 ),
               ),
               const SizedBox(height: 16),
@@ -219,7 +221,9 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: widget.controller.passwordStrength,
-                          backgroundColor: (isDark ? Colors.grey[800] : Colors.grey[200]),
+                          backgroundColor: (isDark
+                              ? Colors.grey[800]
+                              : Colors.grey[200]),
                           valueColor: AlwaysStoppedAnimation<Color>(
                             widget.controller.passwordStrengthColor,
                           ),
@@ -246,18 +250,45 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
                   labelText: 'Confirm Password',
                   hintText: 'Re-enter your password',
                   prefixIcon: const Icon(Icons.lock_outline_rounded),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureConfirmPassword = !_obscureConfirmPassword;
-                      });
-                    },
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_confirmPasswordController.text.isNotEmpty &&
+                          _passwordController.text.isNotEmpty)
+                        Icon(
+                          _passwordController.text ==
+                                  _confirmPasswordController.text
+                              ? Icons.check_circle
+                              : Icons.cancel,
+                          color:
+                              _passwordController.text ==
+                                  _confirmPasswordController.text
+                              ? ColorConstants.success
+                              : ColorConstants.error,
+                        ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
+                    ],
                   ),
+                  helperText:
+                      _confirmPasswordController.text.isNotEmpty &&
+                          _passwordController.text.isNotEmpty &&
+                          _passwordController.text !=
+                              _confirmPasswordController.text
+                      ? 'Passwords do not match'
+                      : null,
+                  helperStyle: const TextStyle(color: ColorConstants.error),
                 ),
               ),
               const SizedBox(height: 24),
