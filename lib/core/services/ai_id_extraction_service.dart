@@ -57,55 +57,6 @@ abstract class IAiIdExtractionService {
   });
 }
 
-/// Mock implementation of AI ID extraction service
-/// Simulates AI extraction with realistic delays and mock data
-// class MockAiIdExtractionService implements IAiIdExtractionService {
-//   @override
-//   Future<ExtractedIdData> extractFromNationalId({
-//     required File frontImage,
-//     File? backImage,
-//   }) async {
-//     // Simulate AI processing time
-//     await Future.delayed(const Duration(seconds: 2));
-
-//     // Return mock data - minimal extraction from national ID only
-//     return const ExtractedIdData(
-//       firstName: 'Juan',
-//       middleName: 'Dela',
-//       lastName: 'Cruz',
-//       dateOfBirth: null, // Not extracted yet
-//       sex: null,
-//       idNumber: '1234-5678-9012',
-//     );
-//   }
-
-//   @override
-//   Future<ExtractedIdData> extractFromSecondaryId({
-//     required File secondaryIdFront,
-//     File? secondaryIdBack,
-//     required File nationalIdFront,
-//     File? nationalIdBack,
-//   }) async {
-//     // Simulate comprehensive AI processing time
-//     await Future.delayed(const Duration(seconds: 3));
-
-//     // Return comprehensive mock data
-//     return ExtractedIdData(
-//       firstName: 'Juan',
-//       middleName: 'Dela',
-//       lastName: 'Cruz',
-//       dateOfBirth: DateTime(1990, 5, 15),
-//       sex: 'Male',
-//       address: '123 Sampaguita Street',
-//       province: 'Metro Manila',
-//       city: 'Quezon City',
-//       barangay: 'Barangay Commonwealth',
-//       zipCode: '1121',
-//       idNumber: '1234-5678-9012',
-//     );
-//   }
-// }
-
 /// Production AI implementation using Google ML Kit (On-Device OCR)
 class ProductionAiIdExtractionService implements IAiIdExtractionService {
   final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
@@ -117,7 +68,7 @@ class ProductionAiIdExtractionService implements IAiIdExtractionService {
   }) async {
     final inputImage = InputImage.fromFile(frontImage);
     final recognizedText = await _textRecognizer.processImage(inputImage);
-
+    
     return _parseTextToData(recognizedText.text);
   }
 
@@ -165,14 +116,10 @@ class ProductionAiIdExtractionService implements IAiIdExtractionService {
     String? idNumber;
 
     final lines = text.split('\n');
-
+    
     // Regex patterns
-    final datePattern = RegExp(
-      r'\d{2}[-/]\d{2}[-/]\d{4}|\d{4}[-/]\d{2}[-/]\d{2}',
-    );
-    final idPattern = RegExp(
-      r'\d{4}-\d{4}-\d{4}|\d{12}|\d{3}-\d{2}-\d{6}',
-    ); // Common formats
+    final datePattern = RegExp(r'\d{2}[-/]\d{2}[-/]\d{4}|\d{4}[-/]\d{2}[-/]\d{2}');
+    final idPattern = RegExp(r'\d{4}-\d{4}-\d{4}|\d{12}|\d{3}-\d{2}-\d{6}'); // Common formats
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
@@ -182,21 +129,21 @@ class ProductionAiIdExtractionService implements IAiIdExtractionService {
       if (idNumber == null && idPattern.hasMatch(line)) {
         idNumber = idPattern.firstMatch(line)?.group(0);
       } else if (lowerLine.contains('id no') || lowerLine.contains('crn')) {
-        // Check next line or same line
-        if (i + 1 < lines.length && idPattern.hasMatch(lines[i + 1])) {
-          idNumber = idPattern.firstMatch(lines[i + 1])?.group(0);
-        }
+         // Check next line or same line
+         if (i + 1 < lines.length && idPattern.hasMatch(lines[i+1])) {
+            idNumber = idPattern.firstMatch(lines[i+1])?.group(0);
+         }
       }
 
       // Name (Very heuristic - assumes Last Name, First Name format or labeled)
       if (lowerLine.contains('last name') && i + 1 < lines.length) {
-        lastName = lines[i + 1].trim();
+        lastName = lines[i+1].trim();
       }
       if (lowerLine.contains('first name') && i + 1 < lines.length) {
-        firstName = lines[i + 1].trim();
+        firstName = lines[i+1].trim();
       }
       if (lowerLine.contains('middle name') && i + 1 < lines.length) {
-        middleName = lines[i + 1].trim();
+        middleName = lines[i+1].trim();
       }
 
       // Sex
@@ -204,46 +151,37 @@ class ProductionAiIdExtractionService implements IAiIdExtractionService {
         if (lowerLine == 'm' || lowerLine == 'male') sex = 'Male';
         if (lowerLine == 'f' || lowerLine == 'female') sex = 'Female';
         if (lowerLine.contains('sex') || lowerLine.contains('gender')) {
-          if (line.contains('M') || line.contains('Male'))
-            sex = 'Male';
-          else if (line.contains('F') || line.contains('Female'))
-            sex = 'Female';
-          else if (i + 1 < lines.length) {
-            final next = lines[i + 1].trim().toLowerCase();
-            if (next == 'm' || next == 'male') sex = 'Male';
-            if (next == 'f' || next == 'female') sex = 'Female';
-          }
+           if (line.contains('M') || line.contains('Male')) sex = 'Male';
+           else if (line.contains('F') || line.contains('Female')) sex = 'Female';
+           else if (i + 1 < lines.length) {
+             final next = lines[i+1].trim().toLowerCase();
+             if (next == 'm' || next == 'male') sex = 'Male';
+             if (next == 'f' || next == 'female') sex = 'Female';
+           }
         }
       }
 
       // Date of Birth
       if (dateOfBirth == null) {
         if (lowerLine.contains('birth') || lowerLine.contains('dob')) {
-          // Search in this line or next
-          final match =
-              datePattern.firstMatch(line) ??
-              ((i + 1 < lines.length)
-                  ? datePattern.firstMatch(lines[i + 1])
-                  : null);
-          if (match != null) {
-            try {
-              // Try parsing YYYY-MM-DD or MM/DD/YYYY - Simplified for demo
-              dateOfBirth = DateTime.tryParse(match.group(0)!);
-            } catch (_) {}
-          }
+           // Search in this line or next
+           final match = datePattern.firstMatch(line) ?? ((i + 1 < lines.length) ? datePattern.firstMatch(lines[i+1]) : null);
+           if (match != null) {
+             try {
+                // Try parsing YYYY-MM-DD or MM/DD/YYYY - Simplified for demo
+                dateOfBirth = DateTime.tryParse(match.group(0)!); 
+             } catch (_) {}
+           }
         }
       }
 
       // Address
-      if (address == null &&
-          (lowerLine.contains('address') ||
-              lowerLine.contains('subdivision') ||
-              lowerLine.contains('barangay'))) {
+      if (address == null && (lowerLine.contains('address') || lowerLine.contains('subdivision') || lowerLine.contains('barangay'))) {
         // Grab the next 1-2 lines as address
         if (i + 1 < lines.length) {
-          address = lines[i + 1];
-          if (i + 2 < lines.length && !lines[i + 2].contains(':')) {
-            address = '$address ${lines[i + 2]}';
+          address = lines[i+1];
+          if (i + 2 < lines.length && !lines[i+2].contains(':')) {
+            address = '$address ${lines[i+2]}';
           }
         }
       }
@@ -270,7 +208,7 @@ class ProductionAiIdExtractionService implements IAiIdExtractionService {
   String _cleanText(String text) {
     return text.replaceAll(RegExp(r'[^\w\s\-\.,]'), '').trim();
   }
-
+  
   void dispose() {
     _textRecognizer.close();
   }
