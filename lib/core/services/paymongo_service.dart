@@ -36,16 +36,49 @@ class PayMongoService implements IPayMongoService {
 
   /// Get authorization header with base64 encoded secret key
   Map<String, String> get _authHeaders {
+    _validateKeyEnvironment();
     final auth = base64Encode(utf8.encode('$_secretKey:'));
     return {'Authorization': 'Basic $auth', 'Content-Type': 'application/json'};
   }
 
   /// Get authorization header with base64 encoded public key
-  /// Creating payment methods should ideally use the public key from the client
   Map<String, String> get _publicAuthHeaders {
+    _validateKeyEnvironment();
     final key = _publicKey.isNotEmpty ? _publicKey : _secretKey;
     final auth = base64Encode(utf8.encode('$key:'));
     return {'Authorization': 'Basic $auth', 'Content-Type': 'application/json'};
+  }
+
+  /// Ensure both keys are from the same environment (test or live)
+  void _validateKeyEnvironment() {
+    if (_secretKey.isEmpty) return;
+    
+    // Debug prints to verify keys (safe: only prefixes)
+    final secretPrefix = _secretKey.length > 7 ? _secretKey.substring(0, 8) : 'too_short';
+    final publicPrefix = _publicKey.length > 7 ? _publicKey.substring(0, 8) : (_publicKey.isEmpty ? 'empty' : 'too_short');
+    
+    debugPrint('[PayMongo] Validating Keys - Secret: $secretPrefix..., Public: $publicPrefix...');
+
+    final bool isSecretTest = _secretKey.startsWith('sk_test_');
+    final bool isPublicTest = _publicKey.isEmpty || _publicKey.startsWith('pk_test_');
+    final bool isPublicLive = _publicKey.startsWith('pk_live_');
+    final bool isSecretLive = _secretKey.startsWith('sk_live_');
+
+    if (isSecretTest && isPublicLive) {
+      debugPrint('[PayMongo] ERROR: Mixed Environment Detected (Secret: TEST, Public: LIVE)');
+      throw PayMongoException(
+        'Environment Mismatch: You are using a TEST Secret Key with a LIVE Public Key. '
+        'Please check your .env file and ensure both keys are from the same environment.'
+      );
+    }
+    
+    if (isSecretLive && isPublicTest && _publicKey.isNotEmpty) {
+      debugPrint('[PayMongo] ERROR: Mixed Environment Detected (Secret: LIVE, Public: TEST)');
+      throw PayMongoException(
+        'Environment Mismatch: You are using a LIVE Secret Key with a TEST Public Key. '
+        'Please check your .env file and ensure both keys are from the same environment.'
+      );
+    }
   }
 
   /// Create a PaymentIntent for the purchase

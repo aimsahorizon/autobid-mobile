@@ -127,6 +127,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       );
 
       final paymentIntentId = paymentIntent['id'] as String;
+      final clientKey = paymentIntent['attributes']['client_key'] as String?;
 
       // Convert 2-digit year to 4-digit
       final twoDigitYear = _expYearController.text;
@@ -151,6 +152,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final result = await _payMongoService.attachPaymentMethod(
         paymentIntentId: paymentIntentId,
         paymentMethodId: paymentMethodId,
+        clientKey: clientKey,
       );
 
       // Check payment status
