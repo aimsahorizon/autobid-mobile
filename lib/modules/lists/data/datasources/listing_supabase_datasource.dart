@@ -1715,6 +1715,15 @@ class ListingSupabaseDataSource {
         .eq('seller_id', sellerId);
   }
 
+  /// Stream seller's drafts updates
+  /// Listens to changes in 'listing_drafts' table for the specific seller
+  Stream<List<Map<String, dynamic>>> streamSellerDrafts(String sellerId) {
+    return _supabase
+        .from('listing_drafts')
+        .stream(primaryKey: ['id'])
+        .eq('seller_id', sellerId);
+  }
+
   /// Fetch a single seller listing by ID with full details
   /// Used for navigating from list to detail view
   Future<ListingModel> getSellerListing(String auctionId) async {

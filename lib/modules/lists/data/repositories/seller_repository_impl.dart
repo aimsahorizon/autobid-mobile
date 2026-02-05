@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:async/async.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
@@ -392,10 +393,11 @@ class SellerRepositoryImpl implements SellerRepository {
 
   @override
   Stream<void> streamSellerListings(String sellerId) {
-    // Streams might need different handling (e.g. emit error or stop)
-    // But Supabase stream handles reconnection.
-    // For now, let it be.
-    return dataSource.streamSellerListings(sellerId);
+    // Merge streams from both auctions and drafts to trigger updates for any change
+    final auctionsStream = dataSource.streamSellerListings(sellerId);
+    final draftsStream = dataSource.streamSellerDrafts(sellerId);
+    
+    return StreamGroup.merge([auctionsStream, draftsStream]);
   }
 
   @override
