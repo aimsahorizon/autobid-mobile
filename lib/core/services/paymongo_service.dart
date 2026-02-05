@@ -9,8 +9,9 @@ import 'ipaymongo_service.dart';
 /// Get your keys from: https://dashboard.paymongo.com/developers
 class PayMongoService implements IPayMongoService {
   // API credentials loaded from environment variables
-  static final String _secretKey = dotenv.env['PAYMONGO_SECRET_KEY'] ?? '';
-  static final String _publicKey = dotenv.env['PAYMONGO_PUBLIC_KEY'] ?? '';
+  // Use getters to ensure we always get current value from dotenv
+  static String get _secretKey => dotenv.env['PAYMONGO_SECRET_KEY'] ?? '';
+  static String get _publicKey => dotenv.env['PAYMONGO_PUBLIC_KEY'] ?? '';
 
   static const String _baseUrl = 'https://api.paymongo.com/v1';
 

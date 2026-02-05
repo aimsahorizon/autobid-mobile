@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
+import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/deposit_supabase_datasource.dart';
@@ -54,10 +57,32 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
   @override
   void initState() {
     super.initState();
-    _payMongoService = widget.payMongoService ?? PayMongoService();
-    // In production, SupabaseConfig.client should be initialized. 
-    // In tests, we pass a mock datasource so SupabaseConfig.client access is avoided if mocked.
+    
+    // Logic to determine which service to use
+    if (widget.payMongoService != null) {
+      _payMongoService = widget.payMongoService!;
+    } else {
+      // In debug mode, if keys are missing, use Mock
+      final hasKeys = (dotenv.env['PAYMONGO_SECRET_KEY']?.isNotEmpty ?? false);
+      if (kDebugMode && !hasKeys) {
+        _payMongoService = PayMongoMockService();
+        debugPrint('[DepositPaymentPage] Using PayMongoMockService (Keys missing in .env)');
+      } else {
+        _payMongoService = PayMongoService();
+      }
+    }
+
     _depositDataSource = widget.depositDataSource ?? DepositSupabaseDataSource(SupabaseConfig.client);
+  }
+
+  void _useMockService() {
+    setState(() {
+      _payMongoService = PayMongoMockService();
+      _autoFillTestCard('4242 4242 4242 4242');
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Switched to Mock Payment Service (Debug)')),
+    );
   }
 
   @override
@@ -193,7 +218,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       _phoneController.text = '+639171234567';
       _cardNumberController.text = cardNumber;
       _expMonthController.text = '12';
-      _expYearController.text = '25';
+      _expYearController.text = '30';
       _cvcController.text = '123';
     });
   }
@@ -742,9 +767,25 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
                       const SizedBox(height: 8),
 
-                      const Text('Any future expiry date (e.g., 12/25)'),
+                      const Text('Any future expiry date (e.g., 12/30)'),
 
                       const Text('Any 3-digit CVC (e.g., 123)'),
+
+                      if (kDebugMode) ...[
+                        const Divider(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _useMockService,
+                            icon: const Icon(Icons.science_outlined),
+                            label: const Text('Bypass API (Use Mock Service)'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.purple,
+                              side: const BorderSide(color: Colors.purple),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
