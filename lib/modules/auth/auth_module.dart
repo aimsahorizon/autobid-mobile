@@ -3,6 +3,7 @@ import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/network/network_info.dart';
+import '../../core/services/ai_id_extraction_service.dart';
 import '../profile/profile_module.dart';
 import 'data/datasources/auth_remote_datasource.dart';
 import 'data/datasources/auth_local_datasource.dart';
@@ -96,6 +97,7 @@ Future<void> initAuthModule() async {
       verifyEmailOtpUseCase: sl(),
       verifyPhoneOtpUseCase: sl(),
       sharedPreferences: sl(),
+      aiService: sl(),
     ),
   );
 }
@@ -126,6 +128,9 @@ class AuthModule {
   // Profile Use Cases (Cross-module)
   late final CheckEmailExistsUseCase _checkEmailExistsUseCase;
   late final GetUserProfileByEmailUseCase _getUserProfileByEmailUseCase;
+  
+  // Services
+  late final IAiIdExtractionService _aiService;
 
   AuthModule._() {
     _initializeDependencies();
@@ -141,6 +146,9 @@ class AuthModule {
     _remoteDataSource = AuthRemoteDataSourceImpl(SupabaseConfig.client);
     final sharedPreferences = GetIt.instance<SharedPreferences>();
     _localDataSource = AuthLocalDataSourceImpl(sharedPreferences);
+
+    // Services
+    _aiService = GetIt.instance<IAiIdExtractionService>();
 
     // Repositories
     // Create NetworkInfo for manual injection
@@ -215,6 +223,7 @@ class AuthModule {
       sendPhoneOtpUseCase: _sendPhoneOtpUseCase,
       verifyEmailOtpUseCase: _verifyEmailOtpUseCase,
       verifyPhoneOtpUseCase: _verifyPhoneOtpUseCase,
+      aiService: _aiService,
     );
   }
 }

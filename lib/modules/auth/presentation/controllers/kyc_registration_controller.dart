@@ -47,7 +47,7 @@ class KYCRegistrationController extends ChangeNotifier {
   }) : _authDataSource = authDataSource,
        _sendEmailOtpUseCase = sendEmailOtpUseCase,
        _verifyEmailOtpUseCase = verifyEmailOtpUseCase,
-       _aiService = aiService ?? MockAiIdExtractionService(),
+       _aiService = aiService ?? ProductionAiIdExtractionService(),
        _fileEncryptionService = fileEncryptionService,
        _sharedPreferences = sharedPreferences;
 
