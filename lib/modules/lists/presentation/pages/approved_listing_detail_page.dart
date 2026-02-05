@@ -121,15 +121,43 @@ class ApprovedListingDetailPage extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         navigator.pop(); // Close loading
-
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        _handleError(context, e);
       }
+    }
+  }
+
+  void _handleError(BuildContext context, dynamic error) {
+    String message = error.toString();
+    
+    // Parse common database constraints to user-friendly messages
+    if (message.contains('auction_time_range_check')) {
+      message = 'The auction end time must be later than the start time. Please adjust your selection.';
+    } else if (message.contains('starting_price_check')) {
+      message = 'Starting price must be greater than zero.';
+    } else if (message.contains('reserve_price_check')) {
+      message = 'Reserve price must be equal to or greater than the starting price.';
+    } else if (message.contains('bid_increment_check')) {
+      message = 'Bid increment must be a positive amount.';
+    } else if (message.contains('Exception: ')) {
+      message = message.replaceFirst('Exception: ', '');
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: ColorConstants.error,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            textColor: Colors.white,
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
     }
   }
 
@@ -199,14 +227,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     } catch (e) {
       if (!context.mounted) return;
       navigator.pop(); // Close loading dialog
-
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Failed to go live: $e'),
-          backgroundColor: ColorConstants.error,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      _handleError(context, e);
     }
   }
 
@@ -358,14 +379,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     } catch (e) {
       if (!context.mounted) return;
       navigator.pop(); // Close loading dialog
-
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Failed to schedule: $e'),
-          backgroundColor: ColorConstants.error,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      _handleError(context, e);
     }
   }
 
