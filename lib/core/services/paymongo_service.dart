@@ -52,31 +52,42 @@ class PayMongoService implements IPayMongoService {
   /// Ensure both keys are from the same environment (test or live)
   void _validateKeyEnvironment() {
     if (_secretKey.isEmpty) return;
-    
+
     // Debug prints to verify keys (safe: only prefixes)
-    final secretPrefix = _secretKey.length > 7 ? _secretKey.substring(0, 8) : 'too_short';
-    final publicPrefix = _publicKey.length > 7 ? _publicKey.substring(0, 8) : (_publicKey.isEmpty ? 'empty' : 'too_short');
-    
-    debugPrint('[PayMongo] Validating Keys - Secret: $secretPrefix..., Public: $publicPrefix...');
+    final secretPrefix = _secretKey.length > 7
+        ? _secretKey.substring(0, 8)
+        : 'too_short';
+    final publicPrefix = _publicKey.length > 7
+        ? _publicKey.substring(0, 8)
+        : (_publicKey.isEmpty ? 'empty' : 'too_short');
+
+    debugPrint(
+      '[PayMongo] Validating Keys - Secret: $secretPrefix..., Public: $publicPrefix...',
+    );
 
     final bool isSecretTest = _secretKey.startsWith('sk_test_');
-    final bool isPublicTest = _publicKey.isEmpty || _publicKey.startsWith('pk_test_');
+    final bool isPublicTest =
+        _publicKey.isEmpty || _publicKey.startsWith('pk_test_');
     final bool isPublicLive = _publicKey.startsWith('pk_live_');
     final bool isSecretLive = _secretKey.startsWith('sk_live_');
 
     if (isSecretTest && isPublicLive) {
-      debugPrint('[PayMongo] ERROR: Mixed Environment Detected (Secret: TEST, Public: LIVE)');
+      debugPrint(
+        '[PayMongo] ERROR: Mixed Environment Detected (Secret: TEST, Public: LIVE)',
+      );
       throw PayMongoException(
         'Environment Mismatch: You are using a TEST Secret Key with a LIVE Public Key. '
-        'Please check your .env file and ensure both keys are from the same environment.'
+        'Please check your .env file and ensure both keys are from the same environment.',
       );
     }
-    
+
     if (isSecretLive && isPublicTest && _publicKey.isNotEmpty) {
-      debugPrint('[PayMongo] ERROR: Mixed Environment Detected (Secret: LIVE, Public: TEST)');
+      debugPrint(
+        '[PayMongo] ERROR: Mixed Environment Detected (Secret: LIVE, Public: TEST)',
+      );
       throw PayMongoException(
         'Environment Mismatch: You are using a LIVE Secret Key with a TEST Public Key. '
-        'Please check your .env file and ensure both keys are from the same environment.'
+        'Please check your .env file and ensure both keys are from the same environment.',
       );
     }
   }
@@ -186,6 +197,7 @@ class PayMongoService implements IPayMongoService {
     required String paymentIntentId,
     required String paymentMethodId,
     String? clientKey,
+    String? returnUrl,
   }) async {
     final url = Uri.parse('$_baseUrl/payment_intents/$paymentIntentId/attach');
 
@@ -194,6 +206,7 @@ class PayMongoService implements IPayMongoService {
         'attributes': {
           'payment_method': paymentMethodId,
           if (clientKey != null) 'client_key': clientKey,
+          'return_url': returnUrl ?? 'https://autobid.app/payment/redirect',
         },
       },
     });

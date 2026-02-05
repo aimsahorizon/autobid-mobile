@@ -15,7 +15,7 @@ class DepositPaymentPage extends StatefulWidget {
   final String userId;
   final double depositAmount;
   final VoidCallback onSuccess;
-  
+
   // Dependencies for testing
   final IPayMongoService? payMongoService;
   final DepositSupabaseDataSource? depositDataSource;
@@ -57,7 +57,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
   @override
   void initState() {
     super.initState();
-    
+
     // Logic to determine which service to use
     if (widget.payMongoService != null) {
       _payMongoService = widget.payMongoService!;
@@ -66,19 +66,23 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final hasKeys = (dotenv.env['PAYMONGO_SECRET_KEY']?.isNotEmpty ?? false);
       if (kDebugMode && !hasKeys) {
         _payMongoService = PayMongoMockService();
-        debugPrint('[DepositPaymentPage] Using PayMongoMockService (Keys missing in .env)');
+        debugPrint(
+          '[DepositPaymentPage] Using PayMongoMockService (Keys missing in .env)',
+        );
       } else {
         _payMongoService = PayMongoService();
       }
     }
 
-    _depositDataSource = widget.depositDataSource ?? DepositSupabaseDataSource(SupabaseConfig.client);
+    _depositDataSource =
+        widget.depositDataSource ??
+        DepositSupabaseDataSource(SupabaseConfig.client);
   }
 
   void _useMockService() {
     setState(() {
       _payMongoService = PayMongoMockService();
-      _autoFillTestCard('4242 4242 4242 4242');
+      _autoFillTestCard('4343 4343 4343 4345');
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Switched to Mock Payment Service (Debug)')),
@@ -153,10 +157,26 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
         paymentIntentId: paymentIntentId,
         paymentMethodId: paymentMethodId,
         clientKey: clientKey,
+        returnUrl: 'https://autobid.app/payment/redirect',
       );
 
       // Check payment status
       final status = result['attributes']['status'] as String;
+
+      if (status == 'awaiting_next_action') {
+        // 3DS authentication required - get the redirect URL
+        final nextAction =
+            result['attributes']['next_action'] as Map<String, dynamic>?;
+        final redirectUrl = nextAction?['redirect']?['url'] as String?;
+        if (redirectUrl != null && mounted) {
+          // For now, inform the user that 3DS is not supported in-app
+          // In production, you'd open a WebView for 3DS authentication
+          throw PayMongoException(
+            'This card requires 3D Secure authentication. '
+            'Please use a non-3DS test card (Visa: 4343 4343 4343 4345).',
+          );
+        }
+      }
 
       if (status != 'succeeded' && status != 'awaiting_payment_method') {
         throw PayMongoException('Payment failed with status: $status');
@@ -428,7 +448,9 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                       return 'Please enter your email';
                     }
 
-                    final emailRegex = RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
+                    final emailRegex = RegExp(
+                      r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+',
+                    );
                     if (!emailRegex.hasMatch(value)) {
                       return 'Please enter a valid email address';
                     }
@@ -761,11 +783,21 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
                       const SizedBox(height: 8),
 
-                      _buildCopyableRow('Visa', '4242 4242 4242 4242', onAutoFill: () => _autoFillTestCard('4242 4242 4242 4242')),
+                      _buildCopyableRow(
+                        'Visa',
+                        '4343 4343 4343 4345',
+                        onAutoFill: () =>
+                            _autoFillTestCard('4343 4343 4343 4345'),
+                      ),
 
                       const SizedBox(height: 4),
 
-                      _buildCopyableRow('Mastercard', '5454 5454 5454 5454', onAutoFill: () => _autoFillTestCard('5454 5454 5454 5454')),
+                      _buildCopyableRow(
+                        'Mastercard',
+                        '5555 4444 4444 4457',
+                        onAutoFill: () =>
+                            _autoFillTestCard('5555 4444 4444 4457'),
+                      ),
 
                       const SizedBox(height: 8),
 
@@ -799,7 +831,11 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     );
   }
 
-  Widget _buildCopyableRow(String label, String value, {VoidCallback? onAutoFill}) {
+  Widget _buildCopyableRow(
+    String label,
+    String value, {
+    VoidCallback? onAutoFill,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
 
@@ -824,7 +860,10 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
                     child: Text(
                       label,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
 
@@ -832,7 +871,10 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                     child: Text(
                       value,
 
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                      ),
                     ),
                   ),
 
@@ -846,7 +888,10 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
             TextButton(
               onPressed: onAutoFill,
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 backgroundColor: Colors.blue.withValues(alpha: 0.1),

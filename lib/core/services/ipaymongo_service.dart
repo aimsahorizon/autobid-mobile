@@ -20,6 +20,7 @@ abstract class IPayMongoService {
     required String paymentIntentId,
     required String paymentMethodId,
     String? clientKey,
+    String? returnUrl,
   });
 
   Future<Map<String, dynamic>> createSource({

@@ -4,7 +4,7 @@ import 'ipaymongo_service.dart';
 /// Mock PayMongo payment service for testing flows without hitting the API
 class PayMongoMockService implements IPayMongoService {
   bool _useSuccess = true;
-  
+
   /// Set whether to return success or failure responses
   void setSuccessMode(bool success) {
     _useSuccess = success;
@@ -18,7 +18,7 @@ class PayMongoMockService implements IPayMongoService {
     Map<String, dynamic>? metadata,
   }) async {
     await Future.delayed(const Duration(seconds: 1));
-    
+
     if (!_useSuccess) {
       throw Exception('Mock Error: Failed to create payment intent');
     }
@@ -32,7 +32,7 @@ class PayMongoMockService implements IPayMongoService {
         'status': 'awaiting_payment_method',
         'client_key': 'pi_mock_client_key',
         'metadata': metadata ?? {},
-      }
+      },
     };
   }
 
@@ -63,11 +63,8 @@ class PayMongoMockService implements IPayMongoService {
           'exp_month': expMonth,
           'exp_year': expYear,
         },
-        'billing': {
-          'name': billingName,
-          'email': billingEmail,
-        }
-      }
+        'billing': {'name': billingName, 'email': billingEmail},
+      },
     };
   }
 
@@ -77,6 +74,7 @@ class PayMongoMockService implements IPayMongoService {
     required String paymentIntentId,
     required String paymentMethodId,
     String? clientKey,
+    String? returnUrl,
   }) async {
     await Future.delayed(const Duration(seconds: 2));
 
@@ -87,10 +85,7 @@ class PayMongoMockService implements IPayMongoService {
     return {
       'id': paymentIntentId,
       'type': 'payment_intent',
-      'attributes': {
-        'status': 'succeeded',
-        'metadata': {},
-      }
+      'attributes': {'status': 'succeeded', 'metadata': {}},
     };
   }
 
@@ -122,8 +117,8 @@ class PayMongoMockService implements IPayMongoService {
             'checkout_url': 'https://mock.paymongo.com/checkout/mock_source_id',
           },
           'metadata': metadata ?? {},
-        }
-      }
+        },
+      },
     };
   }
 
@@ -136,10 +131,8 @@ class PayMongoMockService implements IPayMongoService {
       'data': {
         'id': sourceId,
         'type': 'source',
-        'attributes': {
-          'status': 'chargeable',
-        }
-      }
+        'attributes': {'status': 'chargeable'},
+      },
     };
   }
 
@@ -159,8 +152,8 @@ class PayMongoMockService implements IPayMongoService {
           'status': 'succeeded',
           'amount': 100000,
           'currency': 'PHP',
-        }
-      }
+        },
+      },
     };
   }
 }
