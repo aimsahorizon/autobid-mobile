@@ -40,12 +40,15 @@ class BidSupabaseDataSource {
 
       // If auto-bid is enabled, create/update auto_bid_settings
       if (isAutoBid && maxAutoBid != null) {
-        await _supabase.from('auto_bid_settings').upsert({
-          'auction_id': auctionId,
-          'user_id': bidderId,
-          'max_bid_amount': maxAutoBid,
-          'is_active': true,
-        });
+        await _supabase.from('auto_bid_settings').upsert(
+          {
+            'auction_id': auctionId,
+            'user_id': bidderId,
+            'max_bid_amount': maxAutoBid,
+            'is_active': true,
+          },
+          onConflict: 'auction_id,user_id',
+        );
       }
 
       await _maybeApplySnipeGuard(auctionId);
