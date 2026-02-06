@@ -287,6 +287,34 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
                   onSelectionChanged: isSubmitted
                       ? null
                       : (v) => setState(() => _pickupOrDelivery = v.first),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return ColorConstants.primary.withValues(alpha: 0.2);
+                      }
+                      return isDark
+                          ? ColorConstants.surfaceDark
+                          : ColorConstants.surfaceLight;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return ColorConstants.primary;
+                      }
+                      return isDark
+                          ? ColorConstants.textPrimaryDark
+                          : ColorConstants.textPrimaryLight;
+                    }),
+                    side: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return BorderSide(color: ColorConstants.primary);
+                      }
+                      return BorderSide(
+                        color: isDark
+                            ? ColorConstants.borderDark
+                            : ColorConstants.borderLight,
+                      );
+                    }),
+                  ),
                 ),
 
                 if (_pickupOrDelivery == 'Delivery') ...[
