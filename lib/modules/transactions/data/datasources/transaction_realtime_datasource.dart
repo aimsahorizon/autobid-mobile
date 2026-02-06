@@ -1029,62 +1029,15 @@ class TransactionRealtimeDataSource {
       final newTxnId = newTxnResponse['id'] as String;
       debugPrint('[OfferNextBidder] ✅ New transaction created: $newTxnId');
 
-      // 2. Update auction status back to in_transaction and update current_price
-      try {
-        final inTransactionStatusResponse = await _supabase
-            .from('auction_statuses')
-            .select('id')
-            .eq('status_name', 'in_transaction')
-            .maybeSingle();
+      // 2. Update auction current_price to reflect the new winning bid
+      await _supabase
+          .from('auctions')
+          .update({'current_price': nextAmount, 'updated_at': now})
+          .eq('id', auctionId);
 
-        if (inTransactionStatusResponse != null) {
-          await _supabase
-              .from('auctions')
-              .update({
-                'status_id': inTransactionStatusResponse['id'],
-                'current_price': nextAmount,
-                'updated_at': now,
-              })
-              .eq('id', auctionId);
-          debugPrint(
-            '[OfferNextBidder] ✅ Auction status restored to in_transaction & price updated',
-          );
-        } else {
-          await _supabase
-              .from('auctions')
-              .update({'current_price': nextAmount, 'updated_at': now})
-              .eq('id', auctionId);
-          debugPrint(
-            '[OfferNextBidder] ⚠️ in_transaction status not found, price updated only',
-          );
-        }
-      } catch (e) {
-        debugPrint(
-          '[OfferNextBidder] ⚠️ Warning: Failed to update auction status: $e',
-        );
-      }
+      debugPrint('[OfferNextBidder] ✅ Auction current_price updated');
 
-      // 3. Update old transaction to deal_failed so buyer keeps the record
-      try {
-        await _supabase
-            .from('auction_transactions')
-            .update({
-              'status': 'deal_failed',
-              'seller_rejection_reason':
-                  'Seller selected the next highest bidder.',
-              'updated_at': now,
-            })
-            .eq('id', transactionId);
-        debugPrint(
-          '[OfferNextBidder] ✅ Old transaction marked as deal_failed for buyer record',
-        );
-      } catch (e) {
-        debugPrint(
-          '[OfferNextBidder] ⚠️ Warning: Failed to update old transaction: $e',
-        );
-      }
-
-      // 4. Mark the previous buyer's bid as lost
+      // 3. Mark the previous buyer's bid as lost
       if (currentBuyerId != null) {
         try {
           final lostStatusResponse = await _supabase
@@ -1111,7 +1064,7 @@ class TransactionRealtimeDataSource {
         }
       }
 
-      // 5. Add timeline event to the NEW transaction
+      // 4. Add timeline event to the NEW transaction
       final actorId = _supabase.auth.currentUser?.id ?? '';
       final actorName =
           _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Seller';
@@ -1125,7 +1078,7 @@ class TransactionRealtimeDataSource {
         actorName,
       );
 
-      // 6. Add timeline event to the OLD transaction
+      // 5. Add timeline event to the OLD transaction
       await _addTimelineEvent(
         transactionId,
         'Offered to Next Bidder',
@@ -1192,28 +1145,6 @@ class TransactionRealtimeDataSource {
           .eq('id', auctionId);
 
       debugPrint('[RelistAuction] ✅ Auction updated to pending_approval');
-
-      // Ensure the transaction record is marked as deal_failed so buyer keeps it
-      if (txnId != null) {
-        try {
-          await _supabase
-              .from('auction_transactions')
-              .update({
-                'status': 'deal_failed',
-                'seller_rejection_reason':
-                    'Seller chose to relist the auction for a new round of bidding.',
-                'updated_at': now,
-              })
-              .eq('id', txnId);
-          debugPrint(
-            '[RelistAuction] ✅ Transaction marked as deal_failed for buyer record',
-          );
-        } catch (e) {
-          debugPrint(
-            '[RelistAuction] ⚠️ Warning: Failed to update transaction status: $e',
-          );
-        }
-      }
 
       // Add timeline event to the failed transaction
       if (txnId != null) {
@@ -1286,28 +1217,6 @@ class TransactionRealtimeDataSource {
           .eq('id', auctionId);
 
       debugPrint('[DeleteAuction] ✅ Auction marked as cancelled');
-
-      // Ensure the transaction record is marked as deal_failed so buyer keeps it
-      if (txnId != null) {
-        try {
-          await _supabase
-              .from('auction_transactions')
-              .update({
-                'status': 'deal_failed',
-                'seller_rejection_reason':
-                    'Seller chose to delete the auction.',
-                'updated_at': DateTime.now().toIso8601String(),
-              })
-              .eq('id', txnId);
-          debugPrint(
-            '[DeleteAuction] ✅ Transaction marked as deal_failed for buyer record',
-          );
-        } catch (e) {
-          debugPrint(
-            '[DeleteAuction] ⚠️ Warning: Failed to update transaction status: $e',
-          );
-        }
-      }
 
       // Add timeline event to the failed transaction
       if (txnId != null) {
@@ -1517,62 +1426,16 @@ class TransactionRealtimeDataSource {
         '[OfferToSpecificBidder] ✅ New transaction created: $newTxnId',
       );
 
-      // 2. Update auction status back to in_transaction and update current_price
-      try {
-        final inTransactionStatusResponse = await _supabase
-            .from('auction_statuses')
-            .select('id')
-            .eq('status_name', 'in_transaction')
-            .maybeSingle();
+      // 2. Update auction current_price to reflect the new winning bid
+      // Note: winner info is stored in auction_transactions, not auctions table
+      await _supabase
+          .from('auctions')
+          .update({'current_price': bidAmount, 'updated_at': now})
+          .eq('id', auctionId);
 
-        if (inTransactionStatusResponse != null) {
-          await _supabase
-              .from('auctions')
-              .update({
-                'status_id': inTransactionStatusResponse['id'],
-                'current_price': bidAmount,
-                'updated_at': now,
-              })
-              .eq('id', auctionId);
-          debugPrint(
-            '[OfferToSpecificBidder] ✅ Auction status restored to in_transaction & price updated',
-          );
-        } else {
-          // Fallback: just update the price
-          await _supabase
-              .from('auctions')
-              .update({'current_price': bidAmount, 'updated_at': now})
-              .eq('id', auctionId);
-          debugPrint(
-            '[OfferToSpecificBidder] ⚠️ in_transaction status not found, price updated only',
-          );
-        }
-      } catch (e) {
-        debugPrint(
-          '[OfferToSpecificBidder] ⚠️ Warning: Failed to update auction status: $e',
-        );
-      }
+      debugPrint('[OfferToSpecificBidder] ✅ Auction current_price updated');
 
-      // 3. Update old transaction to deal_failed so buyer keeps the record
-      try {
-        await _supabase
-            .from('auction_transactions')
-            .update({
-              'status': 'deal_failed',
-              'seller_rejection_reason': 'Seller selected another bidder.',
-              'updated_at': now,
-            })
-            .eq('id', txnId);
-        debugPrint(
-          '[OfferToSpecificBidder] ✅ Old transaction marked as deal_failed for buyer record',
-        );
-      } catch (e) {
-        debugPrint(
-          '[OfferToSpecificBidder] ⚠️ Warning: Failed to update old transaction: $e',
-        );
-      }
-
-      // 4. Mark the previous buyer's bid as lost
+      // 3. Mark the previous buyer's bid as lost
       if (currentBuyerId != null) {
         try {
           final lostStatusResponse = await _supabase
@@ -1601,7 +1464,7 @@ class TransactionRealtimeDataSource {
         }
       }
 
-      // 5. Add timeline event to the NEW transaction
+      // 4. Add timeline event to the NEW transaction
       final actorId = _supabase.auth.currentUser?.id ?? '';
       final actorName =
           _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Seller';
@@ -1615,7 +1478,7 @@ class TransactionRealtimeDataSource {
         actorName,
       );
 
-      // 6. Add timeline event to the OLD transaction
+      // 5. Add timeline event to the OLD transaction
       await _addTimelineEvent(
         transactionId,
         'Offered to Another Bidder',

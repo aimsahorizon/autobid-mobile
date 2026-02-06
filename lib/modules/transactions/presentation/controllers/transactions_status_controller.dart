@@ -27,10 +27,13 @@ class TransactionsStatusController extends ChangeNotifier {
 
   void _subscribeToRealtimeUpdates() {
     _realtimeDataSource.subscribeToUserTransactions(_userId);
-    _realtimeSubscription = _realtimeDataSource.userTransactionsUpdateStream.listen((_) {
-      debugPrint('[TransactionsStatusController] Realtime update received, reloading...');
-      _reloadQuietly();
-    });
+    _realtimeSubscription = _realtimeDataSource.userTransactionsUpdateStream
+        .listen((_) {
+          debugPrint(
+            '[TransactionsStatusController] Realtime update received, reloading...',
+          );
+          _reloadQuietly();
+        });
   }
 
   /// Reload data quietly without showing loading state (for realtime updates)

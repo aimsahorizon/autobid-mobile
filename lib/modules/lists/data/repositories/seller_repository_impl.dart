@@ -101,11 +101,18 @@ class SellerRepositoryImpl implements SellerRepository {
         // Trigger DB update for expired listings (Lazy expiration)
         // This ensures the status in DB actually changes to 'ended'
         for (final listing in expiredListings) {
-           dataSource.updateListingStatusByName(listing.id, 'ended').then((_) {
-             debugPrint('[SellerRepository] Auto-expired listing: ${listing.id}');
-           }).catchError((e) {
-             debugPrint('[SellerRepository] Failed to auto-expire listing ${listing.id}: $e');
-           });
+          dataSource
+              .updateListingStatusByName(listing.id, 'ended')
+              .then((_) {
+                debugPrint(
+                  '[SellerRepository] Auto-expired listing: ${listing.id}',
+                );
+              })
+              .catchError((e) {
+                debugPrint(
+                  '[SellerRepository] Failed to auto-expire listing ${listing.id}: $e',
+                );
+              });
         }
 
         // Keep only truly active listings
@@ -405,7 +412,7 @@ class SellerRepositoryImpl implements SellerRepository {
       if (sellerId == null) {
         return const Left(AuthFailure('User not authenticated'));
       }
-      
+
       await dataSource.deleteListing(auctionId, sellerId);
       return const Right(null);
     } catch (e) {
@@ -419,7 +426,7 @@ class SellerRepositoryImpl implements SellerRepository {
     // Skip the first emission from each .stream() since Supabase emits initial data on subscribe
     final auctionsStream = dataSource.streamSellerListings(sellerId).skip(1);
     final draftsStream = dataSource.streamSellerDrafts(sellerId).skip(1);
-    
+
     return StreamGroup.merge([auctionsStream, draftsStream]);
   }
 

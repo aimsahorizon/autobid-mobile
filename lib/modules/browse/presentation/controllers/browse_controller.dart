@@ -30,18 +30,20 @@ class BrowseController extends ChangeNotifier {
   void _subscribeToUpdates() {
     _updatesSubscription?.cancel();
     // Skip the first emission since Supabase .stream() always emits initial data
-    _updatesSubscription = _streamActiveAuctionsUseCase().skip(1).listen(
-      (_) {
-        // Reload auctions quietly when update signal is received
-        // We check isLoading to avoid overlapping loads if user triggered manual refresh
-        if (!_isLoading) {
-          loadAuctions(isBackground: true);
-        }
-      },
-      onError: (e) {
-        debugPrint('Error in browse stream: $e');
-      },
-    );
+    _updatesSubscription = _streamActiveAuctionsUseCase()
+        .skip(1)
+        .listen(
+          (_) {
+            // Reload auctions quietly when update signal is received
+            // We check isLoading to avoid overlapping loads if user triggered manual refresh
+            if (!_isLoading) {
+              loadAuctions(isBackground: true);
+            }
+          },
+          onError: (e) {
+            debugPrint('Error in browse stream: $e');
+          },
+        );
   }
 
   @override
