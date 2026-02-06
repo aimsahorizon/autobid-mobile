@@ -44,12 +44,15 @@ class BuyerTransactionController extends ChangeNotifier {
         return;
       }
 
+      // Use the real transaction ID for related data fetches
+      final realTxnId = _transaction!.id;
+
       // Load all data in parallel
       await Future.wait([
-        _loadChatMessages(transactionId),
-        _loadMyForm(transactionId),
-        _loadSellerForm(transactionId),
-        _loadTimeline(transactionId),
+        _loadChatMessages(realTxnId),
+        _loadMyForm(realTxnId),
+        _loadSellerForm(realTxnId),
+        _loadTimeline(realTxnId),
       ]);
     } catch (e) {
       _errorMessage = 'Failed to load transaction';
