@@ -242,7 +242,47 @@ class TransactionRealtimeDataSource {
       adminApprovedAt: data['admin_approved_at'] != null
           ? DateTime.parse(data['admin_approved_at'] as String)
           : null,
+      // Delivery Status Mapping
+      deliveryStatus: _mapDeliveryStatus(data['delivery_status'] as String? ?? 'pending'),
+      deliveryStartedAt: data['delivery_started_at'] != null
+          ? DateTime.parse(data['delivery_started_at'] as String)
+          : null,
+      deliveryCompletedAt: data['delivery_completed_at'] != null
+          ? DateTime.parse(data['delivery_completed_at'] as String)
+          : null,
+      // Buyer Acceptance Mapping
+      buyerAcceptanceStatus: _mapBuyerAcceptanceStatus(data['buyer_acceptance_status'] as String? ?? 'pending'),
+      buyerAcceptedAt: data['buyer_accepted_at'] != null
+          ? DateTime.parse(data['buyer_accepted_at'] as String)
+          : null,
+      buyerRejectionReason: data['buyer_rejection_reason'] as String?,
     );
+  }
+
+  DeliveryStatus _mapDeliveryStatus(String status) {
+    switch (status) {
+      case 'preparing':
+        return DeliveryStatus.preparing;
+      case 'in_transit':
+        return DeliveryStatus.inTransit;
+      case 'delivered':
+        return DeliveryStatus.delivered;
+      case 'completed':
+        return DeliveryStatus.completed;
+      default:
+        return DeliveryStatus.pending;
+    }
+  }
+
+  BuyerAcceptanceStatus _mapBuyerAcceptanceStatus(String status) {
+    switch (status) {
+      case 'accepted':
+        return BuyerAcceptanceStatus.accepted;
+      case 'rejected':
+        return BuyerAcceptanceStatus.rejected;
+      default:
+        return BuyerAcceptanceStatus.pending;
+    }
   }
 
   TransactionStatus _mapStatus(String status) {

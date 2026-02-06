@@ -638,6 +638,12 @@ class ProgressRealtimeTab extends StatelessWidget {
       case TimelineEventType.adminApproved:
         icon = Icons.admin_panel_settings;
         color = ColorConstants.success;
+      case TimelineEventType.deliveryStarted:
+        icon = Icons.local_shipping;
+        color = ColorConstants.info;
+      case TimelineEventType.deliveryCompleted:
+        icon = Icons.done_all;
+        color = ColorConstants.success;
       case TimelineEventType.completed:
         icon = Icons.celebration;
         color = ColorConstants.success;
