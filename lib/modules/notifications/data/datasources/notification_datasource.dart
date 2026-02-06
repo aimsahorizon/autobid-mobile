@@ -14,4 +14,8 @@ abstract class INotificationDataSource {
   Future<List<NotificationEntity>> getUnreadNotifications({
     required String userId,
   });
+  Future<void> respondToInvite({
+    required String inviteId,
+    required String decision, // 'accepted' or 'rejected'
+  });
 }

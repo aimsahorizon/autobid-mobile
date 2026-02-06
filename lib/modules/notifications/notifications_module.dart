@@ -12,6 +12,7 @@ import 'domain/usecases/mark_as_read_usecase.dart';
 import 'domain/usecases/mark_all_as_read_usecase.dart';
 import 'domain/usecases/delete_notification_usecase.dart';
 import 'domain/usecases/get_unread_notifications_usecase.dart';
+import 'domain/usecases/respond_to_invite_usecase.dart';
 import 'presentation/controllers/notification_controller.dart';
 
 // Export the controller so it can be used by other modules
@@ -41,6 +42,7 @@ Future<void> initNotificationsModule() async {
   sl.registerLazySingleton(() => MarkAllAsReadUseCase(sl()));
   sl.registerLazySingleton(() => DeleteNotificationUseCase(sl()));
   sl.registerLazySingleton(() => GetUnreadNotificationsUseCase(sl()));
+  sl.registerLazySingleton(() => RespondToInviteUseCase(sl()));
 
   // Controllers (Factory)
   sl.registerFactory(
@@ -50,6 +52,7 @@ Future<void> initNotificationsModule() async {
       markAsReadUseCase: sl(),
       markAllAsReadUseCase: sl(),
       deleteNotificationUseCase: sl(),
+      respondToInviteUseCase: sl(),
     ),
   );
 }
@@ -91,6 +94,7 @@ class NotificationsModule {
       markAsReadUseCase: MarkAsReadUseCase(_createLegacyRepo()),
       markAllAsReadUseCase: MarkAllAsReadUseCase(_createLegacyRepo()),
       deleteNotificationUseCase: DeleteNotificationUseCase(_createLegacyRepo()),
+      respondToInviteUseCase: RespondToInviteUseCase(_createLegacyRepo()),
     );
     return _notificationController!;
   }
@@ -105,6 +109,7 @@ class NotificationsModule {
       markAsReadUseCase: MarkAsReadUseCase(_createLegacyRepo()),
       markAllAsReadUseCase: MarkAllAsReadUseCase(_createLegacyRepo()),
       deleteNotificationUseCase: DeleteNotificationUseCase(_createLegacyRepo()),
+      respondToInviteUseCase: RespondToInviteUseCase(_createLegacyRepo()),
     );
   }
 

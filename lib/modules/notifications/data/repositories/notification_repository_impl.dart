@@ -112,4 +112,22 @@ class NotificationRepositoryImpl implements NotificationRepository {
       );
     }
   }
+
+  @override
+  Future<Either<Failure, void>> respondToInvite({
+    required String inviteId,
+    required String decision,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      await dataSource.respondToInvite(inviteId: inviteId, decision: decision);
+      return const Right(null);
+    } catch (e) {
+      return Left(
+        ServerFailure('Failed to respond to invite: ${e.toString()}'),
+      );
+    }
+  }
 }

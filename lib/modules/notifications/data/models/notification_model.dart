@@ -69,6 +69,8 @@ class NotificationModel extends NotificationEntity {
         return 'system';
       case NotificationType.message:
         return 'message';
+      case NotificationType.auctionInvite:
+        return 'auction_invite';
     }
   }
 
@@ -87,6 +89,8 @@ class NotificationModel extends NotificationEntity {
         return NotificationType.system;
       case 'message':
         return NotificationType.message;
+      case 'auction_invite':
+        return NotificationType.auctionInvite;
       default:
         return NotificationType.system;
     }

@@ -77,4 +77,15 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
         .map((json) => NotificationModel.fromJson(json))
         .toList();
   }
+
+  @override
+  Future<void> respondToInvite({
+    required String inviteId,
+    required String decision,
+  }) async {
+    await supabase.rpc('respond_to_auction_invite', params: {
+      'p_invite_id': inviteId,
+      'p_decision': decision,
+    });
+  }
 }

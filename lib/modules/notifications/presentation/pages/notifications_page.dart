@@ -85,6 +85,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   notification: notification,
                   onTap: () => _handleNotificationTap(notification),
                   onDismiss: () => _handleDismiss(notification),
+                  onInviteResponse: (decision) =>
+                      _handleInviteResponse(notification, decision),
                 );
               },
             ),
@@ -190,6 +192,23 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     _controller.deleteNotification(notification.id, userId);
   }
+
+  void _handleInviteResponse(NotificationEntity notification, String decision) {
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+    final inviteId = notification.metadata?['invite_id'] as String?;
+    
+    if (inviteId != null) {
+      _controller.respondToInvite(inviteId, decision, userId);
+      // Mark as read after responding
+      if (!notification.isRead) {
+        _controller.markAsRead(notification.id, userId);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid invite data')),
+      );
+    }
+  }
 }
 
 /// Notification card widget
@@ -197,17 +216,20 @@ class _NotificationCard extends StatelessWidget {
   final NotificationEntity notification;
   final VoidCallback onTap;
   final VoidCallback onDismiss;
+  final Function(String)? onInviteResponse;
 
   const _NotificationCard({
     required this.notification,
     required this.onTap,
     required this.onDismiss,
+    this.onInviteResponse,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isInvite = notification.type == NotificationType.auctionInvite;
 
     return Dismissible(
       key: Key(notification.id),
@@ -238,59 +260,90 @@ class _NotificationCard extends StatelessWidget {
                   : ColorConstants.borderLight,
             ),
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildIcon(),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildIcon(),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            notification.title,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: notification.isRead
-                                  ? FontWeight.normal
-                                  : FontWeight.bold,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                notification.title,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: notification.isRead
+                                      ? FontWeight.normal
+                                      : FontWeight.bold,
+                                ),
+                              ),
                             ),
+                            if (!notification.isRead)
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: ColorConstants.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          notification.message,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
                           ),
                         ),
-                        if (!notification.isRead)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: ColorConstants.primary,
-                              shape: BoxShape.circle,
-                            ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _formatTime(notification.createdAt),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
                           ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notification.message,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isDark
-                            ? ColorConstants.textSecondaryDark
-                            : ColorConstants.textSecondaryLight,
+                  ),
+                ],
+              ),
+              if (isInvite) ...[
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () => onInviteResponse?.call('rejected'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ColorConstants.error,
+                        side: const BorderSide(color: ColorConstants.error),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
+                      child: const Text('Decline'),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _formatTime(notification.createdAt),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: isDark
-                            ? ColorConstants.textSecondaryDark
-                            : ColorConstants.textSecondaryLight,
+                    const SizedBox(width: 12),
+                    FilledButton(
+                      onPressed: () => onInviteResponse?.call('accepted'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: ColorConstants.success,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
+                      child: const Text('Accept'),
                     ),
                   ],
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -325,6 +378,10 @@ class _NotificationCard extends StatelessWidget {
         break;
       case NotificationType.message:
         icon = Icons.chat_bubble_outline;
+        color = ColorConstants.primary;
+        break;
+      case NotificationType.auctionInvite:
+        icon = Icons.mail_outline;
         color = ColorConstants.primary;
         break;
     }

@@ -5,6 +5,7 @@ import '../../domain/usecases/get_unread_count_usecase.dart';
 import '../../domain/usecases/mark_as_read_usecase.dart';
 import '../../domain/usecases/mark_all_as_read_usecase.dart';
 import '../../domain/usecases/delete_notification_usecase.dart';
+import '../../domain/usecases/respond_to_invite_usecase.dart';
 
 /// Controller for managing notification state
 /// Refactored to use Clean Architecture with UseCases
@@ -14,6 +15,7 @@ class NotificationController extends ChangeNotifier {
   final MarkAsReadUseCase _markAsReadUseCase;
   final MarkAllAsReadUseCase _markAllAsReadUseCase;
   final DeleteNotificationUseCase _deleteNotificationUseCase;
+  final RespondToInviteUseCase _respondToInviteUseCase;
 
   NotificationController({
     required GetNotificationsUseCase getNotificationsUseCase,
@@ -21,11 +23,13 @@ class NotificationController extends ChangeNotifier {
     required MarkAsReadUseCase markAsReadUseCase,
     required MarkAllAsReadUseCase markAllAsReadUseCase,
     required DeleteNotificationUseCase deleteNotificationUseCase,
+    required RespondToInviteUseCase respondToInviteUseCase,
   }) : _getNotificationsUseCase = getNotificationsUseCase,
        _getUnreadCountUseCase = getUnreadCountUseCase,
        _markAsReadUseCase = markAsReadUseCase,
        _markAllAsReadUseCase = markAllAsReadUseCase,
-       _deleteNotificationUseCase = deleteNotificationUseCase;
+       _deleteNotificationUseCase = deleteNotificationUseCase,
+       _respondToInviteUseCase = respondToInviteUseCase;
 
   List<NotificationEntity> _notifications = [];
   int _unreadCount = 0;
@@ -150,6 +154,34 @@ class NotificationController extends ChangeNotifier {
       );
     } catch (e) {
       _errorMessage = 'Failed to delete notification: $e';
+      notifyListeners();
+    }
+  }
+
+  /// Respond to an invite
+  Future<void> respondToInvite(
+    String inviteId,
+    String decision,
+    String userId,
+  ) async {
+    try {
+      final result = await _respondToInviteUseCase(
+        inviteId: inviteId,
+        decision: decision,
+      );
+
+      result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          notifyListeners();
+        },
+        (_) {
+          // Refresh notifications to show updated status or new notification
+          loadNotifications(userId);
+        },
+      );
+    } catch (e) {
+      _errorMessage = 'Failed to respond to invite: $e';
       notifyListeners();
     }
   }

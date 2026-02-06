@@ -6,6 +6,7 @@ enum NotificationType {
   transaction,      // Payment received, refund processed, token purchase
   system,           // Account verified, subscription expiring, system maintenance
   message,          // New message from buyer/seller
+  auctionInvite,    // Invitation to private auction
 }
 
 /// Notification priority levels
@@ -32,6 +33,8 @@ extension NotificationTypeExtension on NotificationType {
         return 'System';
       case NotificationType.message:
         return 'Message';
+      case NotificationType.auctionInvite:
+        return 'Auction Invite';
     }
   }
 
@@ -49,6 +52,8 @@ extension NotificationTypeExtension on NotificationType {
         return 'info';
       case NotificationType.message:
         return 'chat';
+      case NotificationType.auctionInvite:
+        return 'mail';
     }
   }
 }
