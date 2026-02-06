@@ -91,6 +91,8 @@ class ListingModel {
   // Documents
   final String? deedOfSaleUrl;
 
+  final String visibility;
+
   const ListingModel({
     required this.id,
     required this.sellerId,
@@ -170,6 +172,7 @@ class ListingModel {
     this.snipeGuardThresholdSeconds = 300,
     this.snipeGuardExtendSeconds = 300,
     this.deedOfSaleUrl,
+    this.visibility = 'public',
   });
 
   /// Convert database row to model
@@ -273,6 +276,7 @@ class ListingModel {
       snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int? ?? 300,
       snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int? ?? 300,
       deedOfSaleUrl: json['deed_of_sale_url'] as String?,
+      visibility: json['visibility'] as String? ?? 'public',
     );
   }
 
@@ -298,6 +302,7 @@ class ListingModel {
       soldPrice: soldPrice,
       sellerId: sellerId,
       transactionId: transactionId,
+      visibility: visibility,
     );
   }
 

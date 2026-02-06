@@ -11,6 +11,7 @@ class ListingCard extends StatefulWidget {
   final bool isSelectionMode;
   final bool isSelected;
   final VoidCallback? onLongPress;
+  final VoidCallback? onInviteTap;
 
   const ListingCard({
     super.key,
@@ -20,6 +21,7 @@ class ListingCard extends StatefulWidget {
     this.isSelectionMode = false,
     this.isSelected = false,
     this.onLongPress,
+    this.onInviteTap,
   });
 
   @override
@@ -156,6 +158,22 @@ class _ListingCardState extends State<ListingCard> {
                   listing: widget.listing,
                   timeRemaining: _timeRemaining,
                 ),
+                if (widget.listing.visibility == 'private' &&
+                    widget.onInviteTap != null) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: widget.onInviteTap,
+                      icon: const Icon(Icons.people_outline, size: 14),
+                      label: const Text('Invites', style: TextStyle(fontSize: 11)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -221,7 +239,20 @@ class _ListingCardState extends State<ListingCard> {
                 const SizedBox(height: 4),
                 _PriceInfo(listing: widget.listing, compact: true),
                 const SizedBox(height: 4),
-                _StatsRow(listing: widget.listing, compact: true),
+                Row(
+                  children: [
+                    Expanded(child: _StatsRow(listing: widget.listing, compact: true)),
+                    if (widget.listing.visibility == 'private' && widget.onInviteTap != null)
+                      IconButton(
+                        icon: const Icon(Icons.people_outline, size: 18),
+                        onPressed: widget.onInviteTap,
+                        tooltip: 'Manage Invites',
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.all(4),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),

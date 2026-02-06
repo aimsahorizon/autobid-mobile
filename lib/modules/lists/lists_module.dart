@@ -16,6 +16,8 @@ import 'domain/usecases/get_seller_listings_usecase.dart';
 import 'domain/usecases/stream_seller_listings_usecase.dart';
 import 'domain/usecases/validate_plate_number_usecase.dart';
 import 'domain/usecases/get_vehicle_data_usecases.dart';
+import 'domain/usecases/manage_invites_usecases.dart';
+import '../browse/data/datasources/invites_supabase_datasource.dart';
 
 /// Initialize Lists module dependencies
 Future<void> initListsModule() async {
@@ -24,6 +26,7 @@ Future<void> initListsModule() async {
   // Datasources
   sl.registerLazySingleton(() => ListingSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => VehicleSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => InvitesSupabaseDatasource(supabase: sl()));
 
   // Repositories
   sl.registerLazySingleton<SellerRepository>(
@@ -50,13 +53,30 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => StreamSellerListingsUseCase(sl()));
   sl.registerLazySingleton(() => ValidatePlateNumberUseCase(sl()));
   
+  // Invite Use Cases
+  sl.registerLazySingleton(() => GetAuctionInvitesUseCase(sl()));
+  sl.registerLazySingleton(() => InviteUserUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteInviteUseCase(sl()));
+  
   // Vehicle Data Use Cases
   sl.registerLazySingleton(() => GetVehicleBrandsUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleModelsUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleVariantsUseCase(sl()));
 
   // Controllers (Factory)
-  sl.registerFactory(() => ListsController(sl(), sl(), sl(), sl(), sl(), sl()));
+  sl.registerFactory(
+    () => ListsController(
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      sl(),
+      getAuctionInvitesUseCase: sl(),
+      inviteUserUseCase: sl(),
+      deleteInviteUseCase: sl(),
+    ),
+  );
   sl.registerFactory(() => ListingDraftController(
     getSellerDraftsUseCase: sl(),
     getDraftUseCase: sl(),

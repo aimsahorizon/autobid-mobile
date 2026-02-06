@@ -34,6 +34,7 @@ class ListingsGrid extends StatelessWidget {
   final bool isSelectionMode;
   final Set<String> selectedIds;
   final Function(String)? onSelectionToggle;
+  final Function(SellerListingEntity)? onInviteTap;
 
   const ListingsGrid({
     super.key,
@@ -51,6 +52,7 @@ class ListingsGrid extends StatelessWidget {
     this.isSelectionMode = false,
     this.selectedIds = const {},
     this.onSelectionToggle,
+    this.onInviteTap,
   });
 
   void _navigateToDetail(
@@ -267,6 +269,7 @@ class ListingsGrid extends StatelessWidget {
           isSelectionMode: isSelectionMode,
           isSelected: selectedIds.contains(listings[index].id),
           onLongPress: () => onSelectionToggle?.call(listings[index].id),
+          onInviteTap: onInviteTap != null ? () => onInviteTap!(listings[index]) : null,
         ),
       );
     }
@@ -288,6 +291,7 @@ class ListingsGrid extends StatelessWidget {
         isSelectionMode: isSelectionMode,
         isSelected: selectedIds.contains(listings[index].id),
         onLongPress: () => onSelectionToggle?.call(listings[index].id),
+        onInviteTap: onInviteTap != null ? () => onInviteTap!(listings[index]) : null,
       ),
     );
   }

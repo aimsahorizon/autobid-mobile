@@ -6,6 +6,7 @@ import '../../domain/usecases/get_seller_listings_usecase.dart';
 import '../../domain/usecases/stream_seller_listings_usecase.dart';
 import '../../domain/usecases/submission_usecases.dart';
 import '../../domain/usecases/delete_listing_usecase.dart';
+import '../../domain/usecases/manage_invites_usecases.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 
 /// Controller for managing seller listings across all tabs
@@ -16,6 +17,11 @@ class ListsController extends ChangeNotifier {
   final DeleteDraftUseCase _deleteDraftUseCase;
   final DeleteListingUseCase _deleteListingUseCase;
   final CancelListingUseCase _cancelListingUseCase;
+  
+  // Invite Management
+  final GetAuctionInvitesUseCase? _getAuctionInvitesUseCase;
+  final InviteUserUseCase? _inviteUserUseCase;
+  final DeleteInviteUseCase? _deleteInviteUseCase;
 
   ListsController(
     this._getSellerListingsUseCase,
@@ -23,8 +29,13 @@ class ListsController extends ChangeNotifier {
     this._authRepository,
     this._deleteDraftUseCase,
     this._deleteListingUseCase,
-    this._cancelListingUseCase,
-  );
+    this._cancelListingUseCase, {
+    GetAuctionInvitesUseCase? getAuctionInvitesUseCase,
+    InviteUserUseCase? inviteUserUseCase,
+    DeleteInviteUseCase? deleteInviteUseCase,
+  }) : _getAuctionInvitesUseCase = getAuctionInvitesUseCase,
+       _inviteUserUseCase = inviteUserUseCase,
+       _deleteInviteUseCase = deleteInviteUseCase;
 
   Map<ListingStatus, List<SellerListingEntity>> _listings = {};
   bool _isLoading = false;
@@ -35,6 +46,10 @@ class ListsController extends ChangeNotifier {
   // Selection state
   final Set<String> _selectedListingIds = {};
   bool _isSelectionMode = false;
+  
+  // Invite state
+  List<Map<String, dynamic>> _currentAuctionInvites = [];
+  bool _isInvitesLoading = false;
 
   Map<ListingStatus, List<SellerListingEntity>> get listings => _listings;
   bool get isLoading => _isLoading;
@@ -43,6 +58,9 @@ class ListsController extends ChangeNotifier {
   bool get isSelectionMode => _isSelectionMode;
   Set<String> get selectedListingIds => _selectedListingIds;
   int get selectedCount => _selectedListingIds.length;
+  
+  List<Map<String, dynamic>> get currentAuctionInvites => _currentAuctionInvites;
+  bool get isInvitesLoading => _isInvitesLoading;
 
   @override
   void dispose() {
@@ -214,6 +232,78 @@ class ListsController extends ChangeNotifier {
   void toggleViewMode() {
     _isGridView = !_isGridView;
     notifyListeners();
+  }
+
+  // ============================================================================
+  // INVITE MANAGEMENT
+  // ============================================================================
+
+  Future<void> loadAuctionInvites(String auctionId) async {
+    if (_getAuctionInvitesUseCase == null) return;
+    
+    _isInvitesLoading = true;
+    notifyListeners();
+
+    final result = await _getAuctionInvitesUseCase!.call(auctionId);
+    result.fold(
+      (failure) => _errorMessage = failure.message,
+      (invites) => _currentAuctionInvites = invites,
+    );
+
+    _isInvitesLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> inviteUser({
+    required String auctionId,
+    required String identifier,
+    required String type,
+  }) async {
+    if (_inviteUserUseCase == null) return false;
+
+    _isInvitesLoading = true;
+    notifyListeners();
+
+    final result = await _inviteUserUseCase!.call(
+      auctionId: auctionId,
+      identifier: identifier,
+      type: type,
+    );
+
+    return result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        _isInvitesLoading = false;
+        notifyListeners();
+        return false;
+      },
+      (inviteId) async {
+        await loadAuctionInvites(auctionId);
+        return true;
+      },
+    );
+  }
+
+  Future<bool> deleteInvite(String inviteId, String auctionId) async {
+    if (_deleteInviteUseCase == null) return false;
+
+    _isInvitesLoading = true;
+    notifyListeners();
+
+    final result = await _deleteInviteUseCase!.call(inviteId);
+
+    return result.fold(
+      (failure) {
+        _errorMessage = failure.message;
+        _isInvitesLoading = false;
+        notifyListeners();
+        return false;
+      },
+      (_) async {
+        await loadAuctionInvites(auctionId);
+        return true;
+      },
+    );
   }
 
   /// Convenience factory for backward compatibility if needed during migration

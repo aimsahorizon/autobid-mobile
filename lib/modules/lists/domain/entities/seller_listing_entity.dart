@@ -59,6 +59,9 @@ class SellerListingEntity {
   /// Used for cancelled listings that came from failed transactions
   final String? transactionId;
 
+  /// Visibility of the auction (public or private)
+  final String visibility;
+
   const SellerListingEntity({
     required this.id,
     required this.imageUrl,
@@ -79,6 +82,7 @@ class SellerListingEntity {
     this.soldPrice,
     this.sellerId,
     this.transactionId,
+    this.visibility = 'public',
   });
 
   /// Get formatted car name

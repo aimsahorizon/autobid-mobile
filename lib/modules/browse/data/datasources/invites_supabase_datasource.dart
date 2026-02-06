@@ -34,4 +34,17 @@ class InvitesSupabaseDatasource {
     final res = await supabase.rpc('list_my_auction_invites');
     return List<Map<String, dynamic>>.from(res as List);
   }
+
+  Future<List<Map<String, dynamic>>> getAuctionInvites(String auctionId) async {
+    final res = await supabase
+        .from('auction_invites')
+        .select('*')
+        .eq('auction_id', auctionId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(res as List);
+  }
+
+  Future<void> deleteInvite(String inviteId) async {
+    await supabase.from('auction_invites').delete().eq('id', inviteId);
+  }
 }

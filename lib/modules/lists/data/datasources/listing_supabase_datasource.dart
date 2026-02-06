@@ -273,6 +273,7 @@ class ListingSupabaseDataSource {
           .from('auctions')
           .select('''
             *,
+            visibility,
             auction_statuses!inner(status_name),
             auction_vehicles(*),
             auction_photos(photo_url, category, display_order, is_primary)

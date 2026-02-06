@@ -8,6 +8,7 @@ import '../../domain/entities/seller_listing_entity.dart';
 import '../controllers/lists_controller.dart';
 import '../controllers/listing_draft_controller.dart';
 import '../widgets/listings_grid.dart';
+import '../widgets/invite_management_dialog.dart';
 import 'create_listing_page.dart';
 
 class ListsPage extends StatefulWidget {
@@ -106,6 +107,17 @@ class _ListsPageState extends State<ListsPage>
     if (confirmed == true) {
       await _controller.deleteSelected();
     }
+  }
+
+  void _showInviteManagement(SellerListingEntity listing) {
+    showDialog(
+      context: context,
+      builder: (context) => InviteManagementDialog(
+        controller: _controller,
+        auctionId: listing.id,
+        carName: listing.carName,
+      ),
+    );
   }
 
   @override
@@ -281,6 +293,7 @@ class _ListsPageState extends State<ListsPage>
                 isSelectionMode: _controller.isSelectionMode,
                 selectedIds: _controller.selectedListingIds,
                 onSelectionToggle: _controller.toggleSelection,
+                onInviteTap: _showInviteManagement,
               );
             }).toList(),
             ),
