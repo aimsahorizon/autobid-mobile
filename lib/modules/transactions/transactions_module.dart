@@ -57,6 +57,9 @@ Future<void> initTransactionsModule() async {
   sl.registerLazySingleton(() => AcceptVehicleUseCase(sl()));
   sl.registerLazySingleton(() => RejectVehicleUseCase(sl()));
 
+  // Realtime Datasource (Singleton)
+  sl.registerLazySingleton(() => TransactionRealtimeDataSource(sl()));
+
   // Controllers (Factory)
   sl.registerFactory(() => TransactionController(
     getTransactionUseCase: sl(),
@@ -73,17 +76,18 @@ Future<void> initTransactionsModule() async {
   ));
 
   sl.registerFactory(() => TransactionRealtimeController(
-    TransactionRealtimeDataSource(sl()),
+    sl(),
   ));
   
   sl.registerFactory(() => TransactionsStatusController(
     sl(), // TransactionSupabaseDataSource
+    sl<TransactionRealtimeDataSource>(),
     sl<SupabaseClient>().auth.currentUser?.id ?? '',
   ));
   
   sl.registerFactory(() => BuyerSellerTransactionsController(
     sl<TransactionSupabaseDataSource>(),
-    null,
+    sl<TransactionRealtimeDataSource>(),
     sl<SupabaseClient>().auth.currentUser?.id ?? '',
   ));
 }

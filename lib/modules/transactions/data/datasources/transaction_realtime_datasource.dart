@@ -16,19 +16,64 @@ class TransactionRealtimeDataSource {
   final _chatStreamController = StreamController<ChatMessageEntity>.broadcast();
   final _transactionUpdateController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _userTransactionsUpdateController = StreamController<void>.broadcast();
 
   TransactionRealtimeDataSource(this._supabase);
 
   /// Stream of new chat messages
   Stream<ChatMessageEntity> get chatStream => _chatStreamController.stream;
 
-  /// Stream of transaction updates
+  /// Stream of transaction updates (single transaction)
   Stream<Map<String, dynamic>> get transactionUpdateStream =>
       _transactionUpdateController.stream;
 
+  /// Stream of user transactions list updates
+  Stream<void> get userTransactionsUpdateStream =>
+      _userTransactionsUpdateController.stream;
+
+  // ... (rest of the class) ...
+
   // ============================================================================
-  // TRANSACTION CRUD
+  // SUBSCRIPTIONS
   // ============================================================================
+
+  /// Subscribe to all transactions for a user (buyer or seller)
+  /// Used for refreshing the transactions list in real-time
+  void subscribeToUserTransactions(String userId) {
+    // Listen for changes where user is seller
+    _supabase.channel('seller_txns_$userId').onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'auction_transactions',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'seller_id',
+        value: userId,
+      ),
+      callback: (payload) {
+        debugPrint('[TransactionRealtimeDataSource] Seller transaction update received');
+        _userTransactionsUpdateController.add(null);
+      },
+    ).subscribe();
+
+    // Listen for changes where user is buyer
+    _supabase.channel('buyer_txns_$userId').onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'auction_transactions',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'buyer_id',
+        value: userId,
+      ),
+      callback: (payload) {
+        debugPrint('[TransactionRealtimeDataSource] Buyer transaction update received');
+        _userTransactionsUpdateController.add(null);
+      },
+    ).subscribe();
+  }
+
+  /// Subscribe to real-time chat messages
 
   /// Get transaction by auction ID (for buyer/seller navigation)
   Future<TransactionEntity?> getTransactionByAuctionId(String auctionId) async {
@@ -1562,5 +1607,6 @@ class TransactionRealtimeDataSource {
     _transactionChannel?.unsubscribe();
     _chatStreamController.close();
     _transactionUpdateController.close();
+    _userTransactionsUpdateController.close();
   }
 }

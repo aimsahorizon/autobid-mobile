@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/transaction_status_entity.dart';
 import '../../../lists/domain/entities/seller_listing_entity.dart';
 import '../../data/datasources/transaction_supabase_datasource.dart';
+import '../../data/datasources/transaction_realtime_datasource.dart';
 
 /// Controller for both buyer and seller transactions
 /// Manages the Transactions page with dual perspective (buyer + seller)
 class BuyerSellerTransactionsController extends ChangeNotifier {
   final TransactionSupabaseDataSource _dataSource;
+  final TransactionRealtimeDataSource _realtimeDataSource;
   final String _userId;
 
   // Buyer transactions (where user is buyer_id in auction_transactions)
@@ -17,12 +20,29 @@ class BuyerSellerTransactionsController extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _error;
+  StreamSubscription<void>? _realtimeSubscription;
 
   BuyerSellerTransactionsController(
     this._dataSource,
-    dynamic _, // Keep signature compatible, ignore old buyer datasource
+    this._realtimeDataSource,
     this._userId,
-  );
+  ) {
+    _subscribeToRealtimeUpdates();
+  }
+
+  void _subscribeToRealtimeUpdates() {
+    _realtimeDataSource.subscribeToUserTransactions(_userId);
+    _realtimeSubscription = _realtimeDataSource.userTransactionsUpdateStream.listen((_) {
+      debugPrint('[BuyerSellerTransactionsController] Realtime update received, reloading...');
+      loadTransactions();
+    });
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
+  }
 
   bool get isLoading => _isLoading;
   String? get error => _error;

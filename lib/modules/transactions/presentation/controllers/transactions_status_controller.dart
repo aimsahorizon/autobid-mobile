@@ -1,19 +1,43 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/transaction_status_entity.dart';
 import '../../../lists/domain/entities/seller_listing_entity.dart';
 import '../../data/datasources/transaction_supabase_datasource.dart';
+import '../../data/datasources/transaction_realtime_datasource.dart';
 
 /// Controller for status-based transactions (in_transaction, sold, deal_failed)
 /// Manages listing transactions in the Transactions bottom nav tab
 class TransactionsStatusController extends ChangeNotifier {
   final TransactionSupabaseDataSource _dataSource;
+  final TransactionRealtimeDataSource _realtimeDataSource;
   final String _userId;
 
   Map<TransactionStatus, List<SellerListingEntity>> _transactions = {};
   bool _isLoading = false;
   String? _error;
+  StreamSubscription<void>? _realtimeSubscription;
 
-  TransactionsStatusController(this._dataSource, this._userId);
+  TransactionsStatusController(
+    this._dataSource,
+    this._realtimeDataSource,
+    this._userId,
+  ) {
+    _subscribeToRealtimeUpdates();
+  }
+
+  void _subscribeToRealtimeUpdates() {
+    _realtimeDataSource.subscribeToUserTransactions(_userId);
+    _realtimeSubscription = _realtimeDataSource.userTransactionsUpdateStream.listen((_) {
+      debugPrint('[TransactionsStatusController] Realtime update received, reloading...');
+      loadTransactions();
+    });
+  }
+
+  @override
+  void dispose() {
+    _realtimeSubscription?.cancel();
+    super.dispose();
+  }
 
   bool get isLoading => _isLoading;
   String? get error => _error;
