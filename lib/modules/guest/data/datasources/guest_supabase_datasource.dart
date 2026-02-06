@@ -12,25 +12,33 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
   GuestSupabaseDataSource(this._supabase);
 
   @override
-  /// Check account status by email
+  /// Check account status by email or username
   /// Returns status if user exists and has submitted KYC
-  Future<AccountStatusModel?> checkAccountStatus(String email) async {
+  Future<AccountStatusModel?> checkAccountStatus(String identifier) async {
     try {
-      debugPrint('[GuestDataSource] Checking account status for email: $email');
+      debugPrint('[GuestDataSource] Checking account status for: $identifier');
 
       // Query users table (KYC users are stored here)
-      final response = await _supabase
-          .from('users')
-          .select(
+      // Check both email and username (stored as full_name or within a username column if exists)
+      // Based on typical schema, we check email and possibly username
+      var query = _supabase.from('users').select(
             'id, email, first_name, middle_name, last_name, status, created_at, updated_at, rejection_reason',
-          )
-          .eq('email', email)
-          .maybeSingle();
+          );
+
+      // Try email first, or username if identifier doesn't look like email
+      if (identifier.contains('@')) {
+        query = query.eq('email', identifier);
+      } else {
+        // If your schema uses 'username', use that. Fallback to full_name or email check
+        query = query.or('email.eq.$identifier,first_name.ilike.$identifier,last_name.ilike.$identifier');
+      }
+
+      final response = await query.maybeSingle();
 
       debugPrint('[GuestDataSource] Response: $response');
 
       if (response == null) {
-        debugPrint('[GuestDataSource] No user found with email: $email');
+        debugPrint('[GuestDataSource] No user found with identifier: $identifier');
         return null;
       }
 

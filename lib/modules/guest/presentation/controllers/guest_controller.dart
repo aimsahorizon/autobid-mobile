@@ -36,15 +36,15 @@ class GuestController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> checkAccountStatus(String email) async {
+  Future<void> checkAccountStatus(String identifier) async {
     _isLoadingStatus = true;
     _errorMessage = null;
-    _statusEmail = email;
+    _statusEmail = identifier;
     notifyListeners();
 
     try {
       // Use UseCase to check account status
-      final result = await _checkAccountStatusUseCase(email);
+      final result = await _checkAccountStatusUseCase(identifier);
 
       result.fold(
         (failure) {

@@ -17,13 +17,13 @@ class GuestRepositoryImpl implements GuestRepository {
 
   @override
   Future<Either<Failure, AccountStatusEntity?>> checkAccountStatus(
-    String email,
+    String identifier,
   ) async {
     if (!await networkInfo.isConnected) {
       return const Left(NetworkFailure('No internet connection'));
     }
     try {
-      final result = await remoteDataSource.checkAccountStatus(email);
+      final result = await remoteDataSource.checkAccountStatus(identifier);
       return Right(result);
     } catch (e) {
       return Left(

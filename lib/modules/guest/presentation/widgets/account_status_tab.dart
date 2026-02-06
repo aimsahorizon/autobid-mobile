@@ -16,18 +16,18 @@ class AccountStatusTab extends StatefulWidget {
 }
 
 class _AccountStatusTabState extends State<AccountStatusTab> {
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     super.dispose();
   }
 
   void _handleCheckStatus() {
     if (_formKey.currentState!.validate()) {
-      widget.controller.checkAccountStatus(_emailController.text.trim());
+      widget.controller.checkAccountStatus(_identifierController.text.trim());
     }
   }
 
@@ -68,7 +68,7 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Enter your email to check your KYC verification status',
+          'Enter your email or username to check your KYC status',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: isDark
                 ? ColorConstants.textSecondaryDark
@@ -85,22 +85,21 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
       child: Column(
         children: [
           TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
+            controller: _identifierController,
             decoration: InputDecoration(
-              labelText: 'Email Address',
-              hintText: 'Enter your registered email',
-              prefixIcon: const Icon(Icons.email_outlined),
+              labelText: 'Email or Username',
+              hintText: 'Enter registered email or username',
+              prefixIcon: const Icon(Icons.person_outline),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your email';
+                return 'Please enter your email or username';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                return 'Please enter a valid email';
+              if (value.length < 3) {
+                return 'Identifier too short';
               }
               return null;
             },
@@ -145,7 +144,7 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
   }
 
   Widget _buildNoStatusMessage(ThemeData theme, bool isDark) {
-    if (_emailController.text.isEmpty) {
+    if (_identifierController.text.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -168,7 +167,7 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'No account found with this email. Please register first.',
+              'No account found with this identifier. Please register first.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: ColorConstants.info,
               ),
