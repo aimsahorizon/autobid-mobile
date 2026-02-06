@@ -97,8 +97,8 @@ class ProgressRealtimeTab extends StatelessWidget {
                   ),
                 ),
 
-              // Review Section (Visible after completion)
-              if (transaction.status == TransactionStatus.completed) ...[
+              // Review Section (Visible only when delivery status is completed in the tracker)
+              if (transaction.deliveryStatus == DeliveryStatus.completed) ...[
                 const SizedBox(height: 32),
                 _buildReviewSection(context, transaction, isDark),
               ],
