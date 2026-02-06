@@ -97,6 +97,12 @@ class ProgressRealtimeTab extends StatelessWidget {
                   ),
                 ),
 
+              // Review Section (Visible after completion)
+              if (transaction.status == TransactionStatus.completed) ...[
+                const SizedBox(height: 32),
+                _buildReviewSection(context, transaction, isDark),
+              ],
+
               const SizedBox(height: 32),
             ],
           ),
@@ -284,6 +290,146 @@ class ProgressRealtimeTab extends StatelessWidget {
     }
 
     reasonController.dispose();
+  }
+
+  Widget _buildReviewSection(
+    BuildContext context,
+    TransactionEntity transaction,
+    bool isDark,
+  ) {
+    final myReview = controller.myReview;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ColorConstants.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ColorConstants.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.rate_review, color: ColorConstants.primary, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Rate your Experience',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (myReview != null) ...[
+            const Text('Your submitted review:'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (int i = 1; i <= 5; i++)
+                  Icon(
+                    i <= myReview.rating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 20,
+                  ),
+              ],
+            ),
+            if (myReview.comment != null && myReview.comment!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                myReview.comment!,
+                style: const TextStyle(fontStyle: FontStyle.italic),
+              ),
+            ],
+          ] else ...[
+            Text(
+              'Please take a moment to rate the other party to help our community grow.',
+              style: TextStyle(
+                color: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _showReviewDialog(context),
+                icon: const Icon(Icons.star),
+                label: const Text('Submit Review'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showReviewDialog(BuildContext context) async {
+    int rating = 5;
+    final commentController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Submit Review'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('How was your experience?'),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (int i = 1; i <= 5; i++)
+                    IconButton(
+                      icon: Icon(
+                        i <= rating ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                        size: 32,
+                      ),
+                      onPressed: () => setState(() => rating = i),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: commentController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Add a comment (optional)...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                final success = await controller.submitReview(
+                  rating: rating,
+                  comment: commentController.text.trim(),
+                );
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Thank you for your review!'),
+                      backgroundColor: ColorConstants.success,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildSummaryCard(TransactionEntity transaction, bool isDark) {
@@ -570,6 +716,7 @@ class ProgressRealtimeTab extends StatelessWidget {
 
     return '${timestamp.month}/${timestamp.day}/${timestamp.year}';
   }
+
   Widget _buildDeliveryProgress(
     BuildContext context,
     TransactionEntity transaction,
@@ -688,7 +835,10 @@ class ProgressRealtimeTab extends StatelessWidget {
       return const Center(
         child: Text(
           'Transaction Completed',
-          style: TextStyle(color: ColorConstants.success, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: ColorConstants.success,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       );
     }
@@ -710,7 +860,9 @@ class ProgressRealtimeTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text('Reason: ${transaction.buyerRejectionReason ?? "None provided"}'),
+            Text(
+              'Reason: ${transaction.buyerRejectionReason ?? "None provided"}',
+            ),
           ],
         ),
       );
@@ -772,17 +924,23 @@ class ProgressRealtimeTab extends StatelessWidget {
       return const Center(
         child: Text(
           'You have accepted the vehicle!',
-          style: TextStyle(color: ColorConstants.success, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: ColorConstants.success,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       );
     }
 
     if (transaction.deliveryStatus == DeliveryStatus.delivered) {
       if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
-         return const Center(
+        return const Center(
           child: Text(
             'You rejected the delivery.',
-            style: TextStyle(color: ColorConstants.error, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: ColorConstants.error,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         );
       }
@@ -873,33 +1031,49 @@ class ProgressRealtimeTab extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Photo Proof (Required)', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Photo Proof (Required)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    ...photos.map((f) => Stack(
-                      children: [
-                        Image.file(f, width: 80, height: 80, fit: BoxFit.cover),
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: InkWell(
-                            onTap: () => setState(() => photos.remove(f)),
-                            child: const CircleAvatar(
-                              radius: 10,
-                              backgroundColor: Colors.red,
-                              child: Icon(Icons.close, size: 12, color: Colors.white),
+                    ...photos.map(
+                      (f) => Stack(
+                        children: [
+                          Image.file(
+                            f,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: InkWell(
+                              onTap: () => setState(() => photos.remove(f)),
+                              child: const CircleAvatar(
+                                radius: 10,
+                                backgroundColor: Colors.red,
+                                child: Icon(
+                                  Icons.close,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    )),
+                        ],
+                      ),
+                    ),
                     InkWell(
                       onTap: () async {
                         final picker = ImagePicker();
-                        final image = await picker.pickImage(source: ImageSource.camera);
+                        final image = await picker.pickImage(
+                          source: ImageSource.camera,
+                        );
                         if (image != null) {
                           setState(() => photos.add(File(image.path)));
                         }
@@ -928,7 +1102,9 @@ class ProgressRealtimeTab extends StatelessWidget {
               onPressed: () {
                 if (reasonController.text.isEmpty || photos.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Reason and photo proof are required')),
+                    const SnackBar(
+                      content: Text('Reason and photo proof are required'),
+                    ),
                   );
                   return;
                 }
@@ -939,7 +1115,9 @@ class ProgressRealtimeTab extends StatelessWidget {
                   rejectionPhotos: photos,
                 );
               },
-              style: FilledButton.styleFrom(backgroundColor: ColorConstants.error),
+              style: FilledButton.styleFrom(
+                backgroundColor: ColorConstants.error,
+              ),
               child: const Text('Reject Delivery'),
             ),
           ],

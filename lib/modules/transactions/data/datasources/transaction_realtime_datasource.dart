@@ -3,8 +3,11 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/transaction_entity.dart';
+import '../../domain/entities/transaction_review_entity.dart';
 
 /// Supabase datasource for real-time transaction data
+// ... (omitting lines for brevity in explanation, but including them in actual call)
+
 /// Handles chat, forms, timeline with real-time subscriptions
 class TransactionRealtimeDataSource {
   final SupabaseClient _supabase;
@@ -42,36 +45,46 @@ class TransactionRealtimeDataSource {
   /// Used for refreshing the transactions list in real-time
   void subscribeToUserTransactions(String userId) {
     // Listen for changes where user is seller
-    _supabase.channel('seller_txns_$userId').onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'auction_transactions',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'seller_id',
-        value: userId,
-      ),
-      callback: (payload) {
-        debugPrint('[TransactionRealtimeDataSource] Seller transaction update received');
-        _userTransactionsUpdateController.add(null);
-      },
-    ).subscribe();
+    _supabase
+        .channel('seller_txns_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'auction_transactions',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'seller_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionRealtimeDataSource] Seller transaction update received',
+            );
+            _userTransactionsUpdateController.add(null);
+          },
+        )
+        .subscribe();
 
     // Listen for changes where user is buyer
-    _supabase.channel('buyer_txns_$userId').onPostgresChanges(
-      event: PostgresChangeEvent.all,
-      schema: 'public',
-      table: 'auction_transactions',
-      filter: PostgresChangeFilter(
-        type: PostgresChangeFilterType.eq,
-        column: 'buyer_id',
-        value: userId,
-      ),
-      callback: (payload) {
-        debugPrint('[TransactionRealtimeDataSource] Buyer transaction update received');
-        _userTransactionsUpdateController.add(null);
-      },
-    ).subscribe();
+    _supabase
+        .channel('buyer_txns_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'auction_transactions',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'buyer_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionRealtimeDataSource] Buyer transaction update received',
+            );
+            _userTransactionsUpdateController.add(null);
+          },
+        )
+        .subscribe();
   }
 
   /// Subscribe to real-time chat messages
@@ -464,7 +477,9 @@ class TransactionRealtimeDataSource {
   /// Submit or update a form
   Future<TransactionFormEntity?> submitForm(TransactionFormEntity form) async {
     try {
-      debugPrint('[TransactionRealtimeDataSource] Submitting form for role: ${form.role}');
+      debugPrint(
+        '[TransactionRealtimeDataSource] Submitting form for role: ${form.role}',
+      );
       final txnId = await _resolveTransactionId(form.transactionId);
       if (txnId == null) throw Exception('Transaction not found');
 
@@ -474,9 +489,12 @@ class TransactionRealtimeDataSource {
           .select('agreed_price')
           .eq('id', txnId)
           .maybeSingle();
-      
-      final agreedPrice = (txnResponse?['agreed_price'] as num?)?.toDouble() ?? 0.0;
-      debugPrint('[TransactionRealtimeDataSource] Resolved agreed_price: $agreedPrice');
+
+      final agreedPrice =
+          (txnResponse?['agreed_price'] as num?)?.toDouble() ?? 0.0;
+      debugPrint(
+        '[TransactionRealtimeDataSource] Resolved agreed_price: $agreedPrice',
+      );
 
       final roleStr = form.role == FormRole.seller ? 'seller' : 'buyer';
 
@@ -555,7 +573,9 @@ class TransactionRealtimeDataSource {
     } catch (e) {
       debugPrint('[TransactionRealtimeDataSource] ❌ Error submitting form: $e');
       if (e is PostgrestException) {
-        debugPrint('[TransactionRealtimeDataSource] PostgreSQL Error: ${e.message} (${e.code})');
+        debugPrint(
+          '[TransactionRealtimeDataSource] PostgreSQL Error: ${e.message} (${e.code})',
+        );
         debugPrint('[TransactionRealtimeDataSource] Details: ${e.details}');
         debugPrint('[TransactionRealtimeDataSource] Hint: ${e.hint}');
       }
@@ -678,16 +698,16 @@ class TransactionRealtimeDataSource {
     FormRole role, {
     String reason = '',
   }) async {
-    debugPrint('[CancelDeal] 🚀 Starting cancel for: $transactionId (Role: $role)');
+    debugPrint(
+      '[CancelDeal] 🚀 Starting cancel for: $transactionId (Role: $role)',
+    );
 
     try {
       // Step 1: Resolve transaction ID
       debugPrint('[CancelDeal] Step 1: Resolving transaction ID...');
       final txnId = await _resolveTransactionId(transactionId);
       if (txnId == null) {
-        debugPrint(
-          '[CancelDeal] ❌ Failed: Could not resolve transaction ID',
-        );
+        debugPrint('[CancelDeal] ❌ Failed: Could not resolve transaction ID');
         return false;
       }
       debugPrint('[CancelDeal] ✅ Resolved txnId: $txnId');
@@ -696,9 +716,7 @@ class TransactionRealtimeDataSource {
       debugPrint('[CancelDeal] Step 2: Getting transaction summary...');
       final txn = await _getTransactionSummary(txnId);
       if (txn == null) {
-        debugPrint(
-          '[CancelDeal] ❌ Failed: Could not get transaction summary',
-        );
+        debugPrint('[CancelDeal] ❌ Failed: Could not get transaction summary');
         return false;
       }
       debugPrint('[CancelDeal] ✅ Transaction summary: $txn');
@@ -715,11 +733,8 @@ class TransactionRealtimeDataSource {
       // Step 3: Update transaction status
       debugPrint('[CancelDeal] Step 3: Updating transaction status...');
       try {
-        final updateData = {
-          'status': 'deal_failed',
-          'updated_at': now,
-        };
-        
+        final updateData = {'status': 'deal_failed', 'updated_at': now};
+
         if (role == FormRole.buyer) {
           updateData['buyer_rejection_reason'] = reason;
           updateData['buyer_acceptance_status'] = 'rejected';
@@ -732,9 +747,7 @@ class TransactionRealtimeDataSource {
             .from('auction_transactions')
             .update(updateData)
             .eq('id', txnId);
-        debugPrint(
-          '[CancelDeal] ✅ Transaction status updated to deal_failed',
-        );
+        debugPrint('[CancelDeal] ✅ Transaction status updated to deal_failed');
       } catch (e) {
         debugPrint('[CancelDeal] ❌ Failed to update transaction: $e');
         return false;
@@ -763,9 +776,7 @@ class TransactionRealtimeDataSource {
           debugPrint('[CancelDeal] ⚠️ Cancelled status not found');
         }
       } catch (e) {
-        debugPrint(
-          '[CancelDeal] ⚠️ Warning: Failed to update auction: $e',
-        );
+        debugPrint('[CancelDeal] ⚠️ Warning: Failed to update auction: $e');
         // Don't return false - auction update is secondary
       }
 
@@ -803,7 +814,8 @@ class TransactionRealtimeDataSource {
       final userId = _supabase.auth.currentUser?.id ?? '';
       final roleLabel = role == FormRole.buyer ? 'Buyer' : 'Seller';
       final userName =
-          _supabase.auth.currentUser?.userMetadata?['display_name'] ?? roleLabel;
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+          roleLabel;
       try {
         await _addTimelineEvent(
           txnId,
@@ -1478,7 +1490,7 @@ class TransactionRealtimeDataSource {
       List<String>? photoUrls;
       if (!accepted && rejectionPhotos != null && rejectionPhotos.isNotEmpty) {
         photoUrls = await _uploadRejectionPhotos(txnId, rejectionPhotos);
-        
+
         // Update the photos column manually first since RPC doesn't accept arrays well in all versions
         // or to keep RPC signature simple.
         await _supabase
@@ -1500,7 +1512,9 @@ class TransactionRealtimeDataSource {
 
       return response['success'] == true;
     } catch (e) {
-      debugPrint('[TransactionRealtimeDataSource] Error responding to delivery: $e');
+      debugPrint(
+        '[TransactionRealtimeDataSource] Error responding to delivery: $e',
+      );
       return false;
     }
   }
@@ -1517,11 +1531,9 @@ class TransactionRealtimeDataSource {
         final ext = file.path.split('.').last;
         final path = 'rejections/$transactionId/proof_$i.$ext';
 
-        await _supabase.storage.from('auction-images').upload(
-              path,
-              file,
-              fileOptions: const FileOptions(upsert: true),
-            );
+        await _supabase.storage
+            .from('auction-images')
+            .upload(path, file, fileOptions: const FileOptions(upsert: true));
 
         final url = _supabase.storage.from('auction-images').getPublicUrl(path);
         urls.add(url);
@@ -1530,6 +1542,80 @@ class TransactionRealtimeDataSource {
       debugPrint('[TransactionRealtimeDataSource] Error uploading photos: $e');
     }
     return urls;
+  }
+
+  // ============================================================================
+  // REVIEWS
+  // ============================================================================
+
+  /// Submit a transaction review
+  Future<TransactionReviewEntity?> submitReview({
+    required String transactionId,
+    required String reviewerId,
+    required String revieweeId,
+    required int rating,
+    String? comment,
+  }) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return null;
+
+      final data = {
+        'transaction_id': txnId,
+        'reviewer_id': reviewerId,
+        'reviewee_id': revieweeId,
+        'rating': rating,
+        'comment': comment,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      final response = await _supabase
+          .from('transaction_reviews')
+          .upsert(data, onConflict: 'transaction_id,reviewer_id')
+          .select()
+          .single();
+
+      return _mapToReviewEntity(response);
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error submitting review: $e');
+      return null;
+    }
+  }
+
+  /// Get review for a transaction by a specific user
+  Future<TransactionReviewEntity?> getReview(
+    String transactionId,
+    String reviewerId,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return null;
+
+      final response = await _supabase
+          .from('transaction_reviews')
+          .select()
+          .eq('transaction_id', txnId)
+          .eq('reviewer_id', reviewerId)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return _mapToReviewEntity(response);
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error getting review: $e');
+      return null;
+    }
+  }
+
+  TransactionReviewEntity _mapToReviewEntity(Map<String, dynamic> data) {
+    return TransactionReviewEntity(
+      id: data['id'] as String,
+      transactionId: data['transaction_id'] as String,
+      reviewerId: data['reviewer_id'] as String,
+      revieweeId: data['reviewee_id'] as String,
+      rating: data['rating'] as int,
+      comment: data['comment'] as String?,
+      createdAt: DateTime.parse(data['created_at'] as String),
+    );
   }
 
   // ============================================================================

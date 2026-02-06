@@ -3,9 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/transaction_entity.dart';
+import '../../domain/entities/transaction_review_entity.dart';
 import '../../data/datasources/transaction_realtime_datasource.dart';
 
 /// Controller for real-time transaction management
+// ... (omitting lines for brevity in explanation, but including them in actual call)
+
 /// Supports live chat updates between buyer and seller
 class TransactionRealtimeController extends ChangeNotifier {
   final TransactionRealtimeDataSource _dataSource;
@@ -21,6 +24,7 @@ class TransactionRealtimeController extends ChangeNotifier {
   List<ChatMessageEntity> _chatMessages = [];
   TransactionFormEntity? _myForm;
   TransactionFormEntity? _otherPartyForm;
+  TransactionReviewEntity? _myReview;
   List<TransactionTimelineEntity> _timeline = [];
   bool _isLoading = false;
   bool _isProcessing = false;
@@ -32,6 +36,7 @@ class TransactionRealtimeController extends ChangeNotifier {
   List<ChatMessageEntity> get chatMessages => _chatMessages;
   TransactionFormEntity? get myForm => _myForm;
   TransactionFormEntity? get otherPartyForm => _otherPartyForm;
+  TransactionReviewEntity? get myReview => _myReview;
   List<TransactionTimelineEntity> get timeline => _timeline;
   bool get isLoading => _isLoading;
   bool get isProcessing => _isProcessing;
@@ -99,6 +104,7 @@ class TransactionRealtimeController extends ChangeNotifier {
           _loadMyFormSafe(_transaction!.id, role),
           _loadOtherPartyFormSafe(_transaction!.id, otherRole),
           _loadTimelineSafe(_transaction!.id),
+          _loadReviewSafe(_transaction!.id, userId),
         ]);
 
         // Subscribe to real-time updates only for active transactions
@@ -212,6 +218,55 @@ class TransactionRealtimeController extends ChangeNotifier {
         '[TransactionRealtimeController] Warning: Failed to load timeline: $e',
       );
       _timeline = [];
+    }
+  }
+
+  Future<void> _loadReviewSafe(String transactionId, String userId) async {
+    try {
+      _myReview = await _dataSource.getReview(transactionId, userId);
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Warning: Failed to load review: $e');
+      _myReview = null;
+    }
+  }
+
+  /// Submit a review
+  Future<bool> submitReview({
+    required int rating,
+    String? comment,
+  }) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final role = getUserRole(_currentUserId!);
+      final revieweeId = role == FormRole.seller 
+          ? _transaction!.buyerId 
+          : _transaction!.sellerId;
+
+      final review = await _dataSource.submitReview(
+        transactionId: _transaction!.id,
+        reviewerId: _currentUserId!,
+        revieweeId: revieweeId,
+        rating: rating,
+        comment: comment,
+      );
+
+      if (review != null) {
+        _myReview = review;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = 'Failed to submit review';
+      debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
     }
   }
 
