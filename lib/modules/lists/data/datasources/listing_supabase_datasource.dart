@@ -279,12 +279,17 @@ class ListingSupabaseDataSource {
           ''')
           .eq('seller_id', sellerId)
           .eq('auction_statuses.status_name', status)
-          .isFilter('deleted_at', null)
           .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((json) => _mergeAuctionWithVehicleData(json))
-          .toList();
+      return (response as List).map((json) {
+        // Ensure status is correctly set based on the query filter
+        if (json['auction_statuses'] == null) {
+          json['auction_statuses'] = {'status_name': status};
+        } else if (json['auction_statuses'] is Map) {
+          (json['auction_statuses'] as Map)['status_name'] = status;
+        }
+        return _mergeAuctionWithVehicleData(json);
+      }).toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch listings: ${e.message}');
     } catch (e) {
@@ -471,7 +476,6 @@ class ListingSupabaseDataSource {
   Future<List<ListingModel>> getEndedListings(String sellerId) async {
     try {
       final endedStatusId = await _getStatusId('ended');
-      final unsoldStatusId = await _getStatusId('unsold');
 
       final response = await _supabase
           .from('auctions')
@@ -482,12 +486,18 @@ class ListingSupabaseDataSource {
             auction_photos(photo_url, category, display_order, is_primary)
           ''')
           .eq('seller_id', sellerId)
-          .inFilter('status_id', [endedStatusId, unsoldStatusId])
+          .eq('status_id', endedStatusId)
           .order('end_time', ascending: false);
 
-      return (response as List)
-          .map((json) => _mergeAuctionWithVehicleData(json))
-          .toList();
+      return (response as List).map((json) {
+        // Force status to 'ended'
+        if (json['auction_statuses'] == null) {
+          json['auction_statuses'] = {'status_name': 'ended'};
+        } else if (json['auction_statuses'] is Map) {
+          (json['auction_statuses'] as Map)['status_name'] = 'ended';
+        }
+        return _mergeAuctionWithVehicleData(json);
+      }).toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch ended listings: ${e.message}');
     } catch (e) {
@@ -512,9 +522,15 @@ class ListingSupabaseDataSource {
           .eq('status_id', soldStatusId)
           .order('end_time', ascending: false);
 
-      return (response as List)
-          .map((json) => _mergeAuctionWithVehicleData(json))
-          .toList();
+      return (response as List).map((json) {
+        // Force status to 'sold'
+        if (json['auction_statuses'] == null) {
+          json['auction_statuses'] = {'status_name': 'sold'};
+        } else if (json['auction_statuses'] is Map) {
+          (json['auction_statuses'] as Map)['status_name'] = 'sold';
+        }
+        return _mergeAuctionWithVehicleData(json);
+      }).toList();
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch sold listings: ${e.message}');
     } catch (e) {

@@ -113,30 +113,12 @@ class SellerRepositoryImpl implements SellerRepository {
           return l.endTime == null || l.endTime!.isAfter(now);
         }).toList();
 
-        // 6. Ended (Includes Ended, Unsold, Sold, In Transaction)
-        // Aggregating all post-active statuses into 'Ended' tab as per requirement
+        // 6. Ended (Only listings awaiting seller decision)
         result[ListingStatus.ended] = [];
-        
         try {
-          // Fetch Ended & Unsold
           final endedModels = await dataSource.getEndedListings(sellerId);
           result[ListingStatus.ended]!.addAll(
             endedModels.map((l) => l.toSellerListingEntity()),
-          );
-
-          // Fetch In Transaction (Manually ended with winner)
-          final inTransactionModels = await dataSource.getSellerListingsByStatus(
-            sellerId,
-            'in_transaction',
-          );
-          result[ListingStatus.ended]!.addAll(
-            inTransactionModels.map((l) => l.toSellerListingEntity()),
-          );
-
-          // Fetch Sold
-          final soldModels = await dataSource.getSoldListings(sellerId);
-          result[ListingStatus.ended]!.addAll(
-            soldModels.map((l) => l.toSellerListingEntity()),
           );
 
           // Add client-detected expired active listings
@@ -165,51 +147,68 @@ class SellerRepositoryImpl implements SellerRepository {
           }).toList();
 
           result[ListingStatus.ended]!.addAll(convertedExpired);
-          
-          // Sort ended list by end time (most recent first)
+
+          // Deduplicate by ID
+          final uniqueEnded = <String, SellerListingEntity>{};
+          for (final item in result[ListingStatus.ended]!) {
+            uniqueEnded[item.id] = item;
+          }
+          result[ListingStatus.ended] = uniqueEnded.values.toList();
+
+          // Sort ended list by end time
           result[ListingStatus.ended]!.sort((a, b) {
             final aTime = a.endTime ?? DateTime(0);
             final bTime = b.endTime ?? DateTime(0);
             return bTime.compareTo(aTime);
           });
-
         } catch (e) {
           debugPrint('Error loading ended listings: $e');
-          // If DB fetch fails, at least show the locally expired ones
-          result[ListingStatus.ended] = expiredListings.map((l) {
-             return SellerListingEntity(
-              id: l.id,
-              imageUrl: l.imageUrl,
-              year: l.year,
-              make: l.make,
-              model: l.model,
-              status: ListingStatus.ended,
-              startingPrice: l.startingPrice,
-              startTime: l.startTime,
-              currentBid: l.currentBid,
-              reservePrice: l.reservePrice,
-              totalBids: l.totalBids,
-              watchersCount: l.watchersCount,
-              viewsCount: l.viewsCount,
-              createdAt: l.createdAt,
-              endTime: l.endTime,
-              winnerName: l.winnerName,
-              soldPrice: l.soldPrice,
-              sellerId: l.sellerId,
-              transactionId: l.transactionId,
-            );
-          }).toList();
+        }
+
+        // 7. In Transaction
+        try {
+          final inTransactionModels = await dataSource.getSellerListingsByStatus(
+            sellerId,
+            'in_transaction',
+          );
+          result[ListingStatus.inTransaction] = inTransactionModels
+              .map((l) => l.toSellerListingEntity())
+              .toList();
+        } catch (e) {
+          debugPrint('Error loading in_transaction listings: $e');
+          result[ListingStatus.inTransaction] = [];
+        }
+
+        // 8. Sold
+        try {
+          final soldModels = await dataSource.getSoldListings(sellerId);
+          result[ListingStatus.sold] = soldModels
+              .map((l) => l.toSellerListingEntity())
+              .toList();
+        } catch (e) {
+          debugPrint('Error loading sold listings: $e');
+          result[ListingStatus.sold] = [];
+        }
+
+        // 9. Deal Failed
+        try {
+          final dealFailedModels = await dataSource.getSellerListingsByStatus(
+            sellerId,
+            'deal_failed',
+          );
+          result[ListingStatus.dealFailed] = dealFailedModels
+              .map((l) => l.toSellerListingEntity())
+              .toList();
+        } catch (e) {
+          debugPrint('Error loading deal_failed listings: $e');
+          result[ListingStatus.dealFailed] = [];
         }
       } catch (e) {
         debugPrint('Error loading active listings: $e');
         result[ListingStatus.active] = [];
-        // Ensure ended list is initialized if active failed entirely
-        if (!result.containsKey(ListingStatus.ended)) {
-           result[ListingStatus.ended] = [];
-        }
       }
 
-      // 7. Cancelled
+      // 10. Cancelled (Pre-auction cancellations)
       try {
         final cancelled = await dataSource.getCancelledListings(sellerId);
         result[ListingStatus.cancelled] = cancelled
