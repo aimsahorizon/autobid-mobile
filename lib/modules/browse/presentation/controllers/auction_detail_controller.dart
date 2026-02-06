@@ -88,6 +88,7 @@ class AuctionDetailController extends ChangeNotifier {
   Timer? _pollingTimer;
   StreamSubscription? _auctionSubscription;
   StreamSubscription? _bidSubscription;
+  String? _subscribedAuctionId; // Track which auction we're subscribed to
 
   // Public getters
   AuctionDetailEntity? get auction => _auction;
@@ -149,8 +150,10 @@ class AuctionDetailController extends ChangeNotifier {
       // Load bid history and Q&A in parallel
       await Future.wait([_loadBidHistory(id), _loadQuestions(id)]);
 
-      // Start Realtime Updates
-      _subscribeToRealtimeUpdates(id);
+      // Start Realtime Updates only once per auction (not on background reloads)
+      if (_subscribedAuctionId != id) {
+        _subscribeToRealtimeUpdates(id);
+      }
 
       // Check if we've been outbid and auto-bid is active
       if (previousBid != null &&
@@ -604,13 +607,16 @@ class AuctionDetailController extends ChangeNotifier {
     // Cancel existing subscriptions if any
     _auctionSubscription?.cancel();
     _bidSubscription?.cancel();
+    _subscribedAuctionId = auctionId;
 
     debugPrint(
       'DEBUG: Subscribing to realtime updates for auction: $auctionId',
     );
 
     // Subscribe to auction updates (price, end_time)
+    // Use a skip(1) to ignore the initial emission from Supabase .stream()
     _auctionSubscription = _streamAuctionUpdatesUseCase(auctionId: auctionId)
+        .skip(1)
         .listen(
           (_) {
             debugPrint('DEBUG: Realtime auction update received');
@@ -623,17 +629,19 @@ class AuctionDetailController extends ChangeNotifier {
         );
 
     // Subscribe to bid updates (new bids)
-    _bidSubscription = _streamBidUpdatesUseCase(auctionId: auctionId).listen(
-      (_) {
-        debugPrint('DEBUG: Realtime bid update received');
-        // Reload bid history quietly
-        _loadBidHistory(auctionId);
-        // Note: Auction update usually triggers separately, but reloading history ensures timeline is fresh
-      },
-      onError: (e) {
-        debugPrint('ERROR: Realtime bid subscription error: $e');
-      },
-    );
+    // Use a skip(1) to ignore the initial emission from Supabase .stream()
+    _bidSubscription = _streamBidUpdatesUseCase(auctionId: auctionId)
+        .skip(1)
+        .listen(
+          (_) {
+            debugPrint('DEBUG: Realtime bid update received');
+            // Reload bid history quietly
+            _loadBidHistory(auctionId).then((_) => notifyListeners());
+          },
+          onError: (e) {
+            debugPrint('ERROR: Realtime bid subscription error: $e');
+          },
+        );
   }
 
   /// Starts polling timer to periodically check for auction updates
@@ -664,6 +672,7 @@ class AuctionDetailController extends ChangeNotifier {
     _stopPolling();
     _auctionSubscription?.cancel();
     _bidSubscription?.cancel();
+    _subscribedAuctionId = null;
     super.dispose();
   }
 }

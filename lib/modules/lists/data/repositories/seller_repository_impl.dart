@@ -416,8 +416,9 @@ class SellerRepositoryImpl implements SellerRepository {
   @override
   Stream<void> streamSellerListings(String sellerId) {
     // Merge streams from both auctions and drafts to trigger updates for any change
-    final auctionsStream = dataSource.streamSellerListings(sellerId);
-    final draftsStream = dataSource.streamSellerDrafts(sellerId);
+    // Skip the first emission from each .stream() since Supabase emits initial data on subscribe
+    final auctionsStream = dataSource.streamSellerListings(sellerId).skip(1);
+    final draftsStream = dataSource.streamSellerDrafts(sellerId).skip(1);
     
     return StreamGroup.merge([auctionsStream, draftsStream]);
   }

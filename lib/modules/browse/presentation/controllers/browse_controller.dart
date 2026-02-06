@@ -29,7 +29,8 @@ class BrowseController extends ChangeNotifier {
 
   void _subscribeToUpdates() {
     _updatesSubscription?.cancel();
-    _updatesSubscription = _streamActiveAuctionsUseCase().listen(
+    // Skip the first emission since Supabase .stream() always emits initial data
+    _updatesSubscription = _streamActiveAuctionsUseCase().skip(1).listen(
       (_) {
         // Reload auctions quietly when update signal is received
         // We check isLoading to avoid overlapping loads if user triggered manual refresh

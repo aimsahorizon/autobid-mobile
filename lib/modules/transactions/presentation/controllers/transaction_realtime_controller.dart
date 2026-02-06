@@ -16,6 +16,7 @@ class TransactionRealtimeController extends ChangeNotifier {
   // Subscriptions
   StreamSubscription<ChatMessageEntity>? _chatSubscription;
   StreamSubscription<Map<String, dynamic>>? _transactionSubscription;
+  String? _subscribedTransactionId; // Track to avoid re-subscribing
 
   TransactionRealtimeController(this._dataSource);
 
@@ -82,7 +83,9 @@ class TransactionRealtimeController extends ChangeNotifier {
       debugPrint(
         '[TransactionRealtimeController] Seller: ${_transaction!.sellerId}',
       );
-      debugPrint('[TransactionRealtimeController] Buyer: ${_transaction!.buyerId}');
+      debugPrint(
+        '[TransactionRealtimeController] Buyer: ${_transaction!.buyerId}',
+      );
       debugPrint(
         '[TransactionRealtimeController] Status: ${_transaction!.status.label}',
       );
@@ -92,7 +95,9 @@ class TransactionRealtimeController extends ChangeNotifier {
           ? FormRole.buyer
           : FormRole.seller;
 
-      debugPrint('[TransactionRealtimeController] Current user role: ${role.name}');
+      debugPrint(
+        '[TransactionRealtimeController] Current user role: ${role.name}',
+      );
 
       // For cancelled/failed transactions, don't load extra data
       // The page will show a special UI for cancelled/failed status
@@ -107,8 +112,10 @@ class TransactionRealtimeController extends ChangeNotifier {
           _loadReviewSafe(_transaction!.id, userId),
         ]);
 
-        // Subscribe to real-time updates only for active transactions
-        _subscribeToRealtime(_transaction!.id);
+        // Subscribe to real-time updates only once per transaction
+        if (_subscribedTransactionId != _transaction!.id) {
+          _subscribeToRealtime(_transaction!.id);
+        }
       } else {
         debugPrint(
           '[TransactionRealtimeController] Skipping extra data for cancelled transaction',
@@ -138,8 +145,12 @@ class TransactionRealtimeController extends ChangeNotifier {
   }
 
   void _subscribeToRealtime(String transactionId) {
-    // Subscribe to chat messages
+    // Cancel existing subscriptions
     _chatSubscription?.cancel();
+    _transactionSubscription?.cancel();
+    _subscribedTransactionId = transactionId;
+
+    // Subscribe to chat messages
     _dataSource.subscribeToChat(transactionId);
     _chatSubscription = _dataSource.chatStream.listen((message) {
       // Only add if not already in list (avoid duplicates)
@@ -153,17 +164,47 @@ class TransactionRealtimeController extends ChangeNotifier {
     });
 
     // Subscribe to transaction updates
-    _transactionSubscription?.cancel();
     _dataSource.subscribeToTransaction(transactionId);
     _transactionSubscription = _dataSource.transactionUpdateStream.listen((
       data,
     ) async {
       debugPrint('[TransactionRealtimeController] 🔄 Transaction updated');
-      // Reload transaction to get fresh data
+      // Reload data quietly without re-subscribing to avoid infinite loop
       if (_currentUserId != null) {
-        await loadTransaction(transactionId, _currentUserId!);
+        await _reloadTransactionData(transactionId, _currentUserId!);
       }
     });
+  }
+
+  /// Reload transaction data without re-subscribing to realtime
+  Future<void> _reloadTransactionData(
+    String transactionId,
+    String userId,
+  ) async {
+    try {
+      _transaction = await _dataSource.getTransaction(transactionId);
+
+      if (_transaction == null) return;
+
+      final role = getUserRole(userId);
+      final otherRole = role == FormRole.seller
+          ? FormRole.buyer
+          : FormRole.seller;
+
+      if (_transaction!.status != TransactionStatus.cancelled) {
+        await Future.wait([
+          _loadChatMessagesSafe(_transaction!.id),
+          _loadMyFormSafe(_transaction!.id, role),
+          _loadOtherPartyFormSafe(_transaction!.id, otherRole),
+          _loadTimelineSafe(_transaction!.id),
+          _loadReviewSafe(_transaction!.id, userId),
+        ]);
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error reloading data: $e');
+    }
   }
 
   Future<void> _loadTimeline(String transactionId) async {
@@ -225,16 +266,15 @@ class TransactionRealtimeController extends ChangeNotifier {
     try {
       _myReview = await _dataSource.getReview(transactionId, userId);
     } catch (e) {
-      debugPrint('[TransactionRealtimeController] Warning: Failed to load review: $e');
+      debugPrint(
+        '[TransactionRealtimeController] Warning: Failed to load review: $e',
+      );
       _myReview = null;
     }
   }
 
   /// Submit a review
-  Future<bool> submitReview({
-    required int rating,
-    String? comment,
-  }) async {
+  Future<bool> submitReview({required int rating, String? comment}) async {
     if (_transaction == null || _currentUserId == null) return false;
 
     _isProcessing = true;
@@ -242,8 +282,8 @@ class TransactionRealtimeController extends ChangeNotifier {
 
     try {
       final role = getUserRole(_currentUserId!);
-      final revieweeId = role == FormRole.seller 
-          ? _transaction!.buyerId 
+      final revieweeId = role == FormRole.seller
+          ? _transaction!.buyerId
           : _transaction!.sellerId;
 
       final review = await _dataSource.submitReview(
@@ -411,11 +451,15 @@ class TransactionRealtimeController extends ChangeNotifier {
   /// Returns true if cancellation was successful
   Future<bool> cancelDeal({String reason = ''}) async {
     debugPrint('[TransactionRealtimeController] cancelDeal called');
-    debugPrint('[TransactionRealtimeController] Transaction: ${_transaction?.id}');
+    debugPrint(
+      '[TransactionRealtimeController] Transaction: ${_transaction?.id}',
+    );
     debugPrint('[TransactionRealtimeController] Current user: $_currentUserId');
 
     if (_transaction == null || _currentUserId == null) {
-      debugPrint('[TransactionRealtimeController] ❌ No transaction loaded or user not set');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ No transaction loaded or user not set',
+      );
       return false;
     }
 
@@ -483,7 +527,9 @@ class TransactionRealtimeController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to offer to next bidder';
-      debugPrint('[TransactionRealtimeController] ❌ Error offering next bidder: $e');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error offering next bidder: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
@@ -508,7 +554,9 @@ class TransactionRealtimeController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to relist auction';
-      debugPrint('[TransactionRealtimeController] ❌ Error relisting auction: $e');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error relisting auction: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
@@ -533,7 +581,9 @@ class TransactionRealtimeController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to delete auction';
-      debugPrint('[TransactionRealtimeController] ❌ Error deleting auction: $e');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error deleting auction: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
@@ -574,7 +624,9 @@ class TransactionRealtimeController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to offer to bidder';
-      debugPrint('[TransactionRealtimeController] ❌ Error offering to bidder: $e');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error offering to bidder: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
@@ -655,6 +707,7 @@ class TransactionRealtimeController extends ChangeNotifier {
   void dispose() {
     _chatSubscription?.cancel();
     _transactionSubscription?.cancel();
+    _subscribedTransactionId = null;
     _dataSource.dispose();
     super.dispose();
   }

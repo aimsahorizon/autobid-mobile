@@ -15,6 +15,8 @@ class TransactionRealtimeDataSource {
   // Real-time subscriptions
   RealtimeChannel? _chatChannel;
   RealtimeChannel? _transactionChannel;
+  RealtimeChannel? _sellerTxnChannel;
+  RealtimeChannel? _buyerTxnChannel;
 
   // Stream controllers for real-time updates
   final _chatStreamController = StreamController<ChatMessageEntity>.broadcast();
@@ -44,8 +46,12 @@ class TransactionRealtimeDataSource {
   /// Subscribe to all transactions for a user (buyer or seller)
   /// Used for refreshing the transactions list in real-time
   void subscribeToUserTransactions(String userId) {
+    // Unsubscribe from previous channels to avoid duplicates
+    _sellerTxnChannel?.unsubscribe();
+    _buyerTxnChannel?.unsubscribe();
+
     // Listen for changes where user is seller
-    _supabase
+    _sellerTxnChannel = _supabase
         .channel('seller_txns_$userId')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -66,7 +72,7 @@ class TransactionRealtimeDataSource {
         .subscribe();
 
     // Listen for changes where user is buyer
-    _supabase
+    _buyerTxnChannel = _supabase
         .channel('buyer_txns_$userId')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -269,7 +275,22 @@ class TransactionRealtimeDataSource {
           ? DateTime.parse(data['buyer_accepted_at'] as String)
           : null,
       buyerRejectionReason: data['buyer_rejection_reason'] as String?,
+      sellerRejectionReason: data['seller_rejection_reason'] as String?,
+      cancelledBy: _inferCancelledBy(data),
     );
+  }
+
+  /// Infer who cancelled based on available rejection reasons
+  String? _inferCancelledBy(Map<String, dynamic> data) {
+    final status = data['status'] as String?;
+    if (status != 'deal_failed') return null;
+
+    final sellerReason = data['seller_rejection_reason'] as String?;
+    final buyerStatus = data['buyer_acceptance_status'] as String?;
+
+    if (sellerReason != null && sellerReason.isNotEmpty) return 'seller';
+    if (buyerStatus == 'rejected') return 'buyer';
+    return 'buyer'; // default assumption
   }
 
   DeliveryStatus _mapDeliveryStatus(String status) {
@@ -983,12 +1004,13 @@ class TransactionRealtimeDataSource {
       );
 
       final now = DateTime.now().toIso8601String();
-      final txnId = txn['transactionId'] as String;
 
-      // Update transaction with new buyer
-      await _supabase
+      // 1. Create a NEW transaction record for the next bidder
+      final newTxnResponse = await _supabase
           .from('auction_transactions')
-          .update({
+          .insert({
+            'auction_id': auctionId,
+            'seller_id': txn['sellerId'],
             'buyer_id': nextBidderId,
             'agreed_price': nextAmount,
             'status': 'in_transaction',
@@ -997,18 +1019,17 @@ class TransactionRealtimeDataSource {
             'seller_confirmed': false,
             'buyer_confirmed': false,
             'admin_approved': false,
-            'admin_approved_at': null,
             'delivery_status': 'pending',
-            'delivery_started_at': null,
-            'delivery_completed_at': null,
-            'completed_at': null,
+            'created_at': now,
             'updated_at': now,
           })
-          .eq('id', txnId);
+          .select('id')
+          .single();
 
-      debugPrint('[OfferNextBidder] ✅ Transaction updated');
+      final newTxnId = newTxnResponse['id'] as String;
+      debugPrint('[OfferNextBidder] ✅ New transaction created: $newTxnId');
 
-      // Update auction current_price to reflect the new winning bid
+      // 2. Update auction current_price to reflect the new winning bid
       await _supabase
           .from('auctions')
           .update({'current_price': nextAmount, 'updated_at': now})
@@ -1016,7 +1037,7 @@ class TransactionRealtimeDataSource {
 
       debugPrint('[OfferNextBidder] ✅ Auction current_price updated');
 
-      // Mark the previous buyer's bid as lost
+      // 3. Mark the previous buyer's bid as lost
       if (currentBuyerId != null) {
         try {
           final lostStatusResponse = await _supabase
@@ -1043,16 +1064,26 @@ class TransactionRealtimeDataSource {
         }
       }
 
-      // Add timeline event
+      // 4. Add timeline event to the NEW transaction
       final actorId = _supabase.auth.currentUser?.id ?? '';
       final actorName =
           _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Seller';
 
       await _addTimelineEvent(
-        txnId,
-        'Offered to next highest bidder',
-        'Seller reassigned the transaction to the next eligible bidder.',
-        'message_sent',
+        newTxnId,
+        'Transaction Started',
+        'Seller reassigned the winning bid to the next highest bidder.',
+        'created',
+        actorId,
+        actorName,
+      );
+
+      // 5. Add timeline event to the OLD transaction
+      await _addTimelineEvent(
+        transactionId,
+        'Offered to Next Bidder',
+        'Seller moved to the next highest bidder. This transaction is closed.',
+        'cancelled',
         actorId,
         actorName,
       );
@@ -1067,7 +1098,7 @@ class TransactionRealtimeDataSource {
   }
 
   /// Relist the auction for a fresh round of bidding
-  /// Resets auction timing and clears winner fields
+  /// Moves auction back to pending_approval for admin review
   Future<bool> relistAuction(String transactionId) async {
     try {
       debugPrint('[RelistAuction] Starting for transaction: $transactionId');
@@ -1087,66 +1118,49 @@ class TransactionRealtimeDataSource {
 
       debugPrint('[RelistAuction] Auction: $auctionId');
 
-      final now = DateTime.now();
-      final newEnd = now.add(const Duration(days: 7));
+      final now = DateTime.now().toIso8601String();
 
-      // Get the 'live' status ID (auctions use 'live' not 'active')
-      final liveStatusResponse = await _supabase
+      // Get the 'pending_approval' status ID
+      final pendingStatusResponse = await _supabase
           .from('auction_statuses')
           .select('id')
-          .eq('status_name', 'live')
+          .eq('status_name', 'pending_approval')
           .maybeSingle();
 
-      if (liveStatusResponse == null) {
-        debugPrint('[RelistAuction] ❌ Live status not found');
+      if (pendingStatusResponse == null) {
+        debugPrint('[RelistAuction] ❌ Pending status not found');
         return false;
       }
 
-      final liveStatusId = liveStatusResponse['id'] as String;
+      final pendingStatusId = pendingStatusResponse['id'] as String;
 
-      // Update auction to live status with new timing
-      // Note: auctions table only has status_id, current_price, start_time, end_time
-      // Winner info is stored in auction_transactions, not auctions
+      // Update auction to pending_approval status
       await _supabase
           .from('auctions')
           .update({
-            'status_id': liveStatusId,
+            'status_id': pendingStatusId,
             'current_price': 0,
-            'start_time': now.toIso8601String(),
-            'end_time': newEnd.toIso8601String(),
-            'updated_at': now.toIso8601String(),
+            'updated_at': now,
           })
           .eq('id', auctionId);
 
-      debugPrint('[RelistAuction] ✅ Auction updated to live');
+      debugPrint('[RelistAuction] ✅ Auction updated to pending_approval');
 
-      // Delete the failed transaction record (start fresh)
+      // Add timeline event to the failed transaction
       if (txnId != null) {
-        try {
-          // Delete related records first
-          await _supabase
-              .from('transaction_timeline')
-              .delete()
-              .eq('transaction_id', txnId);
+        final actorId = _supabase.auth.currentUser?.id ?? '';
+        final actorName =
+            _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+            'Seller';
 
-          await _supabase
-              .from('transaction_chat_messages')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase
-              .from('transaction_forms')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase.from('auction_transactions').delete().eq('id', txnId);
-
-          debugPrint('[RelistAuction] ✅ Old transaction deleted');
-        } catch (e) {
-          debugPrint(
-            '[RelistAuction] ⚠️ Warning: Failed to delete old transaction: $e',
-          );
-        }
+        await _addTimelineEvent(
+          txnId,
+          'Auction Relisted',
+          'Seller chose to relist the auction. It is now awaiting admin approval.',
+          'cancelled',
+          actorId,
+          actorName,
+        );
       }
 
       debugPrint('[RelistAuction] 🎉 SUCCESS');
@@ -1159,7 +1173,7 @@ class TransactionRealtimeDataSource {
   }
 
   /// Delete the auction entirely after a failed deal
-  /// Removes the auction and transaction records
+  /// Marks the auction as cancelled (soft delete)
   Future<bool> deleteAuction(String transactionId) async {
     try {
       debugPrint('[DeleteAuction] Starting for transaction: $transactionId');
@@ -1179,35 +1193,6 @@ class TransactionRealtimeDataSource {
 
       debugPrint('[DeleteAuction] Auction: $auctionId, Transaction: $txnId');
 
-      // Delete transaction record first (foreign key constraint)
-      if (txnId != null) {
-        try {
-          // Delete related records first
-          await _supabase
-              .from('transaction_timeline')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase
-              .from('transaction_chat_messages')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase
-              .from('transaction_forms')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase.from('auction_transactions').delete().eq('id', txnId);
-
-          debugPrint('[DeleteAuction] ✅ Transaction records deleted');
-        } catch (e) {
-          debugPrint(
-            '[DeleteAuction] ⚠️ Warning: Failed to delete transaction: $e',
-          );
-        }
-      }
-
       // Get the 'cancelled' status ID
       final cancelledStatusResponse = await _supabase
           .from('auction_statuses')
@@ -1223,7 +1208,6 @@ class TransactionRealtimeDataSource {
       final cancelledStatusId = cancelledStatusResponse['id'] as String;
 
       // Update auction status to cancelled (soft delete)
-      // Note: auctions table only has status_id, current_price - winner info is in auction_transactions
       await _supabase
           .from('auctions')
           .update({
@@ -1233,6 +1217,24 @@ class TransactionRealtimeDataSource {
           .eq('id', auctionId);
 
       debugPrint('[DeleteAuction] ✅ Auction marked as cancelled');
+
+      // Add timeline event to the failed transaction
+      if (txnId != null) {
+        final actorId = _supabase.auth.currentUser?.id ?? '';
+        final actorName =
+            _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+            'Seller';
+
+        await _addTimelineEvent(
+          txnId,
+          'Auction Deleted',
+          'Seller chose to delete the auction after the deal failed.',
+          'cancelled',
+          actorId,
+          actorName,
+        );
+      }
+
       debugPrint('[DeleteAuction] 🎉 SUCCESS');
       return true;
     } catch (e, stack) {
@@ -1398,10 +1400,12 @@ class TransactionRealtimeDataSource {
 
       final now = DateTime.now().toIso8601String();
 
-      // Update transaction with new buyer
-      await _supabase
+      // 1. Create a NEW transaction record for the selected bidder
+      final newTxnResponse = await _supabase
           .from('auction_transactions')
-          .update({
+          .insert({
+            'auction_id': auctionId,
+            'seller_id': txn['sellerId'],
             'buyer_id': newBidderId,
             'agreed_price': bidAmount,
             'status': 'in_transaction',
@@ -1410,18 +1414,19 @@ class TransactionRealtimeDataSource {
             'seller_confirmed': false,
             'buyer_confirmed': false,
             'admin_approved': false,
-            'admin_approved_at': null,
             'delivery_status': 'pending',
-            'delivery_started_at': null,
-            'delivery_completed_at': null,
-            'completed_at': null,
+            'created_at': now,
             'updated_at': now,
           })
-          .eq('id', txnId);
+          .select('id')
+          .single();
 
-      debugPrint('[OfferToSpecificBidder] ✅ Transaction updated');
+      final newTxnId = newTxnResponse['id'] as String;
+      debugPrint(
+        '[OfferToSpecificBidder] ✅ New transaction created: $newTxnId',
+      );
 
-      // Update auction current_price to reflect the new winning bid
+      // 2. Update auction current_price to reflect the new winning bid
       // Note: winner info is stored in auction_transactions, not auctions table
       await _supabase
           .from('auctions')
@@ -1430,7 +1435,7 @@ class TransactionRealtimeDataSource {
 
       debugPrint('[OfferToSpecificBidder] ✅ Auction current_price updated');
 
-      // Mark the previous buyer's bid as lost
+      // 3. Mark the previous buyer's bid as lost
       if (currentBuyerId != null) {
         try {
           final lostStatusResponse = await _supabase
@@ -1459,16 +1464,26 @@ class TransactionRealtimeDataSource {
         }
       }
 
-      // Add timeline event
+      // 4. Add timeline event to the NEW transaction
       final actorId = _supabase.auth.currentUser?.id ?? '';
       final actorName =
           _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Seller';
 
       await _addTimelineEvent(
-        txnId,
-        'Offered to selected bidder',
+        newTxnId,
+        'Transaction Started',
         'Seller selected a new buyer for this transaction.',
-        'message_sent',
+        'created',
+        actorId,
+        actorName,
+      );
+
+      // 5. Add timeline event to the OLD transaction
+      await _addTimelineEvent(
+        transactionId,
+        'Offered to Another Bidder',
+        'Seller selected another bidder. This transaction is closed.',
+        'cancelled',
         actorId,
         actorName,
       );
@@ -1860,6 +1875,8 @@ class TransactionRealtimeDataSource {
   void dispose() {
     _chatChannel?.unsubscribe();
     _transactionChannel?.unsubscribe();
+    _sellerTxnChannel?.unsubscribe();
+    _buyerTxnChannel?.unsubscribe();
     _chatStreamController.close();
     _transactionUpdateController.close();
     _userTransactionsUpdateController.close();

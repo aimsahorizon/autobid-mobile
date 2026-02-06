@@ -34,8 +34,18 @@ class BuyerSellerTransactionsController extends ChangeNotifier {
     _realtimeDataSource.subscribeToUserTransactions(_userId);
     _realtimeSubscription = _realtimeDataSource.userTransactionsUpdateStream.listen((_) {
       debugPrint('[BuyerSellerTransactionsController] Realtime update received, reloading...');
-      loadTransactions();
+      _reloadQuietly();
     });
+  }
+
+  /// Reload data quietly without showing loading state (for realtime updates)
+  Future<void> _reloadQuietly() async {
+    try {
+      await Future.wait([_loadBuyerTransactions(), _loadSellerTransactions()]);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[BuyerSellerTransactionsController] Error reloading: $e');
+    }
   }
 
   @override

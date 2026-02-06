@@ -29,8 +29,47 @@ class TransactionsStatusController extends ChangeNotifier {
     _realtimeDataSource.subscribeToUserTransactions(_userId);
     _realtimeSubscription = _realtimeDataSource.userTransactionsUpdateStream.listen((_) {
       debugPrint('[TransactionsStatusController] Realtime update received, reloading...');
-      loadTransactions();
+      _reloadQuietly();
     });
+  }
+
+  /// Reload data quietly without showing loading state (for realtime updates)
+  Future<void> _reloadQuietly() async {
+    try {
+      final Map<TransactionStatus, List<SellerListingEntity>> result = {};
+
+      try {
+        final active = await _dataSource.getActiveTransactions(_userId);
+        result[TransactionStatus.inTransaction] = active
+            .map((model) => model.toSellerListingEntity())
+            .toList();
+      } catch (e) {
+        result[TransactionStatus.inTransaction] = [];
+      }
+
+      try {
+        final completed = await _dataSource.getCompletedTransactions(_userId);
+        result[TransactionStatus.sold] = completed
+            .map((model) => model.toSellerListingEntity())
+            .toList();
+      } catch (e) {
+        result[TransactionStatus.sold] = [];
+      }
+
+      try {
+        final failed = await _dataSource.getFailedTransactions(_userId);
+        result[TransactionStatus.dealFailed] = failed
+            .map((model) => model.toSellerListingEntity())
+            .toList();
+      } catch (e) {
+        result[TransactionStatus.dealFailed] = [];
+      }
+
+      _transactions = result;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[TransactionsStatusController] Error reloading: $e');
+    }
   }
 
   @override
