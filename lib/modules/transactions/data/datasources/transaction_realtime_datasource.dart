@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/transaction_entity.dart';
@@ -1414,6 +1415,121 @@ class TransactionRealtimeDataSource {
       debugPrint('[OfferToSpecificBidder] Stack: $stack');
       return false;
     }
+  }
+
+  // ============================================================================
+  // DELIVERY & COMPLETION
+  // ============================================================================
+
+  /// Update delivery status (Seller only)
+  Future<bool> updateDeliveryStatus(
+    String transactionId,
+    String sellerId,
+    DeliveryStatus status,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      String statusStr;
+      switch (status) {
+        case DeliveryStatus.preparing:
+          statusStr = 'preparing';
+          break;
+        case DeliveryStatus.inTransit:
+          statusStr = 'in_transit';
+          break;
+        case DeliveryStatus.delivered:
+          statusStr = 'delivered';
+          break;
+        default:
+          return false;
+      }
+
+      final response = await _supabase.rpc(
+        'update_delivery_status',
+        params: {
+          'p_transaction_id': txnId,
+          'p_seller_id': sellerId,
+          'p_delivery_status': statusStr,
+        },
+      );
+
+      return response['success'] == true;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error updating delivery: $e');
+      return false;
+    }
+  }
+
+  /// Respond to delivery (Buyer only) - Accept or Reject
+  Future<bool> respondToDelivery({
+    required String transactionId,
+    required String buyerId,
+    required bool accepted,
+    String? rejectionReason,
+    List<File>? rejectionPhotos,
+  }) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      // 1. Upload photos if rejected and photos provided
+      List<String>? photoUrls;
+      if (!accepted && rejectionPhotos != null && rejectionPhotos.isNotEmpty) {
+        photoUrls = await _uploadRejectionPhotos(txnId, rejectionPhotos);
+        
+        // Update the photos column manually first since RPC doesn't accept arrays well in all versions
+        // or to keep RPC signature simple.
+        await _supabase
+            .from('auction_transactions')
+            .update({'buyer_rejection_photos': photoUrls})
+            .eq('id', txnId);
+      }
+
+      // 2. Call RPC to handle status updates and notifications
+      final response = await _supabase.rpc(
+        'handle_buyer_acceptance',
+        params: {
+          'p_transaction_id': txnId,
+          'p_buyer_id': buyerId,
+          'p_accepted': accepted,
+          'p_rejection_reason': rejectionReason,
+        },
+      );
+
+      return response['success'] == true;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error responding to delivery: $e');
+      return false;
+    }
+  }
+
+  /// Helper: Upload rejection photos
+  Future<List<String>> _uploadRejectionPhotos(
+    String transactionId,
+    List<File> photos,
+  ) async {
+    final List<String> urls = [];
+    try {
+      for (var i = 0; i < photos.length; i++) {
+        final file = photos[i];
+        final ext = file.path.split('.').last;
+        final path = 'rejections/$transactionId/proof_$i.$ext';
+
+        await _supabase.storage.from('auction-images').upload(
+              path,
+              file,
+              fileOptions: const FileOptions(upsert: true),
+            );
+
+        final url = _supabase.storage.from('auction-images').getPublicUrl(path);
+        urls.add(url);
+      }
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error uploading photos: $e');
+    }
+    return urls;
   }
 
   // ============================================================================

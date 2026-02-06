@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
@@ -45,6 +47,12 @@ class ProgressRealtimeTab extends StatelessWidget {
               _buildSummaryCard(transaction, isDark),
 
               const SizedBox(height: 24),
+
+              // Delivery Progress (Visible after Admin Approval)
+              if (transaction.adminApproved) ...[
+                _buildDeliveryProgress(context, transaction, isBuyer, isDark),
+                const SizedBox(height: 24),
+              ],
 
               // Progress Steps
               _buildProgressSteps(transaction, isDark),
@@ -561,6 +569,383 @@ class ProgressRealtimeTab extends StatelessWidget {
     if (diff.inDays < 7) return '${diff.inDays}d ago';
 
     return '${timestamp.month}/${timestamp.day}/${timestamp.year}';
+  }
+  Widget _buildDeliveryProgress(
+    BuildContext context,
+    TransactionEntity transaction,
+    bool isBuyer,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Delivery Status',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark
+                ? ColorConstants.surfaceDark
+                : ColorConstants.backgroundSecondaryLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? ColorConstants.borderDark
+                  : ColorConstants.borderLight,
+            ),
+          ),
+          child: Column(
+            children: [
+              _buildDeliveryStepper(transaction.deliveryStatus),
+              const SizedBox(height: 24),
+              if (!isBuyer)
+                _buildSellerDeliveryControls(context, transaction)
+              else
+                _buildBuyerDeliveryView(context, transaction),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeliveryStepper(DeliveryStatus currentStatus) {
+    final steps = [
+      {'status': DeliveryStatus.preparing, 'label': 'Preparing'},
+      {'status': DeliveryStatus.inTransit, 'label': 'In Transit'},
+      {'status': DeliveryStatus.delivered, 'label': 'Delivered'},
+      {'status': DeliveryStatus.completed, 'label': 'Completed'},
+    ];
+
+    int currentIndex = -1;
+    if (currentStatus == DeliveryStatus.pending) {
+      currentIndex = -1;
+    } else {
+      currentIndex = steps.indexWhere((s) => s['status'] == currentStatus);
+      // If completed, make sure delivered is also active
+      if (currentStatus == DeliveryStatus.completed) {
+        currentIndex = 3;
+      }
+    }
+
+    return Row(
+      children: [
+        for (int i = 0; i < steps.length; i++) ...[
+          Expanded(
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: i <= currentIndex
+                      ? ColorConstants.primary
+                      : Colors.grey.withValues(alpha: 0.3),
+                  child: Icon(
+                    Icons.check,
+                    size: 16,
+                    color: i <= currentIndex ? Colors.white : Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  steps[i]['label'] as String,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: i <= currentIndex
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: i <= currentIndex
+                        ? ColorConstants.primary
+                        : Colors.grey,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          if (i < steps.length - 1)
+            Expanded(
+              child: Container(
+                height: 2,
+                color: i < currentIndex
+                    ? ColorConstants.primary
+                    : Colors.grey.withValues(alpha: 0.3),
+                margin: const EdgeInsets.only(bottom: 20),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSellerDeliveryControls(
+    BuildContext context,
+    TransactionEntity transaction,
+  ) {
+    if (transaction.deliveryStatus == DeliveryStatus.completed) {
+      return const Center(
+        child: Text(
+          'Transaction Completed',
+          style: TextStyle(color: ColorConstants.success, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: ColorConstants.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            const Text(
+              'Buyer Rejected Delivery',
+              style: TextStyle(
+                color: ColorConstants.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('Reason: ${transaction.buyerRejectionReason ?? "None provided"}'),
+          ],
+        ),
+      );
+    }
+
+    String buttonLabel;
+    DeliveryStatus nextStatus;
+    bool isEnabled = true;
+
+    switch (transaction.deliveryStatus) {
+      case DeliveryStatus.pending:
+        buttonLabel = 'Start Preparing';
+        nextStatus = DeliveryStatus.preparing;
+        break;
+      case DeliveryStatus.preparing:
+        buttonLabel = 'Mark as In Transit';
+        nextStatus = DeliveryStatus.inTransit;
+        break;
+      case DeliveryStatus.inTransit:
+        buttonLabel = 'Mark as Delivered';
+        nextStatus = DeliveryStatus.delivered;
+        break;
+      case DeliveryStatus.delivered:
+        buttonLabel = 'Waiting for Buyer Confirmation';
+        nextStatus = DeliveryStatus.completed; // Placeholder, button disabled
+        isEnabled = false;
+        break;
+      default:
+        buttonLabel = 'Update Status';
+        nextStatus = DeliveryStatus.pending;
+        isEnabled = false;
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        onPressed: isEnabled && !controller.isProcessing
+            ? () => controller.updateDeliveryStatus(nextStatus)
+            : null,
+        child: controller.isProcessing && isEnabled
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(buttonLabel),
+      ),
+    );
+  }
+
+  Widget _buildBuyerDeliveryView(
+    BuildContext context,
+    TransactionEntity transaction,
+  ) {
+    if (transaction.deliveryStatus == DeliveryStatus.completed) {
+      return const Center(
+        child: Text(
+          'You have accepted the vehicle!',
+          style: TextStyle(color: ColorConstants.success, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    if (transaction.deliveryStatus == DeliveryStatus.delivered) {
+      if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
+         return const Center(
+          child: Text(
+            'You rejected the delivery.',
+            style: TextStyle(color: ColorConstants.error, fontWeight: FontWeight.bold),
+          ),
+        );
+      }
+
+      return Column(
+        children: [
+          const Text(
+            'Vehicle Delivered',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Please inspect the vehicle and confirm receipt.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: controller.isProcessing
+                      ? null
+                      : () => _showRejectionDialog(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ColorConstants.error,
+                    side: BorderSide(color: ColorConstants.error),
+                  ),
+                  child: const Text('Reject'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: FilledButton(
+                  onPressed: controller.isProcessing
+                      ? null
+                      : () => controller.respondToDelivery(accepted: true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: ColorConstants.success,
+                  ),
+                  child: const Text('Accept'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    String statusText = 'Waiting for seller update...';
+    if (transaction.deliveryStatus == DeliveryStatus.preparing) {
+      statusText = 'Seller is preparing the vehicle...';
+    } else if (transaction.deliveryStatus == DeliveryStatus.inTransit) {
+      statusText = 'Vehicle is on the way!';
+    }
+
+    return Center(
+      child: Text(
+        statusText,
+        style: TextStyle(color: ColorConstants.textSecondaryLight),
+      ),
+    );
+  }
+
+  Future<void> _showRejectionDialog(BuildContext context) async {
+    final reasonController = TextEditingController();
+    final List<File> photos = [];
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Reject Delivery'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Please provide a reason for rejecting the vehicle.',
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Photo Proof (Required)', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ...photos.map((f) => Stack(
+                      children: [
+                        Image.file(f, width: 80, height: 80, fit: BoxFit.cover),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: InkWell(
+                            onTap: () => setState(() => photos.remove(f)),
+                            child: const CircleAvatar(
+                              radius: 10,
+                              backgroundColor: Colors.red,
+                              child: Icon(Icons.close, size: 12, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )),
+                    InkWell(
+                      onTap: () async {
+                        final picker = ImagePicker();
+                        final image = await picker.pickImage(source: ImageSource.camera);
+                        if (image != null) {
+                          setState(() => photos.add(File(image.path)));
+                        }
+                      },
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.add_a_photo),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (reasonController.text.isEmpty || photos.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Reason and photo proof are required')),
+                  );
+                  return;
+                }
+                Navigator.pop(context);
+                controller.respondToDelivery(
+                  accepted: false,
+                  rejectionReason: reasonController.text,
+                  rejectionPhotos: photos,
+                );
+              },
+              style: FilledButton.styleFrom(backgroundColor: ColorConstants.error),
+              child: const Text('Reject Delivery'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

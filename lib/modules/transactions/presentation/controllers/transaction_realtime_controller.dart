@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../domain/entities/transaction_entity.dart';
@@ -519,6 +520,68 @@ class TransactionRealtimeController extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Failed to offer to bidder';
       debugPrint('[TransactionRealtimeController] ❌ Error offering to bidder: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Update delivery status (Seller)
+  Future<bool> updateDeliveryStatus(DeliveryStatus status) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.updateDeliveryStatus(
+        _transaction!.id,
+        _currentUserId!,
+        status,
+      );
+
+      if (success) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to update delivery status';
+      debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Respond to delivery (Buyer)
+  Future<bool> respondToDelivery({
+    required bool accepted,
+    String? rejectionReason,
+    List<File>? rejectionPhotos,
+  }) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.respondToDelivery(
+        transactionId: _transaction!.id,
+        buyerId: _currentUserId!,
+        accepted: accepted,
+        rejectionReason: rejectionReason,
+        rejectionPhotos: rejectionPhotos,
+      );
+
+      if (success) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to submit response';
+      debugPrint('[TransactionRealtimeController] Error: $e');
       return false;
     } finally {
       _isProcessing = false;
