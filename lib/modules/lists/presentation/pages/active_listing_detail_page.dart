@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
@@ -8,7 +9,8 @@ import '../widgets/detail_sections/auction_stats_section.dart';
 import '../widgets/detail_sections/qa_section.dart';
 import '../widgets/detail_sections/seller_bid_history_section.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
-import '../widgets/invite_user_dialog.dart';
+import '../widgets/invite_management_dialog.dart';
+import '../controllers/lists_controller.dart';
 
 class ActiveListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
@@ -34,6 +36,19 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
     super.initState();
     _listing = widget.listing;
     _loadBids();
+  }
+
+  void _showInviteManagement(BuildContext context) {
+    final controller = GetIt.instance<ListsController>();
+    
+    showDialog(
+      context: context,
+      builder: (context) => InviteManagementDialog(
+        controller: controller,
+        auctionId: _listing.id,
+        carName: _listing.carName,
+      ),
+    );
   }
 
   Future<void> _loadBids() async {
@@ -210,18 +225,10 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
             height: 48,
             child: Row(
               children: [
-                if (_listing.biddingType == 'private') ...[
+                if (_listing.visibility == 'private') ...[
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => InviteUserDialog(
-                            auctionId: _listing.id,
-                            auctionTitle: '${_listing.year} ${_listing.brand} ${_listing.model}',
-                          ),
-                        );
-                      },
+                      onPressed: () => _showInviteManagement(context),
                       icon: const Icon(Icons.person_add),
                       label: const Text('Invite'),
                       style: OutlinedButton.styleFrom(

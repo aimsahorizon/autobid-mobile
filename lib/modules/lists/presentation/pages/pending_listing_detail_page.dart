@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
@@ -8,7 +9,8 @@ import '../../domain/usecases/submission_usecases.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
-import '../widgets/invite_user_dialog.dart';
+import '../widgets/invite_management_dialog.dart';
+import '../controllers/lists_controller.dart';
 
 class PendingListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
@@ -22,6 +24,20 @@ class PendingListingDetailPage extends StatefulWidget {
 
 class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
   bool _isLoading = false;
+
+  void _showInviteManagement(BuildContext context) {
+    // Resolve a fresh controller for the dialog since this page might not own the main ListsController
+    final controller = GetIt.instance<ListsController>();
+    
+    showDialog(
+      context: context,
+      builder: (context) => InviteManagementDialog(
+        controller: controller,
+        auctionId: widget.listing.id,
+        carName: widget.listing.carName,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +81,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
         (widget.listing.status == ListingStatus.pending ||
             widget.listing.status == ListingStatus.scheduled ||
             widget.listing.status == ListingStatus.active) &&
-        widget.listing.biddingType == 'private';
+        widget.listing.visibility == 'private';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -98,18 +114,9 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
                   child: OutlinedButton.icon(
                     onPressed: _isLoading
                         ? null
-                        : () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => InviteUserDialog(
-                                auctionId: widget.listing.id,
-                                auctionTitle:
-                                    '${widget.listing.year} ${widget.listing.brand} ${widget.listing.model}',
-                              ),
-                            );
-                          },
+                        : () => _showInviteManagement(context),
                     icon: const Icon(Icons.person_add),
-                    label: const Text('Invite Users'),
+                    label: const Text('Manage Invites'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(

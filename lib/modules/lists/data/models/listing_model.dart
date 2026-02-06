@@ -377,6 +377,7 @@ class ListingModel {
       snipeGuardThresholdSeconds: snipeGuardThresholdSeconds,
       snipeGuardExtendSeconds: snipeGuardExtendSeconds,
       deedOfSaleUrl: deedOfSaleUrl,
+      visibility: visibility,
     );
   }
 

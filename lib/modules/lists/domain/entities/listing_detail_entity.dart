@@ -94,6 +94,9 @@ class ListingDetailEntity {
   
   // Documents
   final String? deedOfSaleUrl;
+  
+  // Visibility
+  final String visibility;
 
   const ListingDetailEntity({
     required this.id,
@@ -165,6 +168,7 @@ class ListingDetailEntity {
     this.snipeGuardThresholdSeconds = 300,
     this.snipeGuardExtendSeconds = 300,
     this.deedOfSaleUrl,
+    this.visibility = 'public',
   });
 
   /// Get formatted car name

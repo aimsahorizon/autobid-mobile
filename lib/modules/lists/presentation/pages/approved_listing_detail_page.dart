@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:get_it/get_it.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../../domain/entities/seller_listing_entity.dart';
-import '../widgets/invite_user_dialog.dart';
+import '../widgets/invite_management_dialog.dart';
+import '../controllers/lists_controller.dart';
 
 class ApprovedListingDetailPage extends StatelessWidget {
   final ListingDetailEntity listing;
@@ -18,6 +20,22 @@ class ApprovedListingDetailPage extends StatelessWidget {
   static final Set<String> _autoStartTriggered = {};
 
   ApprovedListingDetailPage({super.key, required this.listing});
+
+  void _showInviteManagement(BuildContext context) {
+    // Resolve a fresh controller for the dialog since this page is stateless
+    // and doesn't own the main ListsController.
+    // The dialog needs a controller instance to manage state.
+    final controller = GetIt.instance<ListsController>();
+    
+    showDialog(
+      context: context,
+      builder: (context) => InviteManagementDialog(
+        controller: controller,
+        auctionId: listing.id,
+        carName: listing.carName,
+      ),
+    );
+  }
 
   Future<void> _updateEndTime(BuildContext context) async {
     final picked = await showDatePicker(
@@ -594,26 +612,17 @@ class ApprovedListingDetailPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Invite Users button (only for private auctions)
-            if (listing.biddingType == 'private') ...[
+            if (listing.visibility == 'private') ...[
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => InviteUserDialog(
-                        auctionId: listing.id,
-                        auctionTitle:
-                            '${listing.year} ${listing.brand} ${listing.model}',
-                      ),
-                    );
-                  },
+                  onPressed: () => _showInviteManagement(context),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   icon: const Icon(Icons.person_add),
                   label: const Text(
-                    'Invite Users',
+                    'Manage Invites',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
