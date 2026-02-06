@@ -146,6 +146,13 @@ class _SellerFormTabState extends State<SellerFormTab> {
           backgroundColor: ColorConstants.success,
         ),
       );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage ?? 'Failed to submit seller form'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
     }
   }
 

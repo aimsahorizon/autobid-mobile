@@ -418,8 +418,19 @@ class TransactionRealtimeDataSource {
   /// Submit or update a form
   Future<TransactionFormEntity?> submitForm(TransactionFormEntity form) async {
     try {
+      debugPrint('[TransactionRealtimeDataSource] Submitting form for role: ${form.role}');
       final txnId = await _resolveTransactionId(form.transactionId);
       if (txnId == null) throw Exception('Transaction not found');
+
+      // Fetch transaction to get agreed_price (required field in transaction_forms)
+      final txnResponse = await _supabase
+          .from('auction_transactions')
+          .select('agreed_price')
+          .eq('id', txnId)
+          .maybeSingle();
+      
+      final agreedPrice = (txnResponse?['agreed_price'] as num?)?.toDouble() ?? 0.0;
+      debugPrint('[TransactionRealtimeDataSource] Resolved agreed_price: $agreedPrice');
 
       final roleStr = form.role == FormRole.seller ? 'seller' : 'buyer';
 
@@ -427,7 +438,7 @@ class TransactionRealtimeDataSource {
         'transaction_id': txnId,
         'role': roleStr,
         'status': 'submitted',
-        'agreed_price': form.agreedPrice,
+        'agreed_price': agreedPrice,
         'payment_method': form.paymentMethod,
         'delivery_date': form.preferredDate.toIso8601String(),
         'delivery_location': form.handoverLocation,
@@ -435,29 +446,36 @@ class TransactionRealtimeDataSource {
         'delivery_address': form.deliveryAddress,
         'contact_number': form.contactNumber,
         'handover_time_slot': form.handoverTimeSlot,
+        // Seller specific
         'or_cr_verified': form.orCrOriginalAvailable,
         'deeds_of_sale_ready': form.deedOfSaleReady,
         'release_of_mortgage': form.releaseOfMortgage,
         'registration_valid': form.registrationValid,
         'no_outstanding_loans': form.noLiensEncumbrances,
         'mechanical_inspection_done': form.conditionMatchesListing,
+        'new_issues_disclosure': form.newIssuesDisclosure,
+        'fuel_level': form.fuelLevel,
+        'accessories_included': form.accessoriesIncluded,
+        // Buyer specific
         'reviewed_vehicle_condition': form.reviewedVehicleCondition,
         'understood_auction_terms': form.understoodAuctionTerms,
         'will_arrange_insurance': form.willArrangeInsurance,
         'accepts_as_is_condition': form.acceptsAsIsCondition,
-        'new_issues_disclosure': form.newIssuesDisclosure,
-        'fuel_level': form.fuelLevel,
-        'accessories_included': form.accessoriesIncluded,
+        // Shared
         'additional_terms': form.additionalNotes,
         'submitted_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       };
+
+      debugPrint('[TransactionRealtimeDataSource] UPSERT data: $data');
 
       final response = await _supabase
           .from('transaction_forms')
           .upsert(data, onConflict: 'transaction_id,role')
           .select()
           .single();
+
+      debugPrint('[TransactionRealtimeDataSource] Form UPSERT successful');
 
       // Update transaction flags
       final flagColumn = form.role == FormRole.seller
@@ -471,6 +489,8 @@ class TransactionRealtimeDataSource {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', txnId);
+
+      debugPrint('[TransactionRealtimeDataSource] Transaction flag updated');
 
       // Add timeline event
       final userId = _supabase.auth.currentUser?.id ?? '';
@@ -487,8 +507,13 @@ class TransactionRealtimeDataSource {
 
       return _mapToFormEntity(response);
     } catch (e) {
-      debugPrint('[TransactionRealtimeDataSource] Error submitting form: $e');
-      return null;
+      debugPrint('[TransactionRealtimeDataSource] ❌ Error submitting form: $e');
+      if (e is PostgrestException) {
+        debugPrint('[TransactionRealtimeDataSource] PostgreSQL Error: ${e.message} (${e.code})');
+        debugPrint('[TransactionRealtimeDataSource] Details: ${e.details}');
+        debugPrint('[TransactionRealtimeDataSource] Hint: ${e.hint}');
+      }
+      rethrow;
     }
   }
 
