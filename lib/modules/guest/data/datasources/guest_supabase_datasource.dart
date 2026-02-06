@@ -12,17 +12,18 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
   GuestSupabaseDataSource(this._supabase);
 
   @override
-  /// Check account status by email or username (full_name)
+  /// Check account status by email or username
   /// Returns status if user exists
   Future<AccountStatusModel?> checkAccountStatus(String identifier) async {
     try {
       debugPrint('[GuestDataSource] Checking account status for: $identifier');
 
-      // Join with kyc_documents and kyc_statuses to get verification status
-      var query = _supabase.from('users').select('''
+      const selectFields = '''
             id, 
             email, 
+            username,
             full_name, 
+            display_name,
             created_at, 
             updated_at,
             kyc_documents(
@@ -30,31 +31,70 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
               updated_at,
               kyc_statuses(status_name)
             )
-          ''');
+          ''';
+
+      Map<String, dynamic>? response;
 
       if (identifier.contains('@')) {
-        query = query.eq('email', identifier);
+        // Search by email (exact match)
+        response = await _supabase
+            .from('users')
+            .select(selectFields)
+            .eq('email', identifier)
+            .maybeSingle();
       } else {
-        query = query.ilike('full_name', '%$identifier%');
-      }
+        // Search by username first (exact match, case-insensitive)
+        response = await _supabase
+            .from('users')
+            .select(selectFields)
+            .ilike('username', identifier)
+            .maybeSingle();
 
-      final response = await query.maybeSingle();
+        // Fallback: search by full_name or display_name if username not found
+        if (response == null) {
+          final nameResults = await _supabase
+              .from('users')
+              .select(selectFields)
+              .or(
+                'full_name.ilike.%$identifier%,display_name.ilike.%$identifier%',
+              )
+              .limit(1);
+
+          if (nameResults.isNotEmpty) {
+            response = nameResults.first;
+          }
+        }
+      }
 
       debugPrint('[GuestDataSource] Response: $response');
 
       if (response == null) {
-        debugPrint('[GuestDataSource] No user found with identifier: $identifier');
+        debugPrint(
+          '[GuestDataSource] No user found with identifier: $identifier',
+        );
         return null;
       }
 
       // Extract KYC info from joined table
       final kycDocs = response['kyc_documents'] as List?;
-      final kycDoc = (kycDocs != null && kycDocs.isNotEmpty) ? kycDocs.first : null;
-      
+      final kycDoc = (kycDocs != null && kycDocs.isNotEmpty)
+          ? kycDocs.first
+          : null;
+
       String? statusStr;
       if (kycDoc != null && kycDoc['kyc_statuses'] != null) {
         statusStr = kycDoc['kyc_statuses']['status_name'] as String?;
       }
+
+      // Determine display name: prefer display_name > full_name > username
+      final displayName = (response['display_name'] as String?)?.trim();
+      final fullName = (response['full_name'] as String?)?.trim();
+      final username = (response['username'] as String?)?.trim();
+      final resolvedName = (displayName != null && displayName.isNotEmpty)
+          ? displayName
+          : (fullName != null && fullName.isNotEmpty)
+          ? fullName
+          : username ?? '';
 
       // Map to AccountStatusModel
       final accountStatus = AccountStatusModel(
@@ -66,9 +106,11 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
         reviewedAt: kycDoc != null && kycDoc['updated_at'] != null
             ? DateTime.parse(kycDoc['updated_at'] as String)
             : null,
-        reviewNotes: kycDoc != null ? kycDoc['rejection_reason'] as String? : null,
+        reviewNotes: kycDoc != null
+            ? kycDoc['rejection_reason'] as String?
+            : null,
         userEmail: response['email'] as String,
-        userName: (response['full_name'] as String? ?? '').trim(),
+        userName: resolvedName,
       );
 
       debugPrint('[GuestDataSource] Successfully mapped to AccountStatusModel');
@@ -153,16 +195,17 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
       // Transform to match guest UI expectations
       final auctions = (response as List).map((auction) {
         // Extract vehicle info
-        final vehicle = auction['auction_vehicles'] as Map<String, dynamic>? ?? {};
+        final vehicle =
+            auction['auction_vehicles'] as Map<String, dynamic>? ?? {};
         final make = vehicle['brand'] as String? ?? 'Unknown';
         final model = vehicle['model'] as String? ?? 'Vehicle';
         final year = vehicle['year'] as int? ?? 0;
         final mileage = vehicle['mileage'] as int?;
         final city = vehicle['city_municipality'] as String?;
         final province = vehicle['province'] as String?;
-        
+
         final title = auction['title'] as String? ?? '$year $make $model';
-        
+
         // Extract primary photo
         String? imageUrl;
         final photos = auction['auction_photos'] as List?;
@@ -173,8 +216,9 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
             final bPrimary = (b['is_primary'] as bool?) ?? false;
             if (aPrimary && !bPrimary) return -1;
             if (!aPrimary && bPrimary) return 1;
-            return ((a['display_order'] as int?) ?? 0)
-                .compareTo((b['display_order'] as int?) ?? 0);
+            return ((a['display_order'] as int?) ?? 0).compareTo(
+              (b['display_order'] as int?) ?? 0,
+            );
           });
           imageUrl = photos.first['photo_url'] as String?;
         }
@@ -192,7 +236,9 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
           'starting_price': auction['starting_price'],
           'total_bids': auction['total_bids'],
           'mileage': mileage,
-          'location': city != null && province != null ? '$city, $province' : province ?? city,
+          'location': city != null && province != null
+              ? '$city, $province'
+              : province ?? city,
           'vehicle_year': year,
           'vehicle_make': make,
           'vehicle_model': model,

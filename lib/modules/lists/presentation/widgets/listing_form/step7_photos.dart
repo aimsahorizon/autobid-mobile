@@ -87,22 +87,33 @@ class _Step7PhotosState extends State<Step7Photos> {
         return;
       }
 
-      // Crop the image
-      final croppedFile = await ImageHelper.cropImage(
-        file: File(pickedFile.path),
-        title: 'Crop $category',
-      );
+      // Crop the image (fallback to uncropped if cropper fails)
+      File imageFile = File(pickedFile.path);
+      try {
+        final croppedFile = await ImageHelper.cropImage(
+          file: imageFile,
+          title: 'Crop $category',
+        );
 
-      if (croppedFile == null) {
-        debugPrint('DEBUG [Step7Photos]: Image cropping cancelled');
-        return;
+        if (croppedFile == null) {
+          debugPrint('DEBUG [Step7Photos]: Image cropping cancelled');
+          return;
+        }
+        imageFile = croppedFile;
+      } catch (cropError) {
+        debugPrint(
+          'DEBUG [Step7Photos]: Cropper failed ($cropError), using original image',
+        );
+        // Continue with uncropped image
       }
 
+      if (!context.mounted) return;
+
       debugPrint(
-        'DEBUG [Step7Photos]: Image picked and cropped - Path: ${croppedFile.path}',
+        'DEBUG [Step7Photos]: Image ready - Path: ${imageFile.path}',
       );
       debugPrint(
-        'DEBUG [Step7Photos]: Image size: ${await croppedFile.length()} bytes',
+        'DEBUG [Step7Photos]: Image size: ${await imageFile.length()} bytes',
       );
       debugPrint('DEBUG [Step7Photos]: Uploading to controller...');
 
@@ -123,7 +134,7 @@ class _Step7PhotosState extends State<Step7Photos> {
 
       final success = await widget.controller.uploadPhoto(
         category,
-        croppedFile.path,
+        imageFile.path,
       );
 
       debugPrint('DEBUG [Step7Photos]: Upload result: $success');
@@ -186,15 +197,23 @@ class _Step7PhotosState extends State<Step7Photos> {
         return;
       }
 
-      // Crop the deed of sale
-      final croppedFile = await ImageHelper.cropImage(
-        file: File(pickedFile.path),
-        title: 'Crop Deed of Sale',
-      );
+      // Crop the deed of sale (fallback to uncropped if cropper fails)
+      File documentFile = File(pickedFile.path);
+      try {
+        final croppedFile = await ImageHelper.cropImage(
+          file: documentFile,
+          title: 'Crop Deed of Sale',
+        );
 
-      if (croppedFile == null) return;
+        if (croppedFile == null) return;
+        documentFile = croppedFile;
+      } catch (cropError) {
+        debugPrint(
+          'DEBUG [Step7Photos]: Deed cropper failed ($cropError), using original',
+        );
+      }
 
-      final url = await widget.controller.uploadDeedOfSale(croppedFile.path);
+      final url = await widget.controller.uploadDeedOfSale(documentFile.path);
 
       if (context.mounted) {
         if (url != null) {

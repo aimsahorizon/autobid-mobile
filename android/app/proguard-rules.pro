@@ -23,3 +23,7 @@
 
 # With R8 full mode generic signatures are stripped for classes that are not kept
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+# UCrop / image_cropper - prevent stripping in release builds
+-keep class com.yalantis.ucrop.** { *; }
+-dontwarn com.yalantis.ucrop.**

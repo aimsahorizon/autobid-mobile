@@ -6,10 +6,7 @@ import '../widgets/account_status_card.dart';
 class AccountStatusTab extends StatefulWidget {
   final GuestController controller;
 
-  const AccountStatusTab({
-    super.key,
-    required this.controller,
-  });
+  const AccountStatusTab({super.key, required this.controller});
 
   @override
   State<AccountStatusTab> createState() => _AccountStatusTabState();
@@ -136,11 +133,42 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
       return const SizedBox.shrink();
     }
 
+    // Show error message if there was a failure
+    if (widget.controller.errorMessage != null &&
+        widget.controller.statusEmail != null) {
+      return _buildErrorMessage(theme, isDark, widget.controller.errorMessage!);
+    }
+
     if (widget.controller.accountStatus == null) {
       return _buildNoStatusMessage(theme, isDark);
     }
 
     return AccountStatusCard(status: widget.controller.accountStatus!);
+  }
+
+  Widget _buildErrorMessage(ThemeData theme, bool isDark, String message) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ColorConstants.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ColorConstants.error.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: ColorConstants.error, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Something went wrong. Please try again.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: ColorConstants.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildNoStatusMessage(ThemeData theme, bool isDark) {
@@ -153,17 +181,11 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
       decoration: BoxDecoration(
         color: ColorConstants.info.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: ColorConstants.info.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: ColorConstants.info.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: ColorConstants.info,
-            size: 24,
-          ),
+          Icon(Icons.info_outline, color: ColorConstants.info, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
