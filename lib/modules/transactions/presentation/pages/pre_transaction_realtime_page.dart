@@ -268,47 +268,8 @@ class _PreTransactionRealtimePageState
               return _buildSellerDealFailedOptions(transaction, isDark);
             }
 
-            // Buyer just sees cancellation info
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.cancel_outlined,
-                      size: 80,
-                      color: ColorConstants.error,
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Deal Cancelled',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'This transaction has been cancelled and is no longer active.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isDark
-                            ? ColorConstants.textSecondaryDark
-                            : ColorConstants.textSecondaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    FilledButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back),
-                      label: const Text('Go Back'),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            // Buyer sees detailed cancellation record
+            return _buildBuyerCancelledView(transaction, isDark);
           }
 
           final role = widget.controller.getUserRole(widget.userId);
@@ -569,6 +530,247 @@ class _PreTransactionRealtimePageState
         ),
       ),
     );
+  }
+
+  /// Build detailed buyer cancellation view showing transaction record
+  Widget _buildBuyerCancelledView(TransactionEntity transaction, bool isDark) {
+    final reason = transaction.cancellationReason;
+    final cancelledByLabel = transaction.cancelledBy == 'buyer'
+        ? 'You'
+        : transaction.cancelledBy == 'seller'
+        ? 'Seller'
+        : 'Unknown';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Header icon
+          Icon(Icons.cancel_outlined, size: 64, color: ColorConstants.error),
+          const SizedBox(height: 16),
+          const Text(
+            'Deal Cancelled',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+
+          // Car details card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? ColorConstants.surfaceDark : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
+                    : Colors.grey.shade300,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Car image
+                if (transaction.carImageUrl.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      transaction.carImageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 180,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.directions_car, size: 48),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (transaction.carImageUrl.isNotEmpty)
+                  const SizedBox(height: 16),
+
+                // Car name
+                Text(
+                  transaction.carName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Details rows
+                _buildDetailRow(
+                  icon: Icons.attach_money,
+                  label: 'Agreed Price',
+                  value: '₱${transaction.agreedPrice.toStringAsFixed(2)}',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.person,
+                  label: 'Cancelled By',
+                  value: cancelledByLabel,
+                  isDark: isDark,
+                  valueColor: ColorConstants.error,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.calendar_today,
+                  label: 'Transaction Date',
+                  value: _formatDate(transaction.createdAt),
+                  isDark: isDark,
+                ),
+
+                // Cancellation reason
+                if (reason != null && reason.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: ColorConstants.error.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: ColorConstants.error.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: ColorConstants.error,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Cancellation Reason',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: ColorConstants.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          reason,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Status badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: ColorConstants.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'TRANSACTION CLOSED',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: ColorConstants.error,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Go back button
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Go Back'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build a detail row for the buyer cancelled view
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool isDark,
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: isDark
+              ? ColorConstants.textSecondaryDark
+              : ColorConstants.textSecondaryLight,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: isDark
+                ? ColorConstants.textSecondaryDark
+                : ColorConstants.textSecondaryLight,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: valueColor,
+            ),
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Format date for display
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   Future<void> _showNextBidderDialog() async {

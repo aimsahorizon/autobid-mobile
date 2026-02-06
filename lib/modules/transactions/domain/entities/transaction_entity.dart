@@ -30,6 +30,10 @@ class TransactionEntity {
   final DateTime? buyerAcceptedAt;
   final String? buyerRejectionReason;
 
+  // Cancellation tracking
+  final String? sellerRejectionReason;
+  final String? cancelledBy; // 'buyer' or 'seller'
+
   const TransactionEntity({
     required this.id,
     required this.listingId,
@@ -53,6 +57,8 @@ class TransactionEntity {
     this.buyerAcceptanceStatus = BuyerAcceptanceStatus.pending,
     this.buyerAcceptedAt,
     this.buyerRejectionReason,
+    this.sellerRejectionReason,
+    this.cancelledBy,
   });
 
   /// Check if both parties have submitted forms
@@ -84,6 +90,17 @@ class TransactionEntity {
       buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected ||
       status == TransactionStatus.cancelled;
 
+  /// Get the cancellation reason (from whichever party cancelled)
+  String? get cancellationReason {
+    if (sellerRejectionReason != null && sellerRejectionReason!.isNotEmpty) {
+      return sellerRejectionReason;
+    }
+    if (buyerRejectionReason != null && buyerRejectionReason!.isNotEmpty) {
+      return buyerRejectionReason;
+    }
+    return null;
+  }
+
   /// Copy with method for updating fields
   TransactionEntity copyWith({
     String? id,
@@ -108,6 +125,8 @@ class TransactionEntity {
     BuyerAcceptanceStatus? buyerAcceptanceStatus,
     DateTime? buyerAcceptedAt,
     String? buyerRejectionReason,
+    String? sellerRejectionReason,
+    String? cancelledBy,
   }) {
     return TransactionEntity(
       id: id ?? this.id,
@@ -133,6 +152,9 @@ class TransactionEntity {
           buyerAcceptanceStatus ?? this.buyerAcceptanceStatus,
       buyerAcceptedAt: buyerAcceptedAt ?? this.buyerAcceptedAt,
       buyerRejectionReason: buyerRejectionReason ?? this.buyerRejectionReason,
+      sellerRejectionReason:
+          sellerRejectionReason ?? this.sellerRejectionReason,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
     );
   }
 }
