@@ -33,7 +33,7 @@ class NotificationModel extends NotificationEntity {
           : DateTime.now(),
       relatedEntityId: json['related_entity_id'] as String?,
       relatedEntityType: json['related_entity_type'] as String?,
-      metadata: json['metadata'] as Map<String, dynamic>?,
+      metadata: (json['metadata'] ?? json['data']) as Map<String, dynamic>?,
     );
   }
 

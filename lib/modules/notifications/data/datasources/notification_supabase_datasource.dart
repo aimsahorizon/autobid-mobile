@@ -16,7 +16,10 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
   }) async {
     var query = supabase
         .from('notifications')
-        .select()
+        .select('''
+          *,
+          type:notification_types(type_name)
+        ''')
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
@@ -29,9 +32,14 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
     }
 
     final response = await query;
-    return (response as List)
-        .map((json) => NotificationModel.fromJson(json))
-        .toList();
+    return (response as List).map((json) {
+      // Flatten the joined type name
+      final Map<String, dynamic> data = Map<String, dynamic>.from(json);
+      if (json['type'] != null && json['type'] is Map) {
+        data['type'] = json['type']['type_name'];
+      }
+      return NotificationModel.fromJson(data);
+    }).toList();
   }
 
   @override
@@ -68,14 +76,22 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
   }) async {
     final response = await supabase
         .from('notifications')
-        .select()
+        .select('''
+          *,
+          type:notification_types(type_name)
+        ''')
         .eq('user_id', userId)
         .eq('is_read', false)
         .order('created_at', ascending: false);
 
-    return (response as List)
-        .map((json) => NotificationModel.fromJson(json))
-        .toList();
+    return (response as List).map((json) {
+      // Flatten the joined type name
+      final Map<String, dynamic> data = Map<String, dynamic>.from(json);
+      if (json['type'] != null && json['type'] is Map) {
+        data['type'] = json['type']['type_name'];
+      }
+      return NotificationModel.fromJson(data);
+    }).toList();
   }
 
   @override

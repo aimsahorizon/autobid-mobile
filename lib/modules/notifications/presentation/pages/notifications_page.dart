@@ -193,15 +193,35 @@ class _NotificationsPageState extends State<NotificationsPage> {
     _controller.deleteNotification(notification.id, userId);
   }
 
-  void _handleInviteResponse(NotificationEntity notification, String decision) {
+  void _handleInviteResponse(NotificationEntity notification, String decision) async {
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     final inviteId = notification.metadata?['invite_id'] as String?;
     
     if (inviteId != null) {
-      _controller.respondToInvite(inviteId, decision, userId);
-      // Mark as read after responding
-      if (!notification.isRead) {
-        _controller.markAsRead(notification.id, userId);
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Processing response...'), duration: Duration(seconds: 1)),
+      );
+
+      await _controller.respondToInvite(inviteId, decision, userId);
+      
+      if (mounted) {
+        if (_controller.hasError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Invite ${decision == "accepted" ? "accepted" : "declined"} successfully'),
+              backgroundColor: ColorConstants.success,
+            ),
+          );
+          // Mark as read after successful response
+          if (!notification.isRead) {
+            _controller.markAsRead(notification.id, userId);
+          }
+        }
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -230,6 +250,7 @@ class _NotificationCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isInvite = notification.type == NotificationType.auctionInvite;
+    final inviteStatus = notification.metadata?['invite_status'] as String?;
 
     return Dismissible(
       key: Key(notification.id),
@@ -320,29 +341,67 @@ class _NotificationCard extends StatelessWidget {
               ),
               if (isInvite) ...[
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () => onInviteResponse?.call('rejected'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: ColorConstants.error,
-                        side: const BorderSide(color: ColorConstants.error),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      child: const Text('Decline'),
+                if (inviteStatus != null)
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: (inviteStatus == 'accepted'
+                              ? ColorConstants.success
+                              : ColorConstants.error)
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: 12),
-                    FilledButton(
-                      onPressed: () => onInviteResponse?.call('accepted'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: ColorConstants.success,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      child: const Text('Accept'),
+                    child: Row(
+                      children: [
+                        Icon(
+                          inviteStatus == 'accepted'
+                              ? Icons.check_circle
+                              : Icons.cancel,
+                          size: 16,
+                          color: inviteStatus == 'accepted'
+                              ? ColorConstants.success
+                              : ColorConstants.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          inviteStatus == 'accepted' ? 'ACCEPTED' : 'DECLINED',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: inviteStatus == 'accepted'
+                                ? ColorConstants.success
+                                : ColorConstants.error,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  )
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => onInviteResponse?.call('rejected'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: ColorConstants.error,
+                          side: const BorderSide(color: ColorConstants.error),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        child: const Text('Decline'),
+                      ),
+                      const SizedBox(width: 12),
+                      FilledButton(
+                        onPressed: () => onInviteResponse?.call('accepted'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: ColorConstants.success,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        child: const Text('Accept'),
+                      ),
+                    ],
+                  ),
               ],
             ],
           ),
