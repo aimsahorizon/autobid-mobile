@@ -59,7 +59,46 @@ class ListingsGrid extends StatelessWidget {
   ) async {
     if (!enableNavigation) return;
 
-    // Show loading indicator
+    // Handle transaction statuses immediately without fetching auction details
+    // because listing.id might be a transaction_id (from TransactionSupabaseDataSource)
+    // which won't be found in the auctions table.
+    if (listing.status == ListingStatus.inTransaction ||
+        listing.status == ListingStatus.sold ||
+        listing.status == ListingStatus.dealFailed) {
+      
+      if (onTransactionCardTap != null) {
+        await onTransactionCardTap!(context, listing);
+        return;
+      }
+
+      // Fallback: open pre-transaction page directly using the ID as transactionId
+      if (!context.mounted) return;
+      final transactionController = GetIt.I<TransactionController>();
+
+      final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+      final userName =
+          SupabaseConfig
+              .client
+              .auth
+              .currentUser
+              ?.userMetadata?['full_name'] ??
+          'Seller';
+
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PreTransactionPage(
+            controller: transactionController,
+            transactionId: listing.id,
+            userId: userId,
+            userName: userName,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Show loading indicator for other statuses where we need to fetch details
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -164,38 +203,8 @@ class ListingsGrid extends StatelessWidget {
         case ListingStatus.inTransaction:
         case ListingStatus.sold:
         case ListingStatus.dealFailed:
-          // Transaction statuses MUST use callback or open pre-transaction page
-          // Never navigate to a listings detail page for transactions
-          if (onTransactionCardTap != null) {
-            await onTransactionCardTap!(context, listing);
-            return;
-          }
-
-          // Fallback: open pre-transaction page directly
-          if (!context.mounted) return;
-          final transactionController = GetIt.I<TransactionController>();
-
-          final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
-          final userName =
-              SupabaseConfig
-                  .client
-                  .auth
-                  .currentUser
-                  ?.userMetadata?['full_name'] ??
-              'Seller';
-
-          await Navigator.push<void>(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PreTransactionPage(
-                controller: transactionController,
-                transactionId: listing.id,
-                userId: userId,
-                userName: userName,
-              ),
-            ),
-          );
-          return;
+          // Already handled above
+          return; 
       }
 
       if (!context.mounted) return;
