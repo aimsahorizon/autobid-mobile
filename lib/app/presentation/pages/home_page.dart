@@ -11,6 +11,7 @@ import '../../../modules/notifications/presentation/controllers/notification_con
 import '../../../modules/profile/presentation/pages/profile_page.dart';
 import '../../../modules/profile/presentation/controllers/profile_controller.dart';
 import '../../../modules/profile/presentation/controllers/pricing_controller.dart';
+import '../../../modules/profile/presentation/controllers/review_controller.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/controllers/theme_controller.dart';
 import '../../../core/widgets/main_navigation.dart';
@@ -48,6 +49,7 @@ class _HomePageState extends State<HomePage> {
         controller: sl<ProfileController>(),
         pricingController: sl<PricingController>(),
         themeController: widget.themeController,
+        reviewController: sl<ReviewController>(),
       ),
     ];
   }

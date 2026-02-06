@@ -30,6 +30,7 @@ import 'domain/usecases/upload_cover_photo_usecase.dart';
 import 'domain/usecases/update_profile_with_photo_usecase.dart';
 import 'presentation/controllers/pricing_controller.dart';
 import 'presentation/controllers/profile_controller.dart';
+import 'presentation/controllers/review_controller.dart';
 import 'presentation/controllers/support_controller.dart';
 
 /// Initialize Profile module dependencies
@@ -97,6 +98,7 @@ Future<void> initProfileModule() async {
       subscribeToPlanUsecase: sl(),
     ),
   );
+  sl.registerFactory(() => ReviewController(dataSource: sl()));
   sl.registerFactory(
     () => SupportController(
       getSupportCategoriesUsecase: sl(),

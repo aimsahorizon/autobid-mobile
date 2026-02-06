@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_profile_model.dart';
+import '../../domain/entities/user_review_entity.dart';
 
 /// Supabase data source for user profile operations
 /// Handles profile CRUD operations and image uploads to Supabase Storage
@@ -250,6 +251,59 @@ class ProfileSupabaseDataSource {
       throw Exception('Failed to get profile by email: ${e.message}');
     } catch (e) {
       throw Exception('Failed to get profile by email: $e');
+    }
+  }
+
+  /// Get all reviews received by a user (as reviewee)
+  /// Joins with users table to get reviewer name and photo
+  Future<List<UserReviewEntity>> getReviewsForUser(String userId) async {
+    try {
+      final response = await _supabase
+          .from('transaction_reviews')
+          .select('''
+            id,
+            transaction_id,
+            reviewer_id,
+            rating,
+            comment,
+            created_at,
+            reviewer:users!transaction_reviews_reviewer_id_fkey(
+              full_name,
+              profile_photo_url
+            )
+          ''')
+          .eq('reviewee_id', userId)
+          .order('created_at', ascending: false);
+
+      return (response as List).map((data) {
+        final reviewer = data['reviewer'] as Map<String, dynamic>?;
+
+        // Build full_name from first/middle/last or use full_name directly
+        String reviewerName = 'Anonymous';
+        if (reviewer != null) {
+          if (reviewer['full_name'] != null &&
+              (reviewer['full_name'] as String).isNotEmpty) {
+            reviewerName = reviewer['full_name'] as String;
+          }
+        }
+
+        return UserReviewEntity(
+          id: data['id'] as String,
+          transactionId: data['transaction_id'] as String,
+          reviewerId: data['reviewer_id'] as String,
+          reviewerName: reviewerName,
+          reviewerPhotoUrl: reviewer?['profile_photo_url'] as String?,
+          rating: data['rating'] as int,
+          comment: data['comment'] as String?,
+          createdAt: DateTime.parse(data['created_at'] as String),
+        );
+      }).toList();
+    } on PostgrestException catch (e) {
+      debugPrint('Failed to get reviews for user: ${e.message}');
+      return [];
+    } catch (e) {
+      debugPrint('Failed to get reviews for user: $e');
+      return [];
     }
   }
 }

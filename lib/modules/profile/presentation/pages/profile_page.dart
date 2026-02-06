@@ -9,9 +9,11 @@ import '../../../admin/admin_module.dart';
 import '../../../admin/presentation/pages/admin_main_page.dart';
 import '../controllers/pricing_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../controllers/review_controller.dart';
 import '../widgets/pricing_section.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_section.dart';
+import '../widgets/reviews_section.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/account_settings_section.dart';
 import '../widgets/support_section.dart';
@@ -21,18 +23,21 @@ import 'update_email_page.dart';
 import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
+import 'user_reviews_page.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ProfileController controller;
   final PricingController pricingController;
   final ThemeController themeController;
+  final ReviewController reviewController;
 
   const ProfilePage({
     super.key,
     required this.controller,
     required this.pricingController,
     required this.themeController,
+    required this.reviewController,
   });
 
   @override
@@ -47,10 +52,11 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     widget.controller.loadProfile();
 
-    // Load pricing data
+    // Load pricing data and reviews
     final userId = SupabaseConfig.client.auth.currentUser?.id;
     if (userId != null) {
       widget.pricingController.loadUserPricing(userId);
+      widget.reviewController.loadReviews(userId);
     }
   }
 
@@ -303,6 +309,16 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _navigateToReviews() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            UserReviewsPage(reviewController: widget.reviewController),
+      ),
+    );
+  }
+
   Future<void> _handleSignOut() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -408,6 +424,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     fullName: profile.fullName,
                     username: profile.username,
                     email: profile.email,
+                  ),
+                  const SizedBox(height: 16),
+                  ReviewsSummarySection(
+                    reviewController: widget.reviewController,
+                    onViewAll: _navigateToReviews,
                   ),
                   const SizedBox(height: 16),
                   PricingSection(
