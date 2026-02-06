@@ -12,25 +12,30 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
   GuestSupabaseDataSource(this._supabase);
 
   @override
-  /// Check account status by email or username
-  /// Returns status if user exists and has submitted KYC
+  /// Check account status by email or username (full_name)
+  /// Returns status if user exists
   Future<AccountStatusModel?> checkAccountStatus(String identifier) async {
     try {
       debugPrint('[GuestDataSource] Checking account status for: $identifier');
 
-      // Query users table (KYC users are stored here)
-      // Check both email and username (stored as full_name or within a username column if exists)
-      // Based on typical schema, we check email and possibly username
-      var query = _supabase.from('users').select(
-            'id, email, first_name, middle_name, last_name, status, created_at, updated_at, rejection_reason',
-          );
+      // Join with kyc_documents and kyc_statuses to get verification status
+      var query = _supabase.from('users').select('''
+            id, 
+            email, 
+            full_name, 
+            created_at, 
+            updated_at,
+            kyc_documents(
+              rejection_reason,
+              updated_at,
+              kyc_statuses(status_name)
+            )
+          ''');
 
-      // Try email first, or username if identifier doesn't look like email
       if (identifier.contains('@')) {
         query = query.eq('email', identifier);
       } else {
-        // If your schema uses 'username', use that. Fallback to full_name or email check
-        query = query.or('email.eq.$identifier,first_name.ilike.$identifier,last_name.ilike.$identifier');
+        query = query.ilike('full_name', '%$identifier%');
       }
 
       final response = await query.maybeSingle();
@@ -42,27 +47,28 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
         return null;
       }
 
-      // Build full name from first, middle, last name
-      final firstName = response['first_name'] as String? ?? '';
-      final middleName = response['middle_name'] as String? ?? '';
-      final lastName = response['last_name'] as String? ?? '';
-      final fullName = middleName.isNotEmpty
-          ? '$firstName $middleName $lastName'
-          : '$firstName $lastName';
+      // Extract KYC info from joined table
+      final kycDocs = response['kyc_documents'] as List?;
+      final kycDoc = (kycDocs != null && kycDocs.isNotEmpty) ? kycDocs.first : null;
+      
+      String? statusStr;
+      if (kycDoc != null && kycDoc['kyc_statuses'] != null) {
+        statusStr = kycDoc['kyc_statuses']['status_name'] as String?;
+      }
 
       // Map to AccountStatusModel
       final accountStatus = AccountStatusModel(
         userId: response['id'] as String,
-        status: _parseKycStatus(response['status'] as String?),
+        status: _parseKycStatus(statusStr),
         submittedAt: response['created_at'] != null
             ? DateTime.parse(response['created_at'] as String)
             : DateTime.now(),
-        reviewedAt: response['updated_at'] != null
-            ? DateTime.parse(response['updated_at'] as String)
+        reviewedAt: kycDoc != null && kycDoc['updated_at'] != null
+            ? DateTime.parse(kycDoc['updated_at'] as String)
             : null,
-        reviewNotes: response['rejection_reason'] as String?,
+        reviewNotes: kycDoc != null ? kycDoc['rejection_reason'] as String? : null,
         userEmail: response['email'] as String,
-        userName: fullName.trim(),
+        userName: (response['full_name'] as String? ?? '').trim(),
       );
 
       debugPrint('[GuestDataSource] Successfully mapped to AccountStatusModel');

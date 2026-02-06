@@ -25,7 +25,7 @@ class TransactionSupabaseDataSource {
           .select('''
             id,
             auction_id,
-            auctions(
+            auctions!inner(
               *,
               auction_statuses(status_name),
               auction_vehicles(
@@ -183,7 +183,7 @@ class TransactionSupabaseDataSource {
             id,
             auction_id,
             seller_id,
-            auctions(
+            auctions!inner(
               *,
               auction_statuses(status_name),
               auction_vehicles(
