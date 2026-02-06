@@ -293,9 +293,18 @@ class AdminTransactionDataSource {
     if (data['auctions'] is Map) {
       final auctions = data['auctions'] as Map<String, dynamic>;
       final vehicles = auctions['auction_vehicles'];
-      if (vehicles is List && vehicles.isNotEmpty) {
-        final v = vehicles.first;
-        carName = '${v['brand'] ?? ''} ${v['model'] ?? ''}'.trim();
+
+      Map<String, dynamic>? vehicle;
+      if (vehicles is Map<String, dynamic>) {
+        // Single object
+        vehicle = vehicles;
+      } else if (vehicles is List && vehicles.isNotEmpty) {
+        // Array of objects
+        vehicle = vehicles.first as Map<String, dynamic>?;
+      }
+
+      if (vehicle != null) {
+        carName = '${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''}'.trim();
       } else if (auctions['title'] != null) {
         carName = auctions['title'] as String;
       }

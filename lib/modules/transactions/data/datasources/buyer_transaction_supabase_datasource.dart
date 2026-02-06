@@ -94,12 +94,18 @@ class BuyerTransactionSupabaseDataSource {
   /// Map Supabase data to BuyerTransactionEntity
   BuyerTransactionEntity _mapToEntity(Map<String, dynamic> data) {
     final auctions = data['auctions'] as Map<String, dynamic>?;
-    final vehiclesList = auctions != null
-        ? auctions['auction_vehicles'] as List?
-        : null;
-    final vehicle = (vehiclesList != null && vehiclesList.isNotEmpty)
-        ? vehiclesList.first
-        : null;
+
+    // Handle auction_vehicles - can be either a Map (single object) or List (array)
+    dynamic vehiclesData = auctions?['auction_vehicles'];
+    Map<String, dynamic>? vehicle;
+
+    if (vehiclesData is Map<String, dynamic>) {
+      // Single object
+      vehicle = vehiclesData;
+    } else if (vehiclesData is List && vehiclesData.isNotEmpty) {
+      // Array of objects
+      vehicle = vehiclesData.first as Map<String, dynamic>?;
+    }
 
     final carName = vehicle != null
         ? '${vehicle['year'] ?? ''} ${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''}'

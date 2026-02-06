@@ -206,9 +206,18 @@ class TransactionRealtimeDataSource {
     if (data['auctions'] is Map) {
       final auctions = data['auctions'] as Map<String, dynamic>;
       final vehicles = auctions['auction_vehicles'];
-      if (vehicles is List && vehicles.isNotEmpty) {
-        final v = vehicles.first;
-        carName = '${v['brand'] ?? ''} ${v['model'] ?? ''}'.trim();
+
+      Map<String, dynamic>? vehicle;
+      if (vehicles is Map<String, dynamic>) {
+        // Single object
+        vehicle = vehicles;
+      } else if (vehicles is List && vehicles.isNotEmpty) {
+        // Array of objects
+        vehicle = vehicles.first as Map<String, dynamic>?;
+      }
+
+      if (vehicle != null) {
+        carName = '${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''}'.trim();
       } else if (auctions['title'] != null) {
         carName = auctions['title'] as String;
       }
@@ -243,7 +252,9 @@ class TransactionRealtimeDataSource {
           ? DateTime.parse(data['admin_approved_at'] as String)
           : null,
       // Delivery Status Mapping
-      deliveryStatus: _mapDeliveryStatus(data['delivery_status'] as String? ?? 'pending'),
+      deliveryStatus: _mapDeliveryStatus(
+        data['delivery_status'] as String? ?? 'pending',
+      ),
       deliveryStartedAt: data['delivery_started_at'] != null
           ? DateTime.parse(data['delivery_started_at'] as String)
           : null,
@@ -251,7 +262,9 @@ class TransactionRealtimeDataSource {
           ? DateTime.parse(data['delivery_completed_at'] as String)
           : null,
       // Buyer Acceptance Mapping
-      buyerAcceptanceStatus: _mapBuyerAcceptanceStatus(data['buyer_acceptance_status'] as String? ?? 'pending'),
+      buyerAcceptanceStatus: _mapBuyerAcceptanceStatus(
+        data['buyer_acceptance_status'] as String? ?? 'pending',
+      ),
       buyerAcceptedAt: data['buyer_accepted_at'] != null
           ? DateTime.parse(data['buyer_accepted_at'] as String)
           : null,
