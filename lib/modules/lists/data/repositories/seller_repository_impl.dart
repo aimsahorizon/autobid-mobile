@@ -165,7 +165,10 @@ class SellerRepositoryImpl implements SellerRepository {
           debugPrint('Error loading ended listings: $e');
         }
 
-        // 7. In Transaction
+        // 7. In Transaction (Moved to Transactions Module)
+        // Kept as empty to maintain enum compatibility if needed elsewhere
+        result[ListingStatus.inTransaction] = [];
+        /*
         try {
           final inTransactionModels = await dataSource.getSellerListingsByStatus(
             sellerId,
@@ -178,6 +181,7 @@ class SellerRepositoryImpl implements SellerRepository {
           debugPrint('Error loading in_transaction listings: $e');
           result[ListingStatus.inTransaction] = [];
         }
+        */
 
         // 8. Sold
         try {

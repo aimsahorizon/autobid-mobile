@@ -29,7 +29,7 @@ class _ListsPageState extends State<ListsPage>
     ListingStatus.approved,
     ListingStatus.scheduled,
     ListingStatus.ended,
-    ListingStatus.inTransaction,
+    // ListingStatus.inTransaction, // Moved to transactions module
     ListingStatus.sold,
     ListingStatus.dealFailed,
     ListingStatus.draft,
