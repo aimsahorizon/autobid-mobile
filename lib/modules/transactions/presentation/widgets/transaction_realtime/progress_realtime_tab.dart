@@ -30,8 +30,8 @@ class ProgressRealtimeTab extends StatelessWidget {
             userId != null && controller.getUserRole(userId!) == FormRole.buyer;
 
         // Check if deal can be cancelled (not yet admin approved and not already failed/cancelled)
+        // Both buyer and seller can cancel
         final canCancelDeal =
-            isBuyer &&
             !transaction.adminApproved &&
             transaction.status != TransactionStatus.cancelled &&
             transaction.status != TransactionStatus.completed;
@@ -49,7 +49,7 @@ class ProgressRealtimeTab extends StatelessWidget {
               // Progress Steps
               _buildProgressSteps(transaction, isDark),
 
-              // Cancel Deal Button (only for buyers who haven't completed transaction)
+              // Cancel Deal Button (for both parties)
               if (canCancelDeal) ...[
                 const SizedBox(height: 24),
                 _buildCancelDealSection(context, isDark),
@@ -245,11 +245,11 @@ class ProgressRealtimeTab extends StatelessWidget {
         '[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"',
       );
 
-      final success = await controller.buyerCancelDeal(
+      final success = await controller.cancelDeal(
         reason: reasonController.text.trim(),
       );
 
-      debugPrint('[ProgressRealtimeTab] buyerCancelDeal returned: $success');
+      debugPrint('[ProgressRealtimeTab] cancelDeal returned: $success');
 
       if (context.mounted) {
         if (success) {

@@ -624,64 +624,78 @@ class TransactionRealtimeDataSource {
     }
   }
 
-  /// Buyer cancels the deal
+  /// Cancel the deal ( Buyer or Seller )
   /// This sets the transaction to deal_failed and the auction to deal_failed
   /// Seller can then choose to offer to next bidder or relist
-  Future<bool> buyerCancelDeal(
-    String transactionId, {
+  Future<bool> cancelDeal(
+    String transactionId,
+    FormRole role, {
     String reason = '',
   }) async {
-    debugPrint('[BuyerCancelDeal] 🚀 Starting cancel for: $transactionId');
+    debugPrint('[CancelDeal] 🚀 Starting cancel for: $transactionId (Role: $role)');
 
     try {
       // Step 1: Resolve transaction ID
-      debugPrint('[BuyerCancelDeal] Step 1: Resolving transaction ID...');
+      debugPrint('[CancelDeal] Step 1: Resolving transaction ID...');
       final txnId = await _resolveTransactionId(transactionId);
       if (txnId == null) {
         debugPrint(
-          '[BuyerCancelDeal] ❌ Failed: Could not resolve transaction ID',
+          '[CancelDeal] ❌ Failed: Could not resolve transaction ID',
         );
         return false;
       }
-      debugPrint('[BuyerCancelDeal] ✅ Resolved txnId: $txnId');
+      debugPrint('[CancelDeal] ✅ Resolved txnId: $txnId');
 
       // Step 2: Get transaction summary
-      debugPrint('[BuyerCancelDeal] Step 2: Getting transaction summary...');
+      debugPrint('[CancelDeal] Step 2: Getting transaction summary...');
       final txn = await _getTransactionSummary(txnId);
       if (txn == null) {
         debugPrint(
-          '[BuyerCancelDeal] ❌ Failed: Could not get transaction summary',
+          '[CancelDeal] ❌ Failed: Could not get transaction summary',
         );
         return false;
       }
-      debugPrint('[BuyerCancelDeal] ✅ Transaction summary: $txn');
+      debugPrint('[CancelDeal] ✅ Transaction summary: $txn');
 
       final auctionId = txn['auctionId'] as String?;
       if (auctionId == null) {
-        debugPrint('[BuyerCancelDeal] ❌ Failed: No auction ID in transaction');
+        debugPrint('[CancelDeal] ❌ Failed: No auction ID in transaction');
         return false;
       }
-      debugPrint('[BuyerCancelDeal] ✅ Auction ID: $auctionId');
+      debugPrint('[CancelDeal] ✅ Auction ID: $auctionId');
 
       final now = DateTime.now().toIso8601String();
 
       // Step 3: Update transaction status
-      debugPrint('[BuyerCancelDeal] Step 3: Updating transaction status...');
+      debugPrint('[CancelDeal] Step 3: Updating transaction status...');
       try {
+        final updateData = {
+          'status': 'deal_failed',
+          'updated_at': now,
+        };
+        
+        if (role == FormRole.buyer) {
+          updateData['buyer_rejection_reason'] = reason;
+          updateData['buyer_acceptance_status'] = 'rejected';
+          updateData['buyer_accepted_at'] = now;
+        } else {
+          updateData['seller_rejection_reason'] = reason;
+        }
+
         await _supabase
             .from('auction_transactions')
-            .update({'status': 'deal_failed', 'updated_at': now})
+            .update(updateData)
             .eq('id', txnId);
         debugPrint(
-          '[BuyerCancelDeal] ✅ Transaction status updated to deal_failed',
+          '[CancelDeal] ✅ Transaction status updated to deal_failed',
         );
       } catch (e) {
-        debugPrint('[BuyerCancelDeal] ❌ Failed to update transaction: $e');
+        debugPrint('[CancelDeal] ❌ Failed to update transaction: $e');
         return false;
       }
 
       // Step 4: Update auction status to cancelled/deal_failed
-      debugPrint('[BuyerCancelDeal] Step 4: Updating auction status...');
+      debugPrint('[CancelDeal] Step 4: Updating auction status...');
       try {
         // Get 'cancelled' status ID (for failed deals)
         final cancelledStatusResponse = await _supabase
@@ -698,13 +712,13 @@ class TransactionRealtimeDataSource {
                 'updated_at': now,
               })
               .eq('id', auctionId);
-          debugPrint('[BuyerCancelDeal] ✅ Auction status updated to cancelled');
+          debugPrint('[CancelDeal] ✅ Auction status updated to cancelled');
         } else {
-          debugPrint('[BuyerCancelDeal] ⚠️ Cancelled status not found');
+          debugPrint('[CancelDeal] ⚠️ Cancelled status not found');
         }
       } catch (e) {
         debugPrint(
-          '[BuyerCancelDeal] ⚠️ Warning: Failed to update auction: $e',
+          '[CancelDeal] ⚠️ Warning: Failed to update auction: $e',
         );
         // Don't return false - auction update is secondary
       }
@@ -712,7 +726,7 @@ class TransactionRealtimeDataSource {
       // Step 5: Update buyer's bid status to 'lost' (cancelled bids are marked as lost)
       final buyerId = txn['buyerId'] as String?;
       debugPrint(
-        '[BuyerCancelDeal] Step 5: Updating bid status for buyer: $buyerId',
+        '[CancelDeal] Step 5: Updating bid status for buyer: $buyerId',
       );
       if (buyerId != null) {
         try {
@@ -730,41 +744,42 @@ class TransactionRealtimeDataSource {
                 .update({'status_id': lostStatusId, 'updated_at': now})
                 .eq('auction_id', auctionId)
                 .eq('bidder_id', buyerId);
-            debugPrint('[BuyerCancelDeal] ✅ Bid status updated to lost');
+            debugPrint('[CancelDeal] ✅ Bid status updated to lost');
           }
         } catch (e) {
-          debugPrint('[BuyerCancelDeal] ⚠️ Warning: Failed to update bid: $e');
+          debugPrint('[CancelDeal] ⚠️ Warning: Failed to update bid: $e');
           // Don't return false - bid update is secondary
         }
       }
 
       // Step 6: Add timeline event
-      debugPrint('[BuyerCancelDeal] Step 6: Adding timeline event...');
+      debugPrint('[CancelDeal] Step 6: Adding timeline event...');
       final userId = _supabase.auth.currentUser?.id ?? '';
+      final roleLabel = role == FormRole.buyer ? 'Buyer' : 'Seller';
       final userName =
-          _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Buyer';
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ?? roleLabel;
       try {
         await _addTimelineEvent(
           txnId,
-          'Deal Cancelled by Buyer',
+          'Deal Cancelled by $roleLabel',
           reason.isNotEmpty
-              ? 'Buyer cancelled the deal. Reason: $reason'
-              : 'Buyer cancelled the deal.',
+              ? '$roleLabel cancelled the deal. Reason: $reason'
+              : '$roleLabel cancelled the deal.',
           'cancelled',
           userId,
           userName,
         );
-        debugPrint('[BuyerCancelDeal] ✅ Timeline event added');
+        debugPrint('[CancelDeal] ✅ Timeline event added');
       } catch (e) {
-        debugPrint('[BuyerCancelDeal] ⚠️ Warning: Failed to add timeline: $e');
+        debugPrint('[CancelDeal] ⚠️ Warning: Failed to add timeline: $e');
         // Don't return false - timeline is secondary
       }
 
-      debugPrint('[BuyerCancelDeal] 🎉 SUCCESS: Deal cancelled successfully');
+      debugPrint('[CancelDeal] 🎉 SUCCESS: Deal cancelled successfully');
       return true;
     } catch (e, stackTrace) {
-      debugPrint('[BuyerCancelDeal] ❌ FATAL ERROR: $e');
-      debugPrint('[BuyerCancelDeal] Stack trace: $stackTrace');
+      debugPrint('[CancelDeal] ❌ FATAL ERROR: $e');
+      debugPrint('[CancelDeal] Stack trace: $stackTrace');
       return false;
     }
   }

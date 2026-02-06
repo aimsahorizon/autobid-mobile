@@ -351,15 +351,15 @@ class TransactionRealtimeController extends ChangeNotifier {
     }
   }
 
-  /// Buyer cancels the deal
+  /// Cancel the deal (Buyer or Seller)
   /// Returns true if cancellation was successful
-  Future<bool> buyerCancelDeal({String reason = ''}) async {
-    debugPrint('[TransactionRealtimeController] buyerCancelDeal called');
+  Future<bool> cancelDeal({String reason = ''}) async {
+    debugPrint('[TransactionRealtimeController] cancelDeal called');
     debugPrint('[TransactionRealtimeController] Transaction: ${_transaction?.id}');
     debugPrint('[TransactionRealtimeController] Current user: $_currentUserId');
 
-    if (_transaction == null) {
-      debugPrint('[TransactionRealtimeController] ❌ No transaction loaded');
+    if (_transaction == null || _currentUserId == null) {
+      debugPrint('[TransactionRealtimeController] ❌ No transaction loaded or user not set');
       return false;
     }
 
@@ -367,11 +367,15 @@ class TransactionRealtimeController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final role = getUserRole(_currentUserId!);
+      debugPrint('[TransactionRealtimeController] Cancelling as role: $role');
+
       debugPrint(
-        '[TransactionRealtimeController] Calling datasource.buyerCancelDeal with ID: ${_transaction!.id}',
+        '[TransactionRealtimeController] Calling datasource.cancelDeal with ID: ${_transaction!.id}',
       );
-      final success = await _dataSource.buyerCancelDeal(
+      final success = await _dataSource.cancelDeal(
         _transaction!.id,
+        role,
         reason: reason,
       );
 
@@ -380,10 +384,10 @@ class TransactionRealtimeController extends ChangeNotifier {
         if (_currentUserId != null) {
           await loadTransaction(_transaction!.id, _currentUserId!);
         }
-        debugPrint('[TransactionRealtimeController] ✅ Deal cancelled by buyer');
+        debugPrint('[TransactionRealtimeController] ✅ Deal cancelled');
       } else {
         debugPrint(
-          '[TransactionRealtimeController] ❌ buyerCancelDeal returned false',
+          '[TransactionRealtimeController] ❌ cancelDeal returned false',
         );
       }
       return success;
