@@ -17,7 +17,7 @@ class ListsController extends ChangeNotifier {
   final DeleteDraftUseCase _deleteDraftUseCase;
   final DeleteListingUseCase _deleteListingUseCase;
   final CancelListingUseCase _cancelListingUseCase;
-  
+
   // Invite Management
   final GetAuctionInvitesUseCase? _getAuctionInvitesUseCase;
   final InviteUserUseCase? _inviteUserUseCase;
@@ -42,11 +42,11 @@ class ListsController extends ChangeNotifier {
   bool _isGridView = true;
   String? _errorMessage;
   StreamSubscription? _listingsSubscription;
-  
+
   // Selection state
   final Set<String> _selectedListingIds = {};
   bool _isSelectionMode = false;
-  
+
   // Invite state
   List<Map<String, dynamic>> _currentAuctionInvites = [];
   bool _isInvitesLoading = false;
@@ -58,8 +58,9 @@ class ListsController extends ChangeNotifier {
   bool get isSelectionMode => _isSelectionMode;
   Set<String> get selectedListingIds => _selectedListingIds;
   int get selectedCount => _selectedListingIds.length;
-  
-  List<Map<String, dynamic>> get currentAuctionInvites => _currentAuctionInvites;
+
+  List<Map<String, dynamic>> get currentAuctionInvites =>
+      _currentAuctionInvites;
   bool get isInvitesLoading => _isInvitesLoading;
 
   @override
@@ -115,16 +116,18 @@ class ListsController extends ChangeNotifier {
     try {
       // Find all selected listings to check their status
       final allListings = _listings.values.expand((l) => l).toList();
-      final selectedListings = allListings.where((l) => _selectedListingIds.contains(l.id)).toList();
+      final selectedListings = allListings
+          .where((l) => _selectedListingIds.contains(l.id))
+          .toList();
 
       for (final listing in selectedListings) {
         try {
           if (listing.status == ListingStatus.draft) {
             await _deleteDraftUseCase(listing.id);
-          } else if (listing.status == ListingStatus.cancelled || 
-                     listing.status == ListingStatus.ended ||
-                     listing.status == ListingStatus.sold || // Cleanup old sold
-                     listing.status == ListingStatus.dealFailed) {
+          } else if (listing.status == ListingStatus.cancelled ||
+              listing.status == ListingStatus.ended ||
+              listing.status == ListingStatus.sold || // Cleanup old sold
+              listing.status == ListingStatus.dealFailed) {
             await _deleteListingUseCase(listing.id);
           } else {
             // Active, Pending, Scheduled -> Soft Cancel
@@ -135,10 +138,10 @@ class ListsController extends ChangeNotifier {
           // Continue with others
         }
       }
-      
+
       _selectedListingIds.clear();
       _isSelectionMode = false;
-      
+
       // Reload happens via stream automatically usually, but force refresh to be sure
       // Get current user ID
       final userResult = await _authRepository.getCurrentUser();
@@ -146,7 +149,6 @@ class ListsController extends ChangeNotifier {
       if (userId != null) {
         await _reloadListingsQuietly(userId);
       }
-
     } catch (e) {
       _errorMessage = 'Failed to delete selected items';
     } finally {
@@ -240,11 +242,11 @@ class ListsController extends ChangeNotifier {
 
   Future<void> loadAuctionInvites(String auctionId) async {
     if (_getAuctionInvitesUseCase == null) return;
-    
+
     _isInvitesLoading = true;
     notifyListeners();
 
-    final result = await _getAuctionInvitesUseCase!.call(auctionId);
+    final result = await _getAuctionInvitesUseCase.call(auctionId);
     result.fold(
       (failure) => _errorMessage = failure.message,
       (invites) => _currentAuctionInvites = invites,
@@ -264,7 +266,7 @@ class ListsController extends ChangeNotifier {
     _isInvitesLoading = true;
     notifyListeners();
 
-    final result = await _inviteUserUseCase!.call(
+    final result = await _inviteUserUseCase.call(
       auctionId: auctionId,
       identifier: identifier,
       type: type,
@@ -290,7 +292,7 @@ class ListsController extends ChangeNotifier {
     _isInvitesLoading = true;
     notifyListeners();
 
-    final result = await _deleteInviteUseCase!.call(inviteId);
+    final result = await _deleteInviteUseCase.call(inviteId);
 
     return result.fold(
       (failure) {

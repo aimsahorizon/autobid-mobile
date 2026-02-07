@@ -293,7 +293,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         const SizedBox(height: 16),
         // Province (Locked)
         DropdownButtonFormField<String>(
-          value: _province,
+          initialValue: _province,
           decoration: InputDecoration(
             labelText: 'Province',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -307,7 +307,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         const SizedBox(height: 16),
         // City (Locked)
         DropdownButtonFormField<String>(
-          value: _city,
+          initialValue: _city,
           decoration: InputDecoration(
             labelText: 'City/Municipality',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

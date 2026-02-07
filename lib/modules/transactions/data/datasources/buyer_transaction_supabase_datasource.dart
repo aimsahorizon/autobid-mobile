@@ -56,17 +56,15 @@ class BuyerTransactionSupabaseDataSource {
           .maybeSingle();
 
       // 2. If not found, try by auction ID
-      if (response == null) {
-        response = await _supabase
-            .from('auction_transactions')
-            .select('''
+      response ??= await _supabase
+          .from('auction_transactions')
+          .select('''
               *,
               auctions!auction_id(id, title, auction_vehicles(brand, model, year)),
               users!seller_id(id, full_name, email, profile_image_url)
             ''')
-            .eq('auction_id', idOrAuctionId)
-            .maybeSingle();
-      }
+          .eq('auction_id', idOrAuctionId)
+          .maybeSingle();
 
       if (response == null) {
         throw Exception('Transaction not found');
