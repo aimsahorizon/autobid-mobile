@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -37,6 +38,8 @@ class KYCRegistrationController extends ChangeNotifier {
   final IAiIdExtractionService _aiService;
   final FileEncryptionService? _fileEncryptionService;
   final SharedPreferences? _sharedPreferences;
+
+  Timer? _saveDraftTimer;
 
   /// Constructor with optional dependencies for Supabase integration
   /// If not provided, registration will use mock implementation
@@ -165,6 +168,11 @@ class KYCRegistrationController extends ChangeNotifier {
   // Step 8 getters
   File? get proofOfAddress => _proofOfAddress;
 
+  void _scheduleSaveDraft() {
+    _saveDraftTimer?.cancel();
+    _saveDraftTimer = Timer(const Duration(seconds: 1), saveDraft);
+  }
+
   /// Check if any registration data has been entered
   bool hasAnyDataEntered() {
     return (_nationalIdNumber?.isNotEmpty ?? false) ||
@@ -197,74 +205,88 @@ class KYCRegistrationController extends ChangeNotifier {
   // Step 1 setters
   void setNationalIdNumber(String value) {
     _nationalIdNumber = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setNationalIdFront(File? file) {
     _nationalIdFront = file;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setNationalIdBack(File? file) {
     _nationalIdBack = file;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   // Step 2 setters
   void setSelfieWithId(File? file) {
     _selfieWithId = file;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setAiAutoFillAccepted(bool value) {
     _aiAutoFillAccepted = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   // Step 3 setters
   void setSecondaryIdType(String? value) {
     _secondaryIdType = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setSecondaryIdNumber(String value) {
     _secondaryIdNumber = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setSecondaryIdFront(File? file) {
     _secondaryIdFront = file;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setSecondaryIdBack(File? file) {
     _secondaryIdBack = file;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   // Step 4 setters
   void setFirstName(String value) {
     _firstName = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setMiddleName(String value) {
     _middleName = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setLastName(String value) {
     _lastName = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setDateOfBirth(DateTime value) {
     _dateOfBirth = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setSex(String value) {
     _sex = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
@@ -314,6 +336,7 @@ class KYCRegistrationController extends ChangeNotifier {
   void setUsername(String value) {
     _username = value;
     _isUsernameAvailable = null;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
@@ -324,37 +347,44 @@ class KYCRegistrationController extends ChangeNotifier {
       _isEmailAvailable = null;
     }
     _email = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setPassword(String value) {
     _password = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setConfirmPassword(String value) {
     _confirmPassword = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setTermsAccepted(bool value) {
     _termsAccepted = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setPrivacyAccepted(bool value) {
     _privacyAccepted = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   // Step 6 setters
   void setPhoneOtpVerified(bool value) {
     _phoneOtpVerified = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setEmailOtpVerified(bool value) {
     _emailOtpVerified = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
@@ -401,6 +431,7 @@ class KYCRegistrationController extends ChangeNotifier {
     _province = null;
     _city = null;
     _barangay = null;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
@@ -408,33 +439,39 @@ class KYCRegistrationController extends ChangeNotifier {
     _province = value;
     _city = null;
     _barangay = null;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setCity(String? value) {
     _city = value;
     _barangay = null;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setBarangay(String? value) {
     _barangay = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setStreet(String value) {
     _street = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   void setZipCode(String value) {
     _zipCode = value;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
   // Step 8 setters
   void setProofOfAddress(File? file) {
     _proofOfAddress = file;
+    _scheduleSaveDraft();
     notifyListeners();
   }
 
@@ -1094,7 +1131,7 @@ class KYCRegistrationController extends ChangeNotifier {
 
         // Upload national ID front
         final nationalIdFrontPath =
-            '$userId/national_id_front_$timestamp.${_nationalIdFront!.path.split('.').last}';
+            '$userId/national_id_front_$timestamp.${_nationalIdFront?.path.split('.').last}';
         final nationalIdFrontUrl = await uploadFile(
           _nationalIdFront!,
           nationalIdFrontPath,
@@ -1134,7 +1171,7 @@ class KYCRegistrationController extends ChangeNotifier {
 
         // Upload proof of address
         final proofOfAddressPath =
-            '$userId/proof_of_address_$timestamp.${_proofOfAddress!.path.split('.').last}';
+            '$userId/proof_of_address_$timestamp.${_proofOfAddress?.path.split('.').last}';
         final proofOfAddressUrl = await uploadFile(
           _proofOfAddress!,
           proofOfAddressPath,

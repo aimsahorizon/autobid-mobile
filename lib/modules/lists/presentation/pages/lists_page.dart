@@ -21,33 +21,68 @@ class ListsPage extends StatefulWidget {
 }
 
 class _ListsPageState extends State<ListsPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
-  static const _tabs = [
+  static const _currentTabs = [
+    ListingStatus.active,
+    ListingStatus.pending,
+    ListingStatus.approved,
+    ListingStatus.scheduled,
+    ListingStatus.draft,
+  ];
+
+  static const _allTabs = [
     ListingStatus.active,
     ListingStatus.pending,
     ListingStatus.approved,
     ListingStatus.scheduled,
     ListingStatus.ended,
-    // ListingStatus.inTransaction, // Moved to transactions module
     ListingStatus.sold,
     ListingStatus.dealFailed,
     ListingStatus.draft,
     ListingStatus.cancelled,
   ];
 
+  List<ListingStatus> get _tabs =>
+      _controller.showAll ? _allTabs : _currentTabs;
+
+  bool _lastShowAll = false;
+
   @override
   void initState() {
     super.initState();
+    // Initialize controller listener
+    _controller.addListener(_onControllerChanged);
+    _lastShowAll = _controller.showAll;
+    
     _tabController = TabController(length: _tabs.length, vsync: this);
     _controller.loadListings();
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onControllerChanged() {
+    if (_controller.showAll != _lastShowAll) {
+      _lastShowAll = _controller.showAll;
+      _recreateTabController();
+    }
+  }
+
+  void _recreateTabController() {
+    final newIndex = 0; // Reset to first tab when toggling views for simplicity
+    _tabController.dispose();
+    _tabController = TabController(
+      length: _tabs.length,
+      initialIndex: newIndex,
+      vsync: this,
+    );
+    if (mounted) setState(() {});
   }
 
   ListsController get _controller => widget.controller ?? sl<ListsController>();
@@ -124,18 +159,6 @@ class _ListsPageState extends State<ListsPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
-    // Ensure the TabController matches the number of tabs (helps after hot reload)
-    if (_tabController.length != _tabs.length) {
-      var newIndex = _tabController.index;
-      if (newIndex >= _tabs.length) newIndex = _tabs.length - 1;
-      _tabController.dispose();
-      _tabController = TabController(
-        length: _tabs.length,
-        vsync: this,
-        initialIndex: newIndex,
-      );
-    }
 
     return Scaffold(
       appBar: AppBar(
@@ -216,14 +239,28 @@ class _ListsPageState extends State<ListsPage>
           ),
           ListenableBuilder(
             listenable: _controller,
-            builder: (context, _) => IconButton(
-              icon: Icon(
-                _controller.isGridView
-                    ? Icons.view_list_rounded
-                    : Icons.grid_view_rounded,
-              ),
-              onPressed: _controller.toggleViewMode,
-              tooltip: _controller.isGridView ? 'List view' : 'Grid view',
+            builder: (context, _) => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _controller.showAll
+                        ? Icons.filter_list_off
+                        : Icons.filter_list,
+                  ),
+                  onPressed: _controller.toggleShowAll,
+                  tooltip: _controller.showAll ? 'Show Current' : 'Show All',
+                ),
+                IconButton(
+                  icon: Icon(
+                    _controller.isGridView
+                        ? Icons.view_list_rounded
+                        : Icons.grid_view_rounded,
+                  ),
+                  onPressed: _controller.toggleViewMode,
+                  tooltip: _controller.isGridView ? 'List view' : 'Grid view',
+                ),
+              ],
             ),
           ),
         ],

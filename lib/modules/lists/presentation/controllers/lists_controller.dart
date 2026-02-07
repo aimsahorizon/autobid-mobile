@@ -46,6 +46,9 @@ class ListsController extends ChangeNotifier {
   // Selection state
   final Set<String> _selectedListingIds = {};
   bool _isSelectionMode = false;
+  
+  // View state
+  bool _showAll = false;
 
   // Invite state
   List<Map<String, dynamic>> _currentAuctionInvites = [];
@@ -58,6 +61,7 @@ class ListsController extends ChangeNotifier {
   bool get isSelectionMode => _isSelectionMode;
   Set<String> get selectedListingIds => _selectedListingIds;
   int get selectedCount => _selectedListingIds.length;
+  bool get showAll => _showAll;
 
   List<Map<String, dynamic>> get currentAuctionInvites =>
       _currentAuctionInvites;
@@ -67,6 +71,11 @@ class ListsController extends ChangeNotifier {
   void dispose() {
     _listingsSubscription?.cancel();
     super.dispose();
+  }
+  
+  void toggleShowAll() {
+    _showAll = !_showAll;
+    notifyListeners();
   }
 
   // Selection methods

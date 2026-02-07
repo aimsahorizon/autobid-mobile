@@ -77,6 +77,39 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     _depositDataSource =
         widget.depositDataSource ??
         DepositSupabaseDataSource(SupabaseConfig.client);
+
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final response = await SupabaseConfig.client
+          .from('profiles')
+          .select()
+          .eq('id', widget.userId)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          final firstName = response['first_name'] as String? ?? '';
+          final lastName = response['last_name'] as String? ?? '';
+          final email = response['email'] as String? ?? '';
+          final contactNumber = response['contact_number'] as String? ?? '';
+
+          if (_nameController.text.isEmpty) {
+            _nameController.text = '$firstName $lastName'.trim();
+          }
+          if (_emailController.text.isEmpty) {
+            _emailController.text = email;
+          }
+          if (_phoneController.text.isEmpty) {
+            _phoneController.text = contactNumber;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('[DepositPaymentPage] Error loading user profile: $e');
+    }
   }
 
   void _useMockService() {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
 import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
@@ -37,6 +38,43 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
   final _expYearController = TextEditingController();
   final _cvcController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final response = await SupabaseConfig.client
+          .from('profiles')
+          .select()
+          .eq('id', widget.userId)
+          .maybeSingle();
+
+      if (response != null && mounted) {
+        setState(() {
+          final firstName = response['first_name'] as String? ?? '';
+          final lastName = response['last_name'] as String? ?? '';
+          final email = response['email'] as String? ?? '';
+          final contactNumber = response['contact_number'] as String? ?? '';
+
+          if (_nameController.text.isEmpty) {
+            _nameController.text = '$firstName $lastName'.trim();
+          }
+          if (_emailController.text.isEmpty) {
+            _emailController.text = email;
+          }
+          if (_phoneController.text.isEmpty) {
+            _phoneController.text = contactNumber;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('[SubscriptionPaymentPage] Error loading user profile: $e');
+    }
+  }
 
   @override
   void dispose() {

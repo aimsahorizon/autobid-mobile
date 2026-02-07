@@ -34,7 +34,9 @@ void main() {
     expect(find.text('Test Credentials'), findsOneWidget);
     expect(find.text('Use these cards for testing:'), findsOneWidget);
     expect(find.text('Visa'), findsOneWidget);
-    expect(find.text('4343 4343 4343 4345'), findsOneWidget);
+    // There are 2 widgets with this text (Hint text + Guide text)
+    // We want to ensure at least one exists (the guide one)
+    expect(find.text('4343 4343 4343 4345'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('Focus moves automatically: Month -> Year -> CVC', (
