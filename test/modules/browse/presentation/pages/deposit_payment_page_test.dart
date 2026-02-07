@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
-import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import 'package:autobid_mobile/modules/browse/presentation/pages/deposit_payment_page.dart';
-import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart';
 
 import 'deposit_payment_page_test_mocks.dart';
 

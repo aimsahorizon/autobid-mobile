@@ -16,6 +16,7 @@ import '../../modules/lists/lists_module.dart';
 import '../../modules/admin/admin_module.dart';
 import '../../modules/transactions/transactions_module.dart';
 import '../../modules/guest/guest_module.dart';
+import '../../modules/location/location_module.dart';
 
 final sl = GetIt.instance;
 
@@ -37,6 +38,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<IAiIdExtractionService>(() => ProductionAiIdExtractionService());
 
   // 3. Feature Modules
+  await initLocationModule();
   await initProfileModule();
   await initAuthModule();
   await initBidsModule();

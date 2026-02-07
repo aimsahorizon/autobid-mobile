@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:autobid_mobile/core/data/philippines_locations.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../../../app/di/app_module.dart';
+import '../../../../location/domain/entities/location_entities.dart';
+import '../../../../location/presentation/bloc/location_bloc.dart';
+import '../../../../location/presentation/bloc/location_event.dart';
+import '../../../../location/presentation/bloc/location_state.dart';
 
 class ProvinceCityPicker extends StatefulWidget {
   final String? province;
@@ -24,90 +29,174 @@ class ProvinceCityPicker extends StatefulWidget {
 }
 
 class _ProvinceCityPickerState extends State<ProvinceCityPicker> {
-  String? _selectedProvince;
-  String? _selectedCity;
-  List<String> _availableCities = [];
+  late LocationBloc _locationBloc;
+
+  List<RegionEntity> _regions = [];
+  List<ProvinceEntity> _provinces = [];
+  List<CityEntity> _cities = [];
+
+  RegionEntity? _selectedRegion;
+  ProvinceEntity? _selectedProvince;
+  CityEntity? _selectedCity;
 
   @override
   void initState() {
     super.initState();
-    _selectedProvince = widget.province;
-    _selectedCity = widget.city;
-    if (_selectedProvince != null) {
-      _availableCities = PhilippineLocations.getCities(_selectedProvince!);
-    }
+    _locationBloc = sl<LocationBloc>();
+    _locationBloc.add(LoadRegions());
   }
 
   @override
-  void didUpdateWidget(ProvinceCityPicker oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.province != oldWidget.province) {
-      _selectedProvince = widget.province;
-      if (_selectedProvince != null) {
-        _availableCities = PhilippineLocations.getCities(_selectedProvince!);
-      } else {
-        _availableCities = [];
-      }
-    }
-    if (widget.city != oldWidget.city) {
-      _selectedCity = widget.city;
+  void dispose() {
+    _locationBloc.close();
+    super.dispose();
+  }
+
+  void _onRegionChanged(RegionEntity? region) {
+    if (region != null) {
+      setState(() {
+        _selectedRegion = region;
+        _provinces = [];
+        _cities = [];
+        _selectedProvince = null;
+        _selectedCity = null;
+      });
+      _locationBloc.add(LoadProvinces(region.id));
+      widget.onChanged(null, null);
     }
   }
 
-  void _onProvinceChanged(String? value) {
-    setState(() {
-      _selectedProvince = value;
-      _selectedCity = null; // Reset city when province changes
-      _availableCities = value != null
-          ? PhilippineLocations.getCities(value)
-          : [];
-    });
-    widget.onChanged(_selectedProvince, null);
+  void _onProvinceChanged(ProvinceEntity? province) {
+    if (province != null) {
+      setState(() {
+        _selectedProvince = province;
+        _cities = [];
+        _selectedCity = null;
+      });
+      _locationBloc.add(LoadCities(province.id));
+      widget.onChanged(province.name, null);
+    }
   }
 
-  void _onCityChanged(String? value) {
-    setState(() {
-      _selectedCity = value;
-    });
-    widget.onChanged(_selectedProvince, _selectedCity);
+  void _onCityChanged(CityEntity? city) {
+    if (city != null) {
+      setState(() {
+        _selectedCity = city;
+      });
+      widget.onChanged(_selectedProvince?.name, city.name);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        DropdownButtonFormField<String>(
-          initialValue: _selectedProvince,
-          decoration: InputDecoration(
-            labelText: 'Province *',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+    return BlocProvider.value(
+      value: _locationBloc,
+      child: BlocListener<LocationBloc, LocationState>(
+        listener: (context, state) {
+          if (state is RegionsLoaded) {
+            setState(() {
+              _regions = state.regions;
+              // If we wanted to pre-select based on existing string values (widget.province),
+              // we'd need to know the Region first. Since we don't store Region string,
+              // we can't easily auto-select the Region unless we fetch ALL provinces
+              // or search for the province.
+              // For now, if a value exists but we don't have region, user must re-select.
+              // OR: We could iterate regions to find the province? That's expensive.
+              // Given the scope change, resetting is acceptable or we assume the backend
+              // data migration handles this.
+            });
+          } else if (state is ProvincesLoaded) {
+            setState(() {
+              _provinces = state.provinces;
+              // Try to restore province selection if names match
+              if (widget.province != null && _selectedProvince == null) {
+                try {
+                  final match = _provinces.firstWhere(
+                    (p) => p.name == widget.province,
+                  );
+                  _selectedProvince = match;
+                  _locationBloc.add(LoadCities(match.id));
+                } catch (_) {}
+              }
+            });
+          } else if (state is CitiesLoaded) {
+            setState(() {
+              _cities = state.cities;
+              // Try to restore city selection if names match
+              if (widget.city != null && _selectedCity == null) {
+                try {
+                  final match = _cities.firstWhere(
+                    (c) => c.name == widget.city,
+                  );
+                  _selectedCity = match;
+                } catch (_) {}
+              }
+            });
+          }
+        },
+        child: Column(
+          children: [
+            // Region Dropdown (New)
+            DropdownButtonFormField<RegionEntity>(
+              initialValue: _selectedRegion,
+              decoration: InputDecoration(
+                labelText: 'Region',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: _regions.map((region) {
+                return DropdownMenuItem(
+                  value: region,
+                  child: Text(region.name),
+                );
+              }).toList(),
+              onChanged: widget.enabled ? _onRegionChanged : null,
             ),
-          ),
-          items: PhilippineLocations.provinces.map((province) {
-            return DropdownMenuItem(value: province, child: Text(province));
-          }).toList(),
-          onChanged: widget.enabled ? _onProvinceChanged : null,
-          validator: widget.provinceValidator,
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedCity,
-          decoration: InputDecoration(
-            labelText: 'City/Municipality',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 16),
+
+            // Province Dropdown
+            DropdownButtonFormField<ProvinceEntity>(
+              initialValue: _selectedProvince,
+              decoration: InputDecoration(
+                labelText: 'Province *',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: _provinces.map((province) {
+                return DropdownMenuItem(
+                  value: province,
+                  child: Text(province.name),
+                );
+              }).toList(),
+              onChanged: (widget.enabled && _selectedRegion != null)
+                  ? _onProvinceChanged
+                  : null,
+              validator: (val) => widget.provinceValidator?.call(val?.name),
             ),
-          ),
-          items: _availableCities.map((city) {
-            return DropdownMenuItem(value: city, child: Text(city));
-          }).toList(),
-          onChanged: widget.enabled && _selectedProvince != null
-              ? _onCityChanged
-              : null,
-          validator: widget.cityValidator,
+            const SizedBox(height: 16),
+
+            // City Dropdown
+            DropdownButtonFormField<CityEntity>(
+              initialValue: _selectedCity,
+              decoration: InputDecoration(
+                labelText: 'City/Municipality',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: _cities.map((city) {
+                return DropdownMenuItem(value: city, child: Text(city.name));
+              }).toList(),
+              onChanged: (widget.enabled && _selectedProvince != null)
+                  ? _onCityChanged
+                  : null,
+              validator: (val) => widget.cityValidator?.call(val?.name),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
