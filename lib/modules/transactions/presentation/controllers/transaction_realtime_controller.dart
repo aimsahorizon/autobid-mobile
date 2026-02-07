@@ -274,7 +274,12 @@ class TransactionRealtimeController extends ChangeNotifier {
   }
 
   /// Submit a review
-  Future<bool> submitReview({required int rating, String? comment}) async {
+  Future<bool> submitReview({
+    required int rating,
+    int? ratingCommunication,
+    int? ratingReliability,
+    String? comment,
+  }) async {
     if (_transaction == null || _currentUserId == null) return false;
 
     _isProcessing = true;
@@ -291,6 +296,8 @@ class TransactionRealtimeController extends ChangeNotifier {
         reviewerId: _currentUserId!,
         revieweeId: revieweeId,
         rating: rating,
+        ratingCommunication: ratingCommunication,
+        ratingReliability: ratingReliability,
         comment: comment,
       );
 

@@ -366,6 +366,8 @@ class ProgressRealtimeTab extends StatelessWidget {
 
   Future<void> _showReviewDialog(BuildContext context) async {
     int rating = 5;
+    int communication = 5;
+    int reliability = 5;
     final commentController = TextEditingController();
 
     await showDialog(
@@ -373,35 +375,29 @@ class ProgressRealtimeTab extends StatelessWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Submit Review'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('How was your experience?'),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (int i = 1; i <= 5; i++)
-                    IconButton(
-                      icon: Icon(
-                        i <= rating ? Icons.star : Icons.star_border,
-                        color: Colors.amber,
-                        size: 32,
-                      ),
-                      onPressed: () => setState(() => rating = i),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: commentController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Add a comment (optional)...',
-                  border: OutlineInputBorder(),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('How was your experience?', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                _buildRatingRow('Overall', rating, (v) => setState(() => rating = v)),
+                const SizedBox(height: 12),
+                _buildRatingRow('Communication', communication, (v) => setState(() => communication = v)),
+                const SizedBox(height: 12),
+                _buildRatingRow('Reliability', reliability, (v) => setState(() => reliability = v)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Add a comment (optional)...',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -413,6 +409,8 @@ class ProgressRealtimeTab extends StatelessWidget {
                 Navigator.pop(context);
                 final success = await controller.submitReview(
                   rating: rating,
+                  ratingCommunication: communication,
+                  ratingReliability: reliability,
                   comment: commentController.text.trim(),
                 );
                 if (success && context.mounted) {
@@ -429,6 +427,32 @@ class ProgressRealtimeTab extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRatingRow(String label, int value, ValueChanged<int> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (int i = 1; i <= 5; i++)
+              InkWell(
+                onTap: () => onChanged(i),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                  child: Icon(
+                    i <= value ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 32,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 

@@ -1622,6 +1622,8 @@ class TransactionRealtimeDataSource {
     required String reviewerId,
     required String revieweeId,
     required int rating,
+    int? ratingCommunication,
+    int? ratingReliability,
     String? comment,
   }) async {
     try {
@@ -1633,6 +1635,8 @@ class TransactionRealtimeDataSource {
         'reviewer_id': reviewerId,
         'reviewee_id': revieweeId,
         'rating': rating,
+        'rating_communication': ratingCommunication,
+        'rating_reliability': ratingReliability,
         'comment': comment,
         'updated_at': DateTime.now().toIso8601String(),
       };
@@ -1681,6 +1685,8 @@ class TransactionRealtimeDataSource {
       reviewerId: data['reviewer_id'] as String,
       revieweeId: data['reviewee_id'] as String,
       rating: data['rating'] as int,
+      ratingCommunication: data['rating_communication'] as int?,
+      ratingReliability: data['rating_reliability'] as int?,
       comment: data['comment'] as String?,
       createdAt: DateTime.parse(data['created_at'] as String),
     );

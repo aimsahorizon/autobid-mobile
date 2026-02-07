@@ -6,6 +6,8 @@ class TransactionReviewEntity extends Equatable {
   final String reviewerId;
   final String revieweeId;
   final int rating;
+  final int? ratingCommunication;
+  final int? ratingReliability;
   final String? comment;
   final DateTime createdAt;
 
@@ -15,6 +17,8 @@ class TransactionReviewEntity extends Equatable {
     required this.reviewerId,
     required this.revieweeId,
     required this.rating,
+    this.ratingCommunication,
+    this.ratingReliability,
     this.comment,
     required this.createdAt,
   });
@@ -26,6 +30,8 @@ class TransactionReviewEntity extends Equatable {
         reviewerId,
         revieweeId,
         rating,
+        ratingCommunication,
+        ratingReliability,
         comment,
         createdAt,
       ];
