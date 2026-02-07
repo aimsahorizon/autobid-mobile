@@ -269,13 +269,15 @@ class ListingDraftController extends ChangeNotifier {
   }
 
   /// Upload photo for a category
-  Future<bool> uploadPhoto(String category, String localPath) async {
+  Future<bool> uploadPhoto(String categoryDisplayName, String localPath) async {
     if (_currentDraft == null) return false;
+
+    final categoryKey = PhotoCategories.toKey(categoryDisplayName);
 
     final result = await _uploadListingPhotoUseCase.call(
       userId: _currentDraft!.sellerId,
       listingId: _currentDraft!.id,
-      category: category,
+      category: categoryKey,
       imageFile: File(localPath),
     );
 
@@ -283,7 +285,7 @@ class ListingDraftController extends ChangeNotifier {
       (failure) => false,
       (url) {
         final currentPhotos = Map<String, List<String>>.from(_currentDraft!.photoUrls ?? {});
-        currentPhotos[category] = [...(currentPhotos[category] ?? []), url];
+        currentPhotos[categoryKey] = [...(currentPhotos[categoryKey] ?? []), url];
         
         _currentDraft = _currentDraft!.copyWith(
           lastSaved: DateTime.now(),

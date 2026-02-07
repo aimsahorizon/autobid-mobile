@@ -117,12 +117,14 @@ class _Step7PhotosState extends State<Step7Photos> {
       );
       debugPrint('DEBUG [Step7Photos]: Uploading to controller...');
 
+      final categoryKey = PhotoCategories.toKey(category);
+
       // Clear existing photo for this category if any (Enforce 1 photo per view)
       final currentPhotos = widget.controller.currentDraft?.photoUrls ?? {};
-      if (currentPhotos.containsKey(category) &&
-          currentPhotos[category]!.isNotEmpty) {
+      if (currentPhotos.containsKey(categoryKey) &&
+          currentPhotos[categoryKey]!.isNotEmpty) {
         final updatedPhotoUrls = Map<String, List<String>>.from(currentPhotos);
-        updatedPhotoUrls.remove(category);
+        updatedPhotoUrls.remove(categoryKey);
 
         widget.controller.updateDraft(
           widget.controller.currentDraft!.copyWith(
@@ -133,7 +135,7 @@ class _Step7PhotosState extends State<Step7Photos> {
       }
 
       final success = await widget.controller.uploadPhoto(
-        category,
+        category, // Pass display name, controller converts it
         imageFile.path,
       );
 
@@ -787,7 +789,7 @@ class _Step7PhotosState extends State<Step7Photos> {
   /// Delete a photo from a category
   Future<void> _deletePhoto(
     BuildContext context,
-    String category,
+    String categoryDisplayName,
     int index,
   ) async {
     final confirm = await showDialog<bool>(
@@ -795,7 +797,7 @@ class _Step7PhotosState extends State<Step7Photos> {
       builder: (context) => AlertDialog(
         title: const Text('Delete Photo?'),
         content: Text(
-          'Are you sure you want to delete this photo from "$category"?',
+          'Are you sure you want to delete this photo from "$categoryDisplayName"?',
         ),
         actions: [
           TextButton(
@@ -819,18 +821,20 @@ class _Step7PhotosState extends State<Step7Photos> {
     final currentDraft = widget.controller.currentDraft;
     if (currentDraft == null) return;
 
+    final categoryKey = PhotoCategories.toKey(categoryDisplayName);
+
     final updatedPhotoUrls = Map<String, List<String>>.from(
       currentDraft.photoUrls ?? {},
     );
 
-    if (updatedPhotoUrls[category] != null) {
-      updatedPhotoUrls[category] = List<String>.from(
-        updatedPhotoUrls[category]!,
+    if (updatedPhotoUrls[categoryKey] != null) {
+      updatedPhotoUrls[categoryKey] = List<String>.from(
+        updatedPhotoUrls[categoryKey]!,
       )..removeAt(index);
 
       // Remove category key if empty
-      if (updatedPhotoUrls[category]!.isEmpty) {
-        updatedPhotoUrls.remove(category);
+      if (updatedPhotoUrls[categoryKey]!.isEmpty) {
+        updatedPhotoUrls.remove(categoryKey);
       }
 
       // Update draft with new photo URLs
@@ -1048,8 +1052,9 @@ class _Step7PhotosState extends State<Step7Photos> {
                             ),
                           ),
                         ),
-                        ...groupCategories.map((category) {
-                          final categoryPhotos = photoUrls[category] ?? [];
+                        ...groupCategories.map((categoryDisplayName) {
+                          final categoryKey = PhotoCategories.toKey(categoryDisplayName);
+                          final categoryPhotos = photoUrls[categoryKey] ?? [];
                           final hasPhoto = categoryPhotos.isNotEmpty;
 
                           return Container(
@@ -1094,7 +1099,7 @@ class _Step7PhotosState extends State<Step7Photos> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            category,
+                                            categoryDisplayName,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w600,
                                               fontSize: 15,
@@ -1118,11 +1123,11 @@ class _Step7PhotosState extends State<Step7Photos> {
                                       ),
                                       tooltip: 'View sample',
                                       onPressed: () =>
-                                          _showSamplePhoto(context, category),
+                                          _showSamplePhoto(context, categoryDisplayName),
                                     ),
                                     ElevatedButton.icon(
                                       onPressed: () =>
-                                          _pickImage(context, category),
+                                          _pickImage(context, categoryDisplayName),
                                       icon: Icon(
                                         hasPhoto
                                             ? Icons.swap_horiz
@@ -1162,7 +1167,7 @@ class _Step7PhotosState extends State<Step7Photos> {
                                           return _buildPhotoPreview(
                                             context,
                                             photoUrl,
-                                            category,
+                                            categoryDisplayName,
                                             index,
                                             isDark,
                                           );

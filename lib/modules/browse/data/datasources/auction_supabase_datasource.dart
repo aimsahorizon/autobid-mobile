@@ -58,7 +58,8 @@ class AuctionSupabaseDataSource {
         .from(source)
         .select(
           'id, title, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, created_at',
-        );
+        )
+        .eq('is_active', true); // Filter by active status
 
     // Apply search filter on title and description
     if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
@@ -130,6 +131,7 @@ class AuctionSupabaseDataSource {
           'id, title, description, starting_price, current_price, reserve_price, end_time, total_bids, view_count, seller_id, created_at',
         )
         .eq('status_id', liveStatusId)
+        .eq('is_active', true)
         .gt('end_time', DateTime.now().toIso8601String());
 
     // Apply search filter

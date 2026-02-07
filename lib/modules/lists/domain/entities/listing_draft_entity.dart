@@ -505,4 +505,9 @@ class PhotoCategories {
     'Wheels & Tires': 4,
     'Documents': 5,
   };
+
+  /// Convert display name to standardized key (snake_case)
+  static String toKey(String displayName) {
+    return displayName.toLowerCase().replaceAll(' ', '_').replaceAll('/', '_');
+  }
 }
