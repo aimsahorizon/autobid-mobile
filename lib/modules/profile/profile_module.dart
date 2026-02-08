@@ -66,6 +66,7 @@ Future<void> initProfileModule() async {
   sl.registerLazySingleton(() => UploadProfilePhotoUseCase(sl()));
   sl.registerLazySingleton(() => UploadCoverPhotoUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileWithPhotoUseCase(sl()));
+  sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
   sl.registerLazySingleton(() => GetTokenBalanceUsecase(repository: sl()));
   sl.registerLazySingleton(() => GetUserSubscriptionUsecase(repository: sl()));
   sl.registerLazySingleton(() => GetTokenPackagesUsecase(repository: sl()));
@@ -88,6 +89,7 @@ Future<void> initProfileModule() async {
       uploadProfilePhotoUseCase: sl(),
       uploadCoverPhotoUseCase: sl(),
       updateProfileWithPhotoUseCase: sl(),
+      changePasswordUseCase: sl(),
     ),
   );
   sl.registerFactory(
@@ -164,6 +166,9 @@ class ProfileModule {
         _getOrCreateRepository(),
       ),
       updateProfileWithPhotoUseCase: UpdateProfileWithPhotoUseCase(
+        _getOrCreateRepository(),
+      ),
+      changePasswordUseCase: ChangePasswordUseCase(
         _getOrCreateRepository(),
       ),
     );
