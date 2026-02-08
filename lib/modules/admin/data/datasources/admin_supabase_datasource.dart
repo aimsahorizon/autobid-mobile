@@ -358,6 +358,16 @@ class AdminSupabaseDataSource {
         variant: vehicle?['variant'] as String?,
         mileage: vehicle?['mileage'] as int? ?? 0,
         condition: vehicle?['condition'] as String? ?? 'used',
+        transmission: vehicle?['transmission'] as String? ?? 'Unknown',
+        fuelType: vehicle?['fuel_type'] as String? ?? 'Unknown',
+        engineType: vehicle?['engine_type'] as String?,
+        engineDisplacement: (vehicle?['engine_displacement'] as num?)?.toDouble(),
+        exteriorColor: vehicle?['exterior_color'] as String? ?? 'Unknown',
+        province: vehicle?['province'] as String? ?? '',
+        cityMunicipality: vehicle?['city_municipality'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        visibility: json['visibility'] as String? ?? 'public',
+        depositAmount: (json['deposit_amount'] as num?)?.toDouble() ?? 0.0,
         reviewNotes: json['review_notes'] as String?,
         reviewedAt: json['reviewed_at'] != null
             ? DateTime.parse(json['reviewed_at'] as String)

@@ -312,6 +312,87 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
                               'Reserve Price',
                               '₱${widget.listing.reservePrice!.toStringAsFixed(2)}',
                             ),
+                          _buildInfoRow(
+                            'Deposit Required',
+                            '₱${widget.listing.depositAmount.toStringAsFixed(2)}',
+                          ),
+                          _buildInfoRow(
+                            'Visibility',
+                            widget.listing.visibility.toUpperCase(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Technical Specs Card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Technical Specifications',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInfoRow('Transmission', widget.listing.transmission),
+                          _buildInfoRow('Fuel Type', widget.listing.fuelType),
+                          if (widget.listing.engineType != null)
+                            _buildInfoRow('Engine Type', widget.listing.engineType!),
+                          if (widget.listing.engineDisplacement != null)
+                            _buildInfoRow('Displacement', '${widget.listing.engineDisplacement}L'),
+                          _buildInfoRow('Exterior Color', widget.listing.exteriorColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Location Card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Location',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInfoRow('Province', widget.listing.province),
+                          _buildInfoRow('City/Municipality', widget.listing.cityMunicipality),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description Card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Description',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(widget.listing.description),
                         ],
                       ),
                     ),
