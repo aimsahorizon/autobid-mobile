@@ -16,6 +16,9 @@ class SellerListingEntity {
   /// Car model (e.g., Supra, M4)
   final String model;
 
+  /// Car variant (e.g., 3.0 Premium, Competition)
+  final String? variant;
+
   /// Current status of the listing
   final ListingStatus status;
 
@@ -68,6 +71,7 @@ class SellerListingEntity {
     required this.year,
     required this.make,
     required this.model,
+    this.variant,
     required this.status,
     required this.startingPrice,
     this.startTime,
@@ -86,7 +90,7 @@ class SellerListingEntity {
   });
 
   /// Get formatted car name
-  String get carName => '$year $make $model';
+  String get carName => '$year $make $model ${variant ?? ''}'.trim();
 
   /// Check if reserve price has been met
   bool get isReserveMet =>

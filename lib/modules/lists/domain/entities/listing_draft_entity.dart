@@ -63,6 +63,7 @@ class ListingDraftEntity {
   final DateTime? registrationExpiry;
   final String? province;
   final String? cityMunicipality;
+  final String? barangay;
 
   // Step 7: Photos (56 categories) & Documents
   final Map<String, List<String>>? photoUrls; // category -> list of URLs
@@ -139,6 +140,7 @@ class ListingDraftEntity {
     this.registrationExpiry,
     this.province,
     this.cityMunicipality,
+    this.barangay,
     this.photoUrls,
     this.tags,
     this.deedOfSaleUrl,
@@ -208,6 +210,7 @@ class ListingDraftEntity {
     DateTime? registrationExpiry,
     String? province,
     String? cityMunicipality,
+    String? barangay,
     Map<String, List<String>>? photoUrls,
     List<String>? tags,
     String? deedOfSaleUrl,
@@ -275,6 +278,7 @@ class ListingDraftEntity {
       registrationExpiry: registrationExpiry ?? this.registrationExpiry,
       province: province ?? this.province,
       cityMunicipality: cityMunicipality ?? this.cityMunicipality,
+      barangay: barangay ?? this.barangay,
       photoUrls: photoUrls ?? this.photoUrls,
       tags: tags ?? this.tags,
       deedOfSaleUrl: deedOfSaleUrl ?? this.deedOfSaleUrl,
@@ -346,6 +350,7 @@ class ListingDraftEntity {
       registrationExpiry: registrationExpiry,
       province: province,
       cityMunicipality: cityMunicipality,
+      barangay: barangay,
       photoUrls: photoUrls,
       description: description,
       knownIssues: knownIssues,
@@ -400,7 +405,9 @@ class ListingDraftEntity {
         return plateNumber != null && 
                isPlateValid == true && 
                orcrStatus != null && 
-               province != null;
+               province != null &&
+               cityMunicipality != null &&
+               barangay != null;
       case 8:
         // Step 8: Final Details, Pricing & Bidding
         return description != null &&

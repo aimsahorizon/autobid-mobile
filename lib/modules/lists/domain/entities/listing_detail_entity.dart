@@ -72,6 +72,7 @@ class ListingDetailEntity {
   final DateTime? registrationExpiry;
   final String? province;
   final String? cityMunicipality;
+  final String? barangay;
 
   // Step 7: Photos
   final Map<String, List<String>>? photoUrls;
@@ -154,6 +155,7 @@ class ListingDetailEntity {
     this.registrationExpiry,
     this.province,
     this.cityMunicipality,
+    this.barangay,
     this.photoUrls,
     this.description,
     this.knownIssues,
@@ -172,7 +174,7 @@ class ListingDetailEntity {
   });
 
   /// Get formatted car name
-  String get carName => '$year $brand $model';
+  String get carName => '$year $brand $model ${variant ?? ''}'.trim();
 
   /// Get cover photo URL (first photo from any category)
   String? get coverPhotoUrl {

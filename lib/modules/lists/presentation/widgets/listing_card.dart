@@ -142,7 +142,7 @@ class _ListingCardState extends State<ListingCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.listing.carName,
+                  widget.listing.carName, // carName now includes variant
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
