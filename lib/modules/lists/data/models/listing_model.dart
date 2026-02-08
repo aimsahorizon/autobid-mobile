@@ -54,6 +54,7 @@ class ListingModel {
   final DateTime? registrationExpiry;
   final String province;
   final String cityMunicipality;
+  final String? barangay;
   final Map<String, List<String>> photoUrls;
   final String? coverPhotoUrl;
   final String description;
@@ -144,6 +145,7 @@ class ListingModel {
     this.registrationExpiry,
     required this.province,
     required this.cityMunicipality,
+    this.barangay,
     required this.photoUrls,
     this.coverPhotoUrl,
     required this.description,
@@ -234,6 +236,7 @@ class ListingModel {
           : null,
       province: json['province'] as String? ?? '',
       cityMunicipality: json['city_municipality'] as String? ?? '',
+      barangay: json['barangay'] as String?,
       photoUrls: json['photo_urls'] != null
           ? _parsePhotoUrls(json['photo_urls'] as Map<String, dynamic>)
           : {},
@@ -288,6 +291,7 @@ class ListingModel {
       year: year,
       make: brand,
       model: model,
+      variant: variant,
       status: _parseListingStatus(status),
       startingPrice: startingPrice,
       startTime: auctionStartTime,
@@ -363,6 +367,7 @@ class ListingModel {
       registrationExpiry: registrationExpiry,
       province: province,
       cityMunicipality: cityMunicipality,
+      barangay: barangay,
       photoUrls: photoUrls,
       description: description,
       knownIssues: knownIssues,

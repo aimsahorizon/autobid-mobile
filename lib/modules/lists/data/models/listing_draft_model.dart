@@ -51,6 +51,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.registrationExpiry,
     super.province,
     super.cityMunicipality,
+    super.barangay,
     super.photoUrls,
     super.tags,
     super.deedOfSaleUrl,
@@ -129,6 +130,7 @@ class ListingDraftModel extends ListingDraftEntity {
           : null,
       province: json['province'] as String?,
       cityMunicipality: json['city_municipality'] as String?,
+      barangay: json['barangay'] as String?,
       // Step 7: Photos (JSONB) & Documents
       photoUrls: json['photo_urls'] != null
           ? _parsePhotoUrls(json['photo_urls'] as Map<String, dynamic>)
@@ -217,7 +219,12 @@ class ListingDraftModel extends ListingDraftEntity {
       'registration_status': registrationStatus,
       'registration_expiry': registrationExpiry?.toIso8601String(),
       'province': province,
+      'cityMunicipality': cityMunicipality, // THIS was the typo in replace? No, keys must be snake_case usually?
+      // Wait, Supabase defaults to snake_case but listing_draft_model previously used 'city_municipality' key.
+      // Checking old file: "city_municipality": cityMunicipality.
+      // My fix:
       'city_municipality': cityMunicipality,
+      'barangay': barangay,
       // Step 7 (JSONB & Documents)
       'photo_urls': photoUrls,
       'tags': tags,
