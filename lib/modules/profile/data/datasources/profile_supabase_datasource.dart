@@ -306,4 +306,41 @@ class ProfileSupabaseDataSource {
       return [];
     }
   }
+
+  /// Change user password
+  /// Verifies old password first by re-authenticating
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null || user.email == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // 1. Verify old password by attempting to sign in
+      try {
+        await _supabase.auth.signInWithPassword(
+          email: user.email,
+          password: currentPassword,
+        );
+      } on AuthException {
+        throw Exception('Incorrect current password');
+      }
+
+      // 2. Update password
+      final response = await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+
+      if (response.user == null) {
+        throw Exception('Failed to update password');
+      }
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Failed to change password: $e');
+    }
+  }
 }

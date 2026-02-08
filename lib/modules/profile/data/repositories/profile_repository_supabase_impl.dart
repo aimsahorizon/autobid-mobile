@@ -141,4 +141,23 @@ class ProfileRepositorySupabaseImpl implements ProfileRepository {
       return Left(GeneralFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      await _dataSource.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(GeneralFailure(e.toString().replaceAll('Exception: ', '')));
+    }
+  }
 }

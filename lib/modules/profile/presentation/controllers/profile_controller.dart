@@ -6,6 +6,8 @@ import '../../domain/usecases/upload_profile_photo_usecase.dart';
 import '../../domain/usecases/upload_cover_photo_usecase.dart';
 import '../../domain/usecases/update_profile_with_photo_usecase.dart';
 
+import '../../domain/usecases/change_password_usecase.dart';
+
 /// Controller for managing profile state
 /// Refactored to use Clean Architecture with UseCases
 class ProfileController extends ChangeNotifier {
@@ -13,16 +15,19 @@ class ProfileController extends ChangeNotifier {
   final UploadProfilePhotoUseCase _uploadProfilePhotoUseCase;
   final UploadCoverPhotoUseCase _uploadCoverPhotoUseCase;
   final UpdateProfileWithPhotoUseCase _updateProfileWithPhotoUseCase;
+  final ChangePasswordUseCase _changePasswordUseCase;
 
   ProfileController({
     required ProfileRepository repository,
     required UploadProfilePhotoUseCase uploadProfilePhotoUseCase,
     required UploadCoverPhotoUseCase uploadCoverPhotoUseCase,
     required UpdateProfileWithPhotoUseCase updateProfileWithPhotoUseCase,
+    required ChangePasswordUseCase changePasswordUseCase,
   }) : _repository = repository,
        _uploadProfilePhotoUseCase = uploadProfilePhotoUseCase,
        _uploadCoverPhotoUseCase = uploadCoverPhotoUseCase,
-       _updateProfileWithPhotoUseCase = updateProfileWithPhotoUseCase;
+       _updateProfileWithPhotoUseCase = updateProfileWithPhotoUseCase,
+       _changePasswordUseCase = changePasswordUseCase;
 
   UserProfileEntity? _profile;
   bool _isLoading = false;
@@ -72,6 +77,34 @@ class ProfileController extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  /// Change user password
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _changePasswordUseCase(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (_) => true,
+      );
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   void clearError() {

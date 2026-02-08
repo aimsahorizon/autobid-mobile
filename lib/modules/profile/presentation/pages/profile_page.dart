@@ -21,6 +21,7 @@ import '../widgets/support_section.dart';
 import 'subscription_page.dart';
 import 'token_purchase_page.dart';
 import 'update_email_page.dart';
+import 'change_password_page.dart';
 import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
@@ -199,6 +200,15 @@ class _ProfilePageState extends State<ProfilePage> {
       context,
       MaterialPageRoute(
         builder: (context) => UpdateEmailPage(currentEmail: profile.email),
+      ),
+    );
+  }
+
+  void _navigateToChangePassword() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangePasswordPage(controller: widget.controller),
       ),
     );
   }
@@ -448,6 +458,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   AccountSettingsSection(
                     email: profile.email,
                     onUpdateEmail: _navigateToUpdateEmail,
+                    onChangePassword: _navigateToChangePassword,
                   ),
                   const SizedBox(height: 16),
                   SupportSection(

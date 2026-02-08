@@ -4,11 +4,13 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 class AccountSettingsSection extends StatelessWidget {
   final String email;
   final VoidCallback onUpdateEmail;
+  final VoidCallback onChangePassword;
 
   const AccountSettingsSection({
     super.key,
     required this.email,
     required this.onUpdateEmail,
+    required this.onChangePassword,
   });
 
   @override
@@ -46,6 +48,14 @@ class AccountSettingsSection extends StatelessWidget {
             title: 'Email Address',
             subtitle: email,
             onTap: onUpdateEmail,
+          ),
+          const SizedBox(height: 12),
+          _buildSettingsTile(
+            context,
+            icon: Icons.lock_outline,
+            title: 'Change Password',
+            subtitle: 'Update your security credentials',
+            onTap: onChangePassword,
           ),
         ],
       ),

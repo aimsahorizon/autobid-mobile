@@ -28,6 +28,7 @@ import 'domain/usecases/consume_bidding_token_usecase.dart';
 import 'domain/usecases/upload_profile_photo_usecase.dart';
 import 'domain/usecases/upload_cover_photo_usecase.dart';
 import 'domain/usecases/update_profile_with_photo_usecase.dart';
+import 'domain/usecases/change_password_usecase.dart';
 import 'presentation/controllers/pricing_controller.dart';
 import 'presentation/controllers/profile_controller.dart';
 import 'presentation/controllers/review_controller.dart';
