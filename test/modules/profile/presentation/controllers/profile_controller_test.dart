@@ -9,6 +9,7 @@ import 'package:autobid_mobile/modules/profile/domain/repositories/profile_repos
 import 'package:autobid_mobile/modules/profile/domain/usecases/upload_profile_photo_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/upload_cover_photo_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/update_profile_with_photo_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/change_password_usecase.dart';
 import 'package:autobid_mobile/modules/profile/presentation/controllers/profile_controller.dart';
 
 class MockProfileRepository extends Mock implements ProfileRepository {}
@@ -22,24 +23,29 @@ class MockUploadCoverPhotoUseCase extends Mock
 class MockUpdateProfileWithPhotoUseCase extends Mock
     implements UpdateProfileWithPhotoUseCase {}
 
+class MockChangePasswordUseCase extends Mock implements ChangePasswordUseCase {}
+
 void main() {
   late ProfileController controller;
   late MockProfileRepository mockRepository;
   late MockUploadProfilePhotoUseCase mockUploadProfilePhoto;
   late MockUploadCoverPhotoUseCase mockUploadCoverPhoto;
   late MockUpdateProfileWithPhotoUseCase mockUpdateProfileWithPhoto;
+  late MockChangePasswordUseCase mockChangePassword;
 
   setUp(() {
     mockRepository = MockProfileRepository();
     mockUploadProfilePhoto = MockUploadProfilePhotoUseCase();
     mockUploadCoverPhoto = MockUploadCoverPhotoUseCase();
     mockUpdateProfileWithPhoto = MockUpdateProfileWithPhotoUseCase();
+    mockChangePassword = MockChangePasswordUseCase();
 
     controller = ProfileController(
       repository: mockRepository,
       uploadProfilePhotoUseCase: mockUploadProfilePhoto,
       uploadCoverPhotoUseCase: mockUploadCoverPhoto,
       updateProfileWithPhotoUseCase: mockUpdateProfileWithPhoto,
+      changePasswordUseCase: mockChangePassword,
     );
   });
 

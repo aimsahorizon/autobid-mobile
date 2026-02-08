@@ -16,6 +16,7 @@ import 'package:autobid_mobile/modules/browse/domain/usecases/upsert_bid_increme
 import 'package:autobid_mobile/modules/browse/domain/usecases/process_deposit_usecase.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/stream_auction_updates_usecase.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/stream_bid_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_qa_updates_usecase.dart';
 import 'package:autobid_mobile/modules/browse/presentation/controllers/auction_detail_controller.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/consume_bidding_token_usecase.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
@@ -48,6 +49,8 @@ class MockStreamAuctionUpdatesUseCase extends Mock implements StreamAuctionUpdat
 
 class MockStreamBidUpdatesUseCase extends Mock implements StreamBidUpdatesUseCase {}
 
+class MockStreamQAUpdatesUseCase extends Mock implements StreamQAUpdatesUseCase {}
+
 class MockConsumeBiddingTokenUsecase extends Mock
     implements ConsumeBiddingTokenUsecase {}
 
@@ -66,6 +69,7 @@ void main() {
   late MockConsumeBiddingTokenUsecase mockConsumeBiddingToken;
   late MockStreamAuctionUpdatesUseCase mockStreamAuctionUpdates;
   late MockStreamBidUpdatesUseCase mockStreamBidUpdates;
+  late MockStreamQAUpdatesUseCase mockStreamQAUpdates;
 
   const testUserId = 'test-user-123';
   const testAuctionId = 'auction-123';
@@ -151,12 +155,17 @@ void main() {
     mockConsumeBiddingToken = MockConsumeBiddingTokenUsecase();
     mockStreamAuctionUpdates = MockStreamAuctionUpdatesUseCase();
     mockStreamBidUpdates = MockStreamBidUpdatesUseCase();
+    mockStreamQAUpdates = MockStreamQAUpdatesUseCase();
 
     // Default stream behavior
     when(() => mockStreamAuctionUpdates.call(auctionId: any(named: 'auctionId')))
         .thenAnswer((_) => const Stream.empty());
     when(() => mockStreamBidUpdates.call(auctionId: any(named: 'auctionId')))
         .thenAnswer((_) => const Stream.empty());
+    when(() => mockStreamQAUpdates.call(
+      auctionId: any(named: 'auctionId'),
+      currentUserId: any(named: 'currentUserId'),
+    )).thenAnswer((_) => const Stream.empty());
 
     controller = AuctionDetailController(
       getAuctionDetailUseCase: mockGetAuctionDetail,
@@ -172,6 +181,7 @@ void main() {
       consumeBiddingTokenUsecase: mockConsumeBiddingToken,
       streamAuctionUpdatesUseCase: mockStreamAuctionUpdates,
       streamBidUpdatesUseCase: mockStreamBidUpdates,
+      streamQAUpdatesUseCase: mockStreamQAUpdates,
       userId: testUserId,
     );
 
@@ -491,6 +501,7 @@ void main() {
           consumeBiddingTokenUsecase: mockConsumeBiddingToken,
           streamAuctionUpdatesUseCase: mockStreamAuctionUpdates,
           streamBidUpdatesUseCase: mockStreamBidUpdates,
+          streamQAUpdatesUseCase: mockStreamQAUpdates,
           userId: null,
         );
 
