@@ -1391,7 +1391,6 @@ class TransactionRealtimeDataSource {
 
       final auctionId = txn['auctionId'] as String?;
       final currentBuyerId = txn['buyerId'] as String?;
-      final txnId = txn['transactionId'] as String;
 
       if (auctionId == null) {
         debugPrint('[OfferToSpecificBidder] ❌ Auction ID not found');

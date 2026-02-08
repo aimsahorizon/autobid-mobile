@@ -25,6 +25,8 @@ class TransactionSupabaseDataSource {
           .select('''
             id,
             auction_id,
+            seller_rejection_reason,
+            buyer_rejection_reason,
             auctions!inner(
               *,
               auction_statuses(status_name),
@@ -128,6 +130,18 @@ class TransactionSupabaseDataSource {
           '[TransactionSupabaseDataSource] Transaction ID: $transactionId, Auction ID: $auctionId',
         );
         auctionData['id'] = transactionId; // Use transaction ID for navigation
+        auctionData['transaction_id'] = transactionId;
+
+        // Determine cancellation reason
+        String? cancellationReason;
+        final sellerReason = txn['seller_rejection_reason'] as String?;
+        final buyerReason = txn['buyer_rejection_reason'] as String?;
+        if (sellerReason != null && sellerReason.isNotEmpty) {
+          cancellationReason = sellerReason;
+        } else if (buyerReason != null && buyerReason.isNotEmpty) {
+          cancellationReason = buyerReason;
+        }
+        auctionData['cancellation_reason'] = cancellationReason;
 
         // Prefer transaction status, otherwise use joined auction_statuses.status_name
         final txnStatus = txn['status'] as String?;
@@ -183,6 +197,8 @@ class TransactionSupabaseDataSource {
             id,
             auction_id,
             seller_id,
+            seller_rejection_reason,
+            buyer_rejection_reason,
             auctions!inner(
               *,
               auction_statuses(status_name),
@@ -222,6 +238,18 @@ class TransactionSupabaseDataSource {
         // IMPORTANT: Override the auction's id with the TRANSACTION id
         final transactionId = txn['id'] as String;
         auctionData['id'] = transactionId;
+        auctionData['transaction_id'] = transactionId;
+
+        // Determine cancellation reason
+        String? cancellationReason;
+        final sellerReason = txn['seller_rejection_reason'] as String?;
+        final buyerReason = txn['buyer_rejection_reason'] as String?;
+        if (sellerReason != null && sellerReason.isNotEmpty) {
+          cancellationReason = sellerReason;
+        } else if (buyerReason != null && buyerReason.isNotEmpty) {
+          cancellationReason = buyerReason;
+        }
+        auctionData['cancellation_reason'] = cancellationReason;
 
         final txnStatus = txn['status'] as String?;
         final joinedStatus = auctionData['auction_statuses'] is Map
