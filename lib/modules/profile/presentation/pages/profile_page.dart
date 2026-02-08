@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
@@ -351,8 +352,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+          .copyWith(
+            statusBarColor: Colors.transparent,
+          ),
+      child: Scaffold(
+        appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -463,6 +471,7 @@ class _ProfilePageState extends State<ProfilePage> {
           );
         },
       ),
+    ),
     );
   }
 

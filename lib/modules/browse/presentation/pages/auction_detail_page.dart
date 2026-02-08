@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../controllers/auction_detail_controller.dart';
@@ -144,8 +145,15 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: ListenableBuilder(
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+          .copyWith(
+            statusBarColor: Colors.transparent,
+          ),
+      child: Scaffold(
+        body: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, _) {
           if (widget.controller.isLoading) {
@@ -231,6 +239,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           );
         },
       ),
+    ),
     );
   }
 

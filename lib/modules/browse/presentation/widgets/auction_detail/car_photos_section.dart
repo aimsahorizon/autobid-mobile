@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/auction_detail_entity.dart';
@@ -171,25 +172,30 @@ class _FullScreenGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
       ),
-      body: PageView.builder(
-        controller: PageController(initialPage: initialIndex),
-        itemCount: photos.length,
-        itemBuilder: (context, index) {
-          return InteractiveViewer(
-            child: Center(
-              child: CachedNetworkImage(
-                imageUrl: photos[index],
-                fit: BoxFit.contain,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: PageView.builder(
+          controller: PageController(initialPage: initialIndex),
+          itemCount: photos.length,
+          itemBuilder: (context, index) {
+            return InteractiveViewer(
+              child: Center(
+                child: CachedNetworkImage(
+                  imageUrl: photos[index],
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

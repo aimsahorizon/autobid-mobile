@@ -149,12 +149,13 @@ class _BrowsePageState extends State<BrowsePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.light,
-      ),
+      value: (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+          .copyWith(
+            statusBarColor: Colors.transparent,
+          ),
       child: Scaffold(
         backgroundColor: ColorConstants.backgroundLight,
         appBar: AppBar(
