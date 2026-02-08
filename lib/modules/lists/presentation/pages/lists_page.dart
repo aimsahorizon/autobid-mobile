@@ -104,8 +104,6 @@ class _ListsPageState extends State<ListsPage>
             CreateListingPage(controller: controller, sellerId: userId),
       ),
     ).then((result) {
-      _controller.loadListings();
-
       // Navigate to Pending tab if submission was successful
       if (result is Map &&
           result['success'] == true &&
@@ -326,7 +324,6 @@ class _ListsPageState extends State<ListsPage>
                     ? sl<ListingDraftController>()
                     : null,
                 sellerId: needsSellerId ? userId : null,
-                onListingUpdated: () => _controller.loadListings(),
                 isSelectionMode: _controller.isSelectionMode,
                 selectedIds: _controller.selectedListingIds,
                 onSelectionToggle: _controller.toggleSelection,

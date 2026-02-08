@@ -171,10 +171,12 @@ class ListsController extends ChangeNotifier {
 
   int getCountByStatus(ListingStatus status) => _listings[status]?.length ?? 0;
 
-  Future<void> loadListings() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  Future<void> loadListings({bool isBackground = false}) async {
+    if (!isBackground) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
       // Get current user ID
@@ -182,10 +184,17 @@ class ListsController extends ChangeNotifier {
       final userId = userResult.fold((l) => null, (r) => r?.id);
 
       if (userId == null) {
-        _errorMessage = 'User not authenticated';
+        if (!isBackground) {
+          _errorMessage = 'User not authenticated';
+        }
         _isLoading = false;
         notifyListeners();
         return;
+      }
+
+      // Start subscription if not already active
+      if (_listingsSubscription == null) {
+        _subscribeToUpdates(userId);
       }
 
       // Fetch all listings using UseCase
@@ -193,20 +202,23 @@ class ListsController extends ChangeNotifier {
 
       result.fold(
         (failure) {
-          _errorMessage = failure.message;
+          if (!isBackground) {
+            _errorMessage = failure.message;
+          }
         },
         (listingsMap) {
           _listings = listingsMap;
-          // Start subscription if not already active
-          if (_listingsSubscription == null) {
-            _subscribeToUpdates(userId);
-          }
+          _errorMessage = null;
         },
       );
     } catch (e) {
-      _errorMessage = 'Failed to load listings: $e';
+      if (!isBackground) {
+        _errorMessage = 'Failed to load listings: $e';
+      }
     } finally {
-      _isLoading = false;
+      if (!isBackground) {
+        _isLoading = false;
+      }
       notifyListeners();
     }
   }
@@ -216,7 +228,7 @@ class ListsController extends ChangeNotifier {
     _listingsSubscription = _streamSellerListingsUseCase(userId).listen(
       (_) {
         // Reload listings quietly on update
-        _reloadListingsQuietly(userId);
+        loadListings(isBackground: true);
       },
       onError: (e) {
         debugPrint('Realtime listing subscription error: $e');
@@ -225,19 +237,7 @@ class ListsController extends ChangeNotifier {
   }
 
   Future<void> _reloadListingsQuietly(String userId) async {
-    try {
-      final result = await _getSellerListingsUseCase.call(userId);
-      result.fold(
-        (failure) =>
-            debugPrint('Failed to reload listings: ${failure.message}'),
-        (listingsMap) {
-          _listings = listingsMap;
-          notifyListeners();
-        },
-      );
-    } catch (e) {
-      debugPrint('Failed to reload listings: $e');
-    }
+    await loadListings(isBackground: true);
   }
 
   void toggleViewMode() {

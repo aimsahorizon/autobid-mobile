@@ -28,7 +28,6 @@ class ListingsGrid extends StatelessWidget {
   final bool enableNavigation;
   final ListingDraftController? draftController;
   final String? sellerId;
-  final VoidCallback? onListingUpdated;
   final Future<void> Function(BuildContext, SellerListingEntity)?
   onTransactionCardTap;
   final bool isSelectionMode;
@@ -47,7 +46,6 @@ class ListingsGrid extends StatelessWidget {
     this.enableNavigation = true,
     this.draftController,
     this.sellerId,
-    this.onListingUpdated,
     this.onTransactionCardTap,
     this.isSelectionMode = false,
     this.selectedIds = const {},
@@ -187,10 +185,6 @@ class ListingsGrid extends StatelessWidget {
               ),
             );
 
-            // Reload listings after returning from transaction page
-            if (onListingUpdated != null) {
-              onListingUpdated!();
-            }
             return;
           }
 
@@ -210,15 +204,10 @@ class ListingsGrid extends StatelessWidget {
       }
 
       if (!context.mounted) return;
-      final result = await Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => detailPage),
       );
-
-      // Reload listings if there was an update (delete/submit)
-      if (result != null && onListingUpdated != null) {
-        onListingUpdated!();
-      }
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
