@@ -12,9 +12,6 @@ import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
 import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
-import 'package:get_it/get_it.dart';
-import '../../../transactions/presentation/controllers/transaction_controller.dart';
-import '../../../transactions/presentation/pages/pre_transaction_page.dart';
 import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
 import '../../../transactions/transactions_module.dart';
 
@@ -75,7 +72,10 @@ class ListingsGrid extends StatelessWidget {
 
       // Fallback: open pre-transaction page directly using the ID as transactionId
       if (!context.mounted) return;
-      final transactionController = GetIt.I<TransactionController>();
+      
+      // Use Realtime controller for consistent live experience
+      final realtimeController = TransactionsModule.instance
+          .createRealtimeTransactionController();
 
       final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
       final userName =
@@ -89,8 +89,8 @@ class ListingsGrid extends StatelessWidget {
       await Navigator.push<void>(
         context,
         MaterialPageRoute(
-          builder: (context) => PreTransactionPage(
-            controller: transactionController,
+          builder: (context) => PreTransactionRealtimePage(
+            controller: realtimeController,
             transactionId: listing.id,
             userId: userId,
             userName: userName,

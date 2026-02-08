@@ -466,6 +466,36 @@ class _StatusInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check for cancellation reason first
+    if ((listing.status == ListingStatus.dealFailed ||
+            listing.status == ListingStatus.cancelled) &&
+        listing.cancellationReason != null &&
+        listing.cancellationReason!.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _InfoChip(
+            icon: Icons.cancel_outlined,
+            label: listing.status == ListingStatus.dealFailed
+                ? 'Deal Failed'
+                : 'Cancelled',
+            color: ColorConstants.error,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Reason: ${listing.cancellationReason}',
+            style: TextStyle(
+              fontSize: 11,
+              color: ColorConstants.error,
+              fontStyle: FontStyle.italic,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      );
+    }
+
     switch (listing.status) {
       case ListingStatus.active:
         return _TimeChip(timeRemaining: timeRemaining);

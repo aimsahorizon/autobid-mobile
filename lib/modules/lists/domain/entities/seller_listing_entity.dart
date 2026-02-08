@@ -62,6 +62,9 @@ class SellerListingEntity {
   /// Used for cancelled listings that came from failed transactions
   final String? transactionId;
 
+  /// Reason for cancellation (if status is dealFailed or cancelled)
+  final String? cancellationReason;
+
   /// Visibility of the auction (public or private)
   final String visibility;
 
@@ -86,6 +89,7 @@ class SellerListingEntity {
     this.soldPrice,
     this.sellerId,
     this.transactionId,
+    this.cancellationReason,
     this.visibility = 'public',
   });
 

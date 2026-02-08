@@ -77,8 +77,12 @@ class ListingModel {
   /// Transaction ID for cancelled listings that have an associated failed transaction
   final String? transactionId;
 
+  /// Reason for cancellation (if applicable)
+  final String? cancellationReason;
+
   // Bidding Configuration
   final String biddingType;
+
   final double bidIncrement;
   final double minBidIncrement;
   final double depositAmount;
@@ -165,6 +169,7 @@ class ListingModel {
     required this.createdAt,
     required this.updatedAt,
     this.transactionId,
+    this.cancellationReason,
     this.biddingType = 'public',
     this.bidIncrement = 1000,
     this.minBidIncrement = 1000,
@@ -270,6 +275,7 @@ class ListingModel {
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
       transactionId: json['transaction_id'] as String?,
+      cancellationReason: json['cancellation_reason'] as String?,
       biddingType: json['bidding_type'] as String? ?? 'public',
       bidIncrement: _toDouble(json['bid_increment']) ?? 1000,
       minBidIncrement: _toDouble(json['min_bid_increment']) ?? 1000,
@@ -306,6 +312,7 @@ class ListingModel {
       soldPrice: soldPrice,
       sellerId: sellerId,
       transactionId: transactionId,
+      cancellationReason: cancellationReason,
       visibility: visibility,
     );
   }
