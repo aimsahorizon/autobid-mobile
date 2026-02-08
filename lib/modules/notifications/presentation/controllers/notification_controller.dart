@@ -170,14 +170,14 @@ class NotificationController extends ChangeNotifier {
         decision: decision,
       );
 
-      result.fold(
+      await result.fold(
         (failure) {
           _errorMessage = failure.message;
           notifyListeners();
         },
-        (_) {
+        (_) async {
           // Refresh notifications to show updated status or new notification
-          loadNotifications(userId);
+          await loadNotifications(userId);
         },
       );
     } catch (e) {
