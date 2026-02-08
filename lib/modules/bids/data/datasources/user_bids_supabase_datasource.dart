@@ -128,22 +128,22 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
           }
 
           // Fetch vehicle separately
-          String vehicleDisplay = 'Vehicle';
+          String brand = '';
+          String model = '';
+          String? variant;
           int vehicleYear = 0;
           try {
             final vehicleResponse = await _supabase
                 .from('auction_vehicles')
-                .select('brand, model, year')
+                .select('brand, model, variant, year')
                 .eq('auction_id', auctionId)
                 .limit(1);
             if (vehicleResponse.isNotEmpty) {
               final v = vehicleResponse.first;
-              final brand = v['brand'] as String? ?? '';
-              final model = v['model'] as String? ?? '';
+              brand = v['brand'] as String? ?? '';
+              model = v['model'] as String? ?? '';
+              variant = v['variant'] as String?;
               vehicleYear = (v['year'] as num?)?.toInt() ?? 0;
-              if (brand.isNotEmpty && model.isNotEmpty) {
-                vehicleDisplay = '$brand $model';
-              }
             }
           } catch (_) {
             // Use default values
@@ -181,7 +181,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
 
           debugPrint('[UserBidsSupabaseDataSource]   title: $title');
           debugPrint('[UserBidsSupabaseDataSource]   statusName: $statusName');
-          debugPrint('[UserBidsSupabaseDataSource]   vehicle: $vehicleDisplay');
+          debugPrint('[UserBidsSupabaseDataSource]   vehicle: $vehicleYear $brand $model $variant');
           debugPrint('[UserBidsSupabaseDataSource]   endTime: $endTime');
 
           // Check if auction ended: consider both end_time and explicit status
@@ -248,10 +248,9 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
                 auctionId: auctionId,
                 carImageUrl: coverPhotoUrl ?? '',
                 year: vehicleYear,
-                make: vehicleDisplay.split(' ').first,
-                model: vehicleDisplay.contains(' ')
-                    ? vehicleDisplay.split(' ').last
-                    : vehicleDisplay,
+                make: brand,
+                model: model,
+                variant: variant,
                 userBidAmount: userMaxBid,
                 currentHighestBid: currentPrice,
                 endTime: endTime ?? DateTime.now(),
@@ -278,10 +277,9 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
                     auctionId: auctionId,
                     carImageUrl: coverPhotoUrl ?? '',
                     year: vehicleYear,
-                    make: vehicleDisplay.split(' ').first,
-                    model: vehicleDisplay.contains(' ')
-                        ? vehicleDisplay.split(' ').last
-                        : vehicleDisplay,
+                    make: brand,
+                    model: model,
+                    variant: variant,
                     userBidAmount: userMaxBid,
                     currentHighestBid: currentPrice,
                     endTime: endTime ?? DateTime.now(),
@@ -304,10 +302,9 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
                     auctionId: auctionId,
                     carImageUrl: coverPhotoUrl ?? '',
                     year: vehicleYear,
-                    make: vehicleDisplay.split(' ').first,
-                    model: vehicleDisplay.contains(' ')
-                        ? vehicleDisplay.split(' ').last
-                        : vehicleDisplay,
+                    make: brand,
+                    model: model,
+                    variant: variant,
                     userBidAmount: userMaxBid,
                     currentHighestBid: currentPrice,
                     endTime: endTime ?? DateTime.now(),
@@ -330,10 +327,9 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
                   auctionId: auctionId,
                   carImageUrl: coverPhotoUrl ?? '',
                   year: vehicleYear,
-                  make: vehicleDisplay.split(' ').first,
-                  model: vehicleDisplay.contains(' ')
-                      ? vehicleDisplay.split(' ').last
-                      : vehicleDisplay,
+                  make: brand,
+                  model: model,
+                  variant: variant,
                   userBidAmount: userMaxBid,
                   currentHighestBid: currentPrice,
                   endTime: endTime ?? DateTime.now(),
