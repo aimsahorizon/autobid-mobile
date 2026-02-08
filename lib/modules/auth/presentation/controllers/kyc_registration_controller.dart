@@ -724,8 +724,9 @@ class KYCRegistrationController extends ChangeNotifier {
       return false;
     }
     if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(_username!)) {
-      if (reportError)
+      if (reportError) {
         setError('Username can only contain letters, numbers, and underscores');
+      }
       return false;
     }
 

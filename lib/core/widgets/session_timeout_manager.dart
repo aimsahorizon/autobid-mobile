@@ -50,6 +50,8 @@ class _SessionTimeoutManagerState extends State<SessionTimeoutManager> {
     if (SupabaseConfig.client.auth.currentUser != null) {
       await SupabaseConfig.client.auth.signOut();
       
+      if (!mounted) return;
+      
       final context = navigatorKey.currentState?.context;
       if (context != null && mounted) {
          navigatorKey.currentState?.pushNamedAndRemoveUntil(

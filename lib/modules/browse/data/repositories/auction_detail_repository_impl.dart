@@ -228,4 +228,15 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
   Stream<void> streamBidUpdates({required String auctionId}) {
     return remoteDataSource.streamBidUpdates(auctionId: auctionId);
   }
+
+  @override
+  Stream<List<QAEntity>> streamQAUpdates({
+    required String auctionId,
+    String? currentUserId,
+  }) {
+    return remoteDataSource.streamQAUpdates(
+      auctionId: auctionId,
+      currentUserId: currentUserId,
+    );
+  }
 }

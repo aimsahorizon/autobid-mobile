@@ -170,4 +170,15 @@ class AuctionDetailCompositeSupabaseDataSource
   Stream<void> streamBidUpdates({required String auctionId}) {
     return _bidDataSource.streamBidUpdates(auctionId);
   }
+
+  @override
+  Stream<List<QAEntity>> streamQAUpdates({
+    required String auctionId,
+    String? currentUserId,
+  }) {
+    return _qaDataSource.subscribeToQA(
+      auctionId,
+      currentUserId: currentUserId,
+    );
+  }
 }

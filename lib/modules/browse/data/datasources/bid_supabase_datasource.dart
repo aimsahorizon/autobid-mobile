@@ -9,8 +9,7 @@ class BidSupabaseDataSource {
   BidSupabaseDataSource(this._supabase);
 
   /// Place a bid on an auction/listing
-  /// Inserts new bid into bids table
-  /// Automatically updates listing's current_bid and total_bids via trigger
+  /// Uses server-side RPC 'place_bid' to ensure concurrency control and auto-bids
   Future<void> placeBid({
     required String auctionId,
     required String bidderId,
@@ -20,26 +19,8 @@ class BidSupabaseDataSource {
     double? autoBidIncrement,
   }) async {
     try {
-      // Get status ID for 'active' bid status
-      final statusResponse = await _supabase
-          .from('bid_statuses')
-          .select('id')
-          .eq('status_name', 'active')
-          .single();
-
-      final statusId = statusResponse['id'] as String;
-
-      // Insert new bid
-      await _supabase.from('bids').insert({
-        'auction_id': auctionId,
-        'bidder_id': bidderId,
-        'status_id': statusId,
-        'bid_amount': amount,
-        'is_auto_bid': isAutoBid,
-      });
-
-      // If auto-bid is enabled, create/update auto_bid_settings
-      if (isAutoBid && maxAutoBid != null) {
+      // If setting up auto-bid, save settings first
+      if (maxAutoBid != null) {
         await _supabase.from('auto_bid_settings').upsert(
           {
             'auction_id': auctionId,
@@ -51,7 +32,20 @@ class BidSupabaseDataSource {
         );
       }
 
-      await _maybeApplySnipeGuard(auctionId);
+      // Call RPC
+      final response = await _supabase.rpc('place_bid', params: {
+        'p_auction_id': auctionId,
+        'p_bidder_id': bidderId,
+        'p_amount': amount,
+        'p_is_auto_bid': isAutoBid,
+      });
+
+      // Parse response
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to place bid');
+      }
+
     } on PostgrestException catch (e) {
       throw Exception('Failed to place bid: ${e.message}');
     } catch (e) {
@@ -60,47 +54,9 @@ class BidSupabaseDataSource {
   }
 
   /// Extend auction end time by 5 minutes on every bid
+  /// Deprecated: Logic moved to server-side 'place_bid' function
   Future<void> _maybeApplySnipeGuard(String auctionId) async {
-    try {
-      debugPrint('[SnipeGuard] 🔍 Adding 5 minutes to auction $auctionId');
-
-      final auction = await _supabase
-          .from('auctions')
-          .select('end_time')
-          .eq('id', auctionId)
-          .maybeSingle();
-
-      if (auction == null) {
-        debugPrint('[SnipeGuard] ❌ Auction not found');
-        return;
-      }
-
-      final endTimeRaw = auction['end_time'] as String?;
-      if (endTimeRaw == null) {
-        debugPrint('[SnipeGuard] ❌ No end_time found');
-        return;
-      }
-
-      final endTime = DateTime.parse(endTimeRaw).toUtc();
-      final now = DateTime.now().toUtc();
-      final newEndTime = endTime.add(const Duration(minutes: 5));
-
-      debugPrint('[SnipeGuard] Old end: $endTime');
-      debugPrint('[SnipeGuard] New end: $newEndTime (+ 5 minutes)');
-
-      await _supabase
-          .from('auctions')
-          .update({
-            'end_time': newEndTime.toIso8601String(),
-            'snipe_guard_last_applied_at': now.toIso8601String(),
-          })
-          .eq('id', auctionId);
-
-      debugPrint('[SnipeGuard] ✅ Added 5 minutes successfully!');
-    } catch (e) {
-      // Non-fatal; bid already placed. Log and continue.
-      debugPrint('[SnipeGuard] ❌ Failed to add time: $e');
-    }
+    // No-op: handled by server
   }
 
   /// Get bid history for a listing/auction

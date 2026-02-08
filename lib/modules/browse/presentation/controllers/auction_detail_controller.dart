@@ -15,6 +15,7 @@ import '../../domain/usecases/upsert_bid_increment_usecase.dart';
 import '../../domain/usecases/process_deposit_usecase.dart';
 import '../../domain/usecases/stream_auction_updates_usecase.dart';
 import '../../domain/usecases/stream_bid_updates_usecase.dart';
+import '../../domain/usecases/stream_qa_updates_usecase.dart';
 import '../../../profile/domain/usecases/consume_bidding_token_usecase.dart';
 
 /// Controller for managing auction detail page state
@@ -38,6 +39,7 @@ class AuctionDetailController extends ChangeNotifier {
   final ConsumeBiddingTokenUsecase _consumeBiddingTokenUsecase;
   final StreamAuctionUpdatesUseCase _streamAuctionUpdatesUseCase;
   final StreamBidUpdatesUseCase _streamBidUpdatesUseCase;
+  final StreamQAUpdatesUseCase _streamQAUpdatesUseCase;
   final String? _userId;
 
   /// Create controller with UseCases via Dependency Injection
@@ -55,6 +57,7 @@ class AuctionDetailController extends ChangeNotifier {
     required ConsumeBiddingTokenUsecase consumeBiddingTokenUsecase,
     required StreamAuctionUpdatesUseCase streamAuctionUpdatesUseCase,
     required StreamBidUpdatesUseCase streamBidUpdatesUseCase,
+    required StreamQAUpdatesUseCase streamQAUpdatesUseCase,
     String? userId,
   }) : _getAuctionDetailUseCase = getAuctionDetailUseCase,
        _getBidHistoryUseCase = getBidHistoryUseCase,
@@ -69,6 +72,7 @@ class AuctionDetailController extends ChangeNotifier {
        _consumeBiddingTokenUsecase = consumeBiddingTokenUsecase,
        _streamAuctionUpdatesUseCase = streamAuctionUpdatesUseCase,
        _streamBidUpdatesUseCase = streamBidUpdatesUseCase,
+       _streamQAUpdatesUseCase = streamQAUpdatesUseCase,
        _userId = userId;
 
   // State properties
@@ -85,9 +89,9 @@ class AuctionDetailController extends ChangeNotifier {
   bool _isAutoBidActive = false;
   double? _maxAutoBid;
   double _bidIncrement = 1000;
-  Timer? _pollingTimer;
   StreamSubscription? _auctionSubscription;
   StreamSubscription? _bidSubscription;
+  StreamSubscription? _qaSubscription;
   String? _subscribedAuctionId; // Track which auction we're subscribed to
 
   // Public getters
@@ -163,8 +167,7 @@ class AuctionDetailController extends ChangeNotifier {
         debugPrint(
           'DEBUG: Detected outbid - previous: $previousBid, current: ${_auction!.currentBid}',
         );
-        // We've been outbid, trigger auto-bid check
-        await _checkAndPlaceAutoBid();
+        // Server handles auto-bids now
       }
     } catch (e) {
       _errorMessage = 'Failed to load auction details';
@@ -511,6 +514,7 @@ class AuctionDetailController extends ChangeNotifier {
 
   /// Sets auto-bid configuration
   /// When active, system will automatically bid when outbid, up to maxBid amount
+  /// Logic is handled server-side via 'place_bid' RPC and triggers
   void setAutoBid(bool isActive, double? maxBid, double increment) {
     // Respect seller-configured minimum bid increment
     final minIncrement = _auction?.minBidIncrement ?? increment;
@@ -531,75 +535,8 @@ class AuctionDetailController extends ChangeNotifier {
       );
     }
     notifyListeners();
-
-    // If auto-bid is active, start polling and place initial bid
-    if (isActive && maxBid != null && _auction != null) {
-      _startPolling();
-      _checkAndPlaceAutoBid();
-    } else {
-      _stopPolling();
-    }
-  }
-
-  /// Internal method to check if auto-bid should trigger and place bid
-  Future<void> _checkAndPlaceAutoBid() async {
-    if (!_isAutoBidActive || _maxAutoBid == null || _auction == null) {
-      debugPrint(
-        'DEBUG: Auto-bid check skipped - active: $_isAutoBidActive, maxBid: $_maxAutoBid, auction: ${_auction != null}',
-      );
-      return;
-    }
-
-    if (_isProcessing) {
-      debugPrint('DEBUG: Auto-bid check skipped - already processing a bid');
-      return;
-    }
-
-    // Check if we need to bid higher
-    final currentBid = _auction!.currentBid;
-    final nextBidAmount = currentBid + _bidIncrement;
-
-    debugPrint(
-      'DEBUG: Auto-bid check - currentBid: $currentBid, nextBid: $nextBidAmount, maxBid: $_maxAutoBid',
-    );
-
-    // Check if next bid is within our max limit
-    if (nextBidAmount > _maxAutoBid!) {
-      debugPrint(
-        'DEBUG: Auto-bid limit reached - deactivating (nextBid $nextBidAmount > maxBid $_maxAutoBid)',
-      );
-      _isAutoBidActive = false;
-      _stopPolling();
-      _errorMessage =
-          'Auto-bid limit reached. Maximum bid: ₱${_maxAutoBid!.toStringAsFixed(0)}';
-      notifyListeners();
-      return;
-    }
-
-    // Check if we're already the highest bidder by checking bid history
-    if (_bidHistory.isNotEmpty) {
-      final highestBid = _bidHistory.first;
-      if (highestBid.isCurrentUser && highestBid.amount >= currentBid) {
-        debugPrint('DEBUG: Already highest bidder - no auto-bid needed');
-        return;
-      }
-    }
-
-    // Place automatic bid
-    debugPrint('DEBUG: Placing auto-bid of ₱$nextBidAmount');
-    final success = await placeBid(nextBidAmount, userId: _userId);
-
-    if (success) {
-      debugPrint('DEBUG: Auto-bid successful at ₱$nextBidAmount');
-    } else {
-      debugPrint(
-        'DEBUG: Auto-bid failed - ${_errorMessage ?? "unknown error"}',
-      );
-      // If bid fails, deactivate auto-bid to prevent infinite loops
-      _isAutoBidActive = false;
-      _stopPolling();
-      notifyListeners();
-    }
+    
+    // Server handles the rest when any bid is placed
   }
 
   /// Subscribe to realtime updates for auction and bids
@@ -614,7 +551,6 @@ class AuctionDetailController extends ChangeNotifier {
     );
 
     // Subscribe to auction updates (price, end_time)
-    // Use a skip(1) to ignore the initial emission from Supabase .stream()
     _auctionSubscription = _streamAuctionUpdatesUseCase(auctionId: auctionId)
         .skip(1)
         .listen(
@@ -629,7 +565,6 @@ class AuctionDetailController extends ChangeNotifier {
         );
 
     // Subscribe to bid updates (new bids)
-    // Use a skip(1) to ignore the initial emission from Supabase .stream()
     _bidSubscription = _streamBidUpdatesUseCase(auctionId: auctionId)
         .skip(1)
         .listen(
@@ -642,36 +577,29 @@ class AuctionDetailController extends ChangeNotifier {
             debugPrint('ERROR: Realtime bid subscription error: $e');
           },
         );
-  }
 
-  /// Starts polling timer to periodically check for auction updates
-  /// Runs every 5 seconds when auto-bid is active
-  void _startPolling() {
-    _stopPolling(); // Cancel any existing timer
-
-    debugPrint('DEBUG: Starting auto-bid polling (5s interval)');
-    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (_auction != null && _isAutoBidActive) {
-        debugPrint('DEBUG: Polling for auction updates...');
-        loadAuctionDetail(_auction!.id, isBackground: true);
-      }
-    });
-  }
-
-  /// Stops the polling timer
-  void _stopPolling() {
-    if (_pollingTimer != null) {
-      debugPrint('DEBUG: Stopping auto-bid polling');
-      _pollingTimer?.cancel();
-      _pollingTimer = null;
-    }
+    // Subscribe to Q&A updates
+    _qaSubscription = _streamQAUpdatesUseCase(
+          auctionId: auctionId,
+          currentUserId: _userId,
+        )
+        .listen(
+          (questions) {
+            debugPrint('DEBUG: Realtime Q&A update received');
+            _questions = questions;
+            notifyListeners();
+          },
+          onError: (e) {
+            debugPrint('ERROR: Realtime Q&A subscription error: $e');
+          },
+        );
   }
 
   @override
   void dispose() {
-    _stopPolling();
     _auctionSubscription?.cancel();
     _bidSubscription?.cancel();
+    _qaSubscription?.cancel();
     _subscribedAuctionId = null;
     super.dispose();
   }

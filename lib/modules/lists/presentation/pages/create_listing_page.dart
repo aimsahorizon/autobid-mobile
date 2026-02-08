@@ -91,20 +91,20 @@ class _CreateListingPageState extends State<CreateListingPage> {
   void _showSuccessModal() {
     // Use addPostFrameCallback to ensure navigation happens after current frame
     // This prevents errors from controller state changes during navigation
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      // Use push instead of pushReplacement so we can handle the result
+      final result = await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ListingSuccessScreen(
             onCreateAnother: () {
-              // Pop back to create new listing
-              Navigator.pop(context);
-              widget.controller.createNewDraft(widget.sellerId);
+              // Pop the success screen
+              Navigator.pop(context, {'action': 'create_another'});
             },
             onViewListing: () {
-              // Pop and return with 'pending' to navigate to Pending tab
+              // Pop with navigation data
               Navigator.pop(context, {
                 'success': true,
                 'navigateTo': 'pending',
@@ -113,6 +113,18 @@ class _CreateListingPageState extends State<CreateListingPage> {
           ),
         ),
       );
+
+      if (!mounted) return;
+
+      if (result != null && result is Map) {
+        if (result['navigateTo'] == 'pending') {
+          // Pass the result back to ListsPage
+          Navigator.pop(context, result);
+        } else if (result['action'] == 'create_another') {
+          // Reset for new draft
+          widget.controller.createNewDraft(widget.sellerId);
+        }
+      }
     });
   }
 

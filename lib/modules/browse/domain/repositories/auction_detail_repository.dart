@@ -75,4 +75,10 @@ abstract class AuctionDetailRepository {
 
   /// Stream bid updates
   Stream<void> streamBidUpdates({required String auctionId});
+
+  /// Stream Q&A updates
+  Stream<List<QAEntity>> streamQAUpdates({
+    required String auctionId,
+    String? currentUserId,
+  });
 }

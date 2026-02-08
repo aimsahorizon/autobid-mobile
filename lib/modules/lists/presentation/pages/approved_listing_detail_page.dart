@@ -60,7 +60,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
             timePickerTheme: TimePickerThemeData(
               dayPeriodColor: WidgetStateColor.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return ColorConstants.primary.withOpacity(0.2);
+                  return ColorConstants.primary.withValues(alpha: 0.2);
                 }
                 return Colors.transparent;
               }),
@@ -72,7 +72,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
               }),
               hourMinuteColor: WidgetStateColor.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return ColorConstants.primary.withOpacity(0.2);
+                  return ColorConstants.primary.withValues(alpha: 0.2);
                 }
                 return isDark ? const Color(0xFF2A0D3D) : Colors.grey.shade200;
               }),
@@ -279,7 +279,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
             timePickerTheme: TimePickerThemeData(
               dayPeriodColor: WidgetStateColor.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return ColorConstants.primary.withOpacity(0.2);
+                  return ColorConstants.primary.withValues(alpha: 0.2);
                 }
                 return Colors.transparent;
               }),
@@ -291,7 +291,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
               }),
               hourMinuteColor: WidgetStateColor.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return ColorConstants.primary.withOpacity(0.2);
+                  return ColorConstants.primary.withValues(alpha: 0.2);
                 }
                 return isDark ? const Color(0xFF2A0D3D) : Colors.grey.shade200;
               }),
@@ -335,9 +335,22 @@ class ApprovedListingDetailPage extends StatelessWidget {
 
     // Ensure end_time remains after the new start_time
     final currentEnd = listing.endTime;
+    // Default to 7 days if not set or invalid
     final safeEnd = (currentEnd != null && currentEnd.isAfter(scheduledStart))
         ? currentEnd
         : scheduledStart.add(const Duration(days: 7));
+
+    // Validate minimum duration (24 hours)
+    if (safeEnd.difference(scheduledStart).inHours < 24) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Scheduled auctions must be at least 24 hours long.'),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
 
     // Capture references before async gap
     final navigator = Navigator.of(context);

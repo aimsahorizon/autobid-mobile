@@ -34,6 +34,7 @@ class ListingsGrid extends StatelessWidget {
   final Set<String> selectedIds;
   final Function(String)? onSelectionToggle;
   final Function(SellerListingEntity)? onInviteTap;
+  final VoidCallback? onListingUpdated;
 
   const ListingsGrid({
     super.key,
@@ -51,6 +52,7 @@ class ListingsGrid extends StatelessWidget {
     this.selectedIds = const {},
     this.onSelectionToggle,
     this.onInviteTap,
+    this.onListingUpdated,
   });
 
   void _navigateToDetail(
@@ -208,6 +210,8 @@ class ListingsGrid extends StatelessWidget {
         context,
         MaterialPageRoute(builder: (context) => detailPage),
       );
+      
+      onListingUpdated?.call();
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog

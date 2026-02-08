@@ -175,7 +175,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
             timePickerTheme: TimePickerThemeData(
               dayPeriodColor: WidgetStateColor.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return ColorConstants.primary.withOpacity(0.2);
+                  return ColorConstants.primary.withValues(alpha: 0.2);
                 }
                 return Colors.transparent;
               }),
@@ -187,7 +187,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
               }),
               hourMinuteColor: WidgetStateColor.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
-                  return ColorConstants.primary.withOpacity(0.2);
+                  return ColorConstants.primary.withValues(alpha: 0.2);
                 }
                 return isDark ? const Color(0xFF2A0D3D) : Colors.grey.shade200;
               }),
