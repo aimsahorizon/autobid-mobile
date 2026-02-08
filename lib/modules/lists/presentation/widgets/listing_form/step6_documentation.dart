@@ -6,6 +6,7 @@ import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import '../../../domain/usecases/validate_plate_number_usecase.dart';
 import 'form_field_widget.dart';
+import 'province_city_picker.dart';
 
 class Step6Documentation extends StatefulWidget {
   final ListingDraftController controller;
@@ -22,6 +23,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
 
   String? _province;
   String? _city;
+  String? _barangay;
   String? _orcrStatus;
   String? _registrationStatus;
   DateTime? _registrationExpiry;
@@ -38,9 +40,9 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     final draft = widget.controller.currentDraft!;
     _plateController = TextEditingController(text: draft.plateNumber);
 
-    // Hardcode location to Zamboanga City
-    _province = 'Zamboanga del Sur';
-    _city = 'Zamboanga City';
+    _province = draft.province;
+    _city = draft.cityMunicipality;
+    _barangay = draft.barangay;
 
     _orcrStatus = draft.orcrStatus;
     _registrationStatus = draft.registrationStatus;
@@ -179,6 +181,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         registrationExpiry: _registrationExpiry,
         province: _province,
         cityMunicipality: _city,
+        barangay: _barangay,
         photoUrls: draft.photoUrls,
         description: draft.description,
         knownIssues: draft.knownIssues,
@@ -291,33 +294,23 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           ),
         ),
         const SizedBox(height: 16),
-        // Province (Locked)
-        DropdownButtonFormField<String>(
-          initialValue: _province,
-          decoration: InputDecoration(
-            labelText: 'Province',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            prefixIcon: const Icon(Icons.location_city_outlined),
-          ),
-          items: _province != null
-              ? [DropdownMenuItem(value: _province, child: Text(_province!))]
-              : [],
-          onChanged: null, // Disabled
-        ),
-        const SizedBox(height: 16),
-        // City (Locked)
-        DropdownButtonFormField<String>(
-          initialValue: _city,
-          decoration: InputDecoration(
-            labelText: 'City/Municipality',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            prefixIcon: const Icon(Icons.apartment_outlined),
-            helperText: 'Service currently limited to Zamboanga City',
-          ),
-          items: _city != null
-              ? [DropdownMenuItem(value: _city, child: Text(_city!))]
-              : [],
-          onChanged: null, // Disabled
+        
+        // Location Picker
+        LocationPicker(
+          province: _province,
+          city: _city,
+          barangay: _barangay,
+          onChanged: (province, city, barangay) {
+             setState(() {
+               _province = province;
+               _city = city;
+               _barangay = barangay;
+             });
+             _updateDraft();
+          },
+          provinceValidator: (v) => v == null ? 'Required' : null,
+          cityValidator: (v) => v == null ? 'Required' : null,
+          barangayValidator: (v) => v == null ? 'Required' : null,
         ),
       ],
     );
