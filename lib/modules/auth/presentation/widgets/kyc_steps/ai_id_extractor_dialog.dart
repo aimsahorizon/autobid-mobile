@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import 'package:autobid_mobile/core/services/ai_service.dart';
+import 'package:autobid_mobile/core/services/ai_id_extraction_service.dart';
 
 /// Dialog that shows AI extraction progress and results
 /// Provides user option to accept or manually fill the data
 class AiIdExtractorDialog extends StatefulWidget {
   final File idImage;
-  final IDExtractionService extractionService;
+  final IAiIdExtractionService extractionService;
   final Function(Map<String, dynamic> extractedData) onAccept;
   final VoidCallback onDecline;
 
@@ -38,10 +38,29 @@ class _AiIdExtractorDialogState extends State<AiIdExtractorDialog> {
   Future<void> _extractData() async {
     try {
       // Call AI service to extract ID information
-      final result = await widget.extractionService.extractIDInfo(widget.idImage);
+      // We assume National ID for now as it's the primary use case
+      final result = await widget.extractionService.extractFromNationalId(
+        frontImage: widget.idImage,
+      );
+
+      // Map ExtractedIdData to Map<String, dynamic> for UI compatibility
+      final mappedData = {
+        'id_number': result.idNumber,
+        'full_name': [result.firstName, result.middleName, result.lastName]
+            .where((s) => s != null && s.isNotEmpty)
+            .join(' '),
+        'date_of_birth': result.dateOfBirth?.toIso8601String().split('T')[0],
+        'address': result.address,
+        'id_type': 'Philippine National ID', // Inferred
+        'confidence': result.hasData ? 0.95 : 0.0, // Mock confidence based on success
+      };
+
+      if (!result.hasData) {
+        throw Exception('Could not extract legible data from the image.');
+      }
 
       setState(() {
-        _extractedData = result;
+        _extractedData = mappedData;
         _isExtracting = false;
       });
     } catch (e) {

@@ -1,33 +1,23 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/services.dart';
-// import 'package:tflite_flutter/tflite_flutter.dart'; // Uncomment when pkg is available
-
-/// Abstract base class for AI services
-abstract class AIService {
-  Future<bool> isConfigured();
-  String get serviceName;
-}
-
-// ... IDExtractionService remains unchanged ...
+import 'package:tflite_flutter/tflite_flutter.dart';
 
 /// Service for predicting vehicle prices using AI
 /// Uses On-Device TensorFlow Lite Model (Regression)
-class PricePredictionService extends AIService {
+class PricePredictionService {
   
   // Cache for metadata (encoders, normalization stats)
   Map<String, dynamic>? _metadata;
-  // Interpreter? _interpreter; // Uncomment
+  Interpreter? _interpreter;
 
-  @override
   String get serviceName => 'Price Prediction Service';
 
-  @override
   Future<bool> isConfigured() async {
     // Check if assets exist
     try {
       await rootBundle.load('assets/ai/pricing_metadata.json');
-      // await rootBundle.load('assets/ai/pricing_model.tflite');
+      await rootBundle.load('assets/ai/pricing_model.tflite');
       return true;
     } catch (_) {
       return false;
@@ -35,15 +25,16 @@ class PricePredictionService extends AIService {
   }
 
   Future<void> _loadResources() async {
-    if (_metadata != null) return;
+    if (_metadata != null && _interpreter != null) return;
     
     try {
       final jsonString = await rootBundle.loadString('assets/ai/pricing_metadata.json');
       _metadata = json.decode(jsonString);
       
-      // _interpreter = await Interpreter.fromAsset('assets/ai/pricing_model.tflite');
+      _interpreter = await Interpreter.fromAsset('assets/ai/pricing_model.tflite');
     } catch (e) {
       print('Error loading pricing AI resources: $e');
+      _interpreter = null; // Ensure null if load fails
     }
   }
 
@@ -54,7 +45,7 @@ class PricePredictionService extends AIService {
     await _loadResources();
     
     // If model missing, fallback to heuristics
-    if (_metadata == null) { // || _interpreter == null
+    if (_metadata == null || _interpreter == null) {
        print('Pricing AI model not found. Using Fallback Heuristics.');
        return _fallbackPrediction(vehicleData);
     }
@@ -84,13 +75,10 @@ class PricePredictionService extends AIService {
       final input = [[brandCode, yearNorm, mileNorm, conditionCode, transCode]];
       
       // 2. Inference
-      // var output = List.filled(1 * 1, 0).reshape([1, 1]);
-      // _interpreter!.run(input, output);
-      // final predictedNorm = output[0][0];
+      var output = List.filled(1 * 1, 0.0).reshape([1, 1]);
+      _interpreter!.run(input, output);
+      final predictedNorm = output[0][0];
       
-      // Mock Inference for now (replace with above lines)
-      final predictedNorm = 0.5; // Dummy
-
       // 3. Denormalize Output
       final priceMin = _metadata!['price_min'];
       final priceMax = _metadata!['price_max'];
@@ -119,4 +107,3 @@ class PricePredictionService extends AIService {
     };
   }
 }
-

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import 'package:autobid_mobile/core/services/ai_service.dart';
+import 'package:autobid_mobile/core/services/price_prediction_service.dart';
 
 class AiPricePredictor extends StatefulWidget {
   final String? brand;
@@ -25,9 +25,7 @@ class AiPricePredictor extends StatefulWidget {
 }
 
 class _AiPricePredictorState extends State<AiPricePredictor> {
-  final PricePredictionService _aiService = PricePredictionService(
-    useEdgeModel: true,
-  );
+  final PricePredictionService _aiService = PricePredictionService();
   bool _isLoading = false;
   double? _predictedPrice;
 
