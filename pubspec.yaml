@@ -67,6 +67,7 @@ dependencies:
   connectivity_plus: ^7.0.0
   image_cropper: ^11.0.0
   google_mlkit_text_recognition: ^0.14.0
+  tflite_flutter: ^0.10.4
 
 dev_dependencies:
   flutter_test:
@@ -99,6 +100,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
+    - assets/ai/
     - assets/images/2017 Honda Civic Type R/center console and infotainment/
     - assets/images/2017 Honda Civic Type R/closeup of all wheels and tires/
     - assets/images/2017 Honda Civic Type R/driver seat and dashboard/
