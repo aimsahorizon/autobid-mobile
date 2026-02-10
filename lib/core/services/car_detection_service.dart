@@ -1,11 +1,17 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:image/image.dart' as img;
 
 /// AI Car Detection Service
 /// Provides mock and real AI car detection from images
 class CarDetectionService {
   final _random = Random();
+  
+  // Singleton pattern for interpreter to avoid reloading it constantly
+  Interpreter? _interpreter;
+  List<String>? _labels;
 
   // Filipino car brands commonly seen in Philippines
   static const _brands = [
@@ -148,36 +154,81 @@ class CarDetectionService {
   Future<Map<String, dynamic>> detectCarFromImageReal(String imagePath) async {
     try {
       // 1. Load Model (Lazy loading)
-      // If the file 'assets/ai/car_model.tflite' is not in pubspec or filesystem, this will throw.
-      final interpreter = await Interpreter.fromAsset('assets/ai/car_model.tflite');
-      final labelsStr = await rootBundle.loadString('assets/ai/labels.txt');
-      final labels = labelsStr.split('\n');
+      if (_interpreter == null) {
+        // If the file 'assets/ai/car_model.tflite' is not in pubspec or filesystem, this will throw.
+        _interpreter = await Interpreter.fromAsset('assets/ai/car_model.tflite');
+        final labelsStr = await rootBundle.loadString('assets/ai/labels.txt');
+        _labels = labelsStr.split('\n').where((s) => s.isNotEmpty).toList();
+      }
+
+      if (_interpreter == null || _labels == null || _labels!.isEmpty) {
+        throw Exception("Model or labels failed to load");
+      }
+
+      // 2. Preprocess Image
+      final imageData = File(imagePath).readAsBytesSync();
+      final image = img.decodeImage(imageData);
+      if (image == null) throw Exception("Failed to decode image");
+
+      // Resize to 224x224 (MobileNet standard)
+      final resizedImage = img.copyResize(image, width: 224, height: 224);
+
+      // Convert to Float32 List [1, 224, 224, 3] and normalize to [0, 1]
+      // Assuming training used rescale=1./255
+      var input = List.generate(1, (i) => 
+        List.generate(224, (y) => 
+          List.generate(224, (x) {
+            final pixel = resizedImage.getPixel(x, y);
+            return [
+              pixel.r / 255.0,
+              pixel.g / 255.0,
+              pixel.b / 255.0
+            ];
+          })
+        )
+      );
       
-      // 2. Preprocess Image (Placeholder - requires 'image' package or similar to get bytes)
-      // Note: In a real implementation, you would resize the image to 224x224 here
-      // and normalize pixel values to [0, 1].
-      // For this step to work, we need a way to read image bytes, usually via `File(imagePath).readAsBytes()`
-      // Then use `image` package to resize.
+      // 3. Inference
+      var output = List.filled(1 * _labels!.length, 0.0).reshape([1, _labels!.length]);
+      _interpreter!.run(input, output);
       
-      // Since we don't have the image pre-processing utility fully set up in this context, 
-      // we will simulate the inference call structure but catch the inevitable error 
-      // if we don't pass valid inputs.
+      // 4. Parse Results
+      final probabilities = output[0] as List<double>;
+      var maxProbability = 0.0;
+      var maxIndex = 0;
       
-      // var input = ... // [1, 224, 224, 3]
-      // var output = List.filled(1 * labels.length, 0).reshape([1, labels.length]);
-      // interpreter.run(input, output);
-      
-      // ... Processing logic ...
-      
-      interpreter.close();
-      
-      // Temporarily still returning mock data until the image pre-processor is added
-      // This ensures compilation works and structure is ready.
-      throw UnimplementedError("Image Preprocessing not yet integrated");
+      for (var i = 0; i < probabilities.length; i++) {
+        if (probabilities[i] > maxProbability) {
+          maxProbability = probabilities[i];
+          maxIndex = i;
+        }
+      }
+
+      final detectedLabel = _labels![maxIndex];
+      // Expecting format "Brand_Model_Year"
+      final parts = detectedLabel.split('_');
+      final detectedBrand = parts.isNotEmpty ? parts[0] : "Unknown";
+      final detectedModel = parts.length > 1 ? parts[1] : "Unknown";
+      final detectedYear = parts.length > 2 ? int.tryParse(parts[2]) : 2020;
+
+      final tags = _generateTags(
+        detectedBrand, 
+        "Sedan", // Default until body type AI is added
+        "Automatic", 
+        detectedYear ?? 2020
+      );
+
+      return {
+         'brand': detectedBrand,
+         'model': detectedModel,
+         'year': detectedYear,
+         'confidence': maxProbability,
+         'tags': tags,
+         'is_real_ai': true
+      };
       
     } catch (e) {
       print('AI Detection Error (falling back to mock): $e');
-      // Fallback to mock if AI fails (e.g. model not found yet)
       return detectCarFromImage(imagePath);
     }
   }
