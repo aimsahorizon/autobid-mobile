@@ -244,21 +244,27 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
+        
+        // AI Price Predictor
         AiPricePredictor(
-          brand: draft.brand,
-          model: draft.model,
-          year: draft.year,
-          mileage: draft.mileage,
-          condition: draft.condition,
-          onAccept: (startingPrice) {
-            final reservePrice = startingPrice * 1.1;
+          draft: draft,
+          onApplyPrice: (price) {
+            final reserve = price * 1.1; // Default reserve 10% higher
             setState(() {
-              _startingPriceController.text = startingPrice.toStringAsFixed(0);
-              _reservePriceController.text = reservePrice.toStringAsFixed(0);
+              _startingPriceController.text = price.toStringAsFixed(0);
+              _reservePriceController.text = reserve.toStringAsFixed(0);
             });
             _updateDraft();
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Applied suggested price: Γé▒${price.toStringAsFixed(0)}'),
+                backgroundColor: Colors.green,
+              ),
+            );
           },
         ),
+        
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _startingPriceController,

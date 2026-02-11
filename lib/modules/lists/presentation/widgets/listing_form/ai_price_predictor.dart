@@ -1,23 +1,17 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:autobid_mobile/core/constants/color_constants.dart';
-import 'package:autobid_mobile/core/services/price_prediction_service.dart';
+import 'package:flutter/services.dart';
+import '../../../../../../core/constants/color_constants.dart';
+import '../../../domain/entities/listing_draft_entity.dart';
 
 class AiPricePredictor extends StatefulWidget {
-  final String? brand;
-  final String? model;
-  final int? year;
-  final int? mileage;
-  final String? condition;
-  final void Function(double price) onAccept;
+  final ListingDraftEntity draft;
+  final Function(double price) onApplyPrice;
 
   const AiPricePredictor({
     super.key,
-    required this.brand,
-    required this.model,
-    required this.year,
-    required this.mileage,
-    required this.condition,
-    required this.onAccept,
+    required this.draft,
+    required this.onApplyPrice,
   });
 
   @override
@@ -25,9 +19,11 @@ class AiPricePredictor extends StatefulWidget {
 }
 
 class _AiPricePredictorState extends State<AiPricePredictor> {
-  final PricePredictionService _aiService = PricePredictionService();
-  bool _isLoading = false;
+  bool _isLoading = true;
   double? _predictedPrice;
+  double? _minPrice;
+  double? _maxPrice;
+  String? _error;
 
   @override
   void initState() {
@@ -35,94 +31,80 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
     _predictPrice();
   }
 
-  @override
-  void didUpdateWidget(AiPricePredictor oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.brand != oldWidget.brand ||
-        widget.model != oldWidget.model ||
-        widget.year != oldWidget.year ||
-        widget.mileage != oldWidget.mileage ||
-        widget.condition != oldWidget.condition) {
-      _predictPrice();
-    }
-  }
-
-  // Calls AI service to predict vehicle price
   Future<void> _predictPrice() async {
-    // Check if all required fields are filled
-    if (widget.brand == null ||
-        widget.model == null ||
-        widget.year == null ||
-        widget.mileage == null ||
-        widget.condition == null) {
-      setState(() {
-        _predictedPrice = null;
-      });
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
     try {
-      // Prepare vehicle data for AI service
-      final vehicleData = {
-        'brand': widget.brand!,
-        'model': widget.model!,
-        'year': widget.year!,
-        'mileage': widget.mileage!,
-        'condition': widget.condition!,
-      };
+      // 1. Load Metadata
+      final jsonStr = await rootBundle.loadString('assets/ai/pricing_metadata.json');
+      final Map<String, dynamic> db = json.decode(jsonStr);
 
-      // Call AI service to predict price
-      final result = await _aiService.predictPrice(vehicleData);
+      final key = '${widget.draft.brand}_${widget.draft.model}'
+          .toLowerCase()
+          .replaceAll(' ', '_');
+      
+      final yearKey = widget.draft.year.toString();
 
-      setState(() {
-        _predictedPrice = result['predicted_price'];
-        _isLoading = false;
-      });
-    } catch (e) {
-      // Handle prediction error
-      setState(() {
-        _predictedPrice = null;
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Price prediction failed: $e')));
+      if (!db.containsKey(key) || !db[key].containsKey(yearKey)) {
+        throw Exception('Not enough market data for this specific model.');
       }
+
+      final stats = db[key][yearKey];
+      double basePrice = (stats['price'] as num).toDouble();
+      
+      // 2. Apply Adjustments (Logic-based AI)
+      
+      // Mileage Adjustment (Avg is ~10k/year)
+      final age = DateTime.now().year - (widget.draft.year ?? 2020);
+      final expectedMileage = age * 10000;
+      final actualMileage = widget.draft.mileage ?? expectedMileage;
+      
+      if (actualMileage > expectedMileage * 1.5) {
+        basePrice *= 0.90; // -10% for high mileage
+      } else if (actualMileage < expectedMileage * 0.5) {
+        basePrice *= 1.05; // +5% for low mileage
+      }
+
+      // Condition Adjustment
+      if (widget.draft.condition == 'Excellent') basePrice *= 1.05;
+      if (widget.draft.condition == 'Fair') basePrice *= 0.90;
+      if (widget.draft.condition == 'Needs Repair') basePrice *= 0.70;
+
+      setState(() {
+        _predictedPrice = basePrice;
+        _minPrice = basePrice * 0.95;
+        _maxPrice = basePrice * 1.05;
+        _isLoading = false;
+      });
+
+    } catch (e) {
+      setState(() {
+        _error = e.toString().replaceAll('Exception: ', '');
+        _isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     if (_isLoading) {
+      return const Center(child: LinearProgressIndicator());
+    }
+
+    if (_error != null) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isDark
-              ? ColorConstants.surfaceDark
-              : ColorConstants.backgroundSecondaryLight,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.withOpacity(0.3)),
         ),
         child: Row(
           children: [
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
+            const Icon(Icons.info_outline, color: Colors.orange, size: 20),
             const SizedBox(width: 12),
-            Text(
-              'AI is analyzing your vehicle...',
-              style: TextStyle(
-                color: isDark
-                    ? ColorConstants.textSecondaryDark
-                    : ColorConstants.textSecondaryLight,
+            Expanded(
+              child: Text(
+                'AI Price Estimate Unavailable: $_error',
+                style: const TextStyle(fontSize: 12, color: Colors.orange),
               ),
             ),
           ],
@@ -130,282 +112,63 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
       );
     }
 
-    if (_predictedPrice == null) {
-      return const SizedBox.shrink();
-    }
-
-    // Calculate suggested reserve price (10% higher than predicted)
-    final suggestedReserve = _predictedPrice! * 1.1;
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            ColorConstants.primary.withValues(alpha: 0.15),
-            ColorConstants.primary.withValues(alpha: 0.08),
-            Colors.purple.withValues(alpha: 0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: ColorConstants.primary.withValues(alpha: 0.4),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: ColorConstants.primary.withValues(alpha: 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: ColorConstants.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ColorConstants.primary.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with sparkle effect
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: ColorConstants.primary.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(14),
+          Row(
+            children: [
+              Icon(Icons.auto_graph, color: ColorConstants.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'AI Market Valuation',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: ColorConstants.primary,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [ColorConstants.primary, Colors.purple],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AI Price Recommendation',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Smart pricing based on market analysis',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Starting Price Section
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? ColorConstants.surfaceDark : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: ColorConstants.primary.withValues(alpha: 0.2),
-                    ),
+          const SizedBox(height: 12),
+          Text(
+            'Based on ${widget.draft.year} ${widget.draft.brand} ${widget.draft.model} market data.',
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Estimated Range', style: TextStyle(fontSize: 10)),
+                  Text(
+                    'Γé▒${(_minPrice! / 1000).toStringAsFixed(0)}k - Γé▒${(_maxPrice! / 1000).toStringAsFixed(0)}k',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.play_arrow,
-                            color: ColorConstants.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Suggested Starting Price',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: isDark
-                                  ? ColorConstants.textSecondaryDark
-                                  : ColorConstants.textSecondaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '₱${_formatPrice(_predictedPrice!)}',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: ColorConstants.primary,
-                        ),
-                      ),
-                    ],
-                  ),
+                ],
+              ),
+              ElevatedButton(
+                onPressed: () => widget.onApplyPrice(_predictedPrice!),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorConstants.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-
-                const SizedBox(height: 12),
-
-                // Reserve Price Section
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark ? ColorConstants.surfaceDark : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.green.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.shield_outlined,
-                            color: Colors.green,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Suggested Reserve Price',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: isDark
-                                  ? ColorConstants.textSecondaryDark
-                                  : ColorConstants.textSecondaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '₱${_formatPrice(suggestedReserve)}',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Minimum acceptable price (+10%)',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark
-                              ? ColorConstants.textSecondaryDark
-                              : ColorConstants.textSecondaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Vehicle info
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color:
-                        (isDark
-                                ? ColorConstants.surfaceDark
-                                : ColorConstants.backgroundSecondaryLight)
-                            .withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        size: 16,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${widget.year} ${widget.brand} ${widget.model} • ${_formatNumber(widget.mileage!)} km • ${widget.condition}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Accept button
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: () => widget.onAccept(_predictedPrice!),
-                    icon: const Icon(Icons.check_circle, size: 22),
-                    label: const Text(
-                      'Use AI Suggestions',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: ColorConstants.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 4,
-                      shadowColor: ColorConstants.primary.withValues(
-                        alpha: 0.4,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                child: const Text('Apply Suggested'),
+              ),
+            ],
           ),
         ],
       ),
-    );
-  }
-
-  String _formatPrice(double price) {
-    return price
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
-
-  String _formatNumber(int number) {
-    return number.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
     );
   }
 }
