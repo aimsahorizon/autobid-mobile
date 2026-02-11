@@ -35,6 +35,75 @@ class IdParserUtil {
     };
   }
 
+  // --- Barcode Logic ---
+
+  /// Parses the raw string from a Driver's License PDF417 barcode
+  static Map<String, String?> parseDriverLicenseBarcode(String rawValue) {
+    // LTO Format varies but commonly:
+    // "D01-23-456789,DELA CRUZ,JUAN,M,1990-01-01,..."
+    // or newline separated.
+    
+    String clean = rawValue.replaceAll('\r', '\n');
+    List<String> parts;
+    
+    if (clean.contains(',')) {
+      parts = clean.split(',');
+    } else if (clean.contains('\n')) {
+      parts = clean.split('\n');
+    } else {
+      parts = [clean];
+    }
+    
+    parts = parts.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+
+    if (parts.isEmpty) return {};
+
+    // Heuristic: Find the ID Number first (Pattern matching)
+    String? idNumber;
+    int idIndex = -1;
+    
+    final idRegex = RegExp(r'[A-Z]\d{2}-\d{2}-\d{6}');
+    
+    for (int i = 0; i < parts.length; i++) {
+      if (idRegex.hasMatch(parts[i])) {
+        idNumber = parts[i];
+        idIndex = i;
+        break;
+      }
+    }
+
+    if (idNumber == null) return {};
+
+    // Usually Last Name is next, then First, then Middle
+    // Index mapping heuristic relative to ID
+    try {
+      String? lastName = parts.length > idIndex + 1 ? parts[idIndex + 1] : null;
+      String? firstName = parts.length > idIndex + 2 ? parts[idIndex + 2] : null;
+      String? middleName = parts.length > idIndex + 3 ? parts[idIndex + 3] : null;
+      // DOB might be index 4 or further
+      String? dob;
+      
+      // Look for date pattern in subsequent parts
+      final dateRegex = RegExp(r'\d{4}-\d{2}-\d{2}');
+      for (int i = idIndex + 1; i < parts.length; i++) {
+        if (dateRegex.hasMatch(parts[i])) {
+          dob = parts[i];
+          break;
+        }
+      }
+
+      return {
+        'idNumber': idNumber,
+        'lastName': lastName,
+        'firstName': firstName,
+        'middleName': middleName,
+        'dateOfBirth': dob,
+      };
+    } catch (e) {
+      return {'idNumber': idNumber};
+    }
+  }
+
   // --- Specialized Finders ---
 
   static String? _findIdNumber(String text) {
