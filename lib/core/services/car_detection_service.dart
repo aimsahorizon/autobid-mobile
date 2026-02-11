@@ -4,11 +4,13 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 /// AI Car Detection Service
 /// Provides mock and real AI car detection from images
 class CarDetectionService {
   final _random = Random();
+  final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
   
   // Singleton pattern for interpreter to avoid reloading it constantly
   Interpreter? _interpreter;
@@ -294,6 +296,32 @@ class CarDetectionService {
     return closestColor;
   }
 
+  /// Uses OCR to find plate number in the image
+  Future<String?> _scanForPlateNumber(String imagePath) async {
+    try {
+      final inputImage = InputImage.fromFile(File(imagePath));
+      final recognizedText = await _textRecognizer.processImage(inputImage);
+      
+      // Regex for PH Plates: 
+      // 1. Old: LLL DDD or LLL-DDD (ABC 123)
+      // 2. New: LLL DDDD or LLL-DDDD (ABC 1234)
+      // 3. Conduction: L DDDD or LL DDDD (E 1234 / AB 1234)
+      // 4. MC: LLL DDD (ABC 123)
+      
+      // Simplified robust regex: 3 letters, space/dash, 3-4 digits
+      final plateRegex = RegExp(r'\b([A-Z]{3}[\s-]?[0-9]{3,4})\b');
+      
+      final match = plateRegex.firstMatch(recognizedText.text);
+      if (match != null) {
+        return match.group(0)?.replaceAll('-', ' '); // Standardize to space
+      }
+      return null;
+    } catch (e) {
+      print('Plate OCR Error: $e');
+      return null;
+    }
+  }
+
   /// Real AI detection using TensorFlow Lite
   /// Returns detected car details or throws Exception if model not found
   Future<Map<String, dynamic>> detectCarFromImageReal(String imagePath) async {
@@ -361,6 +389,9 @@ class CarDetectionService {
       final detectedBodyType = _guessBodyType(detectedModel);
       final detectedColor = _detectDominantColor(image);
       final specs = _guessCarSpecs(detectedModel);
+      
+      // Run Plate OCR (Parallel or Sequential)
+      final detectedPlate = await _scanForPlateNumber(imagePath);
 
       final tags = _generateTags(
         detectedBrand, 
@@ -378,6 +409,7 @@ class CarDetectionService {
          'year': detectedYear,
          'bodyType': detectedBodyType,
          'color': detectedColor,
+         'plateNumber': detectedPlate, // New Field
          'confidence': maxProbability,
          'tags': tags,
          'specs': specs, // Return inferred specs

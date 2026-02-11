@@ -232,7 +232,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
         hasWarranty: currentDraft.hasWarranty,
         warrantyDetails: currentDraft.warrantyDetails,
         usageType: currentDraft.usageType,
-        plateNumber: currentDraft.plateNumber,
+        plateNumber: detectedData['plateNumber'] as String? ?? currentDraft.plateNumber,
         orcrStatus: currentDraft.orcrStatus,
         registrationStatus: currentDraft.registrationStatus,
         registrationExpiry: currentDraft.registrationExpiry,
