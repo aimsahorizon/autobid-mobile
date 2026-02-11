@@ -174,7 +174,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
 
     try {
       // Call AI detection service
-      final detectedData = await _carDetectionService.detectCarFromImage(
+      final detectedData = await _carDetectionService.detectCarFromImageReal(
         firstPhoto,
       );
 
@@ -182,6 +182,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       navigator.pop(); // Close loading
 
       // Update draft with detected data
+      final specs = detectedData['specs'] as Map<String, dynamic>? ?? {};
       final currentDraft = widget.controller.currentDraft!;
       final updatedDraft = ListingDraftEntity(
         id: currentDraft.id,
@@ -194,26 +195,27 @@ class _CreateListingPageState extends State<CreateListingPage> {
         model: detectedData['model'] as String?,
         variant: '${detectedData['bodyType']} ${detectedData['transmission']}',
         year: detectedData['year'] as int?,
-        transmission: detectedData['transmission'] as String?,
+        transmission: specs['transmission'] as String?,
         exteriorColor: detectedData['color'] as String?,
+        fuelType: specs['fuelType'] as String?,
+        seatingCapacity: specs['seatingCapacity'] as int?,
+        engineDisplacement: (specs['engineDisplacement'] as num?)?.toDouble(),
+        doorCount: specs['doorCount'] as int?,
+        driveType: specs['driveType'] as String?,
+        features: (specs['features'] as List<dynamic>?)?.cast<String>(), // Auto-fill features
         tags:
             (detectedData['tags'] as List<dynamic>?)?.cast<String>() ??
             currentDraft.tags,
         // Preserve existing data
         engineType: currentDraft.engineType,
-        engineDisplacement: currentDraft.engineDisplacement,
         cylinderCount: currentDraft.cylinderCount,
         horsepower: currentDraft.horsepower,
         torque: currentDraft.torque,
-        fuelType: currentDraft.fuelType,
-        driveType: currentDraft.driveType,
         length: currentDraft.length,
         width: currentDraft.width,
         height: currentDraft.height,
         wheelbase: currentDraft.wheelbase,
         groundClearance: currentDraft.groundClearance,
-        seatingCapacity: currentDraft.seatingCapacity,
-        doorCount: currentDraft.doorCount,
         fuelTankCapacity: currentDraft.fuelTankCapacity,
         curbWeight: currentDraft.curbWeight,
         grossWeight: currentDraft.grossWeight,
@@ -239,7 +241,6 @@ class _CreateListingPageState extends State<CreateListingPage> {
         photoUrls: currentDraft.photoUrls,
         description: currentDraft.description,
         knownIssues: currentDraft.knownIssues,
-        features: currentDraft.features,
         startingPrice: currentDraft.startingPrice,
         reservePrice: currentDraft.reservePrice,
         auctionEndDate: currentDraft.auctionEndDate,

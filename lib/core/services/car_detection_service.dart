@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
@@ -149,16 +150,161 @@ class CarDetectionService {
     return tags;
   }
 
+  // Known body types for common models (inference helper)
+  static const _knownBodyTypes = {
+    'vios': 'Sedan', 'corolla': 'Sedan', 'camry': 'Sedan', 'city': 'Sedan', 'civic': 'Sedan', 'accord': 'Sedan',
+    'accent': 'Sedan', 'elantra': 'Sedan', 'reina': 'Sedan', 'mirage g4': 'Sedan', 'almera': 'Sedan', 'sylphy': 'Sedan',
+    'dzire': 'Sedan', 'mazda2 sedan': 'Sedan', 'mazda3': 'Sedan', 'mazda6': 'Sedan', 'impreza': 'Sedan',
+    
+    'fortuner': 'SUV', 'land cruiser': 'SUV', 'rush': 'SUV', 'cr-v': 'SUV', 'hr-v': 'SUV', 'br-v': 'SUV',
+    'montero': 'SUV', 'montero sport': 'SUV', 'terra': 'SUV', 'x-trail': 'SUV', 'jimny': 'SUV', 'vitara': 'SUV',
+    'everest': 'SUV', 'territory': 'SUV', 'ecosport': 'SUV', 'tucson': 'SUV', 'santa fe': 'SUV', 'kona': 'SUV',
+    'sportage': 'SUV', 'sorento': 'SUV', 'seltos': 'SUV', 'trailblazer': 'SUV', 'subaru xv': 'SUV', 'forester': 'SUV',
+    
+    'wigo': 'Hatchback', 'yaris': 'Hatchback', 'brio': 'Hatchback', 'jazz': 'Hatchback', 'mirage': 'Hatchback',
+    'swift': 'Hatchback', 'celerio': 'Hatchback', 'picanto': 'Hatchback', 'spark': 'Hatchback', 'mazda2': 'Hatchback',
+    
+    'hilux': 'Pickup', 'strada': 'Pickup', 'navara': 'Pickup', 'ranger': 'Pickup', 'raptor': 'Pickup', 
+    'd-max': 'Pickup', 'bt-50': 'Pickup', 'colorado': 'Pickup',
+    
+    'innova': 'MPV', 'avanza': 'MPV', 'xpander': 'MPV', 'ertiga': 'MPV', 'apv': 'MPV', 'livina': 'MPV',
+    
+    'hiace': 'Van', 'urvan': 'Van', 'l300': 'Van', 'grand starex': 'Van', 'starex': 'Van', 'carnival': 'Van',
+    'alphard': 'Van',
+  };
+
+  String _guessBodyType(String model) {
+    final key = model.toLowerCase();
+    // Try exact match
+    if (_knownBodyTypes.containsKey(key)) return _knownBodyTypes[key]!;
+    
+    // Try partial match (e.g. "Vios G" matches "vios")
+    for (final entry in _knownBodyTypes.entries) {
+      if (key.contains(entry.key)) return entry.value;
+    }
+    
+    return 'Sedan'; // Fallback
+  }
+
+  // Database for detailed specs (loaded from JSON)
+  Map<String, dynamic>? _specDatabase;
+
+  Future<void> _loadSpecDatabase() async {
+    if (_specDatabase != null) return;
+    try {
+      final jsonStr = await rootBundle.loadString('assets/ai/car_specs.json');
+      _specDatabase = json.decode(jsonStr) as Map<String, dynamic>;
+    } catch (e) {
+      print('Error loading spec database: $e');
+      _specDatabase = {};
+    }
+  }
+
+  Map<String, dynamic> _guessCarSpecs(String model) {
+    if (_specDatabase == null || _specDatabase!.isEmpty) {
+      return {
+        'transmission': 'Automatic',
+        'fuelType': 'Gasoline',
+        'seatingCapacity': 5,
+        'engineDisplacement': 1.5,
+        'doorCount': 4,
+        'driveType': 'FWD'
+      };
+    }
+
+    final key = model.toLowerCase().replaceAll(' ', '_');
+    
+    // 1. Try exact match
+    if (_specDatabase!.containsKey(key)) {
+      return _specDatabase![key]['specs'] as Map<String, dynamic>;
+    }
+
+    // 2. Try partial match (e.g. "Toyota Vios 2020" -> match "vios")
+    for (final dbKey in _specDatabase!.keys) {
+      if (key.contains(dbKey.split('_').last)) { // check if "vios" is in "toyota_vios_2020"
+         return _specDatabase![dbKey]['specs'] as Map<String, dynamic>;
+      }
+    }
+    
+    return {
+        'transmission': 'Automatic',
+        'fuelType': 'Gasoline',
+        'seatingCapacity': 5,
+        'engineDisplacement': 1.5,
+        'doorCount': 4,
+        'driveType': 'FWD'
+    };
+  }
+
+  /// Simple algorithm to detect dominant color from the center of the image
+  String _detectDominantColor(img.Image image) {
+    // 1. Define standard car colors
+    final palette = {
+      'Black': [30, 30, 30],
+      'White': [240, 240, 240],
+      'Silver': [192, 192, 192],
+      'Gray': [128, 128, 128],
+      'Red': [200, 0, 0],
+      'Blue': [0, 0, 200],
+      'Yellow': [200, 200, 0],
+      'Green': [0, 128, 0],
+      'Brown': [139, 69, 19],
+      'Orange': [255, 165, 0],
+    };
+
+    int rTotal = 0, gTotal = 0, bTotal = 0;
+    int count = 0;
+
+    // 2. Sample pixels from the center 50% of the image
+    final startX = (image.width * 0.25).toInt();
+    final endX = (image.width * 0.75).toInt();
+    final startY = (image.height * 0.25).toInt();
+    final endY = (image.height * 0.75).toInt();
+
+    for (var y = startY; y < endY; y += 10) { // Step 10 for speed
+      for (var x = startX; x < endX; x += 10) {
+        final pixel = image.getPixel(x, y);
+        rTotal += pixel.r.toInt();
+        gTotal += pixel.g.toInt();
+        bTotal += pixel.b.toInt();
+        count++;
+      }
+    }
+
+    if (count == 0) return 'Unknown';
+
+    final rAvg = rTotal / count;
+    final gAvg = gTotal / count;
+    final bAvg = bTotal / count;
+
+    // 3. Find closest color in palette
+    String closestColor = 'Gray';
+    double minDistance = double.maxFinite;
+
+    palette.forEach((name, rgb) {
+      final dist = sqrt(
+        pow(rAvg - rgb[0], 2) + pow(gAvg - rgb[1], 2) + pow(bAvg - rgb[2], 2)
+      );
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestColor = name;
+      }
+    });
+
+    return closestColor;
+  }
+
   /// Real AI detection using TensorFlow Lite
   /// Returns detected car details or throws Exception if model not found
   Future<Map<String, dynamic>> detectCarFromImageReal(String imagePath) async {
     try {
+      await _loadSpecDatabase();
       // 1. Load Model (Lazy loading)
       if (_interpreter == null) {
         // If the file 'assets/ai/car_model.tflite' is not in pubspec or filesystem, this will throw.
         _interpreter = await Interpreter.fromAsset('assets/ai/car_model.tflite');
         final labelsStr = await rootBundle.loadString('assets/ai/labels.txt');
-        _labels = labelsStr.split('\n').where((s) => s.isNotEmpty).toList();
+        _labels = labelsStr.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
       }
 
       if (_interpreter == null || _labels == null || _labels!.isEmpty) {
@@ -210,20 +356,31 @@ class CarDetectionService {
       final detectedBrand = parts.isNotEmpty ? parts[0] : "Unknown";
       final detectedModel = parts.length > 1 ? parts[1] : "Unknown";
       final detectedYear = parts.length > 2 ? int.tryParse(parts[2]) : 2020;
+      
+      // Infer Body Type and Color
+      final detectedBodyType = _guessBodyType(detectedModel);
+      final detectedColor = _detectDominantColor(image);
+      final specs = _guessCarSpecs(detectedModel);
 
       final tags = _generateTags(
         detectedBrand, 
-        "Sedan", // Default until body type AI is added
-        "Automatic", 
+        detectedBodyType, 
+        specs['transmission'] ?? "Automatic", 
         detectedYear ?? 2020
       );
+      
+      // Add color tag
+      tags.add(detectedColor.toLowerCase());
 
       return {
          'brand': detectedBrand,
          'model': detectedModel,
          'year': detectedYear,
+         'bodyType': detectedBodyType,
+         'color': detectedColor,
          'confidence': maxProbability,
          'tags': tags,
+         'specs': specs, // Return inferred specs
          'is_real_ai': true
       };
       

@@ -107,7 +107,7 @@ class _CarScanningDialogState extends State<CarScanningDialog> {
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
-                  "Confidence: ${( (_scanResult!['confidence'] as double) * 100).toStringAsFixed(1)}%"
+                  "Confidence: ${((_scanResult!['confidence'] as double) * 100).toStringAsFixed(1)}%${_scanResult!['is_real_ai'] == true ? ' (AI)' : ' (Sim)'}"
                 ),
               ),
               Wrap(
