@@ -151,6 +151,12 @@ class _ListsPageState extends State<ListsPage>
 
   @override
   Widget build(BuildContext context) {
+    // Safety check for hot-reload or dynamic tab changes
+    if (_tabController.length != _tabs.length) {
+      _tabController.dispose();
+      _tabController = TabController(length: _tabs.length, vsync: this);
+    }
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
