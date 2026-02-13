@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/presentation/pages/auction_detail_page.dart';
 import '../../../browse/presentation/controllers/auction_detail_controller.dart';
+import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
 import '../../../notifications/presentation/controllers/notification_controller.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../controllers/bids_controller.dart';
