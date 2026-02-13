@@ -95,6 +95,9 @@ class _ListsPageState extends State<ListsPage>
             CreateListingPage(controller: controller, sellerId: userId),
       ),
     ).then((result) {
+      // Force reload to ensure new listing appears immediately
+      _controller.loadListings();
+      
       // Navigate to Pending tab if submission was successful
       if (result is Map &&
           result['success'] == true &&
