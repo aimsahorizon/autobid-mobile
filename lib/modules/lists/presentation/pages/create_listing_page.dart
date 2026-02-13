@@ -256,12 +256,15 @@ class _CreateListingPageState extends State<CreateListingPage> {
       widget.controller.updateDraft(updatedDraft);
 
       if (mounted) {
+        final isRealAi = detectedData['is_real_ai'] == true;
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})',
+              isRealAi 
+                ? '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})'
+                : '⚠️ AI Model missing. Using DEMO data for: ${detectedData['brand']} ${detectedData['model']}',
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: isRealAi ? Colors.green : Colors.orange,
             duration: const Duration(seconds: 3),
           ),
         );
