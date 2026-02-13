@@ -596,6 +596,10 @@ class KYCRegistrationController extends ChangeNotifier {
       if (extractedData.address != null) _street = extractedData.address;
 
       return extractedData;
+    } catch (e) {
+      _errorMessage = 'Failed to extract ID data: ${e.toString()}';
+      // Return empty data on failure so flow can continue manually
+      return const ExtractedIdData(); 
     } finally {
       _isLoading = false;
       notifyListeners();
