@@ -439,6 +439,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           ),
           initialValue: draft.snipeGuardThresholdSeconds ?? 1800,
           items: const [
+            DropdownMenuItem(value: 300, child: Text('Last 5 minutes')),
             DropdownMenuItem(value: 600, child: Text('Last 10 minutes')),
             DropdownMenuItem(value: 1200, child: Text('Last 20 minutes')),
             DropdownMenuItem(value: 1800, child: Text('Last 30 minutes')),
