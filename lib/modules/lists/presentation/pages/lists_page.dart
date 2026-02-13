@@ -23,6 +23,7 @@ class ListsPage extends StatefulWidget {
 class _ListsPageState extends State<ListsPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  ListingStatus? _selectedStatusFilter; // null means "All"
 
   static const _currentTabs = [
     ListingStatus.active,
@@ -32,20 +33,7 @@ class _ListsPageState extends State<ListsPage>
     ListingStatus.draft,
   ];
 
-  static const _allTabs = [
-    ListingStatus.active,
-    ListingStatus.pending,
-    ListingStatus.approved,
-    ListingStatus.scheduled,
-    ListingStatus.ended,
-    ListingStatus.sold,
-    ListingStatus.dealFailed,
-    ListingStatus.draft,
-    ListingStatus.cancelled,
-  ];
-
-  List<ListingStatus> get _tabs =>
-      _controller.showAll ? _allTabs : _currentTabs;
+  List<ListingStatus> get _tabs => _currentTabs;
 
   bool _lastShowAll = false;
 
@@ -70,22 +58,25 @@ class _ListsPageState extends State<ListsPage>
   void _onControllerChanged() {
     if (_controller.showAll != _lastShowAll) {
       _lastShowAll = _controller.showAll;
-      _recreateTabController();
+      // Reset filter when switching to unified view
+      if (_controller.showAll) {
+        _selectedStatusFilter = null;
+      }
+      if (mounted) setState(() {});
     }
   }
 
-  void _recreateTabController() {
-    final newIndex = 0; // Reset to first tab when toggling views for simplicity
-    _tabController.dispose();
-    _tabController = TabController(
-      length: _tabs.length,
-      initialIndex: newIndex,
-      vsync: this,
-    );
-    if (mounted) setState(() {});
-  }
-
   ListsController get _controller => widget.controller ?? sl<ListsController>();
+
+  List<SellerListingEntity> _getAllListings() {
+    final all = _controller.listings.values.expand((l) => l).toList();
+    if (_selectedStatusFilter == null) {
+      // Sort by created descending
+      all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return all;
+    }
+    return all.where((l) => l.status == _selectedStatusFilter).toList();
+  }
 
   void _navigateToCreateListing(BuildContext context) {
     final userId = SupabaseConfig.client.auth.currentUser?.id;
@@ -108,7 +99,9 @@ class _ListsPageState extends State<ListsPage>
       if (result is Map &&
           result['success'] == true &&
           result['navigateTo'] == 'pending') {
-        _tabController.animateTo(1); // Index 1 is Pending tab
+        if (!_controller.showAll) {
+          _tabController.animateTo(1); // Index 1 is Pending tab
+        }
       }
     });
   }
@@ -243,11 +236,11 @@ class _ListsPageState extends State<ListsPage>
                 IconButton(
                   icon: Icon(
                     _controller.showAll
-                        ? Icons.filter_list_off
-                        : Icons.filter_list,
+                        ? Icons.view_sidebar_outlined // Icon for "Back to Tabs"
+                        : Icons.filter_list, // Icon for "Unified View"
                   ),
                   onPressed: _controller.toggleShowAll,
-                  tooltip: _controller.showAll ? 'Show Current' : 'Show All',
+                  tooltip: _controller.showAll ? 'Tabbed View' : 'Unified View',
                 ),
                 IconButton(
                   icon: Icon(
@@ -266,31 +259,36 @@ class _ListsPageState extends State<ListsPage>
           preferredSize: const Size.fromHeight(48),
           child: ListenableBuilder(
             listenable: _controller,
-            builder: (context, _) => TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              indicatorSize: TabBarIndicatorSize.label,
-              dividerColor: Colors.transparent,
-              labelColor: ColorConstants.primary,
-              unselectedLabelColor: isDark
-                  ? ColorConstants.textSecondaryDark
-                  : ColorConstants.textSecondaryLight,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-              tabs: _tabs
-                  .map(
-                    (status) => _TabWithBadge(
-                      label: status.tabLabel,
-                      count: _controller.getCountByStatus(status),
-                      color: _getStatusColor(status),
-                    ),
-                  )
-                  .toList(),
-            ),
+            builder: (context, _) {
+              if (_controller.showAll) {
+                return _buildFilterChips(isDark);
+              }
+              return TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                indicatorSize: TabBarIndicatorSize.label,
+                dividerColor: Colors.transparent,
+                labelColor: ColorConstants.primary,
+                unselectedLabelColor: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+                tabs: _tabs
+                    .map(
+                      (status) => _TabWithBadge(
+                        label: status.tabLabel,
+                        count: _controller.getCountByStatus(status),
+                        color: _getStatusColor(status),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
         ),
       ),
@@ -303,34 +301,12 @@ class _ListsPageState extends State<ListsPage>
 
           return RefreshIndicator(
             onRefresh: () => _controller.loadListings(),
-            child: TabBarView(
-              controller: _tabController,
-              children: _tabs.map((status) {
-              final needsController =
-                  status == ListingStatus.draft ||
-                  status == ListingStatus.cancelled;
-              final needsSellerId = needsController;
-              final userId = SupabaseConfig.client.auth.currentUser?.id;
-
-              return ListingsGrid(
-                listings: _controller.getListingsByStatus(status),
-                isGridView: _controller.isGridView,
-                isLoading: _controller.isLoading,
-                emptyTitle: _getEmptyTitle(status),
-                emptySubtitle: _getEmptySubtitle(status),
-                emptyIcon: _getEmptyIcon(status),
-                enableNavigation: !_controller.isSelectionMode,
-                draftController: needsController
-                    ? sl<ListingDraftController>()
-                    : null,
-                sellerId: needsSellerId ? userId : null,
-                isSelectionMode: _controller.isSelectionMode,
-                selectedIds: _controller.selectedListingIds,
-                onSelectionToggle: _controller.toggleSelection,
-                onInviteTap: _showInviteManagement,
-              );
-            }).toList(),
-            ),
+            child: _controller.showAll 
+              ? _buildUnifiedView()
+              : TabBarView(
+                  controller: _tabController,
+                  children: _tabs.map((status) => _buildGridForStatus(status)).toList(),
+                ),
           );
         },
       ),
@@ -341,6 +317,144 @@ class _ListsPageState extends State<ListsPage>
         backgroundColor: ColorConstants.primary,
         foregroundColor: Colors.white,
       ),
+    );
+  }
+
+  Widget _buildFilterChips(bool isDark) {
+    // All possible statuses for filter
+    final allStatuses = ListingStatus.values;
+
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          // "All" Chip
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: const Text('All'),
+              selected: _selectedStatusFilter == null,
+              onSelected: (selected) {
+                if (selected) setState(() => _selectedStatusFilter = null);
+              },
+              backgroundColor: isDark ? ColorConstants.surfaceDark : Colors.white,
+              selectedColor: ColorConstants.primary.withValues(alpha: 0.2),
+              labelStyle: TextStyle(
+                color: _selectedStatusFilter == null 
+                    ? ColorConstants.primary 
+                    : (isDark ? Colors.white : Colors.black),
+                fontWeight: _selectedStatusFilter == null ? FontWeight.bold : FontWeight.normal,
+              ),
+              checkmarkColor: ColorConstants.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: _selectedStatusFilter == null 
+                      ? ColorConstants.primary 
+                      : Colors.transparent,
+                ),
+              ),
+            ),
+          ),
+          // Status Chips
+          ...allStatuses.map((status) {
+            final count = _controller.getCountByStatus(status);
+            if (count == 0 && status != _selectedStatusFilter) return const SizedBox.shrink(); // Hide empty if not selected
+
+            final isSelected = _selectedStatusFilter == status;
+            final color = _getStatusColor(status);
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(status.tabLabel),
+                    const SizedBox(width: 4),
+                    Text(
+                      '($count)',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isSelected ? color : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedStatusFilter = selected ? status : null;
+                  });
+                },
+                backgroundColor: isDark ? ColorConstants.surfaceDark : Colors.white,
+                selectedColor: color.withValues(alpha: 0.15),
+                labelStyle: TextStyle(
+                  color: isSelected ? color : (isDark ? Colors.white : Colors.black),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                checkmarkColor: color,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(
+                    color: isSelected ? color : Colors.transparent,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnifiedView() {
+    final listings = _getAllListings();
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+
+    return ListingsGrid(
+      listings: listings,
+      isGridView: _controller.isGridView,
+      isLoading: _controller.isLoading,
+      emptyTitle: 'No listings found',
+      emptySubtitle: 'Try changing the filter or add a new listing',
+      emptyIcon: Icons.filter_alt_off,
+      enableNavigation: !_controller.isSelectionMode,
+      // Pass controller/sellerId if needed for actions, though they might not apply to all types
+      draftController: sl<ListingDraftController>(),
+      sellerId: userId,
+      isSelectionMode: _controller.isSelectionMode,
+      selectedIds: _controller.selectedListingIds,
+      onSelectionToggle: _controller.toggleSelection,
+      onInviteTap: _showInviteManagement,
+    );
+  }
+
+  Widget _buildGridForStatus(ListingStatus status) {
+    final needsController =
+        status == ListingStatus.draft ||
+        status == ListingStatus.cancelled;
+    final needsSellerId = needsController;
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+
+    return ListingsGrid(
+      listings: _controller.getListingsByStatus(status),
+      isGridView: _controller.isGridView,
+      isLoading: _controller.isLoading,
+      emptyTitle: _getEmptyTitle(status),
+      emptySubtitle: _getEmptySubtitle(status),
+      emptyIcon: _getEmptyIcon(status),
+      enableNavigation: !_controller.isSelectionMode,
+      draftController: needsController
+          ? sl<ListingDraftController>()
+          : null,
+      sellerId: needsSellerId ? userId : null,
+      isSelectionMode: _controller.isSelectionMode,
+      selectedIds: _controller.selectedListingIds,
+      onSelectionToggle: _controller.toggleSelection,
+      onInviteTap: _showInviteManagement,
     );
   }
 
