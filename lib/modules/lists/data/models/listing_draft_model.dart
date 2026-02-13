@@ -219,10 +219,6 @@ class ListingDraftModel extends ListingDraftEntity {
       'registration_status': registrationStatus,
       'registration_expiry': registrationExpiry?.toIso8601String(),
       'province': province,
-      'cityMunicipality': cityMunicipality, // THIS was the typo in replace? No, keys must be snake_case usually?
-      // Wait, Supabase defaults to snake_case but listing_draft_model previously used 'city_municipality' key.
-      // Checking old file: "city_municipality": cityMunicipality.
-      // My fix:
       'city_municipality': cityMunicipality,
       'barangay': barangay,
       // Step 7 (JSONB & Documents)

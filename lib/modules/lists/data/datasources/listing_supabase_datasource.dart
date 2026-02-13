@@ -420,11 +420,15 @@ class ListingSupabaseDataSource {
   }
 
   /// Get active listings (live auctions)
+  /// Also checks for and transitions any 'scheduled' listings that have passed their start time
   Future<List<ListingModel>> getActiveListings(String sellerId) async {
     try {
       final liveStatusId = await _getStatusId('live');
+      final scheduledStatusId = await _getStatusId('scheduled');
+      final now = DateTime.now().toIso8601String();
 
-      final response = await _supabase
+      // 1. Fetch currently live listings
+      final liveResponse = await _supabase
           .from('auctions')
           .select('''
             *,
@@ -433,12 +437,61 @@ class ListingSupabaseDataSource {
             auction_photos(photo_url, category, display_order, is_primary)
           ''')
           .eq('seller_id', sellerId)
-          .eq('status_id', liveStatusId)
-          .order('start_time', ascending: false);
+          .eq('status_id', liveStatusId);
 
-      return (response as List)
+      // 2. Fetch scheduled listings that should be live (start_time <= now)
+      final dueScheduledResponse = await _supabase
+          .from('auctions')
+          .select('''
+            *,
+            auction_statuses(status_name),
+            auction_vehicles(*),
+            auction_photos(photo_url, category, display_order, is_primary)
+          ''')
+          .eq('seller_id', sellerId)
+          .eq('status_id', scheduledStatusId)
+          .lte('start_time', now);
+
+      final liveList = (liveResponse as List)
           .map((json) => _mergeAuctionWithVehicleData(json))
           .toList();
+
+      final dueList = (dueScheduledResponse as List)
+          .map((json) => _mergeAuctionWithVehicleData(json))
+          .toList();
+
+      // 3. Transition any due scheduled listings to live
+      if (dueList.isNotEmpty) {
+        debugPrint('[ListingSupabaseDataSource] Found ${dueList.length} scheduled listings due for go-live. Auto-transitioning...');
+        
+        for (final listing in dueList) {
+          try {
+            // Update status in DB
+            await updateListingStatusByName(listing.id, 'live');
+            
+            // Update local model status to 'live' so it shows correctly immediately
+            // We can't modify the immutable ListingModel, so we rely on the DB update
+            // and the fact that we're adding it to the liveList implies it's treated as active
+            // But we should ideally update the status field in the model if we could.
+            // Since we can't easily clone-update, we'll just add it to the list.
+            // The UI will show it in the Active tab, effectively "fixing" the view.
+          } catch (e) {
+             debugPrint('Failed to auto-transition listing ${listing.id}: $e');
+          }
+        }
+        
+        // Add them to the main list
+        liveList.addAll(dueList);
+      }
+
+      // 4. Sort by start_time descending
+      liveList.sort((a, b) {
+        final aTime = a.auctionStartTime ?? DateTime(0);
+        final bTime = b.auctionStartTime ?? DateTime(0);
+        return bTime.compareTo(aTime);
+      });
+
+      return liveList;
     } on PostgrestException catch (e) {
       throw Exception('Failed to fetch active listings: ${e.message}');
     } catch (e) {
