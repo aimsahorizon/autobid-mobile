@@ -1733,7 +1733,7 @@ class ListingSupabaseDataSource {
           .select(
             '''id, auction_statuses(status_name), auction_vehicles!inner(plate_number)''',
           )
-          .eq('seller_id', sellerId)
+          // Removed .eq('seller_id', sellerId) to check globally
           .inFilter('auction_vehicles.plate_number', variants)
           .inFilter('auction_statuses.status_name', [
             'pending_approval',
