@@ -84,6 +84,7 @@ class CarDetectionService {
       'tags': tags,
       'confidence': 0.85 + (_random.nextDouble() * 0.14), // 85-99% confidence
       'detectedAt': DateTime.now().toIso8601String(),
+      'is_real_ai': false,
     };
   }
 
