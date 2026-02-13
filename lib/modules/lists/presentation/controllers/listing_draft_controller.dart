@@ -60,6 +60,7 @@ class ListingDraftController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSaving = false;
   bool _isSubmitting = false;
+  bool _isSubmissionSuccess = false;
   String? _errorMessage;
   
   // Vehicle Data State
@@ -74,6 +75,7 @@ class ListingDraftController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   bool get isSubmitting => _isSubmitting;
+  bool get isSubmissionSuccess => _isSubmissionSuccess;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
   
@@ -181,6 +183,7 @@ class ListingDraftController extends ChangeNotifier {
   Future<void> loadDraft(String draftId) async {
     _isLoading = true;
     _errorMessage = null;
+    _isSubmissionSuccess = false;
     notifyListeners();
 
     final result = await _getDraftUseCase.call(draftId);
@@ -200,6 +203,7 @@ class ListingDraftController extends ChangeNotifier {
   Future<void> createNewDraft(String sellerId) async {
     _isLoading = true;
     _errorMessage = null;
+    _isSubmissionSuccess = false;
     notifyListeners();
 
     final result = await _createDraftUseCase.call(sellerId);
@@ -443,6 +447,7 @@ class ListingDraftController extends ChangeNotifier {
           return false;
         },
         (_) {
+          _isSubmissionSuccess = true;
           _currentDraft = null;
           notifyListeners();
           return true;

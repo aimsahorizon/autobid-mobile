@@ -510,6 +510,12 @@ class _CreateListingPageState extends State<CreateListingPage> {
             }
 
             final draft = widget.controller.currentDraft;
+            
+            // If submission was successful, show loading while waiting for navigation/modal
+            if (widget.controller.isSubmissionSuccess) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
             if (draft == null) {
               return Center(
                 child: Column(
