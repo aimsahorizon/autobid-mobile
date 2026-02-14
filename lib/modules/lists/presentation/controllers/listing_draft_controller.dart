@@ -6,6 +6,7 @@ import '../../domain/usecases/submission_usecases.dart';
 import '../../domain/usecases/media_management_usecases.dart';
 import '../../domain/usecases/get_vehicle_data_usecases.dart';
 import '../../domain/entities/vehicle_entities.dart';
+import '../../../profile/domain/usecases/get_user_profile_usecase.dart';
 
 /// Controller for managing listing draft creation and editing
 /// Handles 9-step form flow with auto-save and validation
@@ -20,6 +21,7 @@ class ListingDraftController extends ChangeNotifier {
   final UploadListingPhotoUseCase _uploadListingPhotoUseCase;
   final UploadDeedOfSaleUseCase _uploadDeedOfSaleUseCase;
   final DeleteDeedOfSaleUseCase _deleteDeedOfSaleUseCase;
+  final GetUserProfileUseCase _getUserProfileUseCase;
   
   // Vehicle Data Use Cases
   final GetVehicleBrandsUseCase _getVehicleBrandsUseCase;
@@ -37,6 +39,7 @@ class ListingDraftController extends ChangeNotifier {
     required UploadListingPhotoUseCase uploadListingPhotoUseCase,
     required UploadDeedOfSaleUseCase uploadDeedOfSaleUseCase,
     required DeleteDeedOfSaleUseCase deleteDeedOfSaleUseCase,
+    required GetUserProfileUseCase getUserProfileUseCase,
     required GetVehicleBrandsUseCase getVehicleBrandsUseCase,
     required GetVehicleModelsUseCase getVehicleModelsUseCase,
     required GetVehicleVariantsUseCase getVehicleVariantsUseCase,
@@ -50,6 +53,7 @@ class ListingDraftController extends ChangeNotifier {
        _uploadListingPhotoUseCase = uploadListingPhotoUseCase,
        _uploadDeedOfSaleUseCase = uploadDeedOfSaleUseCase,
        _deleteDeedOfSaleUseCase = deleteDeedOfSaleUseCase,
+       _getUserProfileUseCase = getUserProfileUseCase,
        _getVehicleBrandsUseCase = getVehicleBrandsUseCase,
        _getVehicleModelsUseCase = getVehicleModelsUseCase,
        _getVehicleVariantsUseCase = getVehicleVariantsUseCase;
@@ -207,13 +211,39 @@ class ListingDraftController extends ChangeNotifier {
     notifyListeners();
 
     final result = await _createDraftUseCase.call(sellerId);
-    result.fold(
-      (failure) => _errorMessage = failure.message,
-      (draft) => _currentDraft = draft,
+    
+    // After creating draft, fetch user profile to auto-fill address
+    await result.fold(
+      (failure) async {
+        _errorMessage = failure.message;
+        _isLoading = false;
+        notifyListeners();
+      },
+      (draft) async {
+        _currentDraft = draft;
+        
+        // Fetch profile to auto-fill address
+        final profileResult = await _getUserProfileUseCase.call();
+        profileResult.fold(
+          (failure) => null, // Ignore profile fetch error, just proceed with empty address
+          (profile) {
+            if (_currentDraft != null) {
+              _currentDraft = _currentDraft!.copyWith(
+                province: profile.province,
+                cityMunicipality: profile.city,
+                barangay: profile.barangay,
+                lastSaved: DateTime.now(),
+              );
+              // Auto-save the populated address
+              _saveDraftUseCase.call(_currentDraft!);
+            }
+          },
+        );
+        
+        _isLoading = false;
+        notifyListeners();
+      },
     );
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   /// Update draft with new data

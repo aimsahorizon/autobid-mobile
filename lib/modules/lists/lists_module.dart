@@ -18,6 +18,7 @@ import 'domain/usecases/validate_plate_number_usecase.dart';
 import 'domain/usecases/get_vehicle_data_usecases.dart';
 import 'domain/usecases/manage_invites_usecases.dart';
 import '../browse/data/datasources/invites_supabase_datasource.dart';
+import '../../modules/profile/domain/usecases/get_user_profile_usecase.dart';
 
 /// Initialize Lists module dependencies
 Future<void> initListsModule() async {
@@ -91,5 +92,6 @@ Future<void> initListsModule() async {
     getVehicleBrandsUseCase: sl(),
     getVehicleModelsUseCase: sl(),
     getVehicleVariantsUseCase: sl(),
+    getUserProfileUseCase: sl(),
   ));
 }
