@@ -10,6 +10,8 @@ import 'package:autobid_mobile/modules/lists/domain/usecases/draft_management_us
 import 'package:autobid_mobile/modules/lists/domain/usecases/submission_usecases.dart';
 import 'package:autobid_mobile/modules/lists/domain/usecases/media_management_usecases.dart';
 import 'package:autobid_mobile/modules/lists/domain/usecases/get_vehicle_data_usecases.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_profile_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_profile_entity.dart';
 
 @GenerateMocks([
   GetSellerDraftsUseCase,
@@ -25,6 +27,7 @@ import 'package:autobid_mobile/modules/lists/domain/usecases/get_vehicle_data_us
   GetVehicleBrandsUseCase,
   GetVehicleModelsUseCase,
   GetVehicleVariantsUseCase,
+  GetUserProfileUseCase,
 ])
 import 'listing_draft_controller_test.mocks.dart';
 
@@ -43,6 +46,7 @@ void main() {
   late MockGetVehicleBrandsUseCase mockGetBrands;
   late MockGetVehicleModelsUseCase mockGetModels;
   late MockGetVehicleVariantsUseCase mockGetVariants;
+  late MockGetUserProfileUseCase mockGetUserProfile;
 
   setUp(() {
     provideDummy<Either<Failure, ListingDraftEntity>>(
@@ -55,6 +59,16 @@ void main() {
     );
     provideDummy<Either<Failure, String>>(const Right('dummy_url'));
     provideDummy<Either<Failure, void>>(const Right(null));
+    provideDummy<Either<Failure, UserProfileEntity>>(
+      const Right(UserProfileEntity(
+        id: 'dummy',
+        fullName: 'Dummy User',
+        username: 'dummy',
+        email: 'dummy@test.com',
+        coverPhotoUrl: '',
+        profilePhotoUrl: '',
+      ))
+    );
 
     mockGetSellerDrafts = MockGetSellerDraftsUseCase();
     mockGetDraft = MockGetDraftUseCase();
@@ -69,6 +83,7 @@ void main() {
     mockGetBrands = MockGetVehicleBrandsUseCase();
     mockGetModels = MockGetVehicleModelsUseCase();
     mockGetVariants = MockGetVehicleVariantsUseCase();
+    mockGetUserProfile = MockGetUserProfileUseCase();
 
     controller = ListingDraftController(
       getSellerDraftsUseCase: mockGetSellerDrafts,
@@ -84,6 +99,7 @@ void main() {
       getVehicleBrandsUseCase: mockGetBrands,
       getVehicleModelsUseCase: mockGetModels,
       getVehicleVariantsUseCase: mockGetVariants,
+      getUserProfileUseCase: mockGetUserProfile,
     );
   });
 
@@ -98,6 +114,9 @@ void main() {
     test('uploadPhoto should append URL to list (simulating controller logic)', () async {
       // Setup initial state
       when(mockCreateDraft.call(any)).thenAnswer((_) async => Right(tDraft));
+      // Mock profile fetch which is now called in createNewDraft
+      when(mockGetUserProfile.call()).thenAnswer((_) async => Left(GeneralFailure('Profile not found'))); // Fail gracefully for this test
+      
       await controller.createNewDraft('user_1');
 
       // 1. Upload first photo
