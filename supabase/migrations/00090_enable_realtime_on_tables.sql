@@ -56,3 +56,14 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE transaction_forms;
   END IF;
 END $$;
+
+-- Transaction chat messages table: used by transaction detail for live chat updates
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'transaction_chat_messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE transaction_chat_messages;
+  END IF;
+END $$;
