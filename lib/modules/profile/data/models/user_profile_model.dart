@@ -9,6 +9,9 @@ class UserProfileModel extends UserProfileEntity {
     required super.fullName,
     required super.username,
     required super.email,
+    super.province,
+    super.city,
+    super.barangay,
   });
 
   /// Create model from JSON (Supabase response from users table)
@@ -23,13 +26,31 @@ class UserProfileModel extends UserProfileEntity {
         ? '$firstName $middleName $lastName'
         : '$firstName $lastName';
 
+    // Extract address data
+    // user_addresses is a One-to-Many relation, so it returns a List
+    final addressesList = json['user_addresses'] as List<dynamic>?;
+    Map<String, dynamic>? addressData;
+    
+    if (addressesList != null && addressesList.isNotEmpty) {
+      // Try to find default address, otherwise use first
+      addressData = addressesList.firstWhere(
+        (addr) => addr['is_default'] == true,
+        orElse: () => addressesList.first,
+      ) as Map<String, dynamic>;
+    }
+
     return UserProfileModel(
       id: json['id'] as String,
       coverPhotoUrl: json['cover_photo_url'] as String? ?? '',
       profilePhotoUrl: json['profile_photo_url'] as String? ?? '',
       fullName: fullName.trim(),
-      username: json['username'] as String,
-      email: json['email'] as String,
+      username: json['username'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      province: addressData?['province'] as String?,
+      city: addressData?['city'] as String?,
+      // Map barangay from address_line2 or dedicated field if available later
+      // Current schema: address_line1, address_line2, city, province, postal_code
+      barangay: addressData?['address_line2'] as String?, 
     );
   }
 
@@ -42,6 +63,11 @@ class UserProfileModel extends UserProfileEntity {
       'full_name': fullName,
       'username': username,
       'email': email,
+      'user_addresses': [{
+        'province': province,
+        'city': city,
+        'address_line2': barangay,
+      }]
     };
   }
 }

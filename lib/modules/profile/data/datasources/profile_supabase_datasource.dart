@@ -20,10 +20,10 @@ class ProfileSupabaseDataSource {
       final currentUser = _supabase.auth.currentUser;
       if (currentUser == null) return null;
 
-      // Query by user ID first (most direct)
+      // Query by user ID first (most direct) with address join
       var response = await _supabase
           .from('users')
-          .select()
+          .select('*, user_addresses(*)')
           .eq('id', userId)
           .maybeSingle();
 
@@ -31,7 +31,7 @@ class ProfileSupabaseDataSource {
       if (response == null && currentUser.email != null) {
         response = await _supabase
             .from('users')
-            .select()
+            .select('*, user_addresses(*)')
             .eq('email', currentUser.email!)
             .maybeSingle();
       }
