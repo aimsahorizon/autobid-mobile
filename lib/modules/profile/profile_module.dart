@@ -23,6 +23,7 @@ import 'domain/usecases/purchase_token_package_usecase.dart';
 import 'domain/usecases/subscribe_to_plan_usecase.dart';
 import 'domain/usecases/update_ticket_status_usecase.dart';
 import 'domain/usecases/check_email_exists_usecase.dart';
+import 'domain/usecases/get_user_profile_usecase.dart';
 import 'domain/usecases/get_user_profile_by_email_usecase.dart';
 import 'domain/usecases/consume_bidding_token_usecase.dart';
 import 'domain/usecases/upload_profile_photo_usecase.dart';
@@ -62,6 +63,7 @@ Future<void> initProfileModule() async {
 
   // Use Cases
   sl.registerLazySingleton(() => CheckEmailExistsUseCase(sl()));
+  sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetUserProfileByEmailUseCase(sl()));
   sl.registerLazySingleton(() => UploadProfilePhotoUseCase(sl()));
   sl.registerLazySingleton(() => UploadCoverPhotoUseCase(sl()));
