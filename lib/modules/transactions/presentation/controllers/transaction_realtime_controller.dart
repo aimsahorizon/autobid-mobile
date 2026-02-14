@@ -163,8 +163,12 @@ class TransactionRealtimeController extends ChangeNotifier {
       }
     });
 
-    // Subscribe to transaction updates
+    // Subscribe to transaction updates (auction_transactions row changes)
     _dataSource.subscribeToTransaction(transactionId);
+
+    // Subscribe to form changes (transaction_forms INSERT/UPDATE)
+    _dataSource.subscribeToForms(transactionId);
+
     _transactionSubscription = _dataSource.transactionUpdateStream.listen((
       data,
     ) async {
@@ -715,7 +719,10 @@ class TransactionRealtimeController extends ChangeNotifier {
     _chatSubscription?.cancel();
     _transactionSubscription?.cancel();
     _subscribedTransactionId = null;
-    _dataSource.dispose();
+    // Only unsubscribe this controller's detail channels.
+    // Do NOT call _dataSource.dispose() — it's a shared singleton
+    // and closing its streams kills realtime for the entire app.
+    _dataSource.unsubscribeDetailChannels();
     super.dispose();
   }
 }

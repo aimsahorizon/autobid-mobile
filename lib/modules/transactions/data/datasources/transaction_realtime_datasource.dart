@@ -15,6 +15,7 @@ class TransactionRealtimeDataSource {
   // Real-time subscriptions
   RealtimeChannel? _chatChannel;
   RealtimeChannel? _transactionChannel;
+  RealtimeChannel? _formsChannel;
   RealtimeChannel? _sellerTxnChannel;
   RealtimeChannel? _buyerTxnChannel;
 
@@ -1876,10 +1877,53 @@ class TransactionRealtimeDataSource {
         .subscribe();
   }
 
-  /// Clean up subscriptions
+  /// Subscribe to transaction form changes (INSERT + UPDATE)
+  /// Fires when the other party submits or updates their form
+  void subscribeToForms(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return;
+
+    _formsChannel?.unsubscribe();
+    _formsChannel = _supabase
+        .channel('forms_$txnId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'transaction_forms',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'transaction_id',
+            value: txnId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionRealtimeDataSource] 📝 Form change detected: ${payload.eventType}',
+            );
+            // Re-use the transaction update stream to trigger a full reload
+            _transactionUpdateController.add(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Unsubscribe from detail-level channels (chat, transaction, forms)
+  /// Called by individual controllers when they are disposed.
+  /// Does NOT close the shared stream controllers or user-level channels.
+  void unsubscribeDetailChannels() {
+    _chatChannel?.unsubscribe();
+    _chatChannel = null;
+    _transactionChannel?.unsubscribe();
+    _transactionChannel = null;
+    _formsChannel?.unsubscribe();
+    _formsChannel = null;
+  }
+
+  /// Full cleanup — closes all channels AND stream controllers.
+  /// Only call when the datasource itself is being permanently destroyed.
   void dispose() {
     _chatChannel?.unsubscribe();
     _transactionChannel?.unsubscribe();
+    _formsChannel?.unsubscribe();
     _sellerTxnChannel?.unsubscribe();
     _buyerTxnChannel?.unsubscribe();
     _chatStreamController.close();

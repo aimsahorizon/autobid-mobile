@@ -351,16 +351,6 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     debugPrint('[DEBUG] Listing status: ${listing.status}');
     debugPrint('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
 
-    // Show debug snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Opening: ${listing.id.substring(0, 8)}... status=${listing.status}',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-
     final transactionController = sl<TransactionRealtimeController>();
 
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
