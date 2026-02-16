@@ -43,6 +43,38 @@ class ReviewStep extends StatelessWidget {
           const SizedBox(height: 32),
           _buildSection(
             context: context,
+            title: 'Account Information',
+            icon: Icons.account_circle_rounded,
+            step: KYCStep.accountInfo,
+            children: [
+              _buildInfoRow('Email', controller.email ?? 'N/A'),
+              _buildInfoRow(
+                'Terms & Conditions',
+                controller.termsAccepted ? 'Accepted' : 'Not accepted',
+              ),
+              _buildInfoRow(
+                'Privacy Policy',
+                controller.privacyAccepted ? 'Accepted' : 'Not accepted',
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSection(
+            context: context,
+            title: 'Verification Status',
+            icon: Icons.verified_user_rounded,
+            step: KYCStep.otpVerification,
+            children: [
+              _buildInfoRow(
+                'Email Verified',
+                controller.emailOtpVerified ? 'Yes' : 'No',
+                verified: controller.emailOtpVerified,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSection(
+            context: context,
             title: 'National ID',
             icon: Icons.badge_rounded,
             step: KYCStep.nationalId,
@@ -70,10 +102,6 @@ class ReviewStep extends StatelessWidget {
               _buildInfoRow(
                 'Selfie with ID',
                 controller.selfieWithId != null ? 'Uploaded' : 'Not uploaded',
-              ),
-              _buildInfoRow(
-                'AI Auto-fill',
-                controller.aiAutoFillAccepted ? 'Accepted' : 'Skipped',
               ),
             ],
           ),
@@ -121,43 +149,7 @@ class ReviewStep extends StatelessWidget {
               _buildInfoRow('Sex', controller.sex ?? 'N/A'),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildSection(
-            context: context,
-            title: 'Account Information',
-            icon: Icons.account_circle_rounded,
-            step: KYCStep.accountInfo,
-            children: [
-              _buildInfoRow('Email', controller.email ?? 'N/A'),
-              _buildInfoRow(
-                'Terms & Conditions',
-                controller.termsAccepted ? 'Accepted' : 'Not accepted',
-              ),
-              _buildInfoRow(
-                'Privacy Policy',
-                controller.privacyAccepted ? 'Accepted' : 'Not accepted',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildSection(
-            context: context,
-            title: 'Verification Status',
-            icon: Icons.verified_user_rounded,
-            step: KYCStep.otpVerification,
-            children: [
-              _buildInfoRow(
-                'Phone Verified',
-                controller.phoneOtpVerified ? 'Yes' : 'No',
-                verified: controller.phoneOtpVerified,
-              ),
-              _buildInfoRow(
-                'Email Verified',
-                controller.emailOtpVerified ? 'Yes' : 'No',
-                verified: controller.emailOtpVerified,
-              ),
-            ],
-          ),
+
           const SizedBox(height: 16),
           _buildSection(
             context: context,
