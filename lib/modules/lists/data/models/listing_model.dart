@@ -15,6 +15,7 @@ class ListingModel {
   final String brand;
   final String model;
   final String? variant;
+  final String? bodyType; // Added
   final int year;
   final String? engineType;
   final double? engineDisplacement;
@@ -110,6 +111,7 @@ class ListingModel {
     required this.brand,
     required this.model,
     this.variant,
+    this.bodyType,
     required this.year,
     this.engineType,
     this.engineDisplacement,

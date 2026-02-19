@@ -21,6 +21,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
   String? _brand;
   String? _model;
   String? _variant;
+  String? _bodyType;
 
   @override
   void initState() {
@@ -29,6 +30,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
     _brand = draft.brand;
     _model = draft.model;
     _variant = draft.variant;
+    _bodyType = draft.bodyType;
     _yearController = TextEditingController(text: draft.year?.toString());
     _yearController.addListener(_updateDraft);
 
@@ -58,6 +60,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
         brand: _brand,
         model: _model,
         variant: _variant,
+        bodyType: _bodyType,
         year: _yearController.text.isEmpty
             ? null
             : int.tryParse(_yearController.text),
@@ -121,6 +124,28 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
             },
             validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
             enabled: _brand != null,
+          ),
+          const SizedBox(height: 16),
+          ComboBoxWidget(
+            label: 'Body Type',
+            value: _bodyType,
+            items: const [
+              'Sedan',
+              'SUV',
+              'Hatchback',
+              'Pickup',
+              'MPV',
+              'Van',
+              'Crossover',
+              'Coupe',
+              'Convertible',
+              'Wagon'
+            ],
+            hint: 'Select Body Type',
+            onChanged: (v) {
+              setState(() => _bodyType = v);
+              _updateDraft();
+            },
           ),
           const SizedBox(height: 16),
           ComboBoxWidget(

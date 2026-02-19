@@ -14,6 +14,7 @@ class ListingDraftEntity {
   final String? brand;
   final String? model;
   final String? variant;
+  final String? bodyType; // Added field
   final int? year;
 
   // Step 2: Mechanical Specification
@@ -101,6 +102,7 @@ class ListingDraftEntity {
     this.brand,
     this.model,
     this.variant,
+    this.bodyType,
     this.year,
     this.engineType,
     this.engineDisplacement,
@@ -171,6 +173,7 @@ class ListingDraftEntity {
     String? brand,
     String? model,
     String? variant,
+    String? bodyType,
     int? year,
     String? engineType,
     double? engineDisplacement,
@@ -239,6 +242,7 @@ class ListingDraftEntity {
       brand: brand ?? this.brand,
       model: model ?? this.model,
       variant: variant ?? this.variant,
+      bodyType: bodyType ?? this.bodyType,
       year: year ?? this.year,
       engineType: engineType ?? this.engineType,
       engineDisplacement: engineDisplacement ?? this.engineDisplacement,
@@ -311,6 +315,7 @@ class ListingDraftEntity {
       brand: brand,
       model: model,
       variant: variant,
+      bodyType: bodyType,
       year: year,
       engineType: engineType,
       engineDisplacement: engineDisplacement,

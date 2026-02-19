@@ -12,6 +12,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.brand,
     super.model,
     super.variant,
+    super.bodyType,
     super.year,
     super.engineType,
     super.engineDisplacement,
@@ -84,6 +85,7 @@ class ListingDraftModel extends ListingDraftEntity {
       brand: json['brand'] as String?,
       model: json['model'] as String?,
       variant: json['variant'] as String?,
+      bodyType: json['body_type'] as String?,
       year: json['year'] as int?,
       // Step 2: Mechanical
       engineType: json['engine_type'] as String?,
@@ -176,6 +178,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'brand': brand,
       'model': model,
       'variant': variant,
+      'body_type': bodyType,
       'year': year,
       // Step 2
       'engine_type': engineType,

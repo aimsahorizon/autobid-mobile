@@ -194,6 +194,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
         brand: detectedData['brand'] as String?,
         model: detectedData['model'] as String?,
         variant: '${detectedData['bodyType']} ${detectedData['transmission']}',
+        bodyType: detectedData['bodyType'] as String?, // Added bodyType
         year: detectedData['year'] as int?,
         transmission: specs['transmission'] as String?,
         exteriorColor: detectedData['color'] as String?,

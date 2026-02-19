@@ -23,6 +23,7 @@ class ListingDetailEntity {
   final String? brand;
   final String? model;
   final String? variant;
+  final String? bodyType; // Added field
   final int? year;
 
   // Step 2: Mechanical Specification
@@ -116,6 +117,7 @@ class ListingDetailEntity {
     this.brand,
     this.model,
     this.variant,
+    this.bodyType,
     this.year,
     this.engineType,
     this.engineDisplacement,
