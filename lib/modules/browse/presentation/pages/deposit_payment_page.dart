@@ -83,32 +83,74 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
   Future<void> _loadUserProfile() async {
     try {
+      final currentUser = SupabaseConfig.client.auth.currentUser;
+      final fallbackEmail = currentUser?.email ?? '';
+      final fallbackPhone = currentUser?.phone ?? '';
+      
+      // Try to get name from metadata if available
+      final metadata = currentUser?.userMetadata;
+      final metaFirstName = metadata?['first_name'] as String? ?? '';
+      final metaLastName = metadata?['last_name'] as String? ?? '';
+      final metaName = '$metaFirstName $metaLastName'.trim();
+
       final response = await SupabaseConfig.client
           .from('profiles')
           .select()
           .eq('id', widget.userId)
           .maybeSingle();
 
-      if (response != null && mounted) {
+      if (mounted) {
         setState(() {
-          final firstName = response['first_name'] as String? ?? '';
-          final lastName = response['last_name'] as String? ?? '';
-          final email = response['email'] as String? ?? '';
-          final contactNumber = response['contact_number'] as String? ?? '';
+          String firstName = '';
+          String lastName = '';
+          String email = fallbackEmail;
+          String phone = fallbackPhone;
+
+          if (response != null) {
+            firstName = response['first_name'] as String? ?? metaFirstName;
+            lastName = response['last_name'] as String? ?? metaLastName;
+            
+            // Use profile email if available, otherwise fallback
+            if (response['email'] != null && (response['email'] as String).isNotEmpty) {
+              email = response['email'] as String;
+            }
+            
+            // Check both phone_number (schema) and contact_number (legacy/view)
+            final profilePhone = response['phone_number'] as String? ?? 
+                               response['contact_number'] as String?;
+            if (profilePhone != null && profilePhone.isNotEmpty) {
+              phone = profilePhone;
+            }
+          }
 
           if (_nameController.text.isEmpty) {
-            _nameController.text = '$firstName $lastName'.trim();
+            final profileName = '$firstName $lastName'.trim();
+            _nameController.text = profileName.isNotEmpty ? profileName : metaName;
           }
-          if (_emailController.text.isEmpty) {
+          if (_emailController.text.isEmpty && email.isNotEmpty) {
             _emailController.text = email;
           }
-          if (_phoneController.text.isEmpty) {
-            _phoneController.text = contactNumber;
+          if (_phoneController.text.isEmpty && phone.isNotEmpty) {
+            _phoneController.text = phone;
           }
         });
       }
     } catch (e) {
       debugPrint('[DepositPaymentPage] Error loading user profile: $e');
+      // Fallback to auth data if profile load fails
+      if (mounted) {
+        final currentUser = SupabaseConfig.client.auth.currentUser;
+        if (currentUser != null) {
+             setState(() {
+                if (_emailController.text.isEmpty && currentUser.email != null) {
+                  _emailController.text = currentUser.email!;
+                }
+                if (_phoneController.text.isEmpty && currentUser.phone != null) {
+                  _phoneController.text = currentUser.phone!;
+                }
+             });
+        }
+      }
     }
   }
 
