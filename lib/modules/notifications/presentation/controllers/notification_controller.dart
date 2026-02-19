@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../../domain/usecases/get_notifications_usecase.dart';
@@ -6,9 +7,11 @@ import '../../domain/usecases/mark_as_read_usecase.dart';
 import '../../domain/usecases/mark_all_as_read_usecase.dart';
 import '../../domain/usecases/delete_notification_usecase.dart';
 import '../../domain/usecases/respond_to_invite_usecase.dart';
+import '../../data/datasources/notification_datasource.dart';
 
 /// Controller for managing notification state
 /// Refactored to use Clean Architecture with UseCases
+/// Supports realtime notification updates via Supabase stream
 class NotificationController extends ChangeNotifier {
   final GetNotificationsUseCase _getNotificationsUseCase;
   final GetUnreadCountUseCase _getUnreadCountUseCase;
@@ -16,6 +19,7 @@ class NotificationController extends ChangeNotifier {
   final MarkAllAsReadUseCase _markAllAsReadUseCase;
   final DeleteNotificationUseCase _deleteNotificationUseCase;
   final RespondToInviteUseCase _respondToInviteUseCase;
+  final INotificationDataSource? _dataSource;
 
   NotificationController({
     required GetNotificationsUseCase getNotificationsUseCase,
@@ -24,17 +28,21 @@ class NotificationController extends ChangeNotifier {
     required MarkAllAsReadUseCase markAllAsReadUseCase,
     required DeleteNotificationUseCase deleteNotificationUseCase,
     required RespondToInviteUseCase respondToInviteUseCase,
+    INotificationDataSource? dataSource,
   }) : _getNotificationsUseCase = getNotificationsUseCase,
        _getUnreadCountUseCase = getUnreadCountUseCase,
        _markAsReadUseCase = markAsReadUseCase,
        _markAllAsReadUseCase = markAllAsReadUseCase,
        _deleteNotificationUseCase = deleteNotificationUseCase,
-       _respondToInviteUseCase = respondToInviteUseCase;
+       _respondToInviteUseCase = respondToInviteUseCase,
+       _dataSource = dataSource;
 
   List<NotificationEntity> _notifications = [];
   int _unreadCount = 0;
   bool _isLoading = false;
   String? _errorMessage;
+  StreamSubscription? _notificationSubscription;
+  String? _subscribedUserId;
 
   // Getters
   List<NotificationEntity> get notifications => _notifications;
@@ -65,11 +73,57 @@ class NotificationController extends ChangeNotifier {
         (failure) {}, // Silent fail for unread count
         (count) => _unreadCount = count,
       );
+
+      // Start realtime subscription if not already subscribed
+      _subscribeToRealtimeUpdates(userId);
     } catch (e) {
       _errorMessage = 'Failed to load notifications: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Subscribe to realtime notification updates
+  void _subscribeToRealtimeUpdates(String userId) {
+    if (_subscribedUserId == userId || _dataSource == null) return;
+
+    _notificationSubscription?.cancel();
+    _subscribedUserId = userId;
+
+    _notificationSubscription = _dataSource
+        ?.streamNotifications(userId: userId)
+        .skip(1) // Skip initial data (we already loaded it)
+        .listen(
+          (_) {
+            // Reload notifications when we get a realtime update
+            debugPrint('DEBUG: Realtime notification update received');
+            _refreshNotifications(userId);
+          },
+          onError: (e) {
+            debugPrint('ERROR: Realtime notification subscription error: $e');
+          },
+        );
+  }
+
+  /// Refresh notifications without showing loading state
+  Future<void> _refreshNotifications(String userId) async {
+    try {
+      final notificationsResult = await _getNotificationsUseCase(
+        userId: userId,
+      );
+      final unreadCountResult = await _getUnreadCountUseCase(userId: userId);
+
+      notificationsResult.fold(
+        (failure) {},
+        (notifications) => _notifications = notifications,
+      );
+
+      unreadCountResult.fold((failure) {}, (count) => _unreadCount = count);
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('ERROR: Failed to refresh notifications: $e');
     }
   }
 
@@ -190,5 +244,12 @@ class NotificationController extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    _subscribedUserId = null;
+    super.dispose();
   }
 }

@@ -17,6 +17,9 @@ import 'package:autobid_mobile/modules/browse/domain/usecases/process_deposit_us
 import 'package:autobid_mobile/modules/browse/domain/usecases/stream_auction_updates_usecase.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/stream_bid_updates_usecase.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/stream_qa_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/save_auto_bid_settings_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_auto_bid_settings_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/deactivate_auto_bid_usecase.dart';
 import 'package:autobid_mobile/modules/browse/presentation/controllers/auction_detail_controller.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/consume_bidding_token_usecase.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
@@ -45,14 +48,26 @@ class MockUpsertBidIncrementUseCase extends Mock
 
 class MockProcessDepositUseCase extends Mock implements ProcessDepositUseCase {}
 
-class MockStreamAuctionUpdatesUseCase extends Mock implements StreamAuctionUpdatesUseCase {}
+class MockStreamAuctionUpdatesUseCase extends Mock
+    implements StreamAuctionUpdatesUseCase {}
 
-class MockStreamBidUpdatesUseCase extends Mock implements StreamBidUpdatesUseCase {}
+class MockStreamBidUpdatesUseCase extends Mock
+    implements StreamBidUpdatesUseCase {}
 
-class MockStreamQAUpdatesUseCase extends Mock implements StreamQAUpdatesUseCase {}
+class MockStreamQAUpdatesUseCase extends Mock
+    implements StreamQAUpdatesUseCase {}
 
 class MockConsumeBiddingTokenUsecase extends Mock
     implements ConsumeBiddingTokenUsecase {}
+
+class MockSaveAutoBidSettingsUseCase extends Mock
+    implements SaveAutoBidSettingsUseCase {}
+
+class MockGetAutoBidSettingsUseCase extends Mock
+    implements GetAutoBidSettingsUseCase {}
+
+class MockDeactivateAutoBidUseCase extends Mock
+    implements DeactivateAutoBidUseCase {}
 
 void main() {
   late AuctionDetailController controller;
@@ -70,6 +85,9 @@ void main() {
   late MockStreamAuctionUpdatesUseCase mockStreamAuctionUpdates;
   late MockStreamBidUpdatesUseCase mockStreamBidUpdates;
   late MockStreamQAUpdatesUseCase mockStreamQAUpdates;
+  late MockSaveAutoBidSettingsUseCase mockSaveAutoBidSettings;
+  late MockGetAutoBidSettingsUseCase mockGetAutoBidSettings;
+  late MockDeactivateAutoBidUseCase mockDeactivateAutoBid;
 
   const testUserId = 'test-user-123';
   const testAuctionId = 'auction-123';
@@ -156,16 +174,23 @@ void main() {
     mockStreamAuctionUpdates = MockStreamAuctionUpdatesUseCase();
     mockStreamBidUpdates = MockStreamBidUpdatesUseCase();
     mockStreamQAUpdates = MockStreamQAUpdatesUseCase();
+    mockSaveAutoBidSettings = MockSaveAutoBidSettingsUseCase();
+    mockGetAutoBidSettings = MockGetAutoBidSettingsUseCase();
+    mockDeactivateAutoBid = MockDeactivateAutoBidUseCase();
 
     // Default stream behavior
-    when(() => mockStreamAuctionUpdates.call(auctionId: any(named: 'auctionId')))
-        .thenAnswer((_) => const Stream.empty());
-    when(() => mockStreamBidUpdates.call(auctionId: any(named: 'auctionId')))
-        .thenAnswer((_) => const Stream.empty());
-    when(() => mockStreamQAUpdates.call(
-      auctionId: any(named: 'auctionId'),
-      currentUserId: any(named: 'currentUserId'),
-    )).thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockStreamAuctionUpdates.call(auctionId: any(named: 'auctionId')),
+    ).thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockStreamBidUpdates.call(auctionId: any(named: 'auctionId')),
+    ).thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockStreamQAUpdates.call(
+        auctionId: any(named: 'auctionId'),
+        currentUserId: any(named: 'currentUserId'),
+      ),
+    ).thenAnswer((_) => const Stream.empty());
 
     controller = AuctionDetailController(
       getAuctionDetailUseCase: mockGetAuctionDetail,
@@ -182,6 +207,9 @@ void main() {
       streamAuctionUpdatesUseCase: mockStreamAuctionUpdates,
       streamBidUpdatesUseCase: mockStreamBidUpdates,
       streamQAUpdatesUseCase: mockStreamQAUpdates,
+      saveAutoBidSettingsUseCase: mockSaveAutoBidSettings,
+      getAutoBidSettingsUseCase: mockGetAutoBidSettings,
+      deactivateAutoBidUseCase: mockDeactivateAutoBid,
       userId: testUserId,
     );
 
@@ -502,6 +530,9 @@ void main() {
           streamAuctionUpdatesUseCase: mockStreamAuctionUpdates,
           streamBidUpdatesUseCase: mockStreamBidUpdates,
           streamQAUpdatesUseCase: mockStreamQAUpdates,
+          saveAutoBidSettingsUseCase: mockSaveAutoBidSettings,
+          getAutoBidSettingsUseCase: mockGetAutoBidSettings,
+          deactivateAutoBidUseCase: mockDeactivateAutoBid,
           userId: null,
         );
 
