@@ -25,6 +25,9 @@ import 'domain/usecases/stream_auction_updates_usecase.dart';
 import 'domain/usecases/stream_bid_updates_usecase.dart';
 import 'domain/usecases/stream_qa_updates_usecase.dart';
 import 'domain/usecases/stream_active_auctions_usecase.dart';
+import 'domain/usecases/save_auto_bid_settings_usecase.dart';
+import 'domain/usecases/get_auto_bid_settings_usecase.dart';
+import 'domain/usecases/deactivate_auto_bid_usecase.dart';
 import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
 
@@ -58,10 +61,8 @@ Future<void> initBrowseModule() async {
     () => AuctionRepositorySupabaseImpl(sl(), sl()),
   );
   sl.registerLazySingleton<AuctionDetailRepository>(
-    () => AuctionDetailRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () =>
+        AuctionDetailRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Use Cases for Auction Detail
@@ -79,6 +80,9 @@ Future<void> initBrowseModule() async {
   sl.registerLazySingleton(() => StreamBidUpdatesUseCase(sl()));
   sl.registerLazySingleton(() => StreamQAUpdatesUseCase(sl()));
   sl.registerLazySingleton(() => StreamActiveAuctionsUseCase(sl()));
+  sl.registerLazySingleton(() => SaveAutoBidSettingsUseCase(sl()));
+  sl.registerLazySingleton(() => GetAutoBidSettingsUseCase(sl()));
+  sl.registerLazySingleton(() => DeactivateAutoBidUseCase(sl()));
 
   // Controllers (Factory - create new instance each time)
   sl.registerFactory(() => BrowseController(sl(), sl()));
@@ -98,6 +102,9 @@ Future<void> initBrowseModule() async {
       streamAuctionUpdatesUseCase: sl(),
       streamBidUpdatesUseCase: sl(),
       streamQAUpdatesUseCase: sl(),
+      saveAutoBidSettingsUseCase: sl(),
+      getAutoBidSettingsUseCase: sl(),
+      deactivateAutoBidUseCase: sl(),
       userId: sl<SupabaseClient>().auth.currentUser?.id,
     ),
   );

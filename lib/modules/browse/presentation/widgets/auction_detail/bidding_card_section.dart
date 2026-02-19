@@ -15,6 +15,7 @@ class BiddingCardSection extends StatefulWidget {
   final bool isProcessing;
   final bool isAutoBidActive;
   final double? maxAutoBid;
+  final double bidIncrement;
 
   const BiddingCardSection({
     super.key,
@@ -30,6 +31,7 @@ class BiddingCardSection extends StatefulWidget {
     this.isProcessing = false,
     this.isAutoBidActive = false,
     this.maxAutoBid,
+    this.bidIncrement = 1000,
   });
 
   @override
@@ -53,7 +55,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
         ? widget.minimumBid
         : nextBidBase;
     _bidController.text = _nextMinimumBid.toStringAsFixed(0);
-    _selectedIncrement = widget.minBidIncrement;
+    _selectedIncrement = widget.bidIncrement;
     _showAutoBidSection = widget.isAutoBidActive;
     if (widget.maxAutoBid != null) {
       _maxAutoBidController.text = widget.maxAutoBid!.toStringAsFixed(0);
@@ -70,7 +72,14 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
           ? widget.minimumBid
           : nextBidBase;
       _bidController.text = _nextMinimumBid.toStringAsFixed(0);
-      _selectedIncrement = widget.minBidIncrement;
+    }
+    // Sync auto-bid state from controller (server may have deactivated it)
+    if (oldWidget.isAutoBidActive != widget.isAutoBidActive) {
+      _showAutoBidSection = widget.isAutoBidActive;
+      if (widget.isAutoBidActive && widget.maxAutoBid != null) {
+        _maxAutoBidController.text = widget.maxAutoBid!.toStringAsFixed(0);
+      }
+      _selectedIncrement = widget.bidIncrement;
     }
   }
 
@@ -78,6 +87,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   void dispose() {
     _bidController.dispose();
     _maxAutoBidController.dispose();
+    _customIncrementController.dispose();
     super.dispose();
   }
 
@@ -274,10 +284,10 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                   );
                   return;
                 }
-                
+
                 // Enforce increment is a multiple of min increment (optional but cleaner)
                 if (selectedIncrement % widget.minBidIncrement != 0) {
-                   ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Increment must be a multiple of ₱${_formatNumber(widget.minBidIncrement)}',
@@ -385,9 +395,9 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                   );
                   return;
                 }
-                
+
                 if (amount % widget.minBidIncrement != 0) {
-                   ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Increment must be a multiple of ₱${_formatNumber(widget.minBidIncrement)}',
@@ -885,20 +895,23 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                               increment >= widget.minBidIncrement;
                           final isMultipleOf1k = increment % 1000 == 0;
 
-                          if (amount >= _nextMinimumBid && 
-                              meetsMinIncrement && 
+                          if (amount >= _nextMinimumBid &&
+                              meetsMinIncrement &&
                               isMultipleOf1k) {
                             widget.onPlaceBid(amount);
                           } else {
                             String errorMsg;
                             if (amount < _nextMinimumBid) {
-                              errorMsg = 'Bid must be at least ₱${_formatNumber(_nextMinimumBid)}';
+                              errorMsg =
+                                  'Bid must be at least ₱${_formatNumber(_nextMinimumBid)}';
                             } else if (!meetsMinIncrement) {
-                              errorMsg = 'Increase must be ≥ ₱${_formatNumber(widget.minBidIncrement)}';
+                              errorMsg =
+                                  'Increase must be ≥ ₱${_formatNumber(widget.minBidIncrement)}';
                             } else {
-                              errorMsg = 'Bid increment must be a multiple of ₱1,000';
+                              errorMsg =
+                                  'Bid increment must be a multiple of ₱1,000';
                             }
-                            
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(errorMsg),

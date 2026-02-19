@@ -48,7 +48,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     }
 
     // Get deposit amount from auction configuration
-    final depositAmount = auction.depositAmount > 0 ? auction.depositAmount : 5000.0;
+    final depositAmount = auction.depositAmount > 0
+        ? auction.depositAmount
+        : 5000.0;
 
     // Navigate to PayMongo deposit payment page
     final result = await Navigator.push<bool>(
@@ -121,9 +123,19 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     }
   }
 
-  void _handleAutoBidToggle(bool isActive, double? maxBid, double increment) {
-    widget.controller.setAutoBid(isActive, maxBid, increment);
-    if (isActive && maxBid != null) {
+  void _handleAutoBidToggle(
+    bool isActive,
+    double? maxBid,
+    double increment,
+  ) async {
+    final success = await widget.controller.setAutoBid(
+      isActive,
+      maxBid,
+      increment,
+    );
+    if (!mounted) return;
+
+    if (success && isActive && maxBid != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -140,6 +152,21 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           ),
         ),
       );
+    } else if (success && !isActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Auto-bid deactivated'),
+          backgroundColor: ColorConstants.warning,
+        ),
+      );
+    } else if (!success && widget.controller.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      widget.controller.clearError();
     }
   }
 
@@ -148,98 +175,100 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
-          .copyWith(
-            statusBarColor: Colors.transparent,
-          ),
+      value:
+          (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+              .copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
         body: ListenableBuilder(
-        listenable: widget.controller,
-        builder: (context, _) {
-          if (widget.controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          listenable: widget.controller,
+          builder: (context, _) {
+            if (widget.controller.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (widget.controller.hasError) {
-            return _buildErrorState();
-          }
+            if (widget.controller.hasError) {
+              return _buildErrorState();
+            }
 
-          final auction = widget.controller.auction;
-          if (auction == null) return const SizedBox.shrink();
+            final auction = widget.controller.auction;
+            if (auction == null) return const SizedBox.shrink();
 
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 250,
-                pinned: true,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: AuctionCoverPhoto(
-                    imageUrl: auction.carImageUrl,
-                    carName: auction.carName,
-                    status: auction.status,
+            return CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 250,
+                  pinned: true,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: AuctionCoverPhoto(
+                      imageUrl: auction.carImageUrl,
+                      carName: auction.carName,
+                      status: auction.status,
+                    ),
                   ),
-                ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: widget.controller.isLoading
-                        ? null
-                        : () => widget.controller.loadAuctionDetail(
-                            widget.auctionId,
-                          ),
-                    tooltip: 'Refresh auction details',
-                  ),
-                ],
-              ),
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    BiddingInfoSection(
-                      endTime: auction.endTime,
-                      currentBid: auction.currentBid,
-                      reservePrice: auction.reservePrice,
-                      isReserveMet: auction.isReserveMet,
-                      showReservePrice: auction.showReservePrice,
-                      totalBids: auction.totalBids,
-                      watchersCount: auction.watchersCount,
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: widget.controller.isLoading
+                          ? null
+                          : () => widget.controller.loadAuctionDetail(
+                              widget.auctionId,
+                            ),
+                      tooltip: 'Refresh auction details',
                     ),
-                    CarPhotosSection(photos: auction.photos),
-                    const SizedBox(height: 16),
-                    BiddingCardSection(
-                      hasDeposited: auction.hasUserDeposited,
-                      minimumBid: auction.minimumBid,
-                      currentBid: auction.currentBid,
-                      minBidIncrement: auction.minBidIncrement,
-                      depositAmount: auction.depositAmount > 0 ? auction.depositAmount : 5000.0,
-                      enableIncrementalBidding:
-                          auction.enableIncrementalBidding,
-                      onDeposit: _handleDeposit,
-                      onPlaceBid: _handleBid,
-                      onAutoBidToggle: _handleAutoBidToggle,
-                      isProcessing: widget.controller.isProcessing,
-                      isAutoBidActive: widget.controller.isAutoBidActive,
-                      maxAutoBid: widget.controller.maxAutoBid,
-                    ),
-                    const SizedBox(height: 24),
-                    DetailTabsSection(
-                      auction: widget.controller.auction!,
-                      bidHistory: widget.controller.bidHistory,
-                      questions: widget.controller.questions,
-                      isLoadingBidHistory:
-                          widget.controller.isLoadingBidHistory,
-                      isLoadingQA: widget.controller.isLoadingQA,
-                      onAskQuestion: widget.controller.askQuestion,
-                      onToggleLike: widget.controller.toggleQuestionLike,
-                    ),
-                    const SizedBox(height: 32),
                   ],
                 ),
-              ),
-            ],
-          );
-        },
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      BiddingInfoSection(
+                        endTime: auction.endTime,
+                        currentBid: auction.currentBid,
+                        reservePrice: auction.reservePrice,
+                        isReserveMet: auction.isReserveMet,
+                        showReservePrice: auction.showReservePrice,
+                        totalBids: auction.totalBids,
+                        watchersCount: auction.watchersCount,
+                      ),
+                      CarPhotosSection(photos: auction.photos),
+                      const SizedBox(height: 16),
+                      BiddingCardSection(
+                        hasDeposited: auction.hasUserDeposited,
+                        minimumBid: auction.minimumBid,
+                        currentBid: auction.currentBid,
+                        minBidIncrement: auction.minBidIncrement,
+                        depositAmount: auction.depositAmount > 0
+                            ? auction.depositAmount
+                            : 5000.0,
+                        enableIncrementalBidding:
+                            auction.enableIncrementalBidding,
+                        onDeposit: _handleDeposit,
+                        onPlaceBid: _handleBid,
+                        onAutoBidToggle: _handleAutoBidToggle,
+                        isProcessing: widget.controller.isProcessing,
+                        isAutoBidActive: widget.controller.isAutoBidActive,
+                        maxAutoBid: widget.controller.maxAutoBid,
+                        bidIncrement: widget.controller.bidIncrement,
+                      ),
+                      const SizedBox(height: 24),
+                      DetailTabsSection(
+                        auction: widget.controller.auction!,
+                        bidHistory: widget.controller.bidHistory,
+                        questions: widget.controller.questions,
+                        isLoadingBidHistory:
+                            widget.controller.isLoadingBidHistory,
+                        isLoadingQA: widget.controller.isLoadingQA,
+                        onAskQuestion: widget.controller.askQuestion,
+                        onToggleLike: widget.controller.toggleQuestionLike,
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
-    ),
     );
   }
 

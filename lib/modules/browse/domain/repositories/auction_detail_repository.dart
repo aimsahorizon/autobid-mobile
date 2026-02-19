@@ -28,6 +28,27 @@ abstract class AuctionDetailRepository {
     double? autoBidIncrement,
   });
 
+  /// Save or update auto-bid settings on the server
+  Future<Either<Failure, void>> saveAutoBidSettings({
+    required String auctionId,
+    required String userId,
+    required double maxBidAmount,
+    double? bidIncrement,
+    bool isActive = true,
+  });
+
+  /// Get auto-bid settings for a user on a specific auction
+  Future<Either<Failure, Map<String, dynamic>?>> getAutoBidSettings({
+    required String auctionId,
+    required String userId,
+  });
+
+  /// Deactivate auto-bid for a user on a specific auction
+  Future<Either<Failure, void>> deactivateAutoBid({
+    required String auctionId,
+    required String userId,
+  });
+
   /// Get Q&A questions for an auction
   Future<Either<Failure, List<QAEntity>>> getQuestions({
     required String auctionId,

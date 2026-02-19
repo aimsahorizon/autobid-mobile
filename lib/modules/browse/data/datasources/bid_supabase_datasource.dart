@@ -19,38 +19,115 @@ class BidSupabaseDataSource {
     double? autoBidIncrement,
   }) async {
     try {
-      // If setting up auto-bid, save settings first
-      if (maxAutoBid != null) {
-        await _supabase.from('auto_bid_settings').upsert(
-          {
-            'auction_id': auctionId,
-            'user_id': bidderId,
-            'max_bid_amount': maxAutoBid,
-            'is_active': true,
-          },
-          onConflict: 'auction_id,user_id',
-        );
-      }
-
-      // Call RPC
-      final response = await _supabase.rpc('place_bid', params: {
-        'p_auction_id': auctionId,
-        'p_bidder_id': bidderId,
-        'p_amount': amount,
-        'p_is_auto_bid': isAutoBid,
-      });
+      // Call RPC — auto-bid settings are saved separately via saveAutoBidSettings()
+      final response = await _supabase.rpc(
+        'place_bid',
+        params: {
+          'p_auction_id': auctionId,
+          'p_bidder_id': bidderId,
+          'p_amount': amount,
+          'p_is_auto_bid': isAutoBid,
+        },
+      );
 
       // Parse response
       final result = response as Map<String, dynamic>;
       if (result['success'] != true) {
         throw Exception(result['error'] ?? 'Failed to place bid');
       }
-
     } on PostgrestException catch (e) {
       throw Exception('Failed to place bid: ${e.message}');
     } catch (e) {
       throw Exception('Failed to place bid: $e');
     }
+  }
+
+  /// Save or update auto-bid settings via server-side RPC
+  /// This persists the user's max bid and increment on the server
+  Future<void> saveAutoBidSettings({
+    required String auctionId,
+    required String userId,
+    required double maxBidAmount,
+    double? bidIncrement,
+    bool isActive = true,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'upsert_auto_bid_settings',
+        params: {
+          'p_auction_id': auctionId,
+          'p_user_id': userId,
+          'p_max_bid_amount': maxBidAmount,
+          'p_bid_increment': bidIncrement,
+          'p_is_active': isActive,
+        },
+      );
+
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to save auto-bid settings');
+      }
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to save auto-bid settings: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to save auto-bid settings: $e');
+    }
+  }
+
+  /// Get auto-bid settings for a user on a specific auction
+  Future<Map<String, dynamic>?> getAutoBidSettings({
+    required String auctionId,
+    required String userId,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_auto_bid_settings',
+        params: {'p_auction_id': auctionId, 'p_user_id': userId},
+      );
+
+      final result = response as Map<String, dynamic>;
+      if (result['exists'] == true) {
+        return result;
+      }
+      return null;
+    } on PostgrestException catch (e) {
+      debugPrint('Failed to get auto-bid settings: ${e.message}');
+      return null;
+    } catch (e) {
+      debugPrint('Failed to get auto-bid settings: $e');
+      return null;
+    }
+  }
+
+  /// Deactivate auto-bid settings for a user on a specific auction
+  Future<void> deactivateAutoBid({
+    required String auctionId,
+    required String userId,
+  }) async {
+    try {
+      await _supabase
+          .from('auto_bid_settings')
+          .update({
+            'is_active': false,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('auction_id', auctionId)
+          .eq('user_id', userId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to deactivate auto-bid: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to deactivate auto-bid: $e');
+    }
+  }
+
+  /// Stream notification updates for a user (for outbid alerts)
+  Stream<List<Map<String, dynamic>>> streamNotifications(String userId) {
+    return _supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(20);
   }
 
   /// Extend auction end time by 5 minutes on every bid

@@ -16,6 +16,9 @@ import '../../domain/usecases/process_deposit_usecase.dart';
 import '../../domain/usecases/stream_auction_updates_usecase.dart';
 import '../../domain/usecases/stream_bid_updates_usecase.dart';
 import '../../domain/usecases/stream_qa_updates_usecase.dart';
+import '../../domain/usecases/save_auto_bid_settings_usecase.dart';
+import '../../domain/usecases/get_auto_bid_settings_usecase.dart';
+import '../../domain/usecases/deactivate_auto_bid_usecase.dart';
 import '../../../profile/domain/usecases/consume_bidding_token_usecase.dart';
 
 /// Controller for managing auction detail page state
@@ -34,12 +37,16 @@ class AuctionDetailController extends ChangeNotifier {
   final LikeQuestionUseCase _likeQuestionUseCase;
   final UnlikeQuestionUseCase _unlikeQuestionUseCase;
   final GetBidIncrementUseCase _getBidIncrementUseCase;
+  // ignore: unused_field — kept for future manual bid-increment persistence
   final UpsertBidIncrementUseCase _upsertBidIncrementUseCase;
   final ProcessDepositUseCase _processDepositUseCase;
   final ConsumeBiddingTokenUsecase _consumeBiddingTokenUsecase;
   final StreamAuctionUpdatesUseCase _streamAuctionUpdatesUseCase;
   final StreamBidUpdatesUseCase _streamBidUpdatesUseCase;
   final StreamQAUpdatesUseCase _streamQAUpdatesUseCase;
+  final SaveAutoBidSettingsUseCase _saveAutoBidSettingsUseCase;
+  final GetAutoBidSettingsUseCase _getAutoBidSettingsUseCase;
+  final DeactivateAutoBidUseCase _deactivateAutoBidUseCase;
   final String? _userId;
 
   /// Create controller with UseCases via Dependency Injection
@@ -58,6 +65,9 @@ class AuctionDetailController extends ChangeNotifier {
     required StreamAuctionUpdatesUseCase streamAuctionUpdatesUseCase,
     required StreamBidUpdatesUseCase streamBidUpdatesUseCase,
     required StreamQAUpdatesUseCase streamQAUpdatesUseCase,
+    required SaveAutoBidSettingsUseCase saveAutoBidSettingsUseCase,
+    required GetAutoBidSettingsUseCase getAutoBidSettingsUseCase,
+    required DeactivateAutoBidUseCase deactivateAutoBidUseCase,
     String? userId,
   }) : _getAuctionDetailUseCase = getAuctionDetailUseCase,
        _getBidHistoryUseCase = getBidHistoryUseCase,
@@ -73,6 +83,9 @@ class AuctionDetailController extends ChangeNotifier {
        _streamAuctionUpdatesUseCase = streamAuctionUpdatesUseCase,
        _streamBidUpdatesUseCase = streamBidUpdatesUseCase,
        _streamQAUpdatesUseCase = streamQAUpdatesUseCase,
+       _saveAutoBidSettingsUseCase = saveAutoBidSettingsUseCase,
+       _getAutoBidSettingsUseCase = getAutoBidSettingsUseCase,
+       _deactivateAutoBidUseCase = deactivateAutoBidUseCase,
        _userId = userId;
 
   // State properties
@@ -106,6 +119,7 @@ class AuctionDetailController extends ChangeNotifier {
   bool get hasError => _errorMessage != null;
   bool get isAutoBidActive => _isAutoBidActive;
   double? get maxAutoBid => _maxAutoBid;
+  double get bidIncrement => _bidIncrement;
 
   /// Loads auction details and related data (bid history, Q&A)
   Future<void> loadAuctionDetail(String id, {bool isBackground = false}) async {
@@ -116,8 +130,6 @@ class AuctionDetailController extends ChangeNotifier {
     }
 
     try {
-      final previousBid = _auction?.currentBid;
-
       // Get auction detail using UseCase
       final result = await _getAuctionDetailUseCase(
         auctionId: id,
@@ -151,23 +163,16 @@ class AuctionDetailController extends ChangeNotifier {
         );
       }
 
-      // Load bid history and Q&A in parallel
-      await Future.wait([_loadBidHistory(id), _loadQuestions(id)]);
+      // Load bid history, Q&A, and auto-bid settings in parallel
+      await Future.wait([
+        _loadBidHistory(id),
+        _loadQuestions(id),
+        if (!isBackground) _loadAutoBidSettings(id),
+      ]);
 
       // Start Realtime Updates only once per auction (not on background reloads)
       if (_subscribedAuctionId != id) {
         _subscribeToRealtimeUpdates(id);
-      }
-
-      // Check if we've been outbid and auto-bid is active
-      if (previousBid != null &&
-          _auction != null &&
-          _auction!.currentBid > previousBid &&
-          _isAutoBidActive) {
-        debugPrint(
-          'DEBUG: Detected outbid - previous: $previousBid, current: ${_auction!.currentBid}',
-        );
-        // Server handles auto-bids now
       }
     } catch (e) {
       _errorMessage = 'Failed to load auction details';
@@ -467,14 +472,13 @@ class AuctionDetailController extends ChangeNotifier {
       }
 
       // Place bid using UseCase
+      // Auto-bid settings are already persisted server-side separately
       debugPrint('[AuctionDetailController] Placing bid: \$$amount');
       final result = await _placeBidUseCase(
         auctionId: _auction!.id,
         bidderId: effectiveUserId,
         amount: amount,
-        isAutoBid: _isAutoBidActive,
-        maxAutoBid: _maxAutoBid,
-        autoBidIncrement: _isAutoBidActive ? _bidIncrement : null,
+        isAutoBid: false, // Manual bid from user
       );
 
       return result.fold(
@@ -512,31 +516,108 @@ class AuctionDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sets auto-bid configuration
+  /// Sets auto-bid configuration and persists to server
   /// When active, system will automatically bid when outbid, up to maxBid amount
-  /// Logic is handled server-side via 'place_bid' RPC and triggers
-  void setAutoBid(bool isActive, double? maxBid, double increment) {
+  /// Logic is handled server-side via process_auto_bids() PostgreSQL function
+  Future<bool> setAutoBid(
+    bool isActive,
+    double? maxBid,
+    double increment,
+  ) async {
+    if (_auction == null || _userId == null) return false;
+
     // Respect seller-configured minimum bid increment
     final minIncrement = _auction?.minBidIncrement ?? increment;
     final effectiveIncrement = increment < minIncrement
         ? minIncrement
         : increment;
 
-    _isAutoBidActive = isActive;
-    _maxAutoBid = maxBid;
-    _bidIncrement = effectiveIncrement;
-
-    // Persist user preference for this auction (increment)
-    if (_userId != null && _auction != null) {
-      _upsertBidIncrementUseCase(
+    if (isActive && maxBid != null) {
+      // Save auto-bid settings to server via RPC
+      final result = await _saveAutoBidSettingsUseCase(
         auctionId: _auction!.id,
         userId: _userId,
-        increment: _bidIncrement,
+        maxBidAmount: maxBid,
+        bidIncrement: effectiveIncrement,
+        isActive: true,
+      );
+
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          notifyListeners();
+          return false;
+        },
+        (_) {
+          _isAutoBidActive = true;
+          _maxAutoBid = maxBid;
+          _bidIncrement = effectiveIncrement;
+          notifyListeners();
+          debugPrint(
+            '[AutoBid] Activated: max=₱$maxBid, increment=₱$effectiveIncrement',
+          );
+          return true;
+        },
+      );
+    } else {
+      // Deactivate auto-bid on server
+      final result = await _deactivateAutoBidUseCase(
+        auctionId: _auction!.id,
+        userId: _userId,
+      );
+
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          notifyListeners();
+          return false;
+        },
+        (_) {
+          _isAutoBidActive = false;
+          _maxAutoBid = null;
+          notifyListeners();
+          debugPrint('[AutoBid] Deactivated');
+          return true;
+        },
       );
     }
-    notifyListeners();
-    
-    // Server handles the rest when any bid is placed
+  }
+
+  /// Load saved auto-bid settings from server
+  Future<void> _loadAutoBidSettings(String auctionId) async {
+    if (_userId == null) return;
+
+    try {
+      final result = await _getAutoBidSettingsUseCase(
+        auctionId: auctionId,
+        userId: _userId,
+      );
+
+      result.fold(
+        (failure) {
+          debugPrint('Failed to load auto-bid settings: ${failure.message}');
+        },
+        (settings) {
+          if (settings != null) {
+            _isAutoBidActive = settings['is_active'] == true;
+            _maxAutoBid = (settings['max_bid_amount'] as num?)?.toDouble();
+            final savedIncrement = (settings['bid_increment'] as num?)
+                ?.toDouble();
+            if (savedIncrement != null) {
+              _bidIncrement = savedIncrement;
+            }
+            debugPrint(
+              '[AutoBid] Loaded settings: active=$_isAutoBidActive, max=$_maxAutoBid, increment=$_bidIncrement',
+            );
+          } else {
+            _isAutoBidActive = false;
+            _maxAutoBid = null;
+          }
+        },
+      );
+    } catch (e) {
+      debugPrint('Error loading auto-bid settings: $e');
+    }
   }
 
   /// Subscribe to realtime updates for auction and bids
@@ -579,11 +660,11 @@ class AuctionDetailController extends ChangeNotifier {
         );
 
     // Subscribe to Q&A updates
-    _qaSubscription = _streamQAUpdatesUseCase(
+    _qaSubscription =
+        _streamQAUpdatesUseCase(
           auctionId: auctionId,
           currentUserId: _userId,
-        )
-        .listen(
+        ).listen(
           (questions) {
             debugPrint('DEBUG: Realtime Q&A update received');
             _questions = questions;

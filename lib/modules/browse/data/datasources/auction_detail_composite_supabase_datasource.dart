@@ -94,6 +94,45 @@ class AuctionDetailCompositeSupabaseDataSource
   }
 
   @override
+  Future<void> saveAutoBidSettings({
+    required String auctionId,
+    required String userId,
+    required double maxBidAmount,
+    double? bidIncrement,
+    bool isActive = true,
+  }) {
+    return _bidDataSource.saveAutoBidSettings(
+      auctionId: auctionId,
+      userId: userId,
+      maxBidAmount: maxBidAmount,
+      bidIncrement: bidIncrement,
+      isActive: isActive,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getAutoBidSettings({
+    required String auctionId,
+    required String userId,
+  }) {
+    return _bidDataSource.getAutoBidSettings(
+      auctionId: auctionId,
+      userId: userId,
+    );
+  }
+
+  @override
+  Future<void> deactivateAutoBid({
+    required String auctionId,
+    required String userId,
+  }) {
+    return _bidDataSource.deactivateAutoBid(
+      auctionId: auctionId,
+      userId: userId,
+    );
+  }
+
+  @override
   Future<List<QAEntity>> getQuestions({
     required String auctionId,
     String? currentUserId,
@@ -176,9 +215,6 @@ class AuctionDetailCompositeSupabaseDataSource
     required String auctionId,
     String? currentUserId,
   }) {
-    return _qaDataSource.subscribeToQA(
-      auctionId,
-      currentUserId: currentUserId,
-    );
+    return _qaDataSource.subscribeToQA(auctionId, currentUserId: currentUserId);
   }
 }

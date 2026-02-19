@@ -81,6 +81,75 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
   }
 
   @override
+  Future<Either<Failure, void>> saveAutoBidSettings({
+    required String auctionId,
+    required String userId,
+    required double maxBidAmount,
+    double? bidIncrement,
+    bool isActive = true,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      await remoteDataSource.saveAutoBidSettings(
+        auctionId: auctionId,
+        userId: userId,
+        maxBidAmount: maxBidAmount,
+        bidIncrement: bidIncrement,
+        isActive: isActive,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(
+        ServerFailure('Failed to save auto-bid settings: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>?>> getAutoBidSettings({
+    required String auctionId,
+    required String userId,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.getAutoBidSettings(
+        auctionId: auctionId,
+        userId: userId,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(
+        ServerFailure('Failed to get auto-bid settings: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deactivateAutoBid({
+    required String auctionId,
+    required String userId,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      await remoteDataSource.deactivateAutoBid(
+        auctionId: auctionId,
+        userId: userId,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(
+        ServerFailure('Failed to deactivate auto-bid: ${e.toString()}'),
+      );
+    }
+  }
+
+  @override
   Future<Either<Failure, List<QAEntity>>> getQuestions({
     required String auctionId,
     String? currentUserId,
