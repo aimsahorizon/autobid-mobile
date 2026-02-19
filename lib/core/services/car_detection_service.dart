@@ -380,12 +380,30 @@ class CarDetectionService {
       }
 
       final detectedLabel = _labels![maxIndex];
-      // Expecting format "Brand_Model_Year"
-      final parts = detectedLabel.split('_');
-      final detectedBrand = parts.isNotEmpty ? parts[0] : "Unknown";
-      final detectedModel = parts.length > 1 ? parts[1] : "Unknown";
-      final detectedYear = parts.length > 2 ? int.tryParse(parts[2]) : 2020;
       
+      // Smart Parsing: Handles "Toyota_Vios_2020", "Acura_RL_Sedan_2012", "Honda_Civic"
+      final parts = detectedLabel.split(RegExp(r'[ _]')); // Split by underscore or space
+      String detectedBrand = parts.isNotEmpty ? parts[0] : "Unknown";
+      String detectedModel = "Unknown";
+      int? detectedYear;
+
+      if (parts.length > 1) {
+        final modelParts = <String>[];
+        for (var i = 1; i < parts.length; i++) {
+          final part = parts[i];
+          // Check if part is a year (4 digits, starting with 19 or 20)
+          if (RegExp(r'^(19|20)\d{2}$').hasMatch(part)) {
+            detectedYear = int.tryParse(part);
+          } else {
+            // Otherwise it's part of the model name (e.g. "RL", "Sedan", "Sport")
+            modelParts.add(part);
+          }
+        }
+        if (modelParts.isNotEmpty) {
+          detectedModel = modelParts.join(' ');
+        }
+      }
+
       // Infer Body Type and Color
       final detectedBodyType = _guessBodyType(detectedModel);
       final detectedColor = _detectDominantColor(image);
