@@ -10,25 +10,25 @@ import 'package:autobid_mobile/core/error/failures.dart' as _i8;
 import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart'
     as _i9;
 import 'package:autobid_mobile/modules/lists/domain/entities/vehicle_entities.dart'
-    as _i15;
+    as _i17;
 import 'package:autobid_mobile/modules/lists/domain/repositories/seller_repository.dart'
     as _i2;
 import 'package:autobid_mobile/modules/lists/domain/repositories/vehicle_repository.dart'
-    as _i3;
+    as _i4;
 import 'package:autobid_mobile/modules/lists/domain/usecases/draft_management_usecases.dart'
     as _i5;
 import 'package:autobid_mobile/modules/lists/domain/usecases/get_vehicle_data_usecases.dart'
-    as _i14;
+    as _i16;
 import 'package:autobid_mobile/modules/lists/domain/usecases/media_management_usecases.dart'
     as _i12;
 import 'package:autobid_mobile/modules/lists/domain/usecases/submission_usecases.dart'
     as _i11;
 import 'package:autobid_mobile/modules/profile/domain/entities/user_profile_entity.dart'
-    as _i17;
+    as _i15;
 import 'package:autobid_mobile/modules/profile/domain/repositories/profile_repository.dart'
-    as _i4;
+    as _i3;
 import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_profile_usecase.dart'
-    as _i16;
+    as _i14;
 import 'package:fpdart/fpdart.dart' as _i7;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i10;
@@ -54,15 +54,15 @@ class _FakeSellerRepository_0 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeVehicleRepository_1 extends _i1.SmartFake
-    implements _i3.VehicleRepository {
-  _FakeVehicleRepository_1(Object parent, Invocation parentInvocation)
+class _FakeProfileRepository_1 extends _i1.SmartFake
+    implements _i3.ProfileRepository {
+  _FakeProfileRepository_1(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeProfileRepository_2 extends _i1.SmartFake
-    implements _i4.ProfileRepository {
-  _FakeProfileRepository_2(Object parent, Invocation parentInvocation)
+class _FakeVehicleRepository_2 extends _i1.SmartFake
+    implements _i4.VehicleRepository {
+  _FakeVehicleRepository_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -445,150 +445,150 @@ class MockDeleteDeedOfSaleUseCase extends _i1.Mock
           as _i6.Future<_i7.Either<_i8.Failure, void>>);
 }
 
+/// A class which mocks [GetUserProfileUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockGetUserProfileUseCase extends _i1.Mock
+    implements _i14.GetUserProfileUseCase {
+  MockGetUserProfileUseCase() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i3.ProfileRepository get repository =>
+      (super.noSuchMethod(
+            Invocation.getter(#repository),
+            returnValue: _FakeProfileRepository_1(
+              this,
+              Invocation.getter(#repository),
+            ),
+          )
+          as _i3.ProfileRepository);
+
+  @override
+  _i6.Future<_i7.Either<_i8.Failure, _i15.UserProfileEntity>> call() =>
+      (super.noSuchMethod(
+            Invocation.method(#call, []),
+            returnValue:
+                _i6.Future<
+                  _i7.Either<_i8.Failure, _i15.UserProfileEntity>
+                >.value(
+                  _i10.dummyValue<
+                    _i7.Either<_i8.Failure, _i15.UserProfileEntity>
+                  >(this, Invocation.method(#call, [])),
+                ),
+          )
+          as _i6.Future<_i7.Either<_i8.Failure, _i15.UserProfileEntity>>);
+}
+
 /// A class which mocks [GetVehicleBrandsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockGetVehicleBrandsUseCase extends _i1.Mock
-    implements _i14.GetVehicleBrandsUseCase {
+    implements _i16.GetVehicleBrandsUseCase {
   MockGetVehicleBrandsUseCase() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.VehicleRepository get repository =>
+  _i4.VehicleRepository get repository =>
       (super.noSuchMethod(
             Invocation.getter(#repository),
-            returnValue: _FakeVehicleRepository_1(
+            returnValue: _FakeVehicleRepository_2(
               this,
               Invocation.getter(#repository),
             ),
           )
-          as _i3.VehicleRepository);
+          as _i4.VehicleRepository);
 
   @override
-  _i6.Future<_i7.Either<_i8.Failure, List<_i15.VehicleBrand>>> call() =>
+  _i6.Future<_i7.Either<_i8.Failure, List<_i17.VehicleBrand>>> call() =>
       (super.noSuchMethod(
             Invocation.method(#call, []),
             returnValue:
                 _i6.Future<
-                  _i7.Either<_i8.Failure, List<_i15.VehicleBrand>>
+                  _i7.Either<_i8.Failure, List<_i17.VehicleBrand>>
                 >.value(
                   _i10.dummyValue<
-                    _i7.Either<_i8.Failure, List<_i15.VehicleBrand>>
+                    _i7.Either<_i8.Failure, List<_i17.VehicleBrand>>
                   >(this, Invocation.method(#call, [])),
                 ),
           )
-          as _i6.Future<_i7.Either<_i8.Failure, List<_i15.VehicleBrand>>>);
+          as _i6.Future<_i7.Either<_i8.Failure, List<_i17.VehicleBrand>>>);
 }
 
 /// A class which mocks [GetVehicleModelsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockGetVehicleModelsUseCase extends _i1.Mock
-    implements _i14.GetVehicleModelsUseCase {
+    implements _i16.GetVehicleModelsUseCase {
   MockGetVehicleModelsUseCase() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.VehicleRepository get repository =>
+  _i4.VehicleRepository get repository =>
       (super.noSuchMethod(
             Invocation.getter(#repository),
-            returnValue: _FakeVehicleRepository_1(
+            returnValue: _FakeVehicleRepository_2(
               this,
               Invocation.getter(#repository),
             ),
           )
-          as _i3.VehicleRepository);
+          as _i4.VehicleRepository);
 
   @override
-  _i6.Future<_i7.Either<_i8.Failure, List<_i15.VehicleModel>>> call(
+  _i6.Future<_i7.Either<_i8.Failure, List<_i17.VehicleModel>>> call(
     String? brandId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#call, [brandId]),
             returnValue:
                 _i6.Future<
-                  _i7.Either<_i8.Failure, List<_i15.VehicleModel>>
+                  _i7.Either<_i8.Failure, List<_i17.VehicleModel>>
                 >.value(
                   _i10.dummyValue<
-                    _i7.Either<_i8.Failure, List<_i15.VehicleModel>>
+                    _i7.Either<_i8.Failure, List<_i17.VehicleModel>>
                   >(this, Invocation.method(#call, [brandId])),
                 ),
           )
-          as _i6.Future<_i7.Either<_i8.Failure, List<_i15.VehicleModel>>>);
+          as _i6.Future<_i7.Either<_i8.Failure, List<_i17.VehicleModel>>>);
 }
 
 /// A class which mocks [GetVehicleVariantsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockGetVehicleVariantsUseCase extends _i1.Mock
-    implements _i14.GetVehicleVariantsUseCase {
+    implements _i16.GetVehicleVariantsUseCase {
   MockGetVehicleVariantsUseCase() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.VehicleRepository get repository =>
+  _i4.VehicleRepository get repository =>
       (super.noSuchMethod(
             Invocation.getter(#repository),
-            returnValue: _FakeVehicleRepository_1(
+            returnValue: _FakeVehicleRepository_2(
               this,
               Invocation.getter(#repository),
             ),
           )
-          as _i3.VehicleRepository);
+          as _i4.VehicleRepository);
 
   @override
-  _i6.Future<_i7.Either<_i8.Failure, List<_i15.VehicleVariant>>> call(
+  _i6.Future<_i7.Either<_i8.Failure, List<_i17.VehicleVariant>>> call(
     String? modelId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#call, [modelId]),
             returnValue:
                 _i6.Future<
-                  _i7.Either<_i8.Failure, List<_i15.VehicleVariant>>
+                  _i7.Either<_i8.Failure, List<_i17.VehicleVariant>>
                 >.value(
                   _i10.dummyValue<
-                    _i7.Either<_i8.Failure, List<_i15.VehicleVariant>>
+                    _i7.Either<_i8.Failure, List<_i17.VehicleVariant>>
                   >(this, Invocation.method(#call, [modelId])),
                 ),
           )
-          as _i6.Future<_i7.Either<_i8.Failure, List<_i15.VehicleVariant>>>);
-}
-
-/// A class which mocks [GetUserProfileUseCase].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockGetUserProfileUseCase extends _i1.Mock
-    implements _i16.GetUserProfileUseCase {
-  MockGetUserProfileUseCase() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  _i4.ProfileRepository get repository =>
-      (super.noSuchMethod(
-            Invocation.getter(#repository),
-            returnValue: _FakeProfileRepository_2(
-              this,
-              Invocation.getter(#repository),
-            ),
-          )
-          as _i4.ProfileRepository);
-
-  @override
-  _i6.Future<_i7.Either<_i8.Failure, _i17.UserProfileEntity>> call() =>
-      (super.noSuchMethod(
-            Invocation.method(#call, []),
-            returnValue:
-                _i6.Future<
-                  _i7.Either<_i8.Failure, _i17.UserProfileEntity>
-                >.value(
-                  _i10.dummyValue<
-                    _i7.Either<_i8.Failure, _i17.UserProfileEntity>
-                  >(this, Invocation.method(#call, [])),
-                ),
-          )
-          as _i6.Future<_i7.Either<_i8.Failure, _i17.UserProfileEntity>>);
+          as _i6.Future<_i7.Either<_i8.Failure, List<_i17.VehicleVariant>>>);
 }

@@ -271,7 +271,19 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           label: 'Starting Price (₱) *',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            final start = double.tryParse(v!);
+            if (start == null) return 'Invalid price';
+            
+            if (_reservePriceController.text.isNotEmpty) {
+               final reserve = double.tryParse(_reservePriceController.text);
+               if (reserve != null && start >= reserve) {
+                 return 'Must be lower than reserve price';
+               }
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -280,6 +292,19 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           hint: 'Optional minimum acceptable price',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+             if (v == null || v.isEmpty) return null; // Optional
+             final reserve = double.tryParse(v);
+             if (reserve == null) return 'Invalid price';
+             
+             if (_startingPriceController.text.isNotEmpty) {
+                final start = double.tryParse(_startingPriceController.text);
+                if (start != null && reserve <= start) {
+                  return 'Must be higher than starting price';
+                }
+             }
+             return null;
+          },
         ),
         const SizedBox(height: 16),
         InkWell(
