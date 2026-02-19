@@ -326,6 +326,18 @@ class MockTransactionRealtimeDataSource extends _i1.Mock
   );
 
   @override
+  void subscribeToForms(String? transactionId) => super.noSuchMethod(
+    Invocation.method(#subscribeToForms, [transactionId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void unsubscribeDetailChannels() => super.noSuchMethod(
+    Invocation.method(#unsubscribeDetailChannels, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void dispose() => super.noSuchMethod(
     Invocation.method(#dispose, []),
     returnValueForMissingStub: null,
