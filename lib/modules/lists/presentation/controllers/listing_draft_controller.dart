@@ -203,46 +203,73 @@ class ListingDraftController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Create new draft
+  /// Create new draft (Local only until saved)
   Future<void> createNewDraft(String sellerId) async {
     _isLoading = true;
     _errorMessage = null;
     _isSubmissionSuccess = false;
     notifyListeners();
 
-    final result = await _createDraftUseCase.call(sellerId);
+    // Create local draft with empty ID to defer DB creation
+    _currentDraft = ListingDraftEntity(
+      id: '',
+      sellerId: sellerId,
+      currentStep: 1,
+      lastSaved: DateTime.now(),
+      isComplete: false,
+    );
+
+    // Fetch profile to auto-fill address
+    final profileResult = await _getUserProfileUseCase.call();
+    profileResult.fold(
+      (failure) => null, // Ignore profile fetch error
+      (profile) {
+        if (_currentDraft != null) {
+          _currentDraft = _currentDraft!.copyWith(
+            province: profile.province,
+            cityMunicipality: profile.city,
+            barangay: profile.barangay,
+            lastSaved: DateTime.now(),
+          );
+          // Note: We do NOT auto-save here. 
+          // The draft remains local until user action triggers save/upload.
+        }
+      },
+    );
     
-    // After creating draft, fetch user profile to auto-fill address
-    await result.fold(
-      (failure) async {
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Ensure draft exists in DB (Create if local)
+  Future<bool> _ensureDraftExists() async {
+    if (_currentDraft == null) return false;
+    if (_currentDraft!.id.isNotEmpty) return true;
+
+    // Create real draft in DB
+    final result = await _createDraftUseCase.call(_currentDraft!.sellerId);
+    
+    return result.fold(
+      (failure) {
         _errorMessage = failure.message;
-        _isLoading = false;
         notifyListeners();
+        return false;
       },
-      (draft) async {
-        _currentDraft = draft;
-        
-        // Fetch profile to auto-fill address
-        final profileResult = await _getUserProfileUseCase.call();
-        profileResult.fold(
-          (failure) => null, // Ignore profile fetch error, just proceed with empty address
-          (profile) {
-            if (_currentDraft != null) {
-              _currentDraft = _currentDraft!.copyWith(
-                province: profile.province,
-                cityMunicipality: profile.city,
-                barangay: profile.barangay,
-                lastSaved: DateTime.now(),
-              );
-              // Auto-save the populated address
-              _saveDraftUseCase.call(_currentDraft!);
-            }
-          },
+      (newDraft) {
+        // Merge local data into new draft (preserve address/inputs)
+        _currentDraft = newDraft.copyWith(
+          province: _currentDraft!.province,
+          cityMunicipality: _currentDraft!.cityMunicipality,
+          barangay: _currentDraft!.barangay,
+          // Preserve other fields if user typed before save
+          brand: _currentDraft!.brand,
+          model: _currentDraft!.model,
+          year: _currentDraft!.year,
+          // ... map other fields if necessary, but usually create happens early
         );
-        
-        _isLoading = false;
         notifyListeners();
-      },
+        return true;
+      }
     );
   }
 
@@ -282,6 +309,13 @@ class ListingDraftController extends ChangeNotifier {
   /// Auto-save draft
   Future<void> _autoSave() async {
     if (_currentDraft == null || _isSaving) return;
+    
+    // Ensure DB record exists before saving
+    if (_currentDraft!.id.isEmpty) {
+       final success = await _ensureDraftExists();
+       if (!success) return;
+    }
+
     _isSaving = true;
     notifyListeners();
     await _saveDraftUseCase.call(_currentDraft!);
@@ -292,6 +326,13 @@ class ListingDraftController extends ChangeNotifier {
   /// Manual save
   Future<bool> saveDraft() async {
     if (_currentDraft == null) return false;
+    
+    // Ensure DB record exists before saving
+    if (_currentDraft!.id.isEmpty) {
+       final success = await _ensureDraftExists();
+       if (!success) return false;
+    }
+
     _isSaving = true;
     _errorMessage = null;
     notifyListeners();
@@ -305,6 +346,12 @@ class ListingDraftController extends ChangeNotifier {
   /// Upload photo for a category
   Future<bool> uploadPhoto(String categoryDisplayName, String localPath) async {
     if (_currentDraft == null) return false;
+
+    // Ensure DB record exists (need ID for storage path)
+    if (_currentDraft!.id.isEmpty) {
+       final success = await _ensureDraftExists();
+       if (!success) return false;
+    }
 
     final categoryKey = PhotoCategories.toKey(categoryDisplayName);
 
@@ -335,6 +382,12 @@ class ListingDraftController extends ChangeNotifier {
   /// Upload deed of sale document
   Future<String?> uploadDeedOfSale(String localPath) async {
     if (_currentDraft == null) return null;
+
+    // Ensure DB record exists
+    if (_currentDraft!.id.isEmpty) {
+       final success = await _ensureDraftExists();
+       if (!success) return null;
+    }
 
     final result = await _uploadDeedOfSaleUseCase.call(
       userId: _currentDraft!.sellerId,
