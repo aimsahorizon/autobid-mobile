@@ -29,10 +29,7 @@ Future<void> initNotificationsModule() async {
 
   // Repository
   sl.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepositoryImpl(
-      dataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => NotificationRepositoryImpl(dataSource: sl(), networkInfo: sl()),
   );
 
   // UseCases
@@ -44,7 +41,7 @@ Future<void> initNotificationsModule() async {
   sl.registerLazySingleton(() => GetUnreadNotificationsUseCase(sl()));
   sl.registerLazySingleton(() => RespondToInviteUseCase(sl()));
 
-  // Controllers (Factory)
+  // Controllers (Factory) — includes datasource for realtime streaming
   sl.registerFactory(
     () => NotificationController(
       getNotificationsUseCase: sl(),
@@ -53,6 +50,7 @@ Future<void> initNotificationsModule() async {
       markAllAsReadUseCase: sl(),
       deleteNotificationUseCase: sl(),
       respondToInviteUseCase: sl(),
+      dataSource: sl<INotificationDataSource>(),
     ),
   );
 }
