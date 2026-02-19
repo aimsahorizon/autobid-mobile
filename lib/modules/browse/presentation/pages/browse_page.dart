@@ -149,25 +149,27 @@ class _BrowsePageState extends State<BrowsePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
-          .copyWith(
-            statusBarColor: Colors.transparent,
-          ),
+      value:
+          (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+              .copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
-        backgroundColor: ColorConstants.backgroundLight,
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: const Text(
+          title: Text(
             'Browse Auctions',
-            style: TextStyle(color: ColorConstants.textPrimaryLight),
+            style: TextStyle(color: theme.textTheme.titleLarge?.color),
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          iconTheme: const IconThemeData(
-            color: ColorConstants.textPrimaryLight,
+          iconTheme: IconThemeData(
+            color:
+                theme.iconTheme.color ??
+                (isDarkMode ? Colors.white : Colors.black),
           ),
           actions: [
             // Notification bell with unread count badge
@@ -289,7 +291,11 @@ class _BrowsePageState extends State<BrowsePage> {
                         )
                       : null,
                   filled: true,
-                  fillColor: ColorConstants.backgroundSecondaryLight,
+                  fillColor:
+                      theme.inputDecorationTheme.fillColor ??
+                      (isDarkMode
+                          ? ColorConstants.surfaceVariantDark
+                          : ColorConstants.backgroundSecondaryLight),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
@@ -427,8 +433,8 @@ class _BrowsePageState extends State<BrowsePage> {
                           const SizedBox(height: 16),
                           Text(
                             _controller.errorMessage!,
-                            style: const TextStyle(
-                              color: ColorConstants.textPrimaryLight,
+                            style: TextStyle(
+                              color: theme.textTheme.bodyLarge?.color,
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -443,20 +449,22 @@ class _BrowsePageState extends State<BrowsePage> {
                   }
 
                   if (_controller.auctions.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
                             Icons.search_off_rounded,
                             size: 64,
-                            color: ColorConstants.textSecondaryLight,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
                             'No auctions found',
                             style: TextStyle(
-                              color: ColorConstants.textPrimaryLight,
+                              color: theme.textTheme.bodyLarge?.color,
                             ),
                           ),
                         ],
