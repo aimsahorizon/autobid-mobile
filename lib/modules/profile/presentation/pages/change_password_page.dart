@@ -44,7 +44,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       if (!mounted) return;
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Password changed successfully'),
             backgroundColor: ColorConstants.success,
@@ -52,7 +52,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         );
         Navigator.pop(context);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(
               widget.controller.errorMessage ?? 'Failed to change password',

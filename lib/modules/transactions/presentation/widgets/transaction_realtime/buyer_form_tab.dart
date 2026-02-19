@@ -105,7 +105,7 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_areAcknowledgmentsComplete) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Please complete all acknowledgment checkboxes'),
           backgroundColor: ColorConstants.error,
@@ -150,14 +150,14 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
 
     final success = await widget.controller.submitForm(form);
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Buyer form submitted successfully!'),
           backgroundColor: ColorConstants.success,
         ),
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(widget.controller.errorMessage ?? 'Failed to submit buyer form'),
           backgroundColor: ColorConstants.error,

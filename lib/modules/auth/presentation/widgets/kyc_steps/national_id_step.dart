@@ -57,9 +57,9 @@ class _NationalIdStepState extends State<NationalIdStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        (ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        )..clearSnackBars()).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
       }
     }
   }

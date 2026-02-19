@@ -267,7 +267,7 @@ class ProgressRealtimeTab extends StatelessWidget {
 
       if (context.mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Deal cancelled successfully'),
               backgroundColor: ColorConstants.success,
@@ -279,7 +279,7 @@ class ProgressRealtimeTab extends StatelessWidget {
           debugPrint(
             '[ProgressRealtimeTab] ❌ Cancel failed. Error: ${controller.errorMessage}',
           );
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(controller.errorMessage ?? 'Failed to cancel deal'),
               backgroundColor: ColorConstants.error,
@@ -414,7 +414,7 @@ class ProgressRealtimeTab extends StatelessWidget {
                   comment: commentController.text.trim(),
                 );
                 if (success && context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                     const SnackBar(
                       content: Text('Thank you for your review!'),
                       backgroundColor: ColorConstants.success,
@@ -1131,7 +1131,7 @@ class ProgressRealtimeTab extends StatelessWidget {
             FilledButton(
               onPressed: () {
                 if (reasonController.text.isEmpty || photos.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                     const SnackBar(
                       content: Text('Reason and photo proof are required'),
                     ),

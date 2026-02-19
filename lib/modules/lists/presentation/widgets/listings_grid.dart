@@ -215,7 +215,7 @@ class ListingsGrid extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to load listing details: $e'),
             backgroundColor: ColorConstants.error,

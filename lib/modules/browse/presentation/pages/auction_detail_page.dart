@@ -38,7 +38,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     // Get current user ID
     final userId = SupabaseConfig.currentUser?.id;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Please login to participate in auction'),
           backgroundColor: ColorConstants.error,
@@ -70,7 +70,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
 
     if (result == true && mounted) {
       // Deposit successful - show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text(
             'Deposit successful! You can now place bids on this auction.',
@@ -91,7 +91,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Row(
             children: [
@@ -109,7 +109,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
       );
     } else if (widget.controller.errorMessage != null) {
       // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(widget.controller.errorMessage!),
           backgroundColor: ColorConstants.error,
@@ -136,7 +136,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     if (!mounted) return;
 
     if (success && isActive && maxBid != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Row(
             children: [
@@ -153,14 +153,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         ),
       );
     } else if (success && !isActive) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auto-bid deactivated'),
           backgroundColor: ColorConstants.warning,
         ),
       );
     } else if (!success && widget.controller.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(widget.controller.errorMessage!),
           backgroundColor: ColorConstants.error,

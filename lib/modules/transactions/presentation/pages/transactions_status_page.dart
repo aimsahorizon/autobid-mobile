@@ -380,7 +380,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       debugPrint('[DEBUG] ❌ Navigation error: $e');
       debugPrint('[DEBUG] Stack: $stack');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,

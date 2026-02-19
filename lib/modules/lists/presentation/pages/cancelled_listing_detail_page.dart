@@ -49,7 +49,7 @@ class _CancelledListingDetailPageState
     });
 
     if (_isDeleteEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Deletion enabled. You can now delete this listing.'),
           backgroundColor: ColorConstants.warning,
@@ -61,7 +61,7 @@ class _CancelledListingDetailPageState
 
   Future<void> _editListing(BuildContext context) async {
     if (_effectiveSellerId == null || widget.controller == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Unable to edit: Please log in first'),
           backgroundColor: ColorConstants.error,
@@ -136,7 +136,7 @@ class _CancelledListingDetailPageState
 
       if (!mounted) return;
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text(
             'Draft created successfully. Edit and resubmit for approval.',
@@ -151,7 +151,7 @@ class _CancelledListingDetailPageState
       if (!mounted) return;
       navigator.pop(); // Close loading dialog
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to create draft: $e'),
           backgroundColor: ColorConstants.error,
@@ -162,7 +162,7 @@ class _CancelledListingDetailPageState
 
   Future<void> _reAuction(BuildContext context) async {
     if (_effectiveSellerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Unable to re-auction: Please log in first'),
           backgroundColor: ColorConstants.error,
@@ -220,7 +220,7 @@ class _CancelledListingDetailPageState
       // Pop back to listing view
       navigator.pop();
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(
             'New auction created (ID: $newAuctionId). It is pending admin approval.',
@@ -232,7 +232,7 @@ class _CancelledListingDetailPageState
       if (!mounted) return;
       navigator.pop(); // Close loading dialog
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to create new auction: $e'),
           backgroundColor: ColorConstants.error,
@@ -243,7 +243,7 @@ class _CancelledListingDetailPageState
 
   Future<void> _deleteListing(BuildContext context) async {
     if (_effectiveSellerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Unable to delete: Please log in first'),
           backgroundColor: ColorConstants.error,
@@ -296,7 +296,7 @@ class _CancelledListingDetailPageState
       // Return to listing view with result to trigger refresh
       navigator.pop(true);
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Listing deleted successfully'),
           backgroundColor: ColorConstants.success,
@@ -306,7 +306,7 @@ class _CancelledListingDetailPageState
       if (!mounted) return;
       navigator.pop(); // Close loading dialog
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to delete listing: $e'),
           backgroundColor: ColorConstants.error,

@@ -41,7 +41,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     } catch (e) {
       debugPrint('Error loading bids: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to load bid history: $e'),
             backgroundColor: ColorConstants.error,
@@ -90,7 +90,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
       if (!mounted) return;
 
       // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Listing reauctions. Check the Pending tab.'),
           backgroundColor: ColorConstants.success,
@@ -102,7 +102,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
           backgroundColor: ColorConstants.error,
@@ -150,7 +150,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
       if (!mounted) return;
 
       // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auction cancelled successfully.'),
           backgroundColor: ColorConstants.warning,
@@ -162,7 +162,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
           backgroundColor: ColorConstants.error,
@@ -219,7 +219,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
       if (!transactionPrepared) {
         // No bids found or transaction couldn't be prepared.
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text(
               'No winning bid found. You can Reauction or Cancel this listing.',
@@ -239,7 +239,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
       if (!mounted) return;
 
       // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text(
             'Moved to Transactions tab. Go there to communicate with the winner.',
@@ -253,7 +253,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
           backgroundColor: ColorConstants.error,

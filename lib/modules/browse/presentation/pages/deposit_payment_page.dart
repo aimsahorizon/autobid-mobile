@@ -117,7 +117,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       _payMongoService = PayMongoMockService();
       _autoFillTestCard('4343 4343 4343 4345');
     });
-    ScaffoldMessenger.of(context).showSnackBar(
+    (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
       const SnackBar(content: Text('Switched to Mock Payment Service (Debug)')),
     );
   }
@@ -229,7 +229,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
       // Payment and deposit record successful
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(
               'Deposit payment successful! You can now participate in this auction.',
@@ -243,7 +243,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       }
     } on PayMongoException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(e.message),
             backgroundColor: ColorConstants.error,
@@ -252,7 +252,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Payment failed: ${e.toString()}'),
             backgroundColor: ColorConstants.error,
@@ -879,7 +879,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
               onTap: () {
                 Clipboard.setData(ClipboardData(text: value));
 
-                ScaffoldMessenger.of(context).showSnackBar(
+                (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                   SnackBar(
                     content: Text('$label card copied'),
                     duration: const Duration(seconds: 1),

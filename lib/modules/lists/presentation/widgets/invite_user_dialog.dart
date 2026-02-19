@@ -60,7 +60,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
       if (!mounted) return;
 
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Invite sent to $identifier'),
           backgroundColor: ColorConstants.success,

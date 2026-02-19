@@ -514,7 +514,7 @@ class OtherFormRealtimeTab extends StatelessWidget {
     if (confirmed == true) {
       final success = await controller.confirmForm(otherRole);
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Form confirmed successfully!'),
             backgroundColor: ColorConstants.success,
@@ -556,7 +556,7 @@ class OtherFormRealtimeTab extends StatelessWidget {
     if (confirmed == true) {
       final success = await controller.withdrawConfirmation(otherRole);
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Confirmation withdrawn.'),
             backgroundColor: ColorConstants.warning,

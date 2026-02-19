@@ -70,7 +70,7 @@ class _PaymentPageState extends State<PaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Payment failed: ${e.toString()}'),
             backgroundColor: ColorConstants.error,
@@ -125,7 +125,7 @@ class _PaymentPageState extends State<PaymentPage> {
     if (status == 'succeeded') {
       // Payment successful
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Payment successful!'),
             backgroundColor: ColorConstants.success,
@@ -137,7 +137,7 @@ class _PaymentPageState extends State<PaymentPage> {
     } else if (status == 'awaiting_next_action') {
       // 3D Secure authentication required
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('3D Secure authentication required. Please check your email or SMS.'),
             duration: Duration(seconds: 5),

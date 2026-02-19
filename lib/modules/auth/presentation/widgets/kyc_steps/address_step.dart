@@ -168,7 +168,7 @@ class _AddressStepState extends State<AddressStep> {
               _barangays = state.barangays;
             });
           } else if (state is LocationError) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
               SnackBar(
                 content: Text('Error loading location data: ${state.message}'),
               ),

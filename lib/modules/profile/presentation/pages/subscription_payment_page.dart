@@ -152,7 +152,7 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
       }
     } on PayMongoException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(e.message),
             backgroundColor: ColorConstants.error,
@@ -161,7 +161,7 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Payment failed: ${e.toString()}'),
             backgroundColor: ColorConstants.error,

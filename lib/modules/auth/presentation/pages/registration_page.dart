@@ -189,7 +189,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
       // Save draft and show confirmation
       await _controller.saveDraft();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text(
               'Registration progress saved. You can continue later.',

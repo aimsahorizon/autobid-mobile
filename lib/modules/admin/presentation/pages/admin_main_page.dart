@@ -125,7 +125,7 @@ class _AdminMainPageState extends State<AdminMainPage>
       Navigator.pop(context);
 
       // Show error
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Logout failed: $e'),
           backgroundColor: ColorConstants.error,

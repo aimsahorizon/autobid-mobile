@@ -81,9 +81,9 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        (ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        )..clearSnackBars()).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
       }
     }
   }
@@ -222,7 +222,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
           Navigator.pop(context); // Close processing dialog
 
           // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 'Successfully extracted ${_getExtractedFieldCount(extractedData)} fields from your IDs!',
@@ -236,7 +236,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
         if (mounted) {
           Navigator.pop(context); // Close processing dialog
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text('Failed to extract data: $e'),
               backgroundColor: ColorConstants.error,

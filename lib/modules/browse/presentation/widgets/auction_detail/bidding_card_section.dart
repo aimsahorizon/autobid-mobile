@@ -262,7 +262,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
               onPressed: () {
                 final amount = double.tryParse(tempController.text) ?? 0;
                 if (amount < _nextMinimumBid + 10000) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Maximum must be at least ₱${_formatNumber(_nextMinimumBid + 10000)}',
@@ -274,7 +274,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 }
 
                 if (selectedIncrement < widget.minBidIncrement) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Increment must be at least ₱${_formatNumber(widget.minBidIncrement)}',
@@ -287,7 +287,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
 
                 // Enforce increment is a multiple of min increment (optional but cleaner)
                 if (selectedIncrement % widget.minBidIncrement != 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Increment must be a multiple of ₱${_formatNumber(widget.minBidIncrement)}',
@@ -305,7 +305,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 });
                 widget.onAutoBidToggle?.call(true, amount, selectedIncrement);
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+                (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                   SnackBar(
                     content: Text(
                       'Auto-bid activated! Increment: ₱${_formatNumber(selectedIncrement)}',
@@ -325,7 +325,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
 
   void _toggleAutoBid() {
     if (!widget.enableIncrementalBidding) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auto-bid is disabled for this auction by the seller'),
           backgroundColor: ColorConstants.error,
@@ -341,7 +341,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
         _maxAutoBidController.clear();
       });
       widget.onAutoBidToggle?.call(false, null, 0);
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auto-bid deactivated'),
           backgroundColor: ColorConstants.warning,
@@ -385,7 +385,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
               onPressed: () {
                 final amount = double.tryParse(controller.text) ?? 0;
                 if (amount < widget.minBidIncrement) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Custom increment must be at least ₱${_formatNumber(widget.minBidIncrement)}',
@@ -397,7 +397,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 }
 
                 if (amount % widget.minBidIncrement != 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Increment must be a multiple of ₱${_formatNumber(widget.minBidIncrement)}',
@@ -912,7 +912,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                                   'Bid increment must be a multiple of ₱1,000';
                             }
 
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                               SnackBar(
                                 content: Text(errorMsg),
                                 backgroundColor: ColorConstants.error,

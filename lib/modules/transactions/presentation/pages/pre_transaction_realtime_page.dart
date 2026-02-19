@@ -793,7 +793,7 @@ class _PreTransactionRealtimePageState
         .toList();
 
     if (bidders.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('No bidders found for this auction'),
           backgroundColor: ColorConstants.error,
@@ -822,7 +822,7 @@ class _PreTransactionRealtimePageState
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 'Transaction offered to ${selectedBidder['bidder_name']}',
@@ -831,7 +831,7 @@ class _PreTransactionRealtimePageState
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 widget.controller.errorMessage ?? 'Failed to reassign',
@@ -886,7 +886,7 @@ class _PreTransactionRealtimePageState
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Auction relisted successfully'),
               backgroundColor: ColorConstants.success,
@@ -894,7 +894,7 @@ class _PreTransactionRealtimePageState
           );
           Navigator.pop(context);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 widget.controller.errorMessage ?? 'Failed to relist auction',
@@ -951,7 +951,7 @@ class _PreTransactionRealtimePageState
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Auction deleted successfully'),
               backgroundColor: ColorConstants.success,
@@ -959,7 +959,7 @@ class _PreTransactionRealtimePageState
           );
           Navigator.pop(context);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 widget.controller.errorMessage ?? 'Failed to delete auction',

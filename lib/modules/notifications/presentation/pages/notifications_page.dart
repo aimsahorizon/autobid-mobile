@@ -199,7 +199,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     
     if (inviteId != null) {
       // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('Processing response...'), duration: Duration(seconds: 1)),
       );
 
@@ -207,11 +207,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
       
       if (mounted) {
         if (_controller.hasError) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text('Invite ${decision == "accepted" ? "accepted" : "declined"} successfully'),
               backgroundColor: ColorConstants.success,
@@ -224,7 +224,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         }
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('Invalid invite data')),
       );
     }

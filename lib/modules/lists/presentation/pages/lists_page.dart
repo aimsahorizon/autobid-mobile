@@ -81,7 +81,7 @@ class _ListsPageState extends State<ListsPage>
   void _navigateToCreateListing(BuildContext context) {
     final userId = SupabaseConfig.client.auth.currentUser?.id;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('Please log in to create a listing')),
       );
       return;

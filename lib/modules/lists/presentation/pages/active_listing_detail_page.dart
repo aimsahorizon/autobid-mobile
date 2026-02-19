@@ -63,7 +63,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
     } catch (e) {
       debugPrint('Error loading bids: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to load bid history: $e'),
             backgroundColor: ColorConstants.error,
@@ -86,7 +86,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
       // _listing = await _datasource.getListing(_listing.id);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to refresh: $e'),
             backgroundColor: ColorConstants.error,
@@ -141,7 +141,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
       Navigator.pop(context); // Close loading
       Navigator.pop(context, true); // Return to trigger reload
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auction ended. Check the Ended tab for next steps.'),
           backgroundColor: ColorConstants.success,
@@ -152,7 +152,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
       if (!context.mounted) return;
       Navigator.pop(context); // Close loading
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to end auction: $e'),
           backgroundColor: ColorConstants.error,

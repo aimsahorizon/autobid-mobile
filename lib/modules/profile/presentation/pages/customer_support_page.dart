@@ -276,7 +276,7 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
 
   Future<void> _submitTicket() async {
     if (_subjectController.text.isEmpty || _messageController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
       return;
@@ -295,11 +295,11 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
 
     if (mounted) {
       if (_controller.errorMessage != null) {
-         ScaffoldMessenger.of(context).showSnackBar(
+         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(content: Text('Ticket created successfully'), backgroundColor: ColorConstants.success),
         );
         Navigator.pop(context);
@@ -398,11 +398,11 @@ class _TicketDetailPageState extends State<_TicketDetailPage> {
 
     if (mounted) {
        if (_controller.errorMessage != null) {
-         ScaffoldMessenger.of(context).showSnackBar(
+         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(content: Text('Message sent')),
         );
       }

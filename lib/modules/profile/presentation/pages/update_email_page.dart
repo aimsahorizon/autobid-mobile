@@ -55,7 +55,7 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(content: Text('OTP sent to ${_newEmailController.text}')),
       );
     }
@@ -82,7 +82,7 @@ class _UpdateEmailPageState extends State<UpdateEmailPage> {
   //   setState(() => _isLoading = false);
 
   //   if (mounted) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
+  //     (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
   //       const SnackBar(
   //         content: Text('Email updated successfully!'),
   //         backgroundColor: ColorConstants.success,

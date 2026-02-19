@@ -85,7 +85,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
       }
     } on PayMongoException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(e.message),
             backgroundColor: ColorConstants.error,
@@ -94,7 +94,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Payment failed: ${e.toString()}'),
             backgroundColor: ColorConstants.error,
@@ -222,7 +222,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
 
     // Payment and token credit successful
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(
             'Payment successful! $totalTokens $tokenType tokens added to your account.',

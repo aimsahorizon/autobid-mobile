@@ -256,7 +256,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             });
             _updateDraft();
             
-            ScaffoldMessenger.of(context).showSnackBar(
+            (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
               SnackBar(
                 content: Text('Applied suggested price: Γé▒${price.toStringAsFixed(0)}'),
                 backgroundColor: Colors.green,

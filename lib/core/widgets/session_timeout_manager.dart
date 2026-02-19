@@ -58,7 +58,7 @@ class _SessionTimeoutManagerState extends State<SessionTimeoutManager> {
             AuthRoutes.login, 
             (route) => false
          );
-         ScaffoldMessenger.of(context).showSnackBar(
+         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
            const SnackBar(content: Text('Session expired due to inactivity')),
          );
       }

@@ -161,7 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (!mounted) return;
         Navigator.pop(context); // Close loading
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(
               '${isCover ? 'Cover' : 'Profile'} photo updated successfully',
@@ -173,7 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (!mounted) return;
         Navigator.pop(context); // Close loading
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to upload: $e'),
             backgroundColor: ColorConstants.error,
@@ -182,7 +182,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to pick image: $e'),
             backgroundColor: ColorConstants.error,
@@ -289,7 +289,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Failed to access admin dashboard'),
           backgroundColor: ColorConstants.error,

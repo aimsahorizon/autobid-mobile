@@ -237,7 +237,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
       await datasource.updateAuctionEndTime(widget.listing.id, newEndTime);
 
       if (mounted) {
-        messenger.showSnackBar(
+        (messenger..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Auction end time updated successfully'),
             backgroundColor: Colors.green,
@@ -248,7 +248,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
       }
     } catch (e) {
       if (mounted) {
-        messenger.showSnackBar(
+        (messenger..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,
@@ -295,7 +295,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
       if (mounted) {
         result.fold(
           (failure) {
-            messenger.showSnackBar(
+            (messenger..clearSnackBars()).showSnackBar(
               SnackBar(
                 content: Text('Error: ${failure.message}'),
                 backgroundColor: Colors.red,
@@ -305,7 +305,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
             setState(() => _isLoading = false);
           },
           (_) {
-            messenger.showSnackBar(
+            (messenger..clearSnackBars()).showSnackBar(
               const SnackBar(
                 content: Text('Listing cancelled successfully'),
                 backgroundColor: Colors.green,

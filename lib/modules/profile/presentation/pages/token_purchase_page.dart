@@ -45,7 +45,7 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
 
     // If payment was successful, show success message
     if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Successfully purchased ${package.description}'),
           backgroundColor: ColorConstants.success,

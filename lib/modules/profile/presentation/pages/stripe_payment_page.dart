@@ -117,7 +117,7 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
 
       // Payment and token credit successful
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(
               'Payment successful! $totalTokens $tokenType tokens added to your account.',
@@ -138,7 +138,7 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
           errorMessage = e.error.message!;
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: ColorConstants.error,
@@ -147,7 +147,7 @@ class _StripePaymentPageState extends State<StripePaymentPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Payment failed: ${e.toString()}'),
             backgroundColor: ColorConstants.error,

@@ -46,7 +46,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
         _emailOtpSent = true;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('OTP sent to ${widget.email}'),
             backgroundColor: ColorConstants.success,
@@ -55,7 +55,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to send email OTP: $e'),
             backgroundColor: ColorConstants.error,
@@ -71,7 +71,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
 
     if (mounted) {
       if (isVerified) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Email verified successfully!'),
             backgroundColor: ColorConstants.success,
@@ -81,7 +81,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
         // Reset OTP state after successful verification
         widget.otpController.reset();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Invalid OTP. Please try again.'),
             backgroundColor: ColorConstants.error,

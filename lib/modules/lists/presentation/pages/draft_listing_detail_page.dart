@@ -40,7 +40,7 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
     });
     
     if (_isDeleteEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Deletion enabled. You can now delete this draft.'),
           backgroundColor: ColorConstants.warning,
@@ -111,7 +111,7 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
       navigator.pop(); // Close loading
       navigator.pop(true); // Go back to list with result
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Draft deleted successfully'),
           backgroundColor: ColorConstants.success,
@@ -121,7 +121,7 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
       if (!mounted) return;
       navigator.pop(); // Close loading
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to delete draft: $e'),
           backgroundColor: ColorConstants.error,

@@ -80,9 +80,9 @@ class _Step7PhotosState extends State<Step7Photos> {
       if (pickedFile == null) {
         debugPrint('DEBUG [Step7Photos]: No image selected');
         if (context.mounted) {
-          ScaffoldMessenger.of(
+          (ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('No image selected')));
+          )..clearSnackBars()).showSnackBar(const SnackBar(content: Text('No image selected')));
         }
         return;
       }
@@ -143,14 +143,14 @@ class _Step7PhotosState extends State<Step7Photos> {
 
       if (context.mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text('✅ Photo uploaded for $category'),
               backgroundColor: Colors.green,
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text('❌ Failed to upload photo for $category'),
               backgroundColor: Colors.red,
@@ -163,7 +163,7 @@ class _Step7PhotosState extends State<Step7Photos> {
       debugPrint('STACK [Step7Photos]: $stackTrace');
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
@@ -192,9 +192,9 @@ class _Step7PhotosState extends State<Step7Photos> {
 
       if (pickedFile == null) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
+          (ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('No file selected')));
+          )..clearSnackBars()).showSnackBar(const SnackBar(content: Text('No file selected')));
         }
         return;
       }
@@ -219,14 +219,14 @@ class _Step7PhotosState extends State<Step7Photos> {
 
       if (context.mounted) {
         if (url != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Deed of sale uploaded successfully'),
               backgroundColor: Colors.green,
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 widget.controller.errorMessage ??
@@ -239,7 +239,7 @@ class _Step7PhotosState extends State<Step7Photos> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
@@ -285,14 +285,14 @@ class _Step7PhotosState extends State<Step7Photos> {
 
     if (context.mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Deed of sale removed'),
             backgroundColor: Colors.orange,
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Failed to remove deed of sale'),
             backgroundColor: Colors.red,
@@ -908,7 +908,7 @@ class _Step7PhotosState extends State<Step7Photos> {
       widget.controller.updateDraft(updatedDraft);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Photo deleted'),
             backgroundColor: Colors.orange,

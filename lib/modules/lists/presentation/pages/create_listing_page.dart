@@ -258,7 +258,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
 
       if (mounted) {
         final isRealAi = detectedData['is_real_ai'] == true;
-        messenger.showSnackBar(
+        (messenger..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(
               isRealAi 
@@ -275,7 +275,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
         if (navigator.canPop()) {
           navigator.pop(); // Close loading if still open
         }
-        messenger.showSnackBar(
+        (messenger..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to detect car: $e'),
             backgroundColor: Colors.red,
@@ -390,7 +390,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
     widget.controller.updateDraft(demoDraft);
     widget.controller.goToStep(9);
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
       const SnackBar(
         content: Text('⚡ Demo Mode: All fields auto-filled!'),
         backgroundColor: Colors.purple,

@@ -70,7 +70,7 @@ class _BidsPageState extends State<BidsPage>
 
   void _navigateToWonBid(BuildContext context, UserBidEntity bid) {
     if (!bid.canAccess) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: const Text('Waiting for seller to proceed to transaction.'),
           backgroundColor: ColorConstants.warning,

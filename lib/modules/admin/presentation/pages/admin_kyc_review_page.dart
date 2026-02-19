@@ -569,7 +569,7 @@ class _AdminKycReviewPageState extends State<AdminKycReviewPage> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('KYC approved for ${document.fullName}'),
           backgroundColor: ColorConstants.success,
@@ -577,7 +577,7 @@ class _AdminKycReviewPageState extends State<AdminKycReviewPage> {
       );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to approve KYC: ${widget.controller.error}'),
           backgroundColor: ColorConstants.error,
@@ -589,7 +589,7 @@ class _AdminKycReviewPageState extends State<AdminKycReviewPage> {
   Future<void> _handleReject(KycDocumentEntity document) async {
     final reason = _rejectionReasonController.text.trim();
     if (reason.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Please provide a rejection reason'),
           backgroundColor: Colors.orange,
@@ -614,7 +614,7 @@ class _AdminKycReviewPageState extends State<AdminKycReviewPage> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('KYC rejected for ${document.fullName}'),
           backgroundColor: Colors.orange,
@@ -622,7 +622,7 @@ class _AdminKycReviewPageState extends State<AdminKycReviewPage> {
       );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to reject KYC: ${widget.controller.error}'),
           backgroundColor: ColorConstants.error,

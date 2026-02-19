@@ -55,7 +55,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
     setState(() => _isProcessing = false);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Listing approved successfully'),
           backgroundColor: ColorConstants.success,
@@ -63,7 +63,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
       );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to approve: ${widget.controller.error}'),
           backgroundColor: ColorConstants.error,
@@ -124,7 +124,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
     setState(() => _isProcessing = false);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Listing rejected'),
           backgroundColor: ColorConstants.warning,
@@ -132,7 +132,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
       );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to reject: ${widget.controller.error}'),
           backgroundColor: ColorConstants.error,
@@ -154,7 +154,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
     setState(() => _isProcessing = false);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Status changed to ${newStatus.name}'),
           backgroundColor: ColorConstants.success,
@@ -162,7 +162,7 @@ class _AdminListingReviewPageState extends State<AdminListingReviewPage> {
       );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to change status: ${widget.controller.error}'),
           backgroundColor: ColorConstants.error,

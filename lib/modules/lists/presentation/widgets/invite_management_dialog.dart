@@ -47,13 +47,13 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
     if (success) {
       _identifierController.clear();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(content: Text('Invitation sent successfully')),
         );
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(widget.controller.errorMessage ?? 'Failed to send invite'),
             backgroundColor: ColorConstants.error,

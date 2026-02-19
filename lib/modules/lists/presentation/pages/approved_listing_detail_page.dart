@@ -128,7 +128,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
         navigator.pop(); // Close loading
         navigator.pop(true); // Return to refresh
 
-        messenger.showSnackBar(
+        (messenger..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Auction end time updated successfully'),
             backgroundColor: Colors.green,
@@ -161,7 +161,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     }
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(message),
           backgroundColor: ColorConstants.error,
@@ -235,7 +235,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
       navigator.pop(); // Close loading dialog
       navigator.pop(true); // Return true to trigger reload in ListingsGrid
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auction is now live!'),
           backgroundColor: ColorConstants.success,
@@ -343,7 +343,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     // Validate minimum duration (24 hours)
     if (safeEnd.difference(scheduledStart).inHours < 24) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Scheduled auctions must be at least 24 hours long.'),
           backgroundColor: ColorConstants.error,
@@ -398,7 +398,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
       navigator.pop(); // Close loading dialog
       navigator.pop(true); // Return true to trigger reload in ListingsGrid
 
-      messenger.showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(
             'Auction scheduled for $formattedDate at $formattedTime',

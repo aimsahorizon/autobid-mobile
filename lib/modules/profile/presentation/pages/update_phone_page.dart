@@ -56,7 +56,7 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(content: Text('OTP sent to ${_newPhoneController.text}')),
       );
     }
@@ -72,7 +72,7 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(content: Text('OTP sent to ${widget.currentEmail}')),
       );
     }
@@ -99,7 +99,7 @@ class _UpdatePhonePageState extends State<UpdatePhonePage> {
     setState(() => _isLoading = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Phone number updated successfully!'),
           backgroundColor: ColorConstants.success,

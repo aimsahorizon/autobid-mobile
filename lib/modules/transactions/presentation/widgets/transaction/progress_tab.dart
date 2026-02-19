@@ -36,7 +36,7 @@ class ProgressTab extends StatelessWidget {
     if (confirmed == true && context.mounted) {
       final success = await controller.submitToAdmin();
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(content: Text('Submitted to admin for approval')),
         );
       }
@@ -688,7 +688,7 @@ class ProgressTab extends StatelessWidget {
                 nextStatus!,
               );
               if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                   SnackBar(
                     content: Text(
                       'Updated to: ${_getDeliveryStatusLabel(nextStatus)}',

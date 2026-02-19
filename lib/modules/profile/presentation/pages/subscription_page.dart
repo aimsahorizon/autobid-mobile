@@ -83,14 +83,14 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Successfully subscribed to ${plan.name}'),
             backgroundColor: ColorConstants.success,
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(widget.controller.error ?? 'Subscription failed'),
             backgroundColor: ColorConstants.error,

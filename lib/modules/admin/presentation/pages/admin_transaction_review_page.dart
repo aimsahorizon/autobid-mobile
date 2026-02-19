@@ -831,7 +831,7 @@ class _AdminTransactionReviewPageState
                     : null,
               );
               if (success && mounted) {
-                messenger.showSnackBar(
+                (messenger..clearSnackBars()).showSnackBar(
                   const SnackBar(
                     content: Text('Transaction approved successfully'),
                     backgroundColor: Colors.green,
@@ -880,7 +880,7 @@ class _AdminTransactionReviewPageState
           FilledButton(
             onPressed: () async {
               if (reasonController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                   const SnackBar(
                     content: Text('Please provide a reason'),
                     backgroundColor: Colors.orange,
@@ -896,7 +896,7 @@ class _AdminTransactionReviewPageState
                 reason: reasonController.text,
               );
               if (success && mounted) {
-                messenger.showSnackBar(
+                (messenger..clearSnackBars()).showSnackBar(
                   const SnackBar(
                     content: Text('Transaction rejected'),
                     backgroundColor: Colors.red,

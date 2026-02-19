@@ -133,7 +133,7 @@ class TransactionSellerFormTab extends StatelessWidget {
                     if (!form.isConfirmed)
                       IconButton(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                             const SnackBar(
                               content: Text('Form confirmation coming soon'),
                               backgroundColor: ColorConstants.success,

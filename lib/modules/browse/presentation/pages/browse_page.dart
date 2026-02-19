@@ -523,9 +523,9 @@ class _BrowsePageState extends State<BrowsePage> {
                                       Navigator.pop(context); // Close loading
 
                                       // Show notification
-                                      ScaffoldMessenger.of(
+                                      (ScaffoldMessenger.of(
                                         context,
-                                      ).showSnackBar(
+                                      )..clearSnackBars()).showSnackBar(
                                         const SnackBar(
                                           content: Text(
                                             'This is your listing! Opening in seller view...',
@@ -555,9 +555,9 @@ class _BrowsePageState extends State<BrowsePage> {
                                       if (!context.mounted) return;
                                       Navigator.pop(context); // Close loading
 
-                                      ScaffoldMessenger.of(
+                                      (ScaffoldMessenger.of(
                                         context,
-                                      ).showSnackBar(
+                                      )..clearSnackBars()).showSnackBar(
                                         SnackBar(
                                           content: Text(
                                             'Failed to load listing: $e',
@@ -628,9 +628,9 @@ class _BrowsePageState extends State<BrowsePage> {
                                         Navigator.pop(context); // Close loading
 
                                         // Show notification
-                                        ScaffoldMessenger.of(
+                                        (ScaffoldMessenger.of(
                                           context,
-                                        ).showSnackBar(
+                                        )..clearSnackBars()).showSnackBar(
                                           const SnackBar(
                                             content: Text(
                                               'This is your listing! Opening in seller view...',
@@ -658,9 +658,9 @@ class _BrowsePageState extends State<BrowsePage> {
                                       } catch (e) {
                                         if (!context.mounted) return;
                                         Navigator.pop(context); // Close loading
-                                        ScaffoldMessenger.of(
+                                        (ScaffoldMessenger.of(
                                           context,
-                                        ).showSnackBar(
+                                        )..clearSnackBars()).showSnackBar(
                                           SnackBar(
                                             content: Text('Error: $e'),
                                             backgroundColor:

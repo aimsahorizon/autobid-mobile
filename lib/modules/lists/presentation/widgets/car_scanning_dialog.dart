@@ -45,7 +45,7 @@ class _CarScanningDialogState extends State<CarScanningDialog> {
         _isScanning = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(content: Text('Scan failed: $e')),
         );
       }

@@ -73,7 +73,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       _startResendTimer();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('OTP sent to ${widget.controller.email ?? ''}'),
             backgroundColor: ColorConstants.success,
@@ -82,7 +82,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
             backgroundColor: ColorConstants.error,
@@ -102,14 +102,14 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
 
       if (mounted) {
         if (isVerified) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Email verified successfully!'),
               backgroundColor: ColorConstants.success,
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Invalid OTP. Please try again.'),
               backgroundColor: ColorConstants.error,
@@ -119,7 +119,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Verification failed: $e'),
             backgroundColor: ColorConstants.error,
