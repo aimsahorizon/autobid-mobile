@@ -18,4 +18,9 @@ abstract class INotificationDataSource {
     required String inviteId,
     required String decision, // 'accepted' or 'rejected'
   });
+
+  /// Stream real-time notification updates for a user
+  Stream<List<Map<String, dynamic>>> streamNotifications({
+    required String userId,
+  });
 }

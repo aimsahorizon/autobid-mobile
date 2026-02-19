@@ -99,9 +99,21 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
     required String inviteId,
     required String decision,
   }) async {
-    await supabase.rpc('respond_to_auction_invite', params: {
-      'p_invite_id': inviteId,
-      'p_decision': decision,
-    });
+    await supabase.rpc(
+      'respond_to_auction_invite',
+      params: {'p_invite_id': inviteId, 'p_decision': decision},
+    );
+  }
+
+  @override
+  Stream<List<Map<String, dynamic>>> streamNotifications({
+    required String userId,
+  }) {
+    return supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(50);
   }
 }
