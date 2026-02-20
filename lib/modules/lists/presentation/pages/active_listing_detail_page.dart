@@ -101,6 +101,19 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
   }
 
   Future<void> _endAuction(BuildContext context) async {
+    if (_listing.totalBids > 0) {
+      if (!context.mounted) return;
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Cannot end auction with active bids. Wait for auction to complete.',
+          ),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
