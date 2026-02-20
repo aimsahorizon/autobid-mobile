@@ -50,10 +50,14 @@ class AuctionDetailCompositeSupabaseDataSource
     return bidsData.map((bidData) {
       // Extract bidder username from nested users data
       String bidderName = 'Bidder';
+      String? username;
       final bidderData = bidData['bidder'] as Map<String, dynamic>?;
       if (bidderData != null) {
         final displayName = bidderData['display_name'] as String?;
-        final username = bidderData['username'] as String?;
+        final uname = bidderData['username'] as String?;
+        
+        username = uname; // Store username separately
+
         // Prefer display_name if available, fallback to username
         if (displayName != null && displayName.isNotEmpty) {
           bidderName = displayName;
@@ -67,6 +71,7 @@ class AuctionDetailCompositeSupabaseDataSource
         auctionId: auctionId,
         amount: (bidData['bid_amount'] as num).toDouble(),
         bidderName: bidderName,
+        username: username,
         timestamp: DateTime.parse(bidData['created_at'] as String),
         isCurrentUser: false, // Will be set by repository/usecase if needed
         isWinning: false, // Will be set based on current auction state
