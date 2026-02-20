@@ -54,6 +54,8 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
   final _yearFocus = FocusNode();
   final _cvcFocus = FocusNode();
 
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
+
   @override
   void initState() {
     super.initState();
@@ -189,7 +191,10 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
   }
 
   Future<void> _processPayment() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      setState(() => _autovalidateMode = AutovalidateMode.onUserInteraction);
+      return;
+    }
 
     setState(() => _isProcessing = true);
 
@@ -332,7 +337,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       body: AutofillGroup(
         child: Form(
           key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
+          autovalidateMode: _autovalidateMode,
 
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
