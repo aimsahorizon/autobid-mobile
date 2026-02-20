@@ -116,10 +116,11 @@ class _BidHistoryCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Bidder avatar/icon
+          // Bidder avatar/icon with Initials
           Container(
             width: 40,
             height: 40,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: bid.isCurrentUser
                   ? ColorConstants.primary.withValues(alpha: 0.1)
@@ -128,14 +129,16 @@ class _BidHistoryCard extends StatelessWidget {
                       : ColorConstants.backgroundSecondaryLight),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.person,
-              size: 20,
-              color: bid.isCurrentUser
-                  ? ColorConstants.primary
-                  : (isDark
-                      ? ColorConstants.textSecondaryDark
-                      : ColorConstants.textSecondaryLight),
+            child: Text(
+              _getInitials(bid.bidderName),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: bid.isCurrentUser
+                    ? ColorConstants.primary
+                    : (isDark
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -175,13 +178,24 @@ class _BidHistoryCard extends StatelessWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 4),
+                if (bid.username != null && bid.username != bid.bidderName)
+                  Text(
+                    '@${bid.username}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark
+                          ? ColorConstants.textSecondaryDark
+                          : ColorConstants.textSecondaryLight,
+                      fontSize: 11,
+                    ),
+                  ),
+                const SizedBox(height: 2),
                 Text(
                   _formatTimestamp(bid.timestamp),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: isDark
                         ? ColorConstants.textSecondaryDark
                         : ColorConstants.textSecondaryLight,
+                    fontSize: 10,
                   ),
                 ),
               ],
@@ -235,11 +249,17 @@ class _BidHistoryCard extends StatelessWidget {
     );
   }
 
-  /// Formats amount with comma separators or K/M suffix
-  String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(2)}M';
+  String _getInitials(String name) {
+    if (name.isEmpty) return '?';
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     }
+    return name[0].toUpperCase();
+  }
+
+  /// Formats amount with comma separators
+  String _formatAmount(double amount) {
     return amount.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
