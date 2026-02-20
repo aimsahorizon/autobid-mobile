@@ -82,7 +82,7 @@ BEGIN
 
   -- Get auction title for notification messages
   SELECT COALESCE(
-    (SELECT title FROM vehicles v JOIN auctions a ON a.vehicle_id = v.id WHERE a.id = p_auction_id),
+    (SELECT title FROM auctions WHERE id = p_auction_id),
     'this auction'
   ) INTO v_auction_title;
 
@@ -425,7 +425,7 @@ BEGIN
   IF v_previous_bidder_id IS NOT NULL AND v_previous_bidder_id != p_bidder_id THEN
     -- Get auction title for notification
     SELECT COALESCE(
-      (SELECT title FROM vehicles v JOIN auctions a ON a.vehicle_id = v.id WHERE a.id = p_auction_id),
+      (SELECT title FROM auctions WHERE id = p_auction_id),
       'this auction'
     ) INTO v_auction_title;
 
@@ -536,4 +536,12 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================================
 -- 7. Enable realtime for notifications table
 -- ============================================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+  END IF;
+END $$;
