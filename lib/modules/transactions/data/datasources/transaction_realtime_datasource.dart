@@ -16,6 +16,7 @@ class TransactionRealtimeDataSource {
   RealtimeChannel? _chatChannel;
   RealtimeChannel? _transactionChannel;
   RealtimeChannel? _formsChannel;
+  RealtimeChannel? _timelineChannel;
   RealtimeChannel? _sellerTxnChannel;
   RealtimeChannel? _buyerTxnChannel;
 
@@ -1906,6 +1907,35 @@ class TransactionRealtimeDataSource {
         .subscribe();
   }
 
+  /// Subscribe to transaction timeline changes (INSERT)
+  /// Fires when any timeline event is added (covers most activities)
+  void subscribeToTimeline(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return;
+
+    _timelineChannel?.unsubscribe();
+    _timelineChannel = _supabase
+        .channel('timeline_$txnId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'transaction_timeline',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'transaction_id',
+            value: txnId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionRealtimeDataSource] ⏱️ Timeline event detected',
+            );
+            // Re-use the transaction update stream to trigger a full reload
+            _transactionUpdateController.add(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
   /// Unsubscribe from detail-level channels (chat, transaction, forms)
   /// Called by individual controllers when they are disposed.
   /// Does NOT close the shared stream controllers or user-level channels.
@@ -1916,6 +1946,8 @@ class TransactionRealtimeDataSource {
     _transactionChannel = null;
     _formsChannel?.unsubscribe();
     _formsChannel = null;
+    _timelineChannel?.unsubscribe();
+    _timelineChannel = null;
   }
 
   /// Full cleanup — closes all channels AND stream controllers.
@@ -1924,6 +1956,7 @@ class TransactionRealtimeDataSource {
     _chatChannel?.unsubscribe();
     _transactionChannel?.unsubscribe();
     _formsChannel?.unsubscribe();
+    _timelineChannel?.unsubscribe();
     _sellerTxnChannel?.unsubscribe();
     _buyerTxnChannel?.unsubscribe();
     _chatStreamController.close();
