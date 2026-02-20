@@ -10,6 +10,9 @@ class BidHistoryEntity {
   /// Display name of the bidder (anonymized for privacy)
   final String bidderName;
 
+  /// Username of the bidder
+  final String? username;
+
   /// The bid amount in currency
   final double amount;
 
@@ -26,6 +29,7 @@ class BidHistoryEntity {
     required this.id,
     required this.auctionId,
     required this.bidderName,
+    this.username,
     required this.amount,
     required this.timestamp,
     this.isCurrentUser = false,
