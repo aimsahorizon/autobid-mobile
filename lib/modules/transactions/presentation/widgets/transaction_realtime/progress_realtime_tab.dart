@@ -72,9 +72,12 @@ class ProgressRealtimeTab extends StatelessWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                ...timeline.reversed.map(
-                  (event) => _buildTimelineItem(event, isDark),
-                ),
+                ...timeline
+                    .where((e) => e.type != TimelineEventType.messageSent)
+                    .take(50)
+                    .map(
+                      (event) => _buildTimelineItem(event, isDark),
+                    ),
               ] else
                 Center(
                   child: Column(
