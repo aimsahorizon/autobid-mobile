@@ -169,6 +169,9 @@ class TransactionRealtimeController extends ChangeNotifier {
     // Subscribe to form changes (transaction_forms INSERT/UPDATE)
     _dataSource.subscribeToForms(transactionId);
 
+    // Subscribe to timeline changes (transaction_timeline INSERT)
+    _dataSource.subscribeToTimeline(transactionId);
+
     _transactionSubscription = _dataSource.transactionUpdateStream.listen((
       data,
     ) async {
