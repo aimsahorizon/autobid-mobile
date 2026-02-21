@@ -27,7 +27,7 @@ Future<void> initListsModule() async {
   // Datasources
   sl.registerLazySingleton(() => ListingSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => VehicleSupabaseDataSource(sl()));
-  sl.registerLazySingleton(() => InvitesSupabaseDatasource(supabase: sl()));
+  // InvitesSupabaseDatasource is registered in browse_module.dart (its home module)
 
   // Repositories
   sl.registerLazySingleton<SellerRepository>(
@@ -53,12 +53,12 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => DeleteDeedOfSaleUseCase(sl()));
   sl.registerLazySingleton(() => StreamSellerListingsUseCase(sl()));
   sl.registerLazySingleton(() => ValidatePlateNumberUseCase(sl()));
-  
+
   // Invite Use Cases
   sl.registerLazySingleton(() => GetAuctionInvitesUseCase(sl()));
   sl.registerLazySingleton(() => InviteUserUseCase(sl()));
   sl.registerLazySingleton(() => DeleteInviteUseCase(sl()));
-  
+
   // Vehicle Data Use Cases
   sl.registerLazySingleton(() => GetVehicleBrandsUseCase(sl()));
   sl.registerLazySingleton(() => GetVehicleModelsUseCase(sl()));
@@ -78,20 +78,22 @@ Future<void> initListsModule() async {
       deleteInviteUseCase: sl(),
     ),
   );
-  sl.registerFactory(() => ListingDraftController(
-    getSellerDraftsUseCase: sl(),
-    getDraftUseCase: sl(),
-    createDraftUseCase: sl(),
-    saveDraftUseCase: sl(),
-    markDraftCompleteUseCase: sl(),
-    deleteDraftUseCase: sl(),
-    submitListingUseCase: sl(),
-    uploadListingPhotoUseCase: sl(),
-    uploadDeedOfSaleUseCase: sl(),
-    deleteDeedOfSaleUseCase: sl(),
-    getVehicleBrandsUseCase: sl(),
-    getVehicleModelsUseCase: sl(),
-    getVehicleVariantsUseCase: sl(),
-    getUserProfileUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => ListingDraftController(
+      getSellerDraftsUseCase: sl(),
+      getDraftUseCase: sl(),
+      createDraftUseCase: sl(),
+      saveDraftUseCase: sl(),
+      markDraftCompleteUseCase: sl(),
+      deleteDraftUseCase: sl(),
+      submitListingUseCase: sl(),
+      uploadListingPhotoUseCase: sl(),
+      uploadDeedOfSaleUseCase: sl(),
+      deleteDeedOfSaleUseCase: sl(),
+      getVehicleBrandsUseCase: sl(),
+      getVehicleModelsUseCase: sl(),
+      getVehicleVariantsUseCase: sl(),
+      getUserProfileUseCase: sl(),
+    ),
+  );
 }
