@@ -48,7 +48,58 @@ class ProgressRealtimeTab extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Delivery Progress (Visible after Admin Approval)
+              // Grace period countdown
+              if (controller.secondsRemaining != null &&
+                  transaction.bothConfirmed &&
+                  !transaction.adminApproved)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: ColorConstants.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: ColorConstants.warning.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.timer,
+                        color: ColorConstants.warning,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Finalizing in ${controller.secondsRemaining}s',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: ColorConstants.warning,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Both parties confirmed. Either may withdraw during this grace period.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: ColorConstants.warning.withValues(
+                                  alpha: 0.8,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Delivery Progress (Visible after Finalization)
               if (transaction.adminApproved) ...[
                 _buildDeliveryProgress(context, transaction, isBuyer, isDark),
                 const SizedBox(height: 24),
@@ -75,9 +126,7 @@ class ProgressRealtimeTab extends StatelessWidget {
                 ...timeline
                     .where((e) => e.type != TimelineEventType.messageSent)
                     .take(50)
-                    .map(
-                      (event) => _buildTimelineItem(event, isDark),
-                    ),
+                    .map((event) => _buildTimelineItem(event, isDark)),
               ] else
                 Center(
                   child: Column(
@@ -307,7 +356,9 @@ class ProgressRealtimeTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: ColorConstants.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ColorConstants.primary.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: ColorConstants.primary.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,13 +434,28 @@ class ProgressRealtimeTab extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('How was your experience?', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'How was your experience?',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
-                _buildRatingRow('Overall', rating, (v) => setState(() => rating = v)),
+                _buildRatingRow(
+                  'Overall',
+                  rating,
+                  (v) => setState(() => rating = v),
+                ),
                 const SizedBox(height: 12),
-                _buildRatingRow('Communication', communication, (v) => setState(() => communication = v)),
+                _buildRatingRow(
+                  'Communication',
+                  communication,
+                  (v) => setState(() => communication = v),
+                ),
                 const SizedBox(height: 12),
-                _buildRatingRow('Reliability', reliability, (v) => setState(() => reliability = v)),
+                _buildRatingRow(
+                  'Reliability',
+                  reliability,
+                  (v) => setState(() => reliability = v),
+                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: commentController,
@@ -417,7 +483,9 @@ class ProgressRealtimeTab extends StatelessWidget {
                   comment: commentController.text.trim(),
                 );
                 if (success && context.mounted) {
-                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+                  (ScaffoldMessenger.of(
+                    context,
+                  )..clearSnackBars()).showSnackBar(
                     const SnackBar(
                       content: Text('Thank you for your review!'),
                       backgroundColor: ColorConstants.success,
@@ -537,24 +605,20 @@ class ProgressRealtimeTab extends StatelessWidget {
         icon: Icons.handshake,
       ),
       _ProgressStep(
-        title: 'Seller Form Submitted',
-        isComplete: transaction.sellerFormSubmitted,
-        icon: Icons.description,
+        title: 'Agreement Locked',
+        isComplete:
+            transaction.sellerFormSubmitted && transaction.buyerFormSubmitted,
+        icon: Icons.lock,
       ),
       _ProgressStep(
-        title: 'Buyer Form Submitted',
-        isComplete: transaction.buyerFormSubmitted,
-        icon: Icons.description,
-      ),
-      _ProgressStep(
-        title: 'Forms Confirmed',
+        title: 'Both Confirmed',
         isComplete: transaction.sellerConfirmed && transaction.buyerConfirmed,
         icon: Icons.verified,
       ),
       _ProgressStep(
-        title: 'Admin Approved',
+        title: 'Finalized',
         isComplete: transaction.adminApproved,
-        icon: Icons.admin_panel_settings,
+        icon: Icons.check_circle,
       ),
       _ProgressStep(
         title: 'Completed',
@@ -1134,7 +1198,9 @@ class ProgressRealtimeTab extends StatelessWidget {
             FilledButton(
               onPressed: () {
                 if (reasonController.text.isEmpty || photos.isEmpty) {
-                  (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+                  (ScaffoldMessenger.of(
+                    context,
+                  )..clearSnackBars()).showSnackBar(
                     const SnackBar(
                       content: Text('Reason and photo proof are required'),
                     ),
