@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/transaction_review_entity.dart';
 import '../../data/datasources/transaction_realtime_datasource.dart';
+import '../../domain/entities/agreement_field_entity.dart';
 
 /// Controller for real-time transaction management
 // ... (omitting lines for brevity in explanation, but including them in actual call)
@@ -31,6 +32,10 @@ class TransactionRealtimeController extends ChangeNotifier {
   bool _isProcessing = false;
   String? _errorMessage;
   String? _currentUserId;
+  List<AgreementFieldEntity> _agreementFields = [];
+  Timer? _graceTimer;
+  Timer? _countdownTimer;
+  int? _secondsRemaining;
 
   // Getters
   TransactionEntity? get transaction => _transaction;
@@ -44,6 +49,8 @@ class TransactionRealtimeController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
   String? get currentUserId => _currentUserId;
+  List<AgreementFieldEntity> get agreementFields => _agreementFields;
+  int? get secondsRemaining => _secondsRemaining;
 
   // Determine user's role (seller or buyer)
   FormRole getUserRole(String userId) {
@@ -110,7 +117,11 @@ class TransactionRealtimeController extends ChangeNotifier {
           _loadOtherPartyFormSafe(_transaction!.id, otherRole),
           _loadTimelineSafe(_transaction!.id),
           _loadReviewSafe(_transaction!.id, userId),
+          _loadAgreementFieldsSafe(_transaction!.id),
         ]);
+
+        // Check if grace period timer needs to start
+        _checkGracePeriod();
 
         // Subscribe to real-time updates only once per transaction
         if (_subscribedTransactionId != _transaction!.id) {
@@ -172,6 +183,9 @@ class TransactionRealtimeController extends ChangeNotifier {
     // Subscribe to timeline changes (transaction_timeline INSERT)
     _dataSource.subscribeToTimeline(transactionId);
 
+    // Subscribe to agreement field changes
+    _dataSource.subscribeToAgreementFields(transactionId);
+
     _transactionSubscription = _dataSource.transactionUpdateStream.listen((
       data,
     ) async {
@@ -205,9 +219,11 @@ class TransactionRealtimeController extends ChangeNotifier {
           _loadOtherPartyFormSafe(_transaction!.id, otherRole),
           _loadTimelineSafe(_transaction!.id),
           _loadReviewSafe(_transaction!.id, userId),
+          _loadAgreementFieldsSafe(_transaction!.id),
         ]);
       }
 
+      _checkGracePeriod();
       notifyListeners();
     } catch (e) {
       debugPrint('[TransactionRealtimeController] Error reloading data: $e');
@@ -717,8 +733,251 @@ class TransactionRealtimeController extends ChangeNotifier {
     }
   }
 
+  // ============================================================================
+  // AGREEMENT FIELDS
+  // ============================================================================
+
+  Future<void> _loadAgreementFieldsSafe(String transactionId) async {
+    try {
+      _agreementFields = await _dataSource.getAgreementFields(transactionId);
+    } catch (e) {
+      debugPrint(
+        '[TransactionRealtimeController] Warning: Failed to load agreement fields: $e',
+      );
+      _agreementFields = [];
+    }
+  }
+
+  Future<bool> addAgreementField({
+    required String label,
+    String value = '',
+    String fieldType = 'text',
+    String category = 'general',
+    String? options,
+  }) async {
+    if (_transaction == null) return false;
+    try {
+      final field = await _dataSource.addAgreementField(
+        transactionId: _transaction!.id,
+        label: label,
+        value: value,
+        fieldType: fieldType,
+        category: category,
+        options: options,
+      );
+      if (field != null) {
+        _agreementFields.add(field);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error adding field: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateAgreementField(String fieldId, String value) async {
+    try {
+      final success = await _dataSource.updateAgreementField(fieldId, value);
+      if (success) {
+        final idx = _agreementFields.indexWhere((f) => f.id == fieldId);
+        if (idx != -1) {
+          _agreementFields[idx] = _agreementFields[idx].copyWith(value: value);
+          notifyListeners();
+        }
+      }
+      return success;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error updating field: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteAgreementField(String fieldId) async {
+    try {
+      final success = await _dataSource.deleteAgreementField(fieldId);
+      if (success) {
+        _agreementFields.removeWhere((f) => f.id == fieldId);
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error deleting field: $e');
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // LOCK / CONFIRM / FINALIZE
+  // ============================================================================
+
+  Future<bool> lockAgreement() async {
+    if (_transaction == null || _currentUserId == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final role = getUserRole(_currentUserId!);
+      final success = await _dataSource.lockAgreement(_transaction!.id, role);
+      if (success) {
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to lock agreement';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> unlockAgreement() async {
+    if (_transaction == null || _currentUserId == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final role = getUserRole(_currentUserId!);
+      final success = await _dataSource.unlockAgreement(_transaction!.id, role);
+      if (success) {
+        _graceTimer?.cancel();
+        _countdownTimer?.cancel();
+        _secondsRemaining = null;
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to unlock agreement';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> confirmAgreement() async {
+    if (_transaction == null || _currentUserId == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final role = getUserRole(_currentUserId!);
+      final success = await _dataSource.confirmAgreement(
+        _transaction!.id,
+        role,
+      );
+      if (success) {
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to confirm agreement';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> withdrawAgreementConfirmation() async {
+    if (_transaction == null || _currentUserId == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final role = getUserRole(_currentUserId!);
+      final success = await _dataSource.withdrawAgreementConfirmation(
+        _transaction!.id,
+        role,
+      );
+      if (success) {
+        _graceTimer?.cancel();
+        _countdownTimer?.cancel();
+        _secondsRemaining = null;
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to withdraw confirmation';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  // ============================================================================
+  // GRACE PERIOD & AUTO-FINALIZATION
+  // ============================================================================
+
+  void _checkGracePeriod() {
+    final txn = _transaction;
+    if (txn == null) return;
+
+    // Cancel existing timers
+    _graceTimer?.cancel();
+    _countdownTimer?.cancel();
+
+    // Skip if not both confirmed or already finalized
+    if (!txn.sellerConfirmed || !txn.buyerConfirmed) {
+      _secondsRemaining = null;
+      return;
+    }
+    if (txn.adminApproved) {
+      _secondsRemaining = null;
+      return;
+    }
+    if (txn.bothConfirmedAt == null) {
+      _secondsRemaining = null;
+      return;
+    }
+
+    final elapsed = DateTime.now().difference(txn.bothConfirmedAt!);
+    final remaining = const Duration(seconds: 15) - elapsed;
+
+    if (remaining.isNegative || remaining == Duration.zero) {
+      // Grace period already passed - finalize now
+      _secondsRemaining = 0;
+      _finalizeTransaction();
+      return;
+    }
+
+    // Start countdown
+    _secondsRemaining = remaining.inSeconds + 1;
+    notifyListeners();
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final now = DateTime.now();
+      final rem =
+          const Duration(seconds: 15) - now.difference(txn.bothConfirmedAt!);
+      if (rem.isNegative || rem == Duration.zero) {
+        timer.cancel();
+        _secondsRemaining = 0;
+        notifyListeners();
+        _finalizeTransaction();
+      } else {
+        _secondsRemaining = rem.inSeconds + 1;
+        notifyListeners();
+      }
+    });
+  }
+
+  Future<void> _finalizeTransaction() async {
+    if (_transaction == null) return;
+    debugPrint('[TransactionRealtimeController] ⏰ Auto-finalizing transaction');
+    try {
+      final success = await _dataSource.finalizeTransaction(_transaction!.id);
+      if (success && _currentUserId != null) {
+        _secondsRemaining = null;
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error finalizing: $e');
+    }
+  }
+
   @override
   void dispose() {
+    _graceTimer?.cancel();
+    _countdownTimer?.cancel();
     _chatSubscription?.cancel();
     _transactionSubscription?.cancel();
     _subscribedTransactionId = null;

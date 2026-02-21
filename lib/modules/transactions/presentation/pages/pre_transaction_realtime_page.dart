@@ -3,10 +3,8 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/transaction_realtime_controller.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../widgets/transaction_realtime/chat_realtime_tab.dart';
-import '../widgets/transaction_realtime/seller_form_tab.dart';
-import '../widgets/transaction_realtime/buyer_form_tab.dart';
-import '../widgets/transaction_realtime/other_form_realtime_tab.dart';
 import '../widgets/transaction_realtime/progress_realtime_tab.dart';
+import '../widgets/transaction_realtime/unified_agreement_tab.dart';
 
 /// Real-time Pre-Transaction Page
 /// Supports live chat and form updates between buyer and seller
@@ -272,11 +270,8 @@ class _PreTransactionRealtimePageState
             return _buildBuyerCancelledView(transaction, isDark);
           }
 
-          final role = widget.controller.getUserRole(widget.userId);
-          final otherRoleLabel = role == FormRole.seller ? 'Buyer' : 'Seller';
-
           return DefaultTabController(
-            length: 4,
+            length: 3,
             child: Column(
               children: [
                 // Transaction status banner
@@ -320,8 +315,7 @@ class _PreTransactionRealtimePageState
                     ),
                     tabs: [
                       const Tab(text: 'Chat'),
-                      const Tab(text: 'My Form'),
-                      Tab(text: '$otherRoleLabel Form'),
+                      const Tab(text: 'Agreement'),
                       const Tab(text: 'Progress'),
                     ],
                   ),
@@ -336,17 +330,7 @@ class _PreTransactionRealtimePageState
                         userId: widget.userId,
                         userName: widget.userName,
                       ),
-                      // Role-specific form: Seller sees SellerFormTab, Buyer sees BuyerFormTab
-                      role == FormRole.seller
-                          ? SellerFormTab(
-                              controller: widget.controller,
-                              userId: widget.userId,
-                            )
-                          : BuyerFormTab(
-                              controller: widget.controller,
-                              userId: widget.userId,
-                            ),
-                      OtherFormRealtimeTab(
+                      UnifiedAgreementTab(
                         controller: widget.controller,
                         userId: widget.userId,
                       ),
@@ -987,22 +971,22 @@ class _PreTransactionRealtimePageState
       bgColor = ColorConstants.success.withValues(alpha: 0.1);
       textColor = ColorConstants.success;
       icon = Icons.verified;
-      text = 'Admin Approved - Proceed with delivery';
+      text = 'Transaction Finalized - Proceed with delivery';
     } else if (transaction.bothFormsSubmitted && transaction.bothConfirmed) {
-      bgColor = ColorConstants.info.withValues(alpha: 0.1);
-      textColor = ColorConstants.info;
-      icon = Icons.hourglass_bottom;
-      text = 'Ready for admin review';
-    } else if (transaction.bothFormsSubmitted) {
       bgColor = ColorConstants.warning.withValues(alpha: 0.1);
       textColor = ColorConstants.warning;
+      icon = Icons.timer;
+      text = 'Both confirmed - Finalizing shortly...';
+    } else if (transaction.bothFormsSubmitted) {
+      bgColor = ColorConstants.info.withValues(alpha: 0.1);
+      textColor = ColorConstants.info;
       icon = Icons.rate_review;
-      text = 'Review and confirm each other\'s forms';
+      text = 'Agreement locked - Review and confirm';
     } else {
       bgColor = ColorConstants.primary.withValues(alpha: 0.1);
       textColor = ColorConstants.primary;
       icon = Icons.edit_document;
-      text = 'Submit your transaction form';
+      text = 'Collaborate on the transaction agreement';
     }
 
     return Container(
