@@ -92,7 +92,7 @@ class NotificationController extends ChangeNotifier {
     _subscribedUserId = userId;
 
     _notificationSubscription = _dataSource
-        ?.streamNotifications(userId: userId)
+        .streamNotifications(userId: userId)
         .skip(1) // Skip initial data (we already loaded it)
         .listen(
           (_) {
