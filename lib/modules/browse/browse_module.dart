@@ -7,6 +7,7 @@ import 'data/datasources/user_preferences_supabase_datasource.dart';
 import 'data/datasources/deposit_supabase_datasource.dart';
 import 'data/datasources/auction_detail_composite_supabase_datasource.dart';
 import 'data/datasources/auction_detail_remote_datasource.dart';
+import 'data/datasources/invites_supabase_datasource.dart';
 import 'data/repositories/auction_repository_supabase_impl.dart';
 import 'data/repositories/auction_detail_repository_impl.dart';
 import 'domain/repositories/auction_repository.dart';
@@ -28,8 +29,10 @@ import 'domain/usecases/stream_active_auctions_usecase.dart';
 import 'domain/usecases/save_auto_bid_settings_usecase.dart';
 import 'domain/usecases/get_auto_bid_settings_usecase.dart';
 import 'domain/usecases/deactivate_auto_bid_usecase.dart';
+import 'domain/usecases/buyer_invite_usecases.dart';
 import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
+import 'presentation/controllers/buyer_invites_controller.dart';
 
 /// Initialize Browse module dependencies
 /// Following Clean Architecture with proper DI setup
@@ -44,6 +47,7 @@ Future<void> initBrowseModule() async {
     () => UserPreferencesSupabaseDatasource(supabase: sl()),
   );
   sl.registerLazySingleton(() => DepositSupabaseDataSource(sl()));
+  sl.registerLazySingleton(() => InvitesSupabaseDatasource(supabase: sl()));
 
   // Composite Data Source for Auction Detail
   sl.registerLazySingleton<AuctionDetailRemoteDataSource>(
@@ -84,8 +88,20 @@ Future<void> initBrowseModule() async {
   sl.registerLazySingleton(() => GetAutoBidSettingsUseCase(sl()));
   sl.registerLazySingleton(() => DeactivateAutoBidUseCase(sl()));
 
+  // Buyer Invite Use Cases
+  sl.registerLazySingleton(() => ListMyInvitesUseCase(sl()));
+  sl.registerLazySingleton(() => RespondToInviteUseCase(sl()));
+
   // Controllers (Factory - create new instance each time)
   sl.registerFactory(() => BrowseController(sl(), sl()));
+  sl.registerFactory(
+    () => BuyerInvitesController(
+      listMyInvitesUseCase: sl(),
+      respondToInviteUseCase: sl(),
+      datasource: sl(),
+      userId: sl<SupabaseClient>().auth.currentUser?.id ?? '',
+    ),
+  );
   sl.registerFactory(
     () => AuctionDetailController(
       getAuctionDetailUseCase: sl(),
