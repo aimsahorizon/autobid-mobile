@@ -178,7 +178,6 @@ class ListingDraftModel extends ListingDraftEntity {
       'brand': brand,
       'model': model,
       'variant': variant,
-      'body_type': bodyType,
       'year': year,
       // Step 2
       'engine_type': engineType,

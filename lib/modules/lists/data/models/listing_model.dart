@@ -88,7 +88,7 @@ class ListingModel {
   final double minBidIncrement;
   final double depositAmount;
   final bool enableIncrementalBidding;
-  
+
   // Snipe Guard
   final bool snipeGuardEnabled;
   final int snipeGuardThresholdSeconds;
@@ -282,12 +282,18 @@ class ListingModel {
       bidIncrement: _toDouble(json['bid_increment']) ?? 1000,
       minBidIncrement: _toDouble(json['min_bid_increment']) ?? 1000,
       depositAmount: _toDouble(json['deposit_amount']) ?? 0,
-      enableIncrementalBidding: json['enable_incremental_bidding'] as bool? ?? true,
+      enableIncrementalBidding:
+          json['enable_incremental_bidding'] as bool? ?? true,
       snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
-      snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int? ?? 300,
-      snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int? ?? 300,
+      snipeGuardThresholdSeconds:
+          json['snipe_guard_threshold_seconds'] as int? ?? 300,
+      snipeGuardExtendSeconds:
+          json['snipe_guard_extend_seconds'] as int? ?? 300,
       deedOfSaleUrl: json['deed_of_sale_url'] as String?,
-      visibility: json['visibility'] as String? ?? 'public',
+      visibility:
+          json['visibility'] as String? ??
+          json['bidding_type'] as String? ??
+          'public',
     );
   }
 
@@ -315,7 +321,7 @@ class ListingModel {
       sellerId: sellerId,
       transactionId: transactionId,
       cancellationReason: cancellationReason,
-      visibility: visibility,
+      visibility: visibility != 'public' ? visibility : biddingType,
     );
   }
 
