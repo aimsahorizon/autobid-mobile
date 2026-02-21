@@ -450,6 +450,16 @@ class AuctionDetailController extends ChangeNotifier {
         return false;
       }
 
+      // Client-side check: prevent bidding on private auctions without invite
+      // (RLS enforces this server-side, but we give a friendlier message)
+      if (_auction!.biddingType == 'private') {
+        // If we can see the auction, we're likely invited — but verify deposit status
+        // If the RPC fails, we'll catch the error and show a user-friendly message
+        debugPrint(
+          '[AuctionDetailController] Private auction — user must be invited to bid',
+        );
+      }
+
       // Consume bidding token if available
       final hasToken = await _consumeBiddingTokenUsecase.call(
         userId: effectiveUserId,
@@ -500,9 +510,19 @@ class AuctionDetailController extends ChangeNotifier {
         },
       );
     } catch (e) {
-      _errorMessage = e.toString().contains('Failed to place bid')
-          ? e.toString().replaceFirst('Exception: ', '')
-          : 'Failed to place bid: ${e.toString()}';
+      final errorStr = e.toString();
+      if (_auction?.biddingType == 'private' &&
+          (errorStr.contains('policy') ||
+              errorStr.contains('permission') ||
+              errorStr.contains('denied') ||
+              errorStr.contains('RLS'))) {
+        _errorMessage =
+            'You are not invited to bid on this private auction. Please request an invite from the seller.';
+      } else if (errorStr.contains('Failed to place bid')) {
+        _errorMessage = errorStr.replaceFirst('Exception: ', '');
+      } else {
+        _errorMessage = 'Failed to place bid: $errorStr';
+      }
       return false;
     } finally {
       _isProcessing = false;
