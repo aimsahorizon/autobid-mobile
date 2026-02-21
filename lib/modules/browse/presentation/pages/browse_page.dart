@@ -13,7 +13,9 @@ import '../../data/datasources/auction_supabase_datasource.dart';
 import '../../domain/entities/auction_detail_entity.dart';
 import '../controllers/auction_detail_controller.dart';
 import '../controllers/browse_controller.dart';
+import '../controllers/buyer_invites_controller.dart';
 import '../widgets/auction_card.dart';
+import 'buyer_invites_page.dart';
 import '../widgets/auction_filter_sheet.dart';
 import 'auction_detail_page.dart';
 
@@ -210,6 +212,57 @@ class _BrowsePageState extends State<BrowsePage> {
                           ),
                           child: Text(
                             unreadCount > 9 ? '9+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+            // Auction invites badge
+            ListenableBuilder(
+              listenable: GetIt.instance<BuyerInvitesController>(),
+              builder: (context, _) {
+                final invitesController =
+                    GetIt.instance<BuyerInvitesController>();
+                final pendingCount = invitesController.pendingCount;
+
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.mail_outline),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const BuyerInvitesPage(),
+                          ),
+                        );
+                      },
+                      tooltip: 'Auction Invites',
+                    ),
+                    if (pendingCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.orange,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            pendingCount > 9 ? '9+' : '$pendingCount',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
