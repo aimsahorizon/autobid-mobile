@@ -121,6 +121,10 @@ class BidSupabaseDataSource {
   }
 
   /// Stream notification updates for a user (for outbid alerts)
+  /// @deprecated Use NotificationSupabaseDataSource.streamNotifications instead.
+  /// Notifications are now handled by the centralized notification module
+  /// with database triggers (migration 00106).
+  @Deprecated('Use NotificationSupabaseDataSource.streamNotifications instead')
   Stream<List<Map<String, dynamic>>> streamNotifications(String userId) {
     return _supabase
         .from('notifications')

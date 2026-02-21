@@ -47,4 +47,22 @@ class InvitesSupabaseDatasource {
   Future<void> deleteInvite(String inviteId) async {
     await supabase.from('auction_invites').delete().eq('id', inviteId);
   }
+
+  /// Stream real-time invite updates for the current user (as invitee)
+  Stream<List<Map<String, dynamic>>> streamMyInvites(String userId) {
+    return supabase
+        .from('auction_invites')
+        .stream(primaryKey: ['id'])
+        .eq('invitee_id', userId)
+        .order('created_at', ascending: false);
+  }
+
+  /// Stream real-time invite updates for a specific auction (for sellers)
+  Stream<List<Map<String, dynamic>>> streamAuctionInvites(String auctionId) {
+    return supabase
+        .from('auction_invites')
+        .stream(primaryKey: ['id'])
+        .eq('auction_id', auctionId)
+        .order('created_at', ascending: false);
+  }
 }
