@@ -8,6 +8,22 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
 
   NotificationSupabaseDataSource({required this.supabase});
 
+  /// Standard select query with the joined type name and direct columns
+  static const String _selectQuery = '''
+    *,
+    type:notification_types(type_name)
+  ''';
+
+  /// Flatten the joined notification_types row into a simple type string
+  Map<String, dynamic> _flattenRow(Map<String, dynamic> json) {
+    final data = Map<String, dynamic>.from(json);
+    // Flatten the joined type name from {type_name: 'outbid'} → 'outbid'
+    if (json['type'] != null && json['type'] is Map) {
+      data['type'] = json['type']['type_name'];
+    }
+    return data;
+  }
+
   @override
   Future<List<NotificationModel>> getNotifications({
     required String userId,
@@ -16,10 +32,7 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
   }) async {
     var query = supabase
         .from('notifications')
-        .select('''
-          *,
-          type:notification_types(type_name)
-        ''')
+        .select(_selectQuery)
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
@@ -32,14 +45,9 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
     }
 
     final response = await query;
-    return (response as List).map((json) {
-      // Flatten the joined type name
-      final Map<String, dynamic> data = Map<String, dynamic>.from(json);
-      if (json['type'] != null && json['type'] is Map) {
-        data['type'] = json['type']['type_name'];
-      }
-      return NotificationModel.fromJson(data);
-    }).toList();
+    return (response as List)
+        .map((json) => NotificationModel.fromJson(_flattenRow(json)))
+        .toList();
   }
 
   @override
@@ -76,22 +84,14 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
   }) async {
     final response = await supabase
         .from('notifications')
-        .select('''
-          *,
-          type:notification_types(type_name)
-        ''')
+        .select(_selectQuery)
         .eq('user_id', userId)
         .eq('is_read', false)
         .order('created_at', ascending: false);
 
-    return (response as List).map((json) {
-      // Flatten the joined type name
-      final Map<String, dynamic> data = Map<String, dynamic>.from(json);
-      if (json['type'] != null && json['type'] is Map) {
-        data['type'] = json['type']['type_name'];
-      }
-      return NotificationModel.fromJson(data);
-    }).toList();
+    return (response as List)
+        .map((json) => NotificationModel.fromJson(_flattenRow(json)))
+        .toList();
   }
 
   @override
@@ -109,6 +109,8 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
   Stream<List<Map<String, dynamic>>> streamNotifications({
     required String userId,
   }) {
+    // Uses Supabase Realtime — requires notifications table in
+    // supabase_realtime publication (added in migration 00106)
     return supabase
         .from('notifications')
         .stream(primaryKey: ['id'])
