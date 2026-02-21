@@ -105,6 +105,75 @@ class Step9Summary extends StatelessWidget {
               final isComplete = draft.isStepComplete(step);
               return _buildStepSummary(step, isComplete, isDark);
             }),
+            const SizedBox(height: 24),
+
+            // Bidding Type Summary
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: (draft.biddingType ?? 'public') == 'private'
+                    ? Colors.orange.withAlpha((0.08 * 255).toInt())
+                    : Colors.blue.withAlpha((0.08 * 255).toInt()),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (draft.biddingType ?? 'public') == 'private'
+                      ? Colors.orange.withAlpha((0.3 * 255).toInt())
+                      : Colors.blue.withAlpha((0.3 * 255).toInt()),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    (draft.biddingType ?? 'public') == 'private'
+                        ? Icons.lock
+                        : Icons.public,
+                    color: (draft.biddingType ?? 'public') == 'private'
+                        ? Colors.orange
+                        : Colors.blue,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Bidding Type',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          (draft.biddingType ?? 'public') == 'private'
+                              ? 'Private Auction'
+                              : 'Public Auction',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          (draft.biddingType ?? 'public') == 'private'
+                              ? 'Only invited buyers can view and bid'
+                              : 'Any buyer can view and bid on this auction',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed:

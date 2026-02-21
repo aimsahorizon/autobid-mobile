@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/data/datasources/invites_supabase_datasource.dart';
 
@@ -27,9 +27,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   @override
   void initState() {
     super.initState();
-    _invitesDataSource = InvitesSupabaseDatasource(
-      supabase: Supabase.instance.client,
-    );
+    _invitesDataSource = GetIt.instance<InvitesSupabaseDatasource>();
   }
 
   @override
