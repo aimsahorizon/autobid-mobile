@@ -19,6 +19,7 @@ class TransactionEntity {
   final bool buyerConfirmed;
   final bool adminApproved;
   final DateTime? adminApprovedAt;
+  final DateTime? bothConfirmedAt;
 
   // Delivery tracking (only active after admin approval)
   final DeliveryStatus deliveryStatus;
@@ -51,6 +52,7 @@ class TransactionEntity {
     this.buyerConfirmed = false,
     this.adminApproved = false,
     this.adminApprovedAt,
+    this.bothConfirmedAt,
     this.deliveryStatus = DeliveryStatus.pending,
     this.deliveryStartedAt,
     this.deliveryCompletedAt,
@@ -119,6 +121,7 @@ class TransactionEntity {
     bool? buyerConfirmed,
     bool? adminApproved,
     DateTime? adminApprovedAt,
+    DateTime? bothConfirmedAt,
     DeliveryStatus? deliveryStatus,
     DateTime? deliveryStartedAt,
     DateTime? deliveryCompletedAt,
@@ -145,6 +148,7 @@ class TransactionEntity {
       buyerConfirmed: buyerConfirmed ?? this.buyerConfirmed,
       adminApproved: adminApproved ?? this.adminApproved,
       adminApprovedAt: adminApprovedAt ?? this.adminApprovedAt,
+      bothConfirmedAt: bothConfirmedAt ?? this.bothConfirmedAt,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
       deliveryStartedAt: deliveryStartedAt ?? this.deliveryStartedAt,
       deliveryCompletedAt: deliveryCompletedAt ?? this.deliveryCompletedAt,
