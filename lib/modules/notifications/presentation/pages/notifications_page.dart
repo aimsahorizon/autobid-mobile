@@ -4,6 +4,10 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../controllers/notification_controller.dart';
+import '../controllers/notification_action_handler.dart';
+
+/// Filter options for the notification list
+enum NotificationFilter { all, unread, bids, auctions, transactions, messages }
 
 /// Notifications page showing all user notifications
 class NotificationsPage extends StatefulWidget {
@@ -15,6 +19,7 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   late final NotificationController _controller;
+  NotificationFilter _currentFilter = NotificationFilter.all;
 
   @override
   void initState() {
@@ -32,6 +37,41 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void _markAllAsRead() {
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     _controller.markAllAsRead(userId);
+  }
+
+  List<NotificationEntity> _filteredNotifications(
+    List<NotificationEntity> notifications,
+  ) {
+    switch (_currentFilter) {
+      case NotificationFilter.all:
+        return notifications;
+      case NotificationFilter.unread:
+        return notifications.where((n) => !n.isRead).toList();
+      case NotificationFilter.bids:
+        return notifications
+            .where((n) => n.type == NotificationType.bidUpdate)
+            .toList();
+      case NotificationFilter.auctions:
+        return notifications
+            .where(
+              (n) =>
+                  n.type == NotificationType.auctionUpdate ||
+                  n.type == NotificationType.listingUpdate,
+            )
+            .toList();
+      case NotificationFilter.transactions:
+        return notifications
+            .where(
+              (n) =>
+                  n.type == NotificationType.transaction ||
+                  n.type == NotificationType.review,
+            )
+            .toList();
+      case NotificationFilter.messages:
+        return notifications
+            .where((n) => n.type == NotificationType.message)
+            .toList();
+    }
   }
 
   @override
@@ -58,42 +98,104 @@ class _NotificationsPageState extends State<NotificationsPage> {
           ),
         ],
       ),
-      body: ListenableBuilder(
-        listenable: _controller,
-        builder: (context, _) {
-          if (_controller.isLoading && _controller.notifications.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Column(
+        children: [
+          // Filter chips
+          _buildFilterChips(theme, isDark),
+          // Notification list
+          Expanded(
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                if (_controller.isLoading &&
+                    _controller.notifications.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (_controller.hasError) {
-            return _buildErrorState(isDark, theme);
-          }
+                if (_controller.hasError) {
+                  return _buildErrorState(isDark, theme);
+                }
 
-          if (_controller.notifications.isEmpty) {
-            return _buildEmptyState(isDark, theme);
-          }
+                final filtered = _filteredNotifications(
+                  _controller.notifications,
+                );
 
-          return RefreshIndicator(
-            onRefresh: _handleRefresh,
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _controller.notifications.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final notification = _controller.notifications[index];
-                return _NotificationCard(
-                  notification: notification,
-                  onTap: () => _handleNotificationTap(notification),
-                  onDismiss: () => _handleDismiss(notification),
-                  onInviteResponse: (decision) =>
-                      _handleInviteResponse(notification, decision),
+                if (filtered.isEmpty) {
+                  if (_currentFilter != NotificationFilter.all &&
+                      _controller.notifications.isNotEmpty) {
+                    return _buildEmptyFilterState(isDark, theme);
+                  }
+                  return _buildEmptyState(isDark, theme);
+                }
+
+                return RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final notification = filtered[index];
+                      return _NotificationCard(
+                        notification: notification,
+                        onTap: () => _handleNotificationTap(notification),
+                        onDismiss: () => _handleDismiss(notification),
+                        onInviteResponse: (decision) =>
+                            _handleInviteResponse(notification, decision),
+                      );
+                    },
+                  ),
                 );
               },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildFilterChips(ThemeData theme, bool isDark) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: NotificationFilter.values.map((filter) {
+          final isSelected = _currentFilter == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(_filterLabel(filter)),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  _currentFilter = selected ? filter : NotificationFilter.all;
+                });
+              },
+              selectedColor: ColorConstants.primary.withValues(alpha: 0.2),
+              checkmarkColor: ColorConstants.primary,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  String _filterLabel(NotificationFilter filter) {
+    switch (filter) {
+      case NotificationFilter.all:
+        return 'All';
+      case NotificationFilter.unread:
+        return 'Unread';
+      case NotificationFilter.bids:
+        return 'Bids';
+      case NotificationFilter.auctions:
+        return 'Auctions';
+      case NotificationFilter.transactions:
+        return 'Transactions';
+      case NotificationFilter.messages:
+        return 'Messages';
+    }
   }
 
   Widget _buildEmptyState(bool isDark, ThemeData theme) {
@@ -132,6 +234,39 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     ? ColorConstants.textSecondaryDark
                     : ColorConstants.textSecondaryLight,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyFilterState(bool isDark, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.filter_list,
+              size: 50,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No matching notifications',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () =>
+                  setState(() => _currentFilter = NotificationFilter.all),
+              child: const Text('Show all'),
             ),
           ],
         ),
@@ -185,7 +320,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (!notification.isRead) {
       _controller.markAsRead(notification.id, userId);
     }
-    // TODO: Navigate to related entity (auction, listing, etc.)
+    // Navigate to the related entity using the action handler
+    NotificationActionHandler(context).handleTap(notification);
   }
 
   void _handleDismiss(NotificationEntity notification) {
@@ -193,27 +329,38 @@ class _NotificationsPageState extends State<NotificationsPage> {
     _controller.deleteNotification(notification.id, userId);
   }
 
-  void _handleInviteResponse(NotificationEntity notification, String decision) async {
+  void _handleInviteResponse(
+    NotificationEntity notification,
+    String decision,
+  ) async {
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     final inviteId = notification.metadata?['invite_id'] as String?;
-    
+
     if (inviteId != null) {
       // Show loading indicator
       (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-        const SnackBar(content: Text('Processing response...'), duration: Duration(seconds: 1)),
+        const SnackBar(
+          content: Text('Processing response...'),
+          duration: Duration(seconds: 1),
+        ),
       );
 
       await _controller.respondToInvite(inviteId, decision, userId);
-      
+
       if (mounted) {
         if (_controller.hasError) {
           (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-            SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
+            SnackBar(
+              content: Text(_controller.errorMessage!),
+              backgroundColor: ColorConstants.error,
+            ),
           );
         } else {
           (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
-              content: Text('Invite ${decision == "accepted" ? "accepted" : "declined"} successfully'),
+              content: Text(
+                'Invite ${decision == "accepted" ? "accepted" : "declined"} successfully',
+              ),
               backgroundColor: ColorConstants.success,
             ),
           );
@@ -231,7 +378,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 }
 
-/// Notification card widget
+/// Notification card widget with sub-type aware icon/color rendering
 class _NotificationCard extends StatelessWidget {
   final NotificationEntity notification;
   final VoidCallback onTap;
@@ -249,7 +396,7 @@ class _NotificationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isInvite = notification.type == NotificationType.auctionInvite;
+    final isInvite = notification.isActionableInvite;
     final inviteStatus = notification.metadata?['invite_status'] as String?;
 
     return Dismissible(
@@ -275,11 +422,7 @@ class _NotificationCard extends StatelessWidget {
                 ? (isDark ? ColorConstants.surfaceDark : Colors.white)
                 : ColorConstants.primary.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isDark
-                  ? ColorConstants.borderDark
-                  : ColorConstants.borderLight,
-            ),
+            border: Border.all(color: _borderColor(isDark)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,33 +467,91 @@ class _NotificationCard extends StatelessWidget {
                                 ? ColorConstants.textSecondaryDark
                                 : ColorConstants.textSecondaryLight,
                           ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          _formatTime(notification.createdAt),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isDark
-                                ? ColorConstants.textSecondaryDark
-                                : ColorConstants.textSecondaryLight,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              _formatTime(notification.createdAt),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: isDark
+                                    ? ColorConstants.textSecondaryDark
+                                    : ColorConstants.textSecondaryLight,
+                              ),
+                            ),
+                            if (notification.priority ==
+                                NotificationPriority.urgent) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: ColorConstants.error.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'URGENT',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: ColorConstants.error,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (notification.priority ==
+                                NotificationPriority.high) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: ColorConstants.warning.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'IMPORTANT',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: ColorConstants.warning,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ],
               ),
-              if (isInvite) ...[
+              // Invite action buttons
+              if (notification.type == NotificationType.auctionInvite) ...[
                 const SizedBox(height: 16),
                 if (inviteStatus != null)
                   Container(
                     width: double.infinity,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 12,
+                    ),
                     decoration: BoxDecoration(
-                      color: (inviteStatus == 'accepted'
-                              ? ColorConstants.success
-                              : ColorConstants.error)
-                          .withValues(alpha: 0.1),
+                      color:
+                          (inviteStatus == 'accepted'
+                                  ? ColorConstants.success
+                                  : ColorConstants.error)
+                              .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -378,7 +579,7 @@ class _NotificationCard extends StatelessWidget {
                       ],
                     ),
                   )
-                else
+                else if (isInvite)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -410,40 +611,23 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon() {
-    IconData icon;
-    Color color;
-
-    switch (notification.type) {
-      case NotificationType.bidUpdate:
-        icon = Icons.gavel;
-        color = ColorConstants.warning;
-        break;
-      case NotificationType.auctionUpdate:
-        icon = Icons.timer;
-        color = ColorConstants.info;
-        break;
-      case NotificationType.listingUpdate:
-        icon = Icons.inventory_2_outlined;
-        color = ColorConstants.success;
-        break;
-      case NotificationType.transaction:
-        icon = Icons.payments_outlined;
-        color = ColorConstants.primary;
-        break;
-      case NotificationType.system:
-        icon = Icons.info_outline;
-        color = ColorConstants.info;
-        break;
-      case NotificationType.message:
-        icon = Icons.chat_bubble_outline;
-        color = ColorConstants.primary;
-        break;
-      case NotificationType.auctionInvite:
-        icon = Icons.mail_outline;
-        color = ColorConstants.primary;
-        break;
+  /// Border color based on priority for urgent/high notifications
+  Color _borderColor(bool isDark) {
+    if (!notification.isRead) {
+      switch (notification.priority) {
+        case NotificationPriority.urgent:
+          return ColorConstants.error.withValues(alpha: 0.5);
+        case NotificationPriority.high:
+          return ColorConstants.warning.withValues(alpha: 0.3);
+        default:
+          break;
+      }
     }
+    return isDark ? ColorConstants.borderDark : ColorConstants.borderLight;
+  }
+
+  Widget _buildIcon() {
+    final (icon, color) = _iconAndColor();
 
     return Container(
       width: 40,
@@ -454,6 +638,76 @@ class _NotificationCard extends StatelessWidget {
       ),
       child: Icon(icon, color: color, size: 20),
     );
+  }
+
+  /// Determine icon and color based on the granular sub-type
+  (IconData, Color) _iconAndColor() {
+    switch (notification.subType) {
+      // Bid notifications
+      case NotificationSubType.outbid:
+        return (Icons.trending_up, ColorConstants.error);
+      case NotificationSubType.bidPlaced:
+        return (Icons.gavel, ColorConstants.warning);
+
+      // Auction status notifications
+      case NotificationSubType.auctionWon:
+        return (Icons.emoji_events, ColorConstants.success);
+      case NotificationSubType.auctionLost:
+        return (Icons.sentiment_dissatisfied, ColorConstants.error);
+      case NotificationSubType.auctionEnding:
+        return (Icons.timer, ColorConstants.warning);
+      case NotificationSubType.auctionLive:
+        return (Icons.play_circle_filled, ColorConstants.success);
+      case NotificationSubType.auctionEnded:
+        return (Icons.stop_circle, ColorConstants.info);
+      case NotificationSubType.auctionCancelled:
+        return (Icons.cancel_outlined, ColorConstants.error);
+      case NotificationSubType.auctionApproved:
+        return (Icons.check_circle_outline, ColorConstants.success);
+
+      // Invite notifications
+      case NotificationSubType.auctionInvite:
+        return (Icons.mail_outline, ColorConstants.primary);
+      case NotificationSubType.auctionInviteAccepted:
+        return (Icons.check_circle, ColorConstants.success);
+      case NotificationSubType.auctionInviteRejected:
+        return (Icons.cancel, ColorConstants.error);
+
+      // Q&A notifications
+      case NotificationSubType.newQuestion:
+        return (Icons.help_outline, ColorConstants.info);
+      case NotificationSubType.qaReply:
+        return (Icons.question_answer, ColorConstants.primary);
+
+      // Transaction notifications
+      case NotificationSubType.transactionStarted:
+        return (Icons.handshake, ColorConstants.primary);
+      case NotificationSubType.formsConfirmed:
+        return (Icons.assignment_turned_in, ColorConstants.success);
+      case NotificationSubType.activityLog:
+        return (Icons.timeline, ColorConstants.info);
+
+      // Chat
+      case NotificationSubType.chatMessage:
+        return (Icons.chat_bubble_outline, ColorConstants.primary);
+
+      // Review
+      case NotificationSubType.reviewReceived:
+        return (Icons.star, ColorConstants.warning);
+
+      // System
+      case NotificationSubType.paymentReceived:
+        return (Icons.payments_outlined, ColorConstants.success);
+      case NotificationSubType.kycApproved:
+        return (Icons.verified_user, ColorConstants.success);
+      case NotificationSubType.kycRejected:
+        return (Icons.gpp_bad, ColorConstants.error);
+      case NotificationSubType.messageReceived:
+        return (Icons.message, ColorConstants.primary);
+
+      case NotificationSubType.unknown:
+        return (Icons.info_outline, ColorConstants.info);
+    }
   }
 
   String _formatTime(DateTime time) {
