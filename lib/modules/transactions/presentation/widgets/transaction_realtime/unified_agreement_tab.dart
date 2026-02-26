@@ -601,7 +601,7 @@ class _AgreementFieldTileState extends State<_AgreementFieldTile> {
       onChanged: widget.readOnly ? null : (v) => widget.onChanged(v.toString()),
       dense: true,
       contentPadding: EdgeInsets.zero,
-      activeColor: ColorConstants.success,
+      activeThumbColor: ColorConstants.success,
     );
   }
 
@@ -653,8 +653,10 @@ class _AgreementFieldTileState extends State<_AgreementFieldTile> {
 
   Widget _buildSelectField() {
     final options = widget.field.selectOptions;
+    final currentValue = options.contains(widget.field.value) ? widget.field.value : null;
     return DropdownButtonFormField<String>(
-      value: options.contains(widget.field.value) ? widget.field.value : null,
+      key: ValueKey(currentValue),
+      initialValue: currentValue,
       decoration: InputDecoration(
         labelText: widget.field.label,
         labelStyle: const TextStyle(fontSize: 13),
@@ -993,7 +995,8 @@ class _AddFieldSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: fieldType,
+                      key: ValueKey(fieldType),
+                      initialValue: fieldType,
                       decoration: const InputDecoration(
                         labelText: 'Field Type',
                       ),
@@ -1019,7 +1022,8 @@ class _AddFieldSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: category,
+                      key: ValueKey(category),
+                      initialValue: category,
                       decoration: const InputDecoration(labelText: 'Category'),
                       items: [
                         const DropdownMenuItem(
