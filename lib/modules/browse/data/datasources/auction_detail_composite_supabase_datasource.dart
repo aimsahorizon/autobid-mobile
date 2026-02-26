@@ -1,5 +1,6 @@
 import '../../domain/entities/auction_detail_entity.dart';
 import '../../domain/entities/bid_history_entity.dart';
+import '../../domain/entities/bid_queue_entity.dart';
 import '../../domain/entities/qa_entity.dart';
 import 'auction_detail_remote_datasource.dart';
 import 'auction_supabase_datasource.dart';
@@ -55,7 +56,7 @@ class AuctionDetailCompositeSupabaseDataSource
       if (bidderData != null) {
         final displayName = bidderData['display_name'] as String?;
         final uname = bidderData['username'] as String?;
-        
+
         username = uname; // Store username separately
 
         // Prefer display_name if available, fallback to username
@@ -221,5 +222,44 @@ class AuctionDetailCompositeSupabaseDataSource
     String? currentUserId,
   }) {
     return _qaDataSource.subscribeToQA(auctionId, currentUserId: currentUserId);
+  }
+
+  @override
+  Future<Map<String, dynamic>> raiseHand({
+    required String auctionId,
+    required String bidderId,
+  }) {
+    return _bidDataSource.raiseHand(auctionId: auctionId, bidderId: bidderId);
+  }
+
+  @override
+  Future<Map<String, dynamic>> submitTurnBid({
+    required String auctionId,
+    required String bidderId,
+    required double bidAmount,
+  }) {
+    return _bidDataSource.submitTurnBid(
+      auctionId: auctionId,
+      bidderId: bidderId,
+      bidAmount: bidAmount,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> lowerHand({
+    required String auctionId,
+    required String bidderId,
+  }) {
+    return _bidDataSource.lowerHand(auctionId: auctionId, bidderId: bidderId);
+  }
+
+  @override
+  Future<BidQueueCycleEntity> getQueueStatus({required String auctionId}) {
+    return _bidDataSource.getQueueStatus(auctionId);
+  }
+
+  @override
+  Stream<BidQueueCycleEntity> streamQueueUpdates({required String auctionId}) {
+    return _bidDataSource.streamQueueUpdates(auctionId);
   }
 }

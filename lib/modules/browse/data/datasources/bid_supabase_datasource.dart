@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../domain/entities/bid_queue_entity.dart';
 
 /// Supabase datasource for bid operations
 /// Handles placing bids, getting bid history, and managing deposits
@@ -132,12 +133,6 @@ class BidSupabaseDataSource {
         .eq('user_id', userId)
         .order('created_at', ascending: false)
         .limit(20);
-  }
-
-  /// Extend auction end time by 5 minutes on every bid
-  /// Deprecated: Logic moved to server-side 'place_bid' function
-  Future<void> _maybeApplySnipeGuard(String auctionId) async {
-    // No-op: handled by server
   }
 
   /// Get bid history for a listing/auction
@@ -313,5 +308,122 @@ class BidSupabaseDataSource {
         .stream(primaryKey: ['id'])
         .eq('auction_id', auctionId)
         .order('created_at', ascending: false);
+  }
+
+  // ==========================================================================
+  // RAISE HAND QUEUE SYSTEM
+  // ==========================================================================
+
+  /// Raise hand in the bid queue (queue-only — no bid amount).
+  /// Calls the server-side `raise_hand` RPC which validates the auction state,
+  /// creates/reuses a cycle, and inserts the user into the queue.
+  /// The user will bid manually when it's their turn (60s window).
+  Future<Map<String, dynamic>> raiseHand({
+    required String auctionId,
+    required String bidderId,
+  }) async {
+    try {
+      final params = <String, dynamic>{
+        'p_auction_id': auctionId,
+        'p_bidder_id': bidderId,
+      };
+      final response = await _supabase.rpc('raise_hand', params: params);
+
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to raise hand');
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to raise hand: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to raise hand: $e');
+    }
+  }
+
+  /// Submit a bid during the user's active turn (60s window).
+  /// Calls the server-side `submit_turn_bid` RPC.
+  Future<Map<String, dynamic>> submitTurnBid({
+    required String auctionId,
+    required String bidderId,
+    required double bidAmount,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'submit_turn_bid',
+        params: {
+          'p_auction_id': auctionId,
+          'p_bidder_id': bidderId,
+          'p_bid_amount': bidAmount,
+        },
+      );
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to submit bid');
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to submit bid: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to submit bid: $e');
+    }
+  }
+
+  /// Lower hand — withdraw from the bid queue.
+  /// Calls the server-side `lower_hand` RPC.
+  Future<Map<String, dynamic>> lowerHand({
+    required String auctionId,
+    required String bidderId,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'lower_hand',
+        params: {'p_auction_id': auctionId, 'p_bidder_id': bidderId},
+      );
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to lower hand');
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to lower hand: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to lower hand: $e');
+    }
+  }
+
+  /// Get current queue status for an auction.
+  /// Returns the cycle state, queue entries, and remaining grace period.
+  Future<BidQueueCycleEntity> getQueueStatus(String auctionId) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_queue_status',
+        params: {'p_auction_id': auctionId},
+      );
+
+      final result = response as Map<String, dynamic>;
+      return BidQueueCycleEntity.fromJson(result);
+    } on PostgrestException catch (e) {
+      debugPrint('Failed to get queue status: ${e.message}');
+      return BidQueueCycleEntity.idle();
+    } catch (e) {
+      debugPrint('Failed to get queue status: $e');
+      return BidQueueCycleEntity.idle();
+    }
+  }
+
+  /// Stream real-time queue cycle updates for an auction.
+  /// Listens to changes on the `bid_queue_cycles` table via Supabase Realtime,
+  /// and re-fetches full status (including queue entries) on each change.
+  Stream<BidQueueCycleEntity> streamQueueUpdates(String auctionId) {
+    // Listen to cycle state changes and re-fetch full status
+    return _supabase
+        .from('bid_queue_cycles')
+        .stream(primaryKey: ['id'])
+        .eq('auction_id', auctionId)
+        .asyncMap((_) => getQueueStatus(auctionId));
   }
 }

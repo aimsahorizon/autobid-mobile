@@ -80,10 +80,10 @@ class AuctionSupabaseDataSource {
 
     // Vehicle filters
     if (filter?.make != null && filter!.make!.isNotEmpty) {
-      queryBuilder = queryBuilder.ilike('vehicle_make', '%${filter!.make!}%');
+      queryBuilder = queryBuilder.ilike('vehicle_make', '%${filter.make}%');
     }
     if (filter?.model != null && filter!.model!.isNotEmpty) {
-      queryBuilder = queryBuilder.ilike('vehicle_model', '%${filter!.model!}%');
+      queryBuilder = queryBuilder.ilike('vehicle_model', '%${filter.model}%');
     }
     if (filter?.yearFrom != null) {
       queryBuilder = queryBuilder.gte('vehicle_year', filter!.yearFrom!);
@@ -91,18 +91,18 @@ class AuctionSupabaseDataSource {
     if (filter?.yearTo != null) {
       queryBuilder = queryBuilder.lte('vehicle_year', filter!.yearTo!);
     }
-    
+
     // Transmission & Fuel (Attempting to filter if columns exist in view)
     if (filter?.transmission != null && filter!.transmission!.isNotEmpty) {
-       // Using generic 'transmission' or 'vehicle_transmission' depending on view definition
-       // Safest to try 'transmission' if view flattens it, or 'vehicle_transmission'
-       // Based on other columns, likely 'vehicle_transmission'
-       // But to avoid breakage if column missing, we might need to skip or use try/catch
-       // For now, let's assume vehicle_transmission matches naming convention
-       // If this fails, the 'catch' block in getActiveAuctions will handle it (fallback)
-       // But fallback also needs these filters!
-       // Ideally we should know the schema.
-       // Given the user report is about BRAND, I will prioritize Make/Model/Year which are known.
+      // Using generic 'transmission' or 'vehicle_transmission' depending on view definition
+      // Safest to try 'transmission' if view flattens it, or 'vehicle_transmission'
+      // Based on other columns, likely 'vehicle_transmission'
+      // But to avoid breakage if column missing, we might need to skip or use try/catch
+      // For now, let's assume vehicle_transmission matches naming convention
+      // If this fails, the 'catch' block in getActiveAuctions will handle it (fallback)
+      // But fallback also needs these filters!
+      // Ideally we should know the schema.
+      // Given the user report is about BRAND, I will prioritize Make/Model/Year which are known.
     }
 
     // Apply ending soon filter (within 24 hours)
@@ -180,10 +180,10 @@ class AuctionSupabaseDataSource {
 
     // Vehicle filters (Best effort on title)
     if (filter?.make != null && filter!.make!.isNotEmpty) {
-      queryBuilder = queryBuilder.ilike('title', '%${filter!.make!}%');
+      queryBuilder = queryBuilder.ilike('title', '%${filter.make}%');
     }
     if (filter?.model != null && filter!.model!.isNotEmpty) {
-      queryBuilder = queryBuilder.ilike('title', '%${filter!.model!}%');
+      queryBuilder = queryBuilder.ilike('title', '%${filter.model}%');
     }
 
     final response = await queryBuilder.order('end_time', ascending: true);
@@ -305,7 +305,7 @@ class AuctionSupabaseDataSource {
       final numBidIncrement =
           (auctionResponse['min_bid_increment'] as num?) ??
           (auctionResponse['bid_increment'] as num?) ??
-          1000;
+          100;
       final enableIncremental =
           (auctionResponse['enable_incremental_bidding'] as bool?) ?? true;
 

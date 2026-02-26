@@ -1,5 +1,6 @@
 import '../../domain/entities/auction_detail_entity.dart';
 import '../../domain/entities/bid_history_entity.dart';
+import '../../domain/entities/bid_queue_entity.dart';
 import '../../domain/entities/qa_entity.dart';
 
 /// Remote data source interface for auction detail operations
@@ -97,4 +98,29 @@ abstract class AuctionDetailRemoteDataSource {
     required String auctionId,
     String? currentUserId,
   });
+
+  /// Raise hand in the bid queue (queue-only — no bid amount)
+  Future<Map<String, dynamic>> raiseHand({
+    required String auctionId,
+    required String bidderId,
+  });
+
+  /// Submit a bid during the user's active turn (60s window)
+  Future<Map<String, dynamic>> submitTurnBid({
+    required String auctionId,
+    required String bidderId,
+    required double bidAmount,
+  });
+
+  /// Lower hand (withdraw from bid queue)
+  Future<Map<String, dynamic>> lowerHand({
+    required String auctionId,
+    required String bidderId,
+  });
+
+  /// Get current queue status for an auction
+  Future<BidQueueCycleEntity> getQueueStatus({required String auctionId});
+
+  /// Stream real-time queue cycle updates
+  Stream<BidQueueCycleEntity> streamQueueUpdates({required String auctionId});
 }
