@@ -27,11 +27,6 @@ class _AddressStepState extends State<AddressStep> {
   List<CityEntity> _cities = [];
   List<BarangayEntity> _barangays = [];
 
-  // Track IDs for API calls
-  String? _selectedRegionId;
-  String? _selectedProvinceId;
-  String? _selectedCityId;
-
   @override
   void initState() {
     super.initState();
@@ -72,15 +67,12 @@ class _AddressStepState extends State<AddressStep> {
   void _onRegionChanged(RegionEntity? region) {
     if (region != null) {
       setState(() {
-        _selectedRegionId = region.id;
         widget.controller.setRegion(region.name);
 
         // Reset children
         _provinces = [];
         _cities = [];
         _barangays = [];
-        _selectedProvinceId = null;
-        _selectedCityId = null;
         widget.controller.setProvince(null); // Clear in controller
         widget.controller.setCity(null);
         widget.controller.setBarangay(null);
@@ -92,13 +84,11 @@ class _AddressStepState extends State<AddressStep> {
   void _onProvinceChanged(ProvinceEntity? province) {
     if (province != null) {
       setState(() {
-        _selectedProvinceId = province.id;
         widget.controller.setProvince(province.name);
 
         // Reset children
         _cities = [];
         _barangays = [];
-        _selectedCityId = null;
         widget.controller.setCity(null);
         widget.controller.setBarangay(null);
       });
@@ -109,7 +99,6 @@ class _AddressStepState extends State<AddressStep> {
   void _onCityChanged(CityEntity? city) {
     if (city != null) {
       setState(() {
-        _selectedCityId = city.id;
         widget.controller.setCity(city.name);
 
         // Reset children

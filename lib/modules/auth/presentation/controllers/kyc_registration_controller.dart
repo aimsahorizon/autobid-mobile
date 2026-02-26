@@ -479,12 +479,13 @@ class KYCRegistrationController extends ChangeNotifier {
   Future<void> nextStep() async {
     // Perform async checks before proceeding
     if (_currentStep == KYCStep.nationalId) {
-       if (_nationalIdNumber != null && _checkNationalIdExistsUseCase != null) {
+       final nationalId = _nationalIdNumber;
+       if (nationalId != null && _checkNationalIdExistsUseCase != null) {
           _isLoading = true;
           notifyListeners();
           
           try {
-            final result = await _checkNationalIdExistsUseCase!.call(_nationalIdNumber!);
+            final result = await _checkNationalIdExistsUseCase.call(nationalId);
             final exists = result.fold((l) => false, (r) => r);
             
             if (exists) {
@@ -505,12 +506,13 @@ class KYCRegistrationController extends ChangeNotifier {
     }
     
     if (_currentStep == KYCStep.secondaryId) {
-       if (_secondaryIdNumber != null && _secondaryIdType != null && _checkSecondaryIdExistsUseCase != null) {
+       final secondaryId = _secondaryIdNumber;
+       if (secondaryId != null && _secondaryIdType != null && _checkSecondaryIdExistsUseCase != null) {
           _isLoading = true;
           notifyListeners();
           
           try {
-            final result = await _checkSecondaryIdExistsUseCase!.call(_secondaryIdNumber!, _secondaryIdType!);
+            final result = await _checkSecondaryIdExistsUseCase.call(secondaryId, _secondaryIdType!);
             final exists = result.fold((l) => false, (r) => r);
             
             if (exists) {
