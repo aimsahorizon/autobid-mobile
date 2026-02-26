@@ -91,7 +91,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
 
     final minBidIncrementValue = numOrZero(
       json['min_bid_increment'],
-      numOrZero(json['bid_increment'], 1000),
+      numOrZero(json['bid_increment'], 100),
     );
 
     final depositAmountValue = numOrZero(json['deposit_amount'], 0);
