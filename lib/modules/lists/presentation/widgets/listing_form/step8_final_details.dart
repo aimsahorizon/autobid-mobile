@@ -45,7 +45,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
       text: _formatDouble(draft?.reservePrice),
     );
     _bidIncrementController = TextEditingController(
-      text: _formatDouble(draft?.bidIncrement ?? draft?.minBidIncrement ?? 1000),
+      text: _formatDouble(draft?.bidIncrement ?? draft?.minBidIncrement ?? 100),
     );
     _depositAmountController = TextEditingController(
       text: _formatDouble(draft?.depositAmount ?? 50000),
@@ -244,7 +244,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
-        
+
         // AI Price Predictor
         AiPricePredictor(
           draft: draft,
@@ -255,16 +255,18 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
               _reservePriceController.text = reserve.toStringAsFixed(0);
             });
             _updateDraft();
-            
+
             (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
               SnackBar(
-                content: Text('Applied suggested price: Γé▒${price.toStringAsFixed(0)}'),
+                content: Text(
+                  'Applied suggested price: Γé▒${price.toStringAsFixed(0)}',
+                ),
                 backgroundColor: Colors.green,
               ),
             );
           },
         ),
-        
+
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _startingPriceController,
@@ -275,12 +277,13 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             if (v?.isEmpty ?? true) return 'Required';
             final start = double.tryParse(v!);
             if (start == null) return 'Invalid price';
-            
+            if (start % 100 != 0) return 'Must be a multiple of ₱100';
+
             if (_reservePriceController.text.isNotEmpty) {
-               final reserve = double.tryParse(_reservePriceController.text);
-               if (reserve != null && start >= reserve) {
-                 return 'Must be lower than reserve price';
-               }
+              final reserve = double.tryParse(_reservePriceController.text);
+              if (reserve != null && start >= reserve) {
+                return 'Must be lower than reserve price';
+              }
             }
             return null;
           },
@@ -293,17 +296,18 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
-             if (v == null || v.isEmpty) return null; // Optional
-             final reserve = double.tryParse(v);
-             if (reserve == null) return 'Invalid price';
-             
-             if (_startingPriceController.text.isNotEmpty) {
-                final start = double.tryParse(_startingPriceController.text);
-                if (start != null && reserve <= start) {
-                  return 'Must be higher than starting price';
-                }
-             }
-             return null;
+            if (v == null || v.isEmpty) return null; // Optional
+            final reserve = double.tryParse(v);
+            if (reserve == null) return 'Invalid price';
+            if (reserve % 100 != 0) return 'Must be a multiple of ₱100';
+
+            if (_startingPriceController.text.isNotEmpty) {
+              final start = double.tryParse(_startingPriceController.text);
+              if (start != null && reserve <= start) {
+                return 'Must be higher than starting price';
+              }
+            }
+            return null;
           },
         ),
         const SizedBox(height: 16),
@@ -430,7 +434,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue.withAlpha((0.1 * 255).toInt()),
+            color: Colors.blue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -454,6 +458,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<int>(
+          key: ValueKey(draft.snipeGuardThresholdSeconds),
           decoration: InputDecoration(
             labelText: 'Trigger Window',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -463,7 +468,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             ),
           ),
           // Ensure initial value is valid
-          value: (draft.snipeGuardThresholdSeconds ?? 1800),
+          initialValue: (draft.snipeGuardThresholdSeconds ?? 1800),
           items: [
             DropdownMenuItem(value: 300, child: Text('Last 5 minutes')),
             DropdownMenuItem(value: 600, child: Text('Last 10 minutes')),
@@ -487,7 +492,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.purple.withAlpha((0.1 * 255).toInt()),
+            color: Colors.purple.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Row(
@@ -512,22 +517,22 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Minimum gap between bids (must be in multiples of ₱1,000)',
+          'Minimum gap between bids (must be in multiples of ₱100)',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 8),
         FormFieldWidget(
           controller: _bidIncrementController,
           label: 'Bid Increment',
-          hint: 'e.g., 1000, 2000, 5000',
+          hint: 'e.g., 100, 500, 1000',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
             final value = double.tryParse(v!);
             if (value == null) return 'Invalid amount';
-            if (value < 1000) return 'Minimum increment is ₱1,000';
-            if (value % 1000 != 0) return 'Must be a multiple of ₱1,000';
+            if (value < 100) return 'Minimum increment is ₱100';
+            if (value % 100 != 0) return 'Must be a multiple of ₱100';
             return null;
           },
         ),
@@ -572,7 +577,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withAlpha((0.1 * 255).toInt()),
+                    color: Colors.amber.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -623,11 +628,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.withAlpha((0.1 * 255).toInt()),
+            color: Colors.green.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.green.withAlpha((0.3 * 255).toInt()),
-            ),
+            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,7 +651,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
 
   Widget _buildIncrementSuggestions(double startingPrice) {
     final suggestions = <(String, String)>[
-      ('₱1,000', 'Standard'),
+      ('₱100', 'Fine'),
+      ('₱500', 'Standard'),
+      ('₱1,000', 'Regular'),
       ('₱2,000', 'Accelerated'),
       ('₱5,000', 'High value'),
     ];

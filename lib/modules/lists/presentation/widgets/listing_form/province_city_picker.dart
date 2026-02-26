@@ -173,7 +173,8 @@ class _LocationPickerState extends State<LocationPicker> {
               
             // Region Dropdown
             DropdownButtonFormField<RegionEntity>(
-              value: _selectedRegion,
+              key: ValueKey(_selectedRegion),
+              initialValue: _selectedRegion,
               decoration: InputDecoration(
                 labelText: 'Region',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -187,7 +188,8 @@ class _LocationPickerState extends State<LocationPicker> {
 
             // Province Dropdown
             DropdownButtonFormField<ProvinceEntity>(
-              value: _selectedProvince,
+              key: ValueKey(_selectedProvince),
+              initialValue: _selectedProvince,
               decoration: InputDecoration(
                 labelText: 'Province *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -204,7 +206,8 @@ class _LocationPickerState extends State<LocationPicker> {
 
             // City Dropdown
             DropdownButtonFormField<CityEntity>(
-              value: _selectedCity,
+              key: ValueKey(_selectedCity),
+              initialValue: _selectedCity,
               decoration: InputDecoration(
                 labelText: 'City/Municipality *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -221,7 +224,8 @@ class _LocationPickerState extends State<LocationPicker> {
 
              // Barangay Dropdown
             DropdownButtonFormField<BarangayEntity>(
-              value: _selectedBarangay,
+              key: ValueKey(_selectedBarangay),
+              initialValue: _selectedBarangay,
               decoration: InputDecoration(
                 labelText: 'Barangay *',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
