@@ -30,6 +30,11 @@ import 'domain/usecases/save_auto_bid_settings_usecase.dart';
 import 'domain/usecases/get_auto_bid_settings_usecase.dart';
 import 'domain/usecases/deactivate_auto_bid_usecase.dart';
 import 'domain/usecases/buyer_invite_usecases.dart';
+import 'domain/usecases/raise_hand_usecase.dart';
+import 'domain/usecases/lower_hand_usecase.dart';
+import 'domain/usecases/submit_turn_bid_usecase.dart';
+import 'domain/usecases/get_queue_status_usecase.dart';
+import 'domain/usecases/stream_queue_updates_usecase.dart';
 import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
 import 'presentation/controllers/buyer_invites_controller.dart';
@@ -87,6 +92,11 @@ Future<void> initBrowseModule() async {
   sl.registerLazySingleton(() => SaveAutoBidSettingsUseCase(sl()));
   sl.registerLazySingleton(() => GetAutoBidSettingsUseCase(sl()));
   sl.registerLazySingleton(() => DeactivateAutoBidUseCase(sl()));
+  sl.registerLazySingleton(() => RaiseHandUseCase(sl()));
+  sl.registerLazySingleton(() => LowerHandUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitTurnBidUseCase(sl()));
+  sl.registerLazySingleton(() => GetQueueStatusUseCase(sl()));
+  sl.registerLazySingleton(() => StreamQueueUpdatesUseCase(sl()));
 
   // Buyer Invite Use Cases
   sl.registerLazySingleton(() => ListMyInvitesUseCase(sl()));
@@ -121,6 +131,11 @@ Future<void> initBrowseModule() async {
       saveAutoBidSettingsUseCase: sl(),
       getAutoBidSettingsUseCase: sl(),
       deactivateAutoBidUseCase: sl(),
+      raiseHandUseCase: sl(),
+      lowerHandUseCase: sl(),
+      submitTurnBidUseCase: sl(),
+      getQueueStatusUseCase: sl(),
+      streamQueueUpdatesUseCase: sl(),
       userId: sl<SupabaseClient>().auth.currentUser?.id,
     ),
   );
