@@ -22,7 +22,7 @@ class ListingDraftController extends ChangeNotifier {
   final UploadDeedOfSaleUseCase _uploadDeedOfSaleUseCase;
   final DeleteDeedOfSaleUseCase _deleteDeedOfSaleUseCase;
   final GetUserProfileUseCase _getUserProfileUseCase;
-  
+
   // Vehicle Data Use Cases
   final GetVehicleBrandsUseCase _getVehicleBrandsUseCase;
   final GetVehicleModelsUseCase _getVehicleModelsUseCase;
@@ -66,7 +66,7 @@ class ListingDraftController extends ChangeNotifier {
   bool _isSubmitting = false;
   bool _isSubmissionSuccess = false;
   String? _errorMessage;
-  
+
   // Vehicle Data State
   List<VehicleBrand> _brands = [];
   List<VehicleModel> _models = [];
@@ -82,7 +82,7 @@ class ListingDraftController extends ChangeNotifier {
   bool get isSubmissionSuccess => _isSubmissionSuccess;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
-  
+
   List<VehicleBrand> get brands => _brands;
   List<VehicleModel> get models => _models;
   List<VehicleVariant> get variants => _variants;
@@ -98,16 +98,18 @@ class ListingDraftController extends ChangeNotifier {
   /// Load vehicle brands
   Future<void> loadBrands() async {
     if (_brands.isNotEmpty) return; // Cache check
-    
+
     _isLoadingVehicleData = true;
     notifyListeners();
-    
+
     final result = await _getVehicleBrandsUseCase.call();
     result.fold(
-      (failure) => debugPrint('Error loading brands: ${failure.message}'), // Non-blocking
+      (failure) => debugPrint(
+        'Error loading brands: ${failure.message}',
+      ), // Non-blocking
       (brands) => _brands = brands,
     );
-    
+
     _isLoadingVehicleData = false;
     notifyListeners();
   }
@@ -116,28 +118,28 @@ class ListingDraftController extends ChangeNotifier {
   Future<void> loadModels(String brandName) async {
     _models = [];
     _variants = []; // Reset variants too
-    
+
     if (brandName.isEmpty) {
       notifyListeners();
       return;
     }
-    
+
     // Find brand ID from name (since UI stores name)
     // If brand list is empty, try to load it first? No, assume loaded.
     // If name not found, maybe custom entry?
-    
+
     final brand = _brands.where((b) => b.name == brandName).firstOrNull;
     if (brand == null) return;
 
     _isLoadingVehicleData = true;
     notifyListeners();
-    
+
     final result = await _getVehicleModelsUseCase.call(brand.id);
     result.fold(
       (failure) => debugPrint('Error loading models: ${failure.message}'),
       (models) => _models = models,
     );
-    
+
     _isLoadingVehicleData = false;
     notifyListeners();
   }
@@ -145,24 +147,24 @@ class ListingDraftController extends ChangeNotifier {
   /// Load variants for a model
   Future<void> loadVariants(String modelName) async {
     _variants = [];
-    
+
     if (modelName.isEmpty) {
       notifyListeners();
       return;
     }
-    
+
     final model = _models.where((m) => m.name == modelName).firstOrNull;
     if (model == null) return;
 
     _isLoadingVehicleData = true;
     notifyListeners();
-    
+
     final result = await _getVehicleVariantsUseCase.call(model.id);
     result.fold(
       (failure) => debugPrint('Error loading variants: ${failure.message}'),
       (variants) => _variants = variants,
     );
-    
+
     _isLoadingVehicleData = false;
     notifyListeners();
   }
@@ -191,13 +193,10 @@ class ListingDraftController extends ChangeNotifier {
     notifyListeners();
 
     final result = await _getDraftUseCase.call(draftId);
-    result.fold(
-      (failure) => _errorMessage = failure.message,
-      (draft) {
-        _currentDraft = draft;
-        if (draft == null) _errorMessage = 'Draft not found';
-      },
-    );
+    result.fold((failure) => _errorMessage = failure.message, (draft) {
+      _currentDraft = draft;
+      if (draft == null) _errorMessage = 'Draft not found';
+    });
 
     _isLoading = false;
     notifyListeners();
@@ -231,12 +230,12 @@ class ListingDraftController extends ChangeNotifier {
             barangay: profile.barangay,
             lastSaved: DateTime.now(),
           );
-          // Note: We do NOT auto-save here. 
+          // Note: We do NOT auto-save here.
           // The draft remains local until user action triggers save/upload.
         }
       },
     );
-    
+
     _isLoading = false;
     notifyListeners();
   }
@@ -248,7 +247,7 @@ class ListingDraftController extends ChangeNotifier {
 
     // Create real draft in DB
     final result = await _createDraftUseCase.call(_currentDraft!.sellerId);
-    
+
     return result.fold(
       (failure) {
         _errorMessage = failure.message;
@@ -269,7 +268,7 @@ class ListingDraftController extends ChangeNotifier {
         );
         notifyListeners();
         return true;
-      }
+      },
     );
   }
 
@@ -309,11 +308,11 @@ class ListingDraftController extends ChangeNotifier {
   /// Auto-save draft
   Future<void> _autoSave() async {
     if (_currentDraft == null || _isSaving) return;
-    
+
     // Ensure DB record exists before saving
     if (_currentDraft!.id.isEmpty) {
-       final success = await _ensureDraftExists();
-       if (!success) return;
+      final success = await _ensureDraftExists();
+      if (!success) return;
     }
 
     _isSaving = true;
@@ -326,11 +325,11 @@ class ListingDraftController extends ChangeNotifier {
   /// Manual save
   Future<bool> saveDraft() async {
     if (_currentDraft == null) return false;
-    
+
     // Ensure DB record exists before saving
     if (_currentDraft!.id.isEmpty) {
-       final success = await _ensureDraftExists();
-       if (!success) return false;
+      final success = await _ensureDraftExists();
+      if (!success) return false;
     }
 
     _isSaving = true;
@@ -349,8 +348,8 @@ class ListingDraftController extends ChangeNotifier {
 
     // Ensure DB record exists (need ID for storage path)
     if (_currentDraft!.id.isEmpty) {
-       final success = await _ensureDraftExists();
-       if (!success) return false;
+      final success = await _ensureDraftExists();
+      if (!success) return false;
     }
 
     final categoryKey = PhotoCategories.toKey(categoryDisplayName);
@@ -362,21 +361,20 @@ class ListingDraftController extends ChangeNotifier {
       imageFile: File(localPath),
     );
 
-    return result.fold(
-      (failure) => false,
-      (url) {
-        final currentPhotos = Map<String, List<String>>.from(_currentDraft!.photoUrls ?? {});
-        currentPhotos[categoryKey] = [...(currentPhotos[categoryKey] ?? []), url];
-        
-        _currentDraft = _currentDraft!.copyWith(
-          lastSaved: DateTime.now(),
-          photoUrls: currentPhotos,
-        );
-        notifyListeners();
-        _autoSave();
-        return true;
-      },
-    );
+    return result.fold((failure) => false, (url) {
+      final currentPhotos = Map<String, List<String>>.from(
+        _currentDraft!.photoUrls ?? {},
+      );
+      currentPhotos[categoryKey] = [...(currentPhotos[categoryKey] ?? []), url];
+
+      _currentDraft = _currentDraft!.copyWith(
+        lastSaved: DateTime.now(),
+        photoUrls: currentPhotos,
+      );
+      notifyListeners();
+      _autoSave();
+      return true;
+    });
   }
 
   /// Upload deed of sale document
@@ -385,8 +383,8 @@ class ListingDraftController extends ChangeNotifier {
 
     // Ensure DB record exists
     if (_currentDraft!.id.isEmpty) {
-       final success = await _ensureDraftExists();
-       if (!success) return null;
+      final success = await _ensureDraftExists();
+      if (!success) return null;
     }
 
     final result = await _uploadDeedOfSaleUseCase.call(
@@ -415,9 +413,12 @@ class ListingDraftController extends ChangeNotifier {
 
   /// Remove deed of sale document
   Future<bool> removeDeedOfSale() async {
-    if (_currentDraft == null || _currentDraft!.deedOfSaleUrl == null) return false;
+    if (_currentDraft == null || _currentDraft!.deedOfSaleUrl == null)
+      return false;
 
-    final result = await _deleteDeedOfSaleUseCase.call(_currentDraft!.deedOfSaleUrl!);
+    final result = await _deleteDeedOfSaleUseCase.call(
+      _currentDraft!.deedOfSaleUrl!,
+    );
     return result.fold(
       (failure) {
         _errorMessage = failure.message;
@@ -441,7 +442,7 @@ class ListingDraftController extends ChangeNotifier {
     if (_currentDraft == null) return false;
 
     final deposit = _currentDraft!.depositAmount ?? 50000;
-    final increment = _currentDraft!.bidIncrement ?? 1000;
+    final increment = _currentDraft!.bidIncrement ?? 100;
 
     // Deposit rules: 5k-50k, 5k increments
     if (deposit < 5000) {
@@ -457,13 +458,13 @@ class ListingDraftController extends ChangeNotifier {
       return false;
     }
 
-    // Bid Increment rules: Min 1k, 1k increments
-    if (increment < 1000) {
-      _errorMessage = 'Bid increment must be at least ₱1,000';
+    // Bid Increment rules: Min 100, 100 increments
+    if (increment < 100) {
+      _errorMessage = 'Bid increment must be at least ₱100';
       return false;
     }
-    if (increment % 1000 != 0) {
-      _errorMessage = 'Bid increment must be a multiple of ₱1,000';
+    if (increment % 100 != 0) {
+      _errorMessage = 'Bid increment must be a multiple of ₱100';
       return false;
     }
 
@@ -487,14 +488,11 @@ class ListingDraftController extends ChangeNotifier {
     try {
       // 1. Save one last time
       final saveResult = await _saveDraftUseCase.call(_currentDraft!);
-      
-      final saveSuccess = saveResult.fold(
-        (failure) {
-          _errorMessage = 'Failed to save draft: ${failure.message}';
-          return false;
-        },
-        (_) => true,
-      );
+
+      final saveSuccess = saveResult.fold((failure) {
+        _errorMessage = 'Failed to save draft: ${failure.message}';
+        return false;
+      }, (_) => true);
 
       if (!saveSuccess) {
         _isSubmitting = false;
@@ -503,15 +501,14 @@ class ListingDraftController extends ChangeNotifier {
       }
 
       // 2. Mark draft as complete (CRITICAL: Required by submit_listing_from_draft RPC)
-      final markCompleteResult = await _markDraftCompleteUseCase.call(_currentDraft!.id);
-      
-      final completeSuccess = markCompleteResult.fold(
-        (failure) {
-          _errorMessage = 'Failed to mark draft as complete: ${failure.message}';
-          return false;
-        },
-        (_) => true,
+      final markCompleteResult = await _markDraftCompleteUseCase.call(
+        _currentDraft!.id,
       );
+
+      final completeSuccess = markCompleteResult.fold((failure) {
+        _errorMessage = 'Failed to mark draft as complete: ${failure.message}';
+        return false;
+      }, (_) => true);
 
       if (!completeSuccess) {
         _isSubmitting = false;
@@ -521,7 +518,7 @@ class ListingDraftController extends ChangeNotifier {
 
       // 3. Submit (RPC handles token consumption and auction creation)
       final result = await _submitListingUseCase.call(_currentDraft!.id);
-      
+
       _isSubmitting = false;
       return result.fold(
         (failure) {
@@ -547,15 +544,12 @@ class ListingDraftController extends ChangeNotifier {
   /// Delete draft
   Future<bool> deleteDraft(String draftId) async {
     final result = await _deleteDraftUseCase.call(draftId);
-    return result.fold(
-      (failure) => false,
-      (_) {
-        _drafts.removeWhere((d) => d.id == draftId);
-        if (_currentDraft?.id == draftId) _currentDraft = null;
-        notifyListeners();
-        return true;
-      },
-    );
+    return result.fold((failure) => false, (_) {
+      _drafts.removeWhere((d) => d.id == draftId);
+      if (_currentDraft?.id == draftId) _currentDraft = null;
+      notifyListeners();
+      return true;
+    });
   }
 
   /// Clear error

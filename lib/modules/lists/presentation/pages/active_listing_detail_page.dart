@@ -8,6 +8,7 @@ import '../widgets/detail_sections/listing_info_section.dart';
 import '../widgets/detail_sections/auction_stats_section.dart';
 import '../widgets/detail_sections/qa_section.dart';
 import '../widgets/detail_sections/seller_bid_history_section.dart';
+import '../widgets/detail_sections/bid_queue_live_section.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/invite_management_dialog.dart';
 import '../controllers/lists_controller.dart';
@@ -40,7 +41,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
 
   void _showInviteManagement(BuildContext context) {
     final controller = GetIt.instance<ListsController>();
-    
+
     showDialog(
       context: context,
       builder: (context) => InviteManagementDialog(
@@ -208,10 +209,12 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
                 const SizedBox(height: 16),
                 AuctionStatsSection(listing: _listing),
                 const SizedBox(height: 16),
-                SellerBidHistorySection(
-                  bids: _bids,
-                  isLoading: _isLoadingBids,
+                BidQueueLiveSection(
+                  auctionId: _listing.id,
+                  supabase: SupabaseConfig.client,
                 ),
+                const SizedBox(height: 16),
+                SellerBidHistorySection(bids: _bids, isLoading: _isLoadingBids),
                 const SizedBox(height: 16),
                 ListingInfoSection(listing: _listing),
                 const SizedBox(height: 16),
@@ -244,9 +247,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
                       onPressed: () => _showInviteManagement(context),
                       icon: const Icon(Icons.person_add),
                       label: const Text('Invite'),
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                      ),
+                      style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -262,7 +263,10 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
                     icon: const Icon(Icons.flag),
                     label: const Text(
                       'End Auction',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
