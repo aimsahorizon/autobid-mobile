@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../domain/entities/auction_detail_entity.dart';
 import '../../domain/entities/bid_history_entity.dart';
+import '../../domain/entities/bid_queue_entity.dart';
 import '../../domain/entities/qa_entity.dart';
 import '../../domain/usecases/get_auction_detail_usecase.dart';
 import '../../domain/usecases/get_bid_history_usecase.dart';
@@ -19,6 +20,11 @@ import '../../domain/usecases/stream_qa_updates_usecase.dart';
 import '../../domain/usecases/save_auto_bid_settings_usecase.dart';
 import '../../domain/usecases/get_auto_bid_settings_usecase.dart';
 import '../../domain/usecases/deactivate_auto_bid_usecase.dart';
+import '../../domain/usecases/raise_hand_usecase.dart';
+import '../../domain/usecases/lower_hand_usecase.dart';
+import '../../domain/usecases/submit_turn_bid_usecase.dart';
+import '../../domain/usecases/get_queue_status_usecase.dart';
+import '../../domain/usecases/stream_queue_updates_usecase.dart';
 import '../../../profile/domain/usecases/consume_bidding_token_usecase.dart';
 
 /// Controller for managing auction detail page state
@@ -47,6 +53,11 @@ class AuctionDetailController extends ChangeNotifier {
   final SaveAutoBidSettingsUseCase _saveAutoBidSettingsUseCase;
   final GetAutoBidSettingsUseCase _getAutoBidSettingsUseCase;
   final DeactivateAutoBidUseCase _deactivateAutoBidUseCase;
+  final RaiseHandUseCase _raiseHandUseCase;
+  final LowerHandUseCase _lowerHandUseCase;
+  final SubmitTurnBidUseCase _submitTurnBidUseCase;
+  final GetQueueStatusUseCase _getQueueStatusUseCase;
+  final StreamQueueUpdatesUseCase _streamQueueUpdatesUseCase;
   final String? _userId;
 
   /// Create controller with UseCases via Dependency Injection
@@ -68,6 +79,11 @@ class AuctionDetailController extends ChangeNotifier {
     required SaveAutoBidSettingsUseCase saveAutoBidSettingsUseCase,
     required GetAutoBidSettingsUseCase getAutoBidSettingsUseCase,
     required DeactivateAutoBidUseCase deactivateAutoBidUseCase,
+    required RaiseHandUseCase raiseHandUseCase,
+    required LowerHandUseCase lowerHandUseCase,
+    required SubmitTurnBidUseCase submitTurnBidUseCase,
+    required GetQueueStatusUseCase getQueueStatusUseCase,
+    required StreamQueueUpdatesUseCase streamQueueUpdatesUseCase,
     String? userId,
   }) : _getAuctionDetailUseCase = getAuctionDetailUseCase,
        _getBidHistoryUseCase = getBidHistoryUseCase,
@@ -86,6 +102,11 @@ class AuctionDetailController extends ChangeNotifier {
        _saveAutoBidSettingsUseCase = saveAutoBidSettingsUseCase,
        _getAutoBidSettingsUseCase = getAutoBidSettingsUseCase,
        _deactivateAutoBidUseCase = deactivateAutoBidUseCase,
+       _raiseHandUseCase = raiseHandUseCase,
+       _lowerHandUseCase = lowerHandUseCase,
+       _submitTurnBidUseCase = submitTurnBidUseCase,
+       _getQueueStatusUseCase = getQueueStatusUseCase,
+       _streamQueueUpdatesUseCase = streamQueueUpdatesUseCase,
        _userId = userId;
 
   // State properties
@@ -101,11 +122,16 @@ class AuctionDetailController extends ChangeNotifier {
   // Auto-bid state
   bool _isAutoBidActive = false;
   double? _maxAutoBid;
-  double _bidIncrement = 1000;
+  double _bidIncrement = 100;
   StreamSubscription? _auctionSubscription;
   StreamSubscription? _bidSubscription;
   StreamSubscription? _qaSubscription;
+  StreamSubscription? _queueSubscription;
   String? _subscribedAuctionId; // Track which auction we're subscribed to
+
+  // Bid queue state
+  BidQueueCycleEntity _queueStatus = BidQueueCycleEntity.idle();
+  bool _hasRaisedHand = false;
 
   // Public getters
   AuctionDetailEntity? get auction => _auction;
@@ -120,6 +146,32 @@ class AuctionDetailController extends ChangeNotifier {
   bool get isAutoBidActive => _isAutoBidActive;
   double? get maxAutoBid => _maxAutoBid;
   double get bidIncrement => _bidIncrement;
+  BidQueueCycleEntity get queueStatus => _queueStatus;
+  bool get hasRaisedHand => _hasRaisedHand;
+
+  /// Whether it's currently this user's turn to bid (60s window)
+  bool get isMyTurn {
+    if (_userId == null) return false;
+    return _queueStatus.activeTurnBidderId == _userId;
+  }
+
+  /// Milliseconds remaining in this user's turn (0 if not their turn)
+  int get turnRemainingMs {
+    if (!isMyTurn) return 0;
+    return _queueStatus.turnRemainingMs;
+  }
+
+  /// Whether the user can currently raise their hand
+  bool get canRaiseHand => !_isProcessing && !_hasRaisedHand;
+
+  /// The user's position in the current queue (null if not in queue)
+  int? get queuePosition {
+    if (_userId == null) return null;
+    final entry = _queueStatus.queue
+        .where((e) => e.bidderId == _userId)
+        .toList();
+    return entry.isNotEmpty ? entry.first.position : null;
+  }
 
   /// Loads auction details and related data (bid history, Q&A)
   Future<void> loadAuctionDetail(String id, {bool isBackground = false}) async {
@@ -536,6 +588,183 @@ class AuctionDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Raises hand in the bid queue (queue-only — no bid amount).
+  /// The user joins the queue. When it's their turn, they get 60 seconds
+  /// to manually place a bid via [submitTurnBid].
+  Future<bool> raiseHand() async {
+    if (_auction == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final effectiveUserId = _userId;
+      if (effectiveUserId == null) {
+        _errorMessage = 'User not authenticated';
+        return false;
+      }
+
+      // Consume bidding token
+      final hasToken = await _consumeBiddingTokenUsecase.call(
+        userId: effectiveUserId,
+        referenceId: _auction!.id,
+      );
+
+      if (!hasToken) {
+        _errorMessage =
+            'Insufficient bidding tokens. Please purchase more tokens or upgrade your subscription.';
+        return false;
+      }
+
+      final result = await _raiseHandUseCase(
+        auctionId: _auction!.id,
+        bidderId: effectiveUserId,
+      );
+
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (data) {
+          _hasRaisedHand = true;
+          debugPrint(
+            '[AuctionDetailController] Hand raised! Position: ${data['position']}',
+          );
+          // Reload queue status
+          _loadQueueStatus(_auction!.id);
+          return true;
+        },
+      );
+    } catch (e) {
+      _errorMessage = 'Failed to raise hand: $e';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Submit a bid during the user's active turn (60s window).
+  /// Only works when [isMyTurn] is true.
+  Future<bool> submitTurnBid({required double bidAmount}) async {
+    if (_auction == null) return false;
+    if (!isMyTurn) {
+      _errorMessage = 'It is not your turn to bid.';
+      notifyListeners();
+      return false;
+    }
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final effectiveUserId = _userId;
+      if (effectiveUserId == null) {
+        _errorMessage = 'User not authenticated';
+        return false;
+      }
+
+      final result = await _submitTurnBidUseCase(
+        auctionId: _auction!.id,
+        bidderId: effectiveUserId,
+        bidAmount: bidAmount,
+      );
+
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (data) {
+          _hasRaisedHand = false;
+          debugPrint(
+            '[AuctionDetailController] Turn bid placed: ₱${data['bid_amount']}',
+          );
+          // Reload auction + queue
+          loadAuctionDetail(_auction!.id, isBackground: true);
+          _loadQueueStatus(_auction!.id);
+          return true;
+        },
+      );
+    } catch (e) {
+      _errorMessage = 'Failed to submit bid: $e';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Lowers hand — withdraws from the bid queue.
+  /// Buyer can back out at any time, even during their turn.
+  Future<bool> lowerHand() async {
+    if (_auction == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final effectiveUserId = _userId;
+      if (effectiveUserId == null) {
+        _errorMessage = 'User not authenticated';
+        return false;
+      }
+
+      final result = await _lowerHandUseCase(
+        auctionId: _auction!.id,
+        bidderId: effectiveUserId,
+      );
+
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (data) {
+          _hasRaisedHand = false;
+          debugPrint('[AuctionDetailController] Hand lowered.');
+          _loadQueueStatus(_auction!.id);
+          return true;
+        },
+      );
+    } catch (e) {
+      _errorMessage = 'Failed to lower hand: $e';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Load queue status from server
+  Future<void> _loadQueueStatus(String auctionId) async {
+    try {
+      final result = await _getQueueStatusUseCase(auctionId: auctionId);
+      result.fold(
+        (failure) {
+          debugPrint('Failed to load queue status: ${failure.message}');
+        },
+        (status) {
+          _queueStatus = status;
+          // Derive _hasRaisedHand from server data (survives tab switches)
+          if (status.state == 'complete' || status.state == 'idle') {
+            _hasRaisedHand = false;
+          } else if (_userId != null) {
+            _hasRaisedHand = status.queue.any(
+              (e) =>
+                  e.bidderId == _userId &&
+                  (e.status == 'pending' || e.status == 'active_turn'),
+            );
+          }
+          notifyListeners();
+        },
+      );
+    } catch (e) {
+      debugPrint('Error loading queue status: $e');
+    }
+  }
+
   /// Sets auto-bid configuration and persists to server
   /// When active, system will automatically bid when outbid, up to maxBid amount
   /// Logic is handled server-side via process_auto_bids() PostgreSQL function
@@ -640,11 +869,12 @@ class AuctionDetailController extends ChangeNotifier {
     }
   }
 
-  /// Subscribe to realtime updates for auction and bids
+  /// Subscribe to realtime updates for auction, bids, and queue
   void _subscribeToRealtimeUpdates(String auctionId) {
     // Cancel existing subscriptions if any
     _auctionSubscription?.cancel();
     _bidSubscription?.cancel();
+    _queueSubscription?.cancel();
     _subscribedAuctionId = auctionId;
 
     debugPrint(
@@ -694,6 +924,29 @@ class AuctionDetailController extends ChangeNotifier {
             debugPrint('ERROR: Realtime Q&A subscription error: $e');
           },
         );
+
+    // Subscribe to bid queue cycle updates
+    _queueSubscription = _streamQueueUpdatesUseCase(auctionId: auctionId).listen(
+      (status) {
+        debugPrint(
+          'DEBUG: Queue update received — state: ${status.state}, cycle: ${status.cycleNumber}',
+        );
+        _queueStatus = status;
+        // Derive raised-hand state from server data
+        if (status.state == 'complete' || status.state == 'idle') {
+          _hasRaisedHand = false;
+        } else if (_userId != null) {
+          _hasRaisedHand = status.queue.any((e) => e.bidderId == _userId);
+        }
+        notifyListeners();
+      },
+      onError: (e) {
+        debugPrint('ERROR: Queue subscription error: $e');
+      },
+    );
+
+    // Initial queue status load
+    _loadQueueStatus(auctionId);
   }
 
   @override
@@ -701,6 +954,7 @@ class AuctionDetailController extends ChangeNotifier {
     _auctionSubscription?.cancel();
     _bidSubscription?.cancel();
     _qaSubscription?.cancel();
+    _queueSubscription?.cancel();
     _subscribedAuctionId = null;
     super.dispose();
   }

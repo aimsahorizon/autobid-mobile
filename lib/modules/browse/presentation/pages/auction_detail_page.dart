@@ -81,6 +81,122 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     }
   }
 
+  void _handleRaiseHand() async {
+    final success = await widget.controller.raiseHand();
+    if (!mounted) return;
+
+    if (success) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Text('✋', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Hand raised! You\'re in the queue. When it\'s your turn, you\'ll have 60 seconds to place your bid.',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: ColorConstants.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (widget.controller.errorMessage != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      widget.controller.clearError();
+    }
+  }
+
+  void _handleSubmitTurnBid(double amount) async {
+    final success = await widget.controller.submitTurnBid(bidAmount: amount);
+    if (!mounted) return;
+
+    if (success) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.gavel, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Bid of ₱${amount.toStringAsFixed(0)} placed successfully!',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: ColorConstants.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (widget.controller.errorMessage != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      widget.controller.clearError();
+    }
+  }
+
+  void _handleLowerHand() async {
+    final success = await widget.controller.lowerHand();
+    if (!mounted) return;
+
+    if (success) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.pan_tool_alt, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Hand lowered — you have withdrawn from the queue.'),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (widget.controller.errorMessage != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      widget.controller.clearError();
+    }
+  }
+
   void _handleBid(double amount) async {
     // Get current user ID
     final userId = SupabaseConfig.currentUser?.id;
@@ -248,6 +364,14 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                         isAutoBidActive: widget.controller.isAutoBidActive,
                         maxAutoBid: widget.controller.maxAutoBid,
                         bidIncrement: widget.controller.bidIncrement,
+                        queueStatus: widget.controller.queueStatus,
+                        hasRaisedHand: widget.controller.hasRaisedHand,
+                        isMyTurn: widget.controller.isMyTurn,
+                        turnRemainingMs: widget.controller.turnRemainingMs,
+                        onRaiseHand: _handleRaiseHand,
+                        onLowerHand: _handleLowerHand,
+                        onSubmitTurnBid: _handleSubmitTurnBid,
+                        queuePosition: widget.controller.queuePosition,
                       ),
                       const SizedBox(height: 24),
                       DetailTabsSection(
