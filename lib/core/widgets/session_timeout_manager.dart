@@ -52,13 +52,14 @@ class _SessionTimeoutManagerState extends State<SessionTimeoutManager> {
       
       if (!mounted) return;
       
-      final context = navigatorKey.currentState?.context;
-      if (context != null && mounted) {
+      final navContext = navigatorKey.currentContext;
+      if (navContext != null) {
          navigatorKey.currentState?.pushNamedAndRemoveUntil(
             AuthRoutes.login, 
             (route) => false
          );
-         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+         // ignore: use_build_context_synchronously
+         (ScaffoldMessenger.of(navContext)..clearSnackBars()).showSnackBar(
            const SnackBar(content: Text('Session expired due to inactivity')),
          );
       }

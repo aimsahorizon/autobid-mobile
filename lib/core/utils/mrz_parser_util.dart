@@ -18,10 +18,11 @@ class MrzParserUtil {
     String? line2;
 
     for (var l in lines) {
-      if (l.startsWith('P'))
+      if (l.startsWith('P')) {
         line1 = l;
-      else if (RegExp(r'^[A-Z0-9]').hasMatch(l) && l.contains('PHL'))
+      } else if (RegExp(r'^[A-Z0-9]').hasMatch(l) && l.contains('PHL')) {
         line2 = l;
+      }
     }
 
     if (line1 == null || line2 == null) return {};

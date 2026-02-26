@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 
@@ -33,7 +33,7 @@ class PricePredictionService {
       
       _interpreter = await Interpreter.fromAsset('assets/ai/pricing_model.tflite');
     } catch (e) {
-      print('Error loading pricing AI resources: $e');
+      debugPrint('Error loading pricing AI resources: $e');
       _interpreter = null; // Ensure null if load fails
     }
   }
@@ -46,7 +46,7 @@ class PricePredictionService {
     
     // If model missing, fallback to heuristics
     if (_metadata == null || _interpreter == null) {
-       print('Pricing AI model not found. Using Fallback Heuristics.');
+       debugPrint('Pricing AI model not found. Using Fallback Heuristics.');
        return _fallbackPrediction(vehicleData);
     }
     
@@ -80,7 +80,6 @@ class PricePredictionService {
       final predictedNorm = output[0][0];
       
       // 3. Denormalize Output
-      final priceMin = _metadata!['price_min'];
       final priceMax = _metadata!['price_max'];
       final predictedPrice = predictedNorm * priceMax; // Simplified denorm logic
       
@@ -91,7 +90,7 @@ class PricePredictionService {
       };
 
     } catch (e) {
-      print('AI Inference Failed: $e');
+      debugPrint('AI Inference Failed: $e');
       return _fallbackPrediction(vehicleData);
     }
   }

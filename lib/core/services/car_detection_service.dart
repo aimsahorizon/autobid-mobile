@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
@@ -198,7 +199,7 @@ class CarDetectionService {
       final jsonStr = await rootBundle.loadString('assets/ai/car_specs.json');
       _specDatabase = json.decode(jsonStr) as Map<String, dynamic>;
     } catch (e) {
-      print('Error loading spec database: $e');
+      debugPrint('Error loading spec database: $e');
       _specDatabase = {};
     }
   }
@@ -318,7 +319,7 @@ class CarDetectionService {
       }
       return null;
     } catch (e) {
-      print('Plate OCR Error: $e');
+      debugPrint('Plate OCR Error: $e');
       return null;
     }
   }
@@ -436,7 +437,7 @@ class CarDetectionService {
       };
       
     } catch (e) {
-      print('AI Detection Error (falling back to mock): $e');
+      debugPrint('AI Detection Error (falling back to mock): $e');
       return detectCarFromImage(imagePath);
     }
   }

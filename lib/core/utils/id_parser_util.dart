@@ -11,7 +11,6 @@ class IdParserUtil {
 
     // 1. Identify ID Type (Optional, helps heuristics)
     final isDriversLicense = text.contains('DRIVER') && text.contains('LICENSE');
-    final isPhilSys = text.contains('REPUBLIKA') && text.contains('PILIPINAS');
     
     // 2. Extract Fields
     String? idNumber = _findIdNumber(text);
