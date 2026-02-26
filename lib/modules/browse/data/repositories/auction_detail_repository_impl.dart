@@ -3,6 +3,7 @@ import '../../../../core/error/failures.dart';
 import '../../../../core/network/network_info.dart';
 import '../../domain/entities/auction_detail_entity.dart';
 import '../../domain/entities/bid_history_entity.dart';
+import '../../domain/entities/bid_queue_entity.dart';
 import '../../domain/entities/qa_entity.dart';
 import '../../domain/repositories/auction_detail_repository.dart';
 import '../datasources/auction_detail_remote_datasource.dart';
@@ -307,5 +308,86 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
       auctionId: auctionId,
       currentUserId: currentUserId,
     );
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> raiseHand({
+    required String auctionId,
+    required String bidderId,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.raiseHand(
+        auctionId: auctionId,
+        bidderId: bidderId,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure('Failed to raise hand: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> submitTurnBid({
+    required String auctionId,
+    required String bidderId,
+    required double bidAmount,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.submitTurnBid(
+        auctionId: auctionId,
+        bidderId: bidderId,
+        bidAmount: bidAmount,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure('Failed to submit bid: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> lowerHand({
+    required String auctionId,
+    required String bidderId,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.lowerHand(
+        auctionId: auctionId,
+        bidderId: bidderId,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure('Failed to lower hand: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, BidQueueCycleEntity>> getQueueStatus({
+    required String auctionId,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.getQueueStatus(
+        auctionId: auctionId,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure('Failed to get queue status: ${e.toString()}'));
+    }
+  }
+
+  @override
+  Stream<BidQueueCycleEntity> streamQueueUpdates({required String auctionId}) {
+    return remoteDataSource.streamQueueUpdates(auctionId: auctionId);
   }
 }
