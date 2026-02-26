@@ -33,7 +33,6 @@ void main() {
     });
 
     test('carName should handle missing variant', () {
-      final noVariantDraft = tDraft.copyWith(variant: null);
       // copyWith might send null, but copyWith implementation usually does "variant ?? this.variant"
       // Wait, copyWith signature is nullable, but default behavior preserves.
       // We need to explicitly pass null if we want to clear it? 

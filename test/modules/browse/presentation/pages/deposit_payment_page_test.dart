@@ -47,8 +47,6 @@ void main() {
 
     // Find fields
     final monthField = find.widgetWithText(TextFormField, 'Month');
-    final yearField = find.widgetWithText(TextFormField, 'Year');
-    final cvcField = find.widgetWithText(TextFormField, 'CVC');
 
     // 1. Enter 2 digits in Month
     await tester.enterText(monthField, '12');

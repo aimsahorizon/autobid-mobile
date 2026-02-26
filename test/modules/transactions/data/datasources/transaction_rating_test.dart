@@ -9,20 +9,15 @@ import 'package:autobid_mobile/modules/transactions/data/datasources/transaction
 import 'transaction_rating_test.mocks.dart';
 
 // Create a custom mock for the chained builder since chain mocking is complex
+// ignore: must_be_immutable
 class MockSupabaseQueryBuilder extends Mock implements SupabaseQueryBuilder {}
 
 void main() {
   late TransactionRealtimeDataSource dataSource;
   late MockSupabaseClient mockSupabaseClient;
-  late MockSupabaseQueryBuilder mockQueryBuilder;
-  late MockPostgrestFilterBuilder mockFilterBuilder;
-  late MockPostgrestTransformBuilder mockTransformBuilder;
 
   setUp(() {
     mockSupabaseClient = MockSupabaseClient();
-    mockQueryBuilder = MockSupabaseQueryBuilder();
-    mockFilterBuilder = MockPostgrestFilterBuilder();
-    mockTransformBuilder = MockPostgrestTransformBuilder();
     dataSource = TransactionRealtimeDataSource(mockSupabaseClient);
   });
 

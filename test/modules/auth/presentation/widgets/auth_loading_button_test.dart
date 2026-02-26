@@ -1,4 +1,3 @@
-import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/modules/auth/presentation/widgets/auth_loading_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,7 +69,7 @@ void main() {
       // Colors.blue is 0xFF2196F3.
       // Alpha 0.6 * 255 = 153.
       expect(disabledColor, isNotNull);
-      expect(disabledColor!.alpha, closeTo(153, 1));
+      expect((disabledColor!.a * 255).round(), closeTo(153, 1));
     },
   );
 }
