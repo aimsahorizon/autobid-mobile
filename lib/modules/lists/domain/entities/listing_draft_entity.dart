@@ -87,7 +87,8 @@ class ListingDraftEntity {
 
   // Snipe Guard Configuration
   final bool? snipeGuardEnabled;
-  final int? snipeGuardThresholdSeconds; // Seconds before end to trigger extension
+  final int?
+  snipeGuardThresholdSeconds; // Seconds before end to trigger extension
   final int? snipeGuardExtendSeconds; // Seconds to extend by
 
   // Validation State
@@ -296,10 +297,13 @@ class ListingDraftEntity {
       bidIncrement: bidIncrement ?? this.bidIncrement,
       minBidIncrement: minBidIncrement ?? this.minBidIncrement,
       depositAmount: depositAmount ?? this.depositAmount,
-      enableIncrementalBidding: enableIncrementalBidding ?? this.enableIncrementalBidding,
+      enableIncrementalBidding:
+          enableIncrementalBidding ?? this.enableIncrementalBidding,
       snipeGuardEnabled: snipeGuardEnabled ?? this.snipeGuardEnabled,
-      snipeGuardThresholdSeconds: snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
-      snipeGuardExtendSeconds: snipeGuardExtendSeconds ?? this.snipeGuardExtendSeconds,
+      snipeGuardThresholdSeconds:
+          snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds:
+          snipeGuardExtendSeconds ?? this.snipeGuardExtendSeconds,
       isPlateValid: isPlateValid ?? this.isPlateValid,
     );
   }
@@ -362,8 +366,8 @@ class ListingDraftEntity {
       features: features,
       auctionEndDate: auctionEndDate,
       biddingType: biddingType ?? 'public',
-      bidIncrement: bidIncrement ?? 1000,
-      minBidIncrement: minBidIncrement ?? 1000,
+      bidIncrement: bidIncrement ?? 100,
+      minBidIncrement: minBidIncrement ?? 100,
       depositAmount: depositAmount ?? 0,
       enableIncrementalBidding: enableIncrementalBidding ?? true,
       deedOfSaleUrl: deedOfSaleUrl,
@@ -407,12 +411,12 @@ class ListingDraftEntity {
         return condition != null && mileage != null && previousOwners != null;
       case 7:
         // Step 7: Documentation & Location
-        return plateNumber != null && 
-               isPlateValid == true && 
-               orcrStatus != null && 
-               province != null &&
-               cityMunicipality != null &&
-               barangay != null;
+        return plateNumber != null &&
+            isPlateValid == true &&
+            orcrStatus != null &&
+            province != null &&
+            cityMunicipality != null &&
+            barangay != null;
       case 8:
         // Step 8: Final Details, Pricing & Bidding
         return description != null &&

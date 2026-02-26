@@ -93,10 +93,10 @@ class ListingDetailEntity {
   final bool snipeGuardEnabled;
   final int snipeGuardThresholdSeconds;
   final int snipeGuardExtendSeconds;
-  
+
   // Documents
   final String? deedOfSaleUrl;
-  
+
   // Visibility
   final String visibility;
 
@@ -164,8 +164,8 @@ class ListingDetailEntity {
     this.features,
     this.auctionEndDate,
     this.biddingType = 'public',
-    this.bidIncrement = 1000,
-    this.minBidIncrement = 1000,
+    this.bidIncrement = 100,
+    this.minBidIncrement = 100,
     this.depositAmount = 0,
     this.enableIncrementalBidding = true,
     this.snipeGuardEnabled = true,
@@ -189,15 +189,15 @@ class ListingDetailEntity {
 
   /// Check if reserve price has been met
   bool get isReserveMet =>
-      reservePrice != null && currentBid != null && currentBid! >= reservePrice!;
+      reservePrice != null &&
+      currentBid != null &&
+      currentBid! >= reservePrice!;
 
   /// Get time remaining (for active listings)
-  Duration? get timeRemaining =>
-      endTime?.difference(DateTime.now());
+  Duration? get timeRemaining => endTime?.difference(DateTime.now());
 
-    /// Time until auction starts (for scheduled listings)
-    Duration? get timeUntilStart =>
-      startTime?.difference(DateTime.now());
+  /// Time until auction starts (for scheduled listings)
+  Duration? get timeUntilStart => startTime?.difference(DateTime.now());
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);
