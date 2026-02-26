@@ -112,7 +112,7 @@ def train():
     labels = {v: k for k, v in class_indices.items()}
     with open('labels.txt', 'w') as f:
         for i in range(num_classes):
-            f.write(labels[i] + ' ')
+            f.write(labels[i] + '\n')
     print("Saved labels.txt")
 
     # 2. Build Model (Transfer Learning)
@@ -138,23 +138,75 @@ def train():
         metrics=['accuracy']
     )
 
-    # 3. Train
-    print("Starting Training...")
+    # RESUME LOGIC
+    if os.path.exists('best_model.keras'):
+        print("\n⚡ FOUND BACKUP! Resuming from best_model.keras...")
+        model = tf.keras.models.load_model('best_model.keras')
+
+    # CHECKPOINT CALLBACK
+    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath='best_model.keras',
+        monitor='val_accuracy',
+        save_best_only=True, # Only save if we improve
+        verbose=1
+    )
+
+    # 3. Train Phase 1: Feature Extraction (Frozen Brain)
+    print("\n--- PHASE 1: Feature Extraction (Frozen Brain) ---")
     log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
+    # Readable Percentage Callback
+    print_callback = tf.keras.callbacks.LambdaCallback(
+        on_epoch_end=lambda epoch, logs: print(f"Epoch {epoch+1}: Accuracy = {logs['accuracy']*100:.2f}% | Loss = {logs['loss']:.4f}")
+    )
+
     history = model.fit(
         train_generator,
         steps_per_epoch=train_generator.samples // BATCH_SIZE,
         validation_data=validation_generator,
         validation_steps=validation_generator.samples // BATCH_SIZE,
         epochs=EPOCHS,
-        callbacks=[tensorboard_callback]
+        verbose=1,
+        callbacks=[tensorboard_callback, print_callback, checkpoint_callback]
     )
 
-    # 4. Save Keras Model
+    # 4. Train Phase 2: Fine-Tuning (Boost Mode)
+    print("\n--- PHASE 2: Fine-Tuning (Boost Mode) ---")
+    print("Unfreezing MobileNet layers for deep learning...")
+    
+    # Reload best model from Phase 1 to ensure we start fine-tuning from the peak
+    if os.path.exists('best_model.keras'):
+        model = tf.keras.models.load_model('best_model.keras')
+
+    base_model = model.layers[0]
+    base_model.trainable = True
+    
+    # Recompile with very slow learning rate to not break what we learned
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-5), # 10x slower
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
+    
+    fine_tune_epochs = 10
+    total_epochs = EPOCHS + fine_tune_epochs
+
+    history_fine = model.fit(
+        train_generator,
+        steps_per_epoch=train_generator.samples // BATCH_SIZE,
+        validation_data=validation_generator,
+        validation_steps=validation_generator.samples // BATCH_SIZE,
+        epochs=total_epochs,
+        initial_epoch=history.epoch[-1] if history.epoch else EPOCHS, 
+        verbose=1,
+        callbacks=[tensorboard_callback, print_callback, checkpoint_callback]
+    )
+
+    # 5. Save Final Keras Model
     model.save('car_classifier_model.keras')
-    print("Model saved as car_classifier_model.keras")
+    print("Final Model saved as car_classifier_model.keras")
+    print("Best Model (Highest Accuracy) is saved as best_model.keras")
 
 if __name__ == '__main__':
     prepare_dataset_from_assets()
