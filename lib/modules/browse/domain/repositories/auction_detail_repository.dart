@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/auction_detail_entity.dart';
 import '../entities/bid_history_entity.dart';
+import '../entities/bid_queue_entity.dart';
 import '../entities/qa_entity.dart';
 
 /// Repository interface for auction detail operations
@@ -102,4 +103,31 @@ abstract class AuctionDetailRepository {
     required String auctionId,
     String? currentUserId,
   });
+
+  /// Raise hand in the bid queue (queue-only — no bid amount)
+  Future<Either<Failure, Map<String, dynamic>>> raiseHand({
+    required String auctionId,
+    required String bidderId,
+  });
+
+  /// Submit a bid during the user's active turn (60s window)
+  Future<Either<Failure, Map<String, dynamic>>> submitTurnBid({
+    required String auctionId,
+    required String bidderId,
+    required double bidAmount,
+  });
+
+  /// Lower hand (withdraw from bid queue)
+  Future<Either<Failure, Map<String, dynamic>>> lowerHand({
+    required String auctionId,
+    required String bidderId,
+  });
+
+  /// Get current queue status for an auction
+  Future<Either<Failure, BidQueueCycleEntity>> getQueueStatus({
+    required String auctionId,
+  });
+
+  /// Stream real-time queue cycle updates
+  Stream<BidQueueCycleEntity> streamQueueUpdates({required String auctionId});
 }
