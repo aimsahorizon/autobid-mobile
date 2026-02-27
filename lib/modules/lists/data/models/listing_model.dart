@@ -99,6 +99,9 @@ class ListingModel {
 
   final String visibility;
 
+  // Installment
+  final bool allowsInstallment;
+
   const ListingModel({
     required this.id,
     required this.sellerId,
@@ -182,6 +185,7 @@ class ListingModel {
     this.snipeGuardExtendSeconds = 300,
     this.deedOfSaleUrl,
     this.visibility = 'public',
+    this.allowsInstallment = false,
   });
 
   /// Convert database row to model
@@ -294,6 +298,7 @@ class ListingModel {
           json['visibility'] as String? ??
           json['bidding_type'] as String? ??
           'public',
+      allowsInstallment: json['allows_installment'] as bool? ?? false,
     );
   }
 
@@ -322,6 +327,7 @@ class ListingModel {
       transactionId: transactionId,
       cancellationReason: cancellationReason,
       visibility: visibility != 'public' ? visibility : biddingType,
+      allowsInstallment: allowsInstallment,
     );
   }
 
@@ -398,6 +404,7 @@ class ListingModel {
       snipeGuardExtendSeconds: snipeGuardExtendSeconds,
       deedOfSaleUrl: deedOfSaleUrl,
       visibility: visibility,
+      allowsInstallment: allowsInstallment,
     );
   }
 

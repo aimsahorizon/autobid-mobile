@@ -68,6 +68,9 @@ class SellerListingEntity {
   /// Visibility of the auction (public or private)
   final String visibility;
 
+  /// Whether seller accepts installment payments
+  final bool allowsInstallment;
+
   const SellerListingEntity({
     required this.id,
     required this.imageUrl,
@@ -91,6 +94,7 @@ class SellerListingEntity {
     this.transactionId,
     this.cancellationReason,
     this.visibility = 'public',
+    this.allowsInstallment = false,
   });
 
   /// Get formatted car name
@@ -103,12 +107,10 @@ class SellerListingEntity {
       currentBid! >= reservePrice!;
 
   /// Get time remaining (for active listings)
-  Duration? get timeRemaining =>
-      endTime?.difference(DateTime.now());
+  Duration? get timeRemaining => endTime?.difference(DateTime.now());
 
   /// Time until auction starts (for scheduled listings)
-  Duration? get timeUntilStart =>
-      startTime?.difference(DateTime.now());
+  Duration? get timeUntilStart => startTime?.difference(DateTime.now());
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);
