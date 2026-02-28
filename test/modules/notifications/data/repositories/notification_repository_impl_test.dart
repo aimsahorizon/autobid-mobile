@@ -1,22 +1,27 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:fpdart/fpdart.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
 import 'package:autobid_mobile/modules/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:autobid_mobile/modules/notifications/data/datasources/notification_datasource.dart';
 import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:fpdart/fpdart.dart';
 
 // Mock classes
 class MockNotificationDataSource extends Mock
     implements INotificationDataSource {}
 
+class MockNetworkInfo extends Mock implements NetworkInfo {}
+
 void main() {
   late NotificationRepositoryImpl repository;
   late MockNotificationDataSource mockDataSource;
+  late MockNetworkInfo mockNetworkInfo;
 
   const testUserId = 'test-user-123';
   const testNotificationId = 'notif-123';
 
+  // ... (existing test data) ...
   final testNotifications = <NotificationEntity>[
     NotificationEntity(
       id: 'notif-1',
@@ -52,11 +57,32 @@ void main() {
 
   setUp(() {
     mockDataSource = MockNotificationDataSource();
-    repository = NotificationRepositoryImpl(dataSource: mockDataSource);
+    mockNetworkInfo = MockNetworkInfo();
+    when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => true);
+    repository = NotificationRepositoryImpl(
+      dataSource: mockDataSource,
+      networkInfo: mockNetworkInfo,
+    );
   });
 
   group('NotificationRepositoryImpl', () {
     group('getNotifications', () {
+      test('should return NetworkFailure when offline', () async {
+        // Arrange
+        when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
+
+        // Act
+        final result = await repository.getNotifications(
+          userId: testUserId,
+          limit: 10,
+          offset: 0,
+        );
+
+        // Assert
+        expect(result, const Left(NetworkFailure('No internet connection')));
+        verifyZeroInteractions(mockDataSource);
+      });
+
       test(
         'should return list of notifications when datasource succeeds',
         () async {

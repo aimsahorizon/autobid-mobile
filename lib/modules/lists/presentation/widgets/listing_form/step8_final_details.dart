@@ -1,11 +1,10 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
 import 'ai_price_predictor.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step8FinalDetails extends StatefulWidget {
   final ListingDraftController controller;
@@ -29,6 +28,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   DateTime? _auctionEndDate;
   String _biddingType = 'public'; // 'public' or 'private'
   bool _enableIncrementalBidding = true;
+  bool _allowsInstallment = false;
 
   @override
   void initState() {
@@ -40,21 +40,22 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _issuesController = TextEditingController(text: draft?.knownIssues);
     _featureController = TextEditingController();
     _startingPriceController = TextEditingController(
-      text: draft?.startingPrice?.toString(),
+      text: _formatDouble(draft?.startingPrice),
     );
     _reservePriceController = TextEditingController(
-      text: draft?.reservePrice?.toString(),
+      text: _formatDouble(draft?.reservePrice),
     );
     _bidIncrementController = TextEditingController(
-      text: (draft?.bidIncrement ?? draft?.minBidIncrement ?? 1000).toString(),
+      text: _formatDouble(draft?.bidIncrement ?? draft?.minBidIncrement ?? 100),
     );
     _depositAmountController = TextEditingController(
-      text: (draft?.depositAmount ?? 50000).toString(),
+      text: _formatDouble(draft?.depositAmount ?? 50000),
     );
     _features = draft?.features ?? [];
     _auctionEndDate = draft?.auctionEndDate;
     _biddingType = draft?.biddingType ?? 'public';
     _enableIncrementalBidding = draft?.enableIncrementalBidding ?? true;
+    _allowsInstallment = draft?.allowsInstallment ?? false;
 
     _descriptionController.addListener(_updateDraft);
     _issuesController.addListener(_updateDraft);
@@ -62,6 +63,14 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _reservePriceController.addListener(_updateDraft);
     _bidIncrementController.addListener(_updateDraft);
     _depositAmountController.addListener(_updateDraft);
+  }
+
+  String? _formatDouble(double? value) {
+    if (value == null) return null;
+    if (value == value.truncateToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toString();
   }
 
   @override
@@ -81,54 +90,8 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     if (draft == null) return; // Guard against null draft
 
     widget.controller.updateDraft(
-      ListingDraftEntity(
-        id: draft.id,
-        sellerId: draft.sellerId,
-        currentStep: draft.currentStep,
+      draft.copyWith(
         lastSaved: DateTime.now(),
-        brand: draft.brand,
-        model: draft.model,
-        variant: draft.variant,
-        year: draft.year,
-        engineType: draft.engineType,
-        engineDisplacement: draft.engineDisplacement,
-        cylinderCount: draft.cylinderCount,
-        horsepower: draft.horsepower,
-        torque: draft.torque,
-        transmission: draft.transmission,
-        fuelType: draft.fuelType,
-        driveType: draft.driveType,
-        length: draft.length,
-        width: draft.width,
-        height: draft.height,
-        wheelbase: draft.wheelbase,
-        groundClearance: draft.groundClearance,
-        seatingCapacity: draft.seatingCapacity,
-        doorCount: draft.doorCount,
-        fuelTankCapacity: draft.fuelTankCapacity,
-        curbWeight: draft.curbWeight,
-        grossWeight: draft.grossWeight,
-        exteriorColor: draft.exteriorColor,
-        paintType: draft.paintType,
-        rimType: draft.rimType,
-        rimSize: draft.rimSize,
-        tireSize: draft.tireSize,
-        tireBrand: draft.tireBrand,
-        condition: draft.condition,
-        mileage: draft.mileage,
-        previousOwners: draft.previousOwners,
-        hasModifications: draft.hasModifications,
-        modificationsDetails: draft.modificationsDetails,
-        hasWarranty: draft.hasWarranty,
-        warrantyDetails: draft.warrantyDetails,
-        usageType: draft.usageType,
-        plateNumber: draft.plateNumber,
-        orcrStatus: draft.orcrStatus,
-        registrationStatus: draft.registrationStatus,
-        registrationExpiry: draft.registrationExpiry,
-        province: draft.province,
-        cityMunicipality: draft.cityMunicipality,
-        photoUrls: draft.photoUrls,
         description: _descriptionController.text.isEmpty
             ? null
             : _descriptionController.text,
@@ -165,6 +128,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
         enableIncrementalBidding: _enableIncrementalBidding,
+        allowsInstallment: _allowsInstallment,
       ),
     );
   }
@@ -181,21 +145,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   void _removeFeature(int index) {
     setState(() {
       _features.removeAt(index);
-    });
-    _updateDraft();
-  }
-
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(8);
-    setState(() {
-      _descriptionController.text = demoData['description'];
-      _issuesController.text = demoData['knownIssues'] ?? '';
-      _features = List<String>.from(demoData['features'] ?? []);
-      _startingPriceController.text = demoData['startingPrice'].toString();
-      _reservePriceController.text = demoData['reservePrice']?.toString() ?? '';
-      _auctionEndDate = demoData['auctionEndDate'];
-      _bidIncrementController.text = '5000';
-      _depositAmountController.text = '50000';
     });
     _updateDraft();
   }
@@ -218,8 +167,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           'Step 8: Final Details & Bidding Configuration',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
 
         // ===== DESCRIPTION & DETAILS SECTION =====
@@ -300,28 +247,49 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
+
+        // AI Price Predictor
         AiPricePredictor(
-          brand: draft.brand,
-          model: draft.model,
-          year: draft.year,
-          mileage: draft.mileage,
-          condition: draft.condition,
-          onAccept: (startingPrice) {
-            final reservePrice = startingPrice * 1.1;
+          draft: draft,
+          onApplyPrice: (price) {
+            final reserve = price * 1.1; // Default reserve 10% higher
             setState(() {
-              _startingPriceController.text = startingPrice.toStringAsFixed(0);
-              _reservePriceController.text = reservePrice.toStringAsFixed(0);
+              _startingPriceController.text = price.toStringAsFixed(0);
+              _reservePriceController.text = reserve.toStringAsFixed(0);
             });
             _updateDraft();
+
+            (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Applied suggested price: Γé▒${price.toStringAsFixed(0)}',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
           },
         ),
+
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _startingPriceController,
           label: 'Starting Price (₱) *',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            final start = double.tryParse(v!);
+            if (start == null) return 'Invalid price';
+            if (start % 100 != 0) return 'Must be a multiple of ₱100';
+
+            if (_reservePriceController.text.isNotEmpty) {
+              final reserve = double.tryParse(_reservePriceController.text);
+              if (reserve != null && start >= reserve) {
+                return 'Must be lower than reserve price';
+              }
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -330,6 +298,20 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           hint: 'Optional minimum acceptable price',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null; // Optional
+            final reserve = double.tryParse(v);
+            if (reserve == null) return 'Invalid price';
+            if (reserve % 100 != 0) return 'Must be a multiple of ₱100';
+
+            if (_startingPriceController.text.isNotEmpty) {
+              final start = double.tryParse(_startingPriceController.text);
+              if (start != null && reserve <= start) {
+                return 'Must be higher than starting price';
+              }
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         InkWell(
@@ -338,22 +320,31 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
               context: context,
               initialDate:
                   _auctionEndDate ??
-                  DateTime.now().add(const Duration(days: 7)),
-              firstDate: DateTime.now().add(const Duration(days: 1)),
+                  DateTime.now().add(const Duration(hours: 1)),
+              firstDate: DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 90)),
             );
-            if (picked != null) {
-              final endOfDay = DateTime(
-                picked.year,
-                picked.month,
-                picked.day,
-                23,
-                59,
-                59,
-              );
-              setState(() => _auctionEndDate = endOfDay);
-              _updateDraft();
-            }
+            if (picked == null) return;
+            if (!mounted) return;
+            final pickedTime = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay.now(),
+            );
+            if (!mounted) return;
+
+            // Create datetime in local timezone
+            final localDateTime = DateTime(
+              picked.year,
+              picked.month,
+              picked.day,
+              pickedTime?.hour ?? 23,
+              pickedTime?.minute ?? 59,
+              59,
+            );
+            // Convert to UTC immediately to maintain the actual intended time
+            // This prevents timezone issues when storing and retrieving
+            setState(() => _auctionEndDate = localDateTime.toUtc());
+            _updateDraft();
           },
           child: InputDecorator(
             decoration: InputDecoration(
@@ -402,22 +393,22 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             Expanded(
               child: SegmentedButton<String>(
                 style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                    (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Theme.of(context).colorScheme.primary;
-                      }
-                      return Colors.transparent;
-                    },
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith<Color>(
-                    (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Colors.white;
-                      }
-                      return Theme.of(context).colorScheme.onSurface;
-                    },
-                  ),
+                  backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                    Set<WidgetState> states,
+                  ) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Theme.of(context).colorScheme.primary;
+                    }
+                    return Colors.transparent;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                    Set<WidgetState> states,
+                  ) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Colors.white;
+                    }
+                    return Theme.of(context).colorScheme.onSurface;
+                  }),
                 ),
                 segments: const <ButtonSegment<String>>[
                   ButtonSegment<String>(
@@ -446,7 +437,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
+            color: Colors.blue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -458,6 +449,70 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 24),
 
+        // Anti-Sniping Configuration
+        const Text(
+          'Anti-Sniping Protection',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Extend auction if bids are placed in the final minutes',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          key: ValueKey(draft.snipeGuardThresholdSeconds),
+          decoration: InputDecoration(
+            labelText: 'Trigger Window',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          // Ensure initial value is valid
+          initialValue: (draft.snipeGuardThresholdSeconds ?? 1800),
+          items: [
+            DropdownMenuItem(value: 300, child: Text('Last 5 minutes')),
+            DropdownMenuItem(value: 600, child: Text('Last 10 minutes')),
+            DropdownMenuItem(value: 1200, child: Text('Last 20 minutes')),
+            DropdownMenuItem(value: 1800, child: Text('Last 30 minutes')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              widget.controller.updateDraft(
+                draft.copyWith(
+                  lastSaved: DateTime.now(),
+                  snipeGuardEnabled: true,
+                  snipeGuardThresholdSeconds: value,
+                  snipeGuardExtendSeconds: 300, // Fixed 5 min extension
+                ),
+              );
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.purple.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.timer_outlined, size: 16, color: Colors.purple),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'If a bid is placed in the last ${(draft.snipeGuardThresholdSeconds ?? 1800) ~/ 60} minutes, the auction will automatically extend by 5 minutes.',
+                  style: const TextStyle(fontSize: 11, color: Colors.purple),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
         // Minimum Bid Increment
         const Text(
           'Minimum Bid Increment (₱) *',
@@ -465,20 +520,22 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Each bid must be at least this amount higher than the previous bid',
+          'Minimum gap between bids (must be in multiples of ₱100)',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 8),
         FormFieldWidget(
           controller: _bidIncrementController,
           label: 'Bid Increment',
-          hint: 'e.g., 1000, 5000, 10000',
+          hint: 'e.g., 100, 500, 1000',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
             final value = double.tryParse(v!);
-            if (value == null || value <= 0) return 'Must be greater than 0';
+            if (value == null) return 'Invalid amount';
+            if (value < 100) return 'Minimum increment is ₱100';
+            if (value % 100 != 0) return 'Must be a multiple of ₱100';
             return null;
           },
         ),
@@ -523,7 +580,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
+                    color: Colors.amber.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -546,20 +603,23 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Amount buyers must deposit before they can place a bid',
+          'Min: ₱5,000 | Max: ₱50,000 | Increments of ₱5,000',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 8),
         FormFieldWidget(
           controller: _depositAmountController,
           label: 'Deposit Amount',
-          hint: 'e.g., 50000, 100000',
+          hint: 'e.g., 5000, 25000, 50000',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
             final value = double.tryParse(v!);
-            if (value == null || value <= 0) return 'Must be greater than 0';
+            if (value == null) return 'Invalid amount';
+            if (value < 5000) return 'Minimum deposit is ₱5,000';
+            if (value > 50000) return 'Maximum deposit is ₱50,000';
+            if (value % 5000 != 0) return 'Must be in increments of ₱5,000';
             return null;
           },
         ),
@@ -567,13 +627,43 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         _buildDepositSuggestions(startingPrice),
         const SizedBox(height: 24),
 
+        // Allow Installment Payments
+        const Text(
+          'Installment Payments',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: SwitchListTile(
+            title: const Text('Allow Installment Payments'),
+            subtitle: Text(
+              _allowsInstallment
+                  ? 'Buyers can propose installment plans during the transaction'
+                  : 'Only one-time full payment accepted',
+              style: const TextStyle(fontSize: 12),
+            ),
+            secondary: Icon(
+              _allowsInstallment ? Icons.calendar_month : Icons.payment,
+              color: _allowsInstallment ? Colors.green : Colors.grey,
+            ),
+            value: _allowsInstallment,
+            onChanged: (value) {
+              setState(() {
+                _allowsInstallment = value;
+              });
+              _updateDraft();
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+
         // Summary Box
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
+            color: Colors.green.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.withOpacity(0.3)),
+            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -594,9 +684,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
 
   Widget _buildIncrementSuggestions(double startingPrice) {
     final suggestions = <(String, String)>[
-      ('₱1,000', 'Lower-priced vehicles'),
-      ('₱5,000', 'Mid-range vehicles'),
-      ('₱10,000', 'Luxury vehicles'),
+      ('₱100', 'Fine'),
+      ('₱500', 'Standard'),
+      ('₱1,000', 'Regular'),
+      ('₱2,000', 'Accelerated'),
+      ('₱5,000', 'High value'),
     ];
 
     return Wrap(
@@ -620,9 +712,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
 
   Widget _buildDepositSuggestions(double startingPrice) {
     final suggestions = <(String, String)>[
-      ('₱25,000', '5% of typical starting price'),
-      ('₱50,000', 'Standard deposit'),
-      ('₱100,000', 'Premium deposit'),
+      ('₱5,000', 'Minimum deposit'),
+      ('₱25,000', 'Standard deposit'),
+      ('₱50,000', 'Maximum deposit'),
     ];
 
     return Wrap(
@@ -665,8 +757,18 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const Divider(),
         _summaryRow(
+          'Anti-Sniping',
+          '⏱️ ${(widget.controller.currentDraft?.snipeGuardThresholdSeconds ?? 1800) ~/ 60}m Window',
+        ),
+        const Divider(),
+        _summaryRow(
           'Buyer Deposit',
           '₱${_depositAmountController.text.isNotEmpty ? _depositAmountController.text : '0'}',
+        ),
+        const Divider(),
+        _summaryRow(
+          'Installment',
+          _allowsInstallment ? '✅ Allowed' : '❌ Not Allowed',
         ),
       ],
     );

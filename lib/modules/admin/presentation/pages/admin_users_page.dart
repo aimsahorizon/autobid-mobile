@@ -315,7 +315,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> with AutomaticKeepAlive
             onPressed: () {
               Navigator.pop(context);
               // TODO: Implement suspend user functionality
-              ScaffoldMessenger.of(context).showSnackBar(
+              (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                 const SnackBar(
                   content: Text('Suspend user functionality coming soon'),
                   backgroundColor: ColorConstants.warning,

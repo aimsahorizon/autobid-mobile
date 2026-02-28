@@ -793,7 +793,7 @@ class TransactionProgressTab extends StatelessWidget {
   ) async {
     final success = await controller.acceptVehicle(transaction.buyerId);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(
             success
@@ -813,7 +813,7 @@ class TransactionProgressTab extends StatelessWidget {
   ) async {
     final success = await controller.rejectVehicle(transaction.buyerId, reason);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(
             success

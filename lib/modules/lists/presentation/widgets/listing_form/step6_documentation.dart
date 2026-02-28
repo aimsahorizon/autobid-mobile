@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
+import '../../../domain/usecases/validate_plate_number_usecase.dart';
 import 'form_field_widget.dart';
 import 'province_city_picker.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step6Documentation extends StatefulWidget {
   final ListingDraftController controller;
@@ -17,31 +19,114 @@ class Step6Documentation extends StatefulWidget {
 
 class _Step6DocumentationState extends State<Step6Documentation> {
   late TextEditingController _plateController;
+  final _validatePlateUseCase = GetIt.I<ValidatePlateNumberUseCase>();
 
   String? _province;
   String? _city;
+  String? _barangay;
   String? _orcrStatus;
   String? _registrationStatus;
   DateTime? _registrationExpiry;
+
+  // Validation State
+  Timer? _debounce;
+  String? _plateError;
+  bool _isValidatingPlate = false;
+  bool _isPlateValid = false;
 
   @override
   void initState() {
     super.initState();
     final draft = widget.controller.currentDraft!;
     _plateController = TextEditingController(text: draft.plateNumber);
+
     _province = draft.province;
     _city = draft.cityMunicipality;
+    _barangay = draft.barangay;
+
     _orcrStatus = draft.orcrStatus;
     _registrationStatus = draft.registrationStatus;
     _registrationExpiry = draft.registrationExpiry;
 
-    _plateController.addListener(_updateDraft);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateDraft();
+    });
+
+    _plateController.addListener(_onPlateChanged);
+
+    // Initial validation if existing value
+    if (_plateController.text.isNotEmpty) {
+      _validatePlate(_plateController.text);
+    }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _plateController.removeListener(_onPlateChanged);
     _plateController.dispose();
     super.dispose();
+  }
+
+  void _onPlateChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    String text = _plateController.text.toUpperCase();
+
+    // Auto-format: Insert space after exactly 3 letters if missing
+    // Matches if we have exactly 3 letters followed immediately by a digit
+    final compactRegex = RegExp(r'^([A-Z]{3})([0-9]+.*)$');
+    if (compactRegex.hasMatch(text)) {
+      text = text.replaceAllMapped(compactRegex, (m) => '${m[1]} ${m[2]}');
+    }
+
+    // Update controller if text changed (uppercase or space insertion)
+    if (text != _plateController.text) {
+      _plateController.value = _plateController.value.copyWith(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+      return; // Listener will trigger again with new text
+    }
+
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      _validatePlate(text);
+    });
+
+    // Update draft immediately for simple text change
+    _updateDraft();
+  }
+
+  Future<void> _validatePlate(String value) async {
+    if (value.isEmpty) {
+      setState(() {
+        _plateError = null;
+        _isPlateValid = false;
+        _isValidatingPlate = false;
+      });
+      return;
+    }
+
+    setState(() => _isValidatingPlate = true);
+
+    final error = await _validatePlateUseCase(
+      value,
+      widget.controller.currentDraft!.sellerId,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isValidatingPlate = false;
+        _plateError = error;
+        _isPlateValid = error == null;
+      });
+
+      // If validation fails, update draft to clear invalid plate?
+      // Or keep it but block submission later?
+      // For now, we update draft anyway so typed value persists,
+      // but UI shows error.
+      _updateDraft();
+    }
   }
 
   void _updateDraft() {
@@ -88,12 +173,15 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         hasWarranty: draft.hasWarranty,
         warrantyDetails: draft.warrantyDetails,
         usageType: draft.usageType,
-        plateNumber: _plateController.text.isEmpty ? null : _plateController.text,
+        plateNumber: _plateController.text.isEmpty
+            ? null
+            : _plateController.text,
         orcrStatus: _orcrStatus,
         registrationStatus: _registrationStatus,
         registrationExpiry: _registrationExpiry,
         province: _province,
         cityMunicipality: _city,
+        barangay: _barangay,
         photoUrls: draft.photoUrls,
         description: draft.description,
         knownIssues: draft.knownIssues,
@@ -101,21 +189,15 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         startingPrice: draft.startingPrice,
         reservePrice: draft.reservePrice,
         auctionEndDate: draft.auctionEndDate,
+        snipeGuardEnabled: draft.snipeGuardEnabled,
+        snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
+        snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,
+        // Set plate validation state
+        isPlateValid: _isPlateValid,
+        // Only valid if no error
+        isComplete: draft.isComplete && _isPlateValid,
       ),
     );
-  }
-
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(6);
-    setState(() {
-      _plateController.text = demoData['plateNumber'];
-      _orcrStatus = demoData['orcrStatus'];
-      _registrationStatus = demoData['registrationStatus'];
-      _registrationExpiry = demoData['registrationExpiry'];
-      _province = demoData['province'];
-      _city = demoData['cityMunicipality'];
-    });
-    _updateDraft();
   }
 
   @override
@@ -124,17 +206,35 @@ class _Step6DocumentationState extends State<Step6Documentation> {
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 6: Documentation & Location',
+          'Step 6: Documentation & Locations',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         FormFieldWidget(
           controller: _plateController,
           label: 'Plate Number *',
           hint: 'e.g., ABC 1234',
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          errorText: _plateError,
+          suffix: _isValidatingPlate
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : (_isPlateValid && _plateController.text.isNotEmpty)
+              ? const Icon(Icons.check_circle, color: Colors.green)
+              : null,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
+            LengthLimitingTextInputFormatter(8), // Standard max length roughly
+          ],
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            return _plateError;
+          },
         ),
         const SizedBox(height: 16),
         FormDropdownWidget(
@@ -162,7 +262,9 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           onTap: () async {
             final picked = await showDatePicker(
               context: context,
-              initialDate: _registrationExpiry ?? DateTime.now().add(const Duration(days: 365)),
+              initialDate:
+                  _registrationExpiry ??
+                  DateTime.now().add(const Duration(days: 365)),
               firstDate: DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
             );
@@ -174,31 +276,41 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           child: InputDecorator(
             decoration: InputDecoration(
               labelText: 'Registration Expiry',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(_registrationExpiry != null
-                    ? '${_registrationExpiry!.month}/${_registrationExpiry!.day}/${_registrationExpiry!.year}'
-                    : 'Select date'),
+                Text(
+                  _registrationExpiry != null
+                      ? '${_registrationExpiry!.month}/${_registrationExpiry!.day}/${_registrationExpiry!.year}'
+                      : 'Select date',
+                ),
                 const Icon(Icons.calendar_today, size: 20),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        ProvinceCityPicker(
+        
+        // Location Picker
+        LocationPicker(
           province: _province,
           city: _city,
-          onChanged: (province, city) {
-            setState(() {
-              _province = province;
-              _city = city;
-            });
-            _updateDraft();
+          barangay: _barangay,
+          onChanged: (province, city, barangay) {
+             setState(() {
+               _province = province;
+               _city = city;
+               _barangay = barangay;
+             });
+             _updateDraft();
           },
-          provinceValidator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          provinceValidator: (v) => v == null ? 'Required' : null,
+          cityValidator: (v) => v == null ? 'Required' : null,
+          barangayValidator: (v) => v == null ? 'Required' : null,
         ),
       ],
     );

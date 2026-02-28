@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
 
 class BiddingCardSection extends StatefulWidget {
   final bool hasDeposited;
   final double minimumBid;
   final double currentBid;
   final double minBidIncrement;
+  final double depositAmount;
   final bool enableIncrementalBidding;
   final VoidCallback onDeposit;
   final Function(double) onPlaceBid;
@@ -14,6 +18,15 @@ class BiddingCardSection extends StatefulWidget {
   final bool isProcessing;
   final bool isAutoBidActive;
   final double? maxAutoBid;
+  final double bidIncrement;
+  final BidQueueCycleEntity? queueStatus;
+  final bool hasRaisedHand;
+  final bool isMyTurn;
+  final int turnRemainingMs;
+  final VoidCallback? onRaiseHand;
+  final VoidCallback? onLowerHand;
+  final Function(double)? onSubmitTurnBid;
+  final int? queuePosition;
 
   const BiddingCardSection({
     super.key,
@@ -21,6 +34,7 @@ class BiddingCardSection extends StatefulWidget {
     required this.minimumBid,
     required this.currentBid,
     required this.minBidIncrement,
+    required this.depositAmount,
     required this.enableIncrementalBidding,
     required this.onDeposit,
     required this.onPlaceBid,
@@ -28,6 +42,15 @@ class BiddingCardSection extends StatefulWidget {
     this.isProcessing = false,
     this.isAutoBidActive = false,
     this.maxAutoBid,
+    this.bidIncrement = 100,
+    this.queueStatus,
+    this.hasRaisedHand = false,
+    this.isMyTurn = false,
+    this.turnRemainingMs = 0,
+    this.onRaiseHand,
+    this.onLowerHand,
+    this.onSubmitTurnBid,
+    this.queuePosition,
   });
 
   @override
@@ -35,13 +58,17 @@ class BiddingCardSection extends StatefulWidget {
 }
 
 class _BiddingCardSectionState extends State<BiddingCardSection> {
-  final _bidController = TextEditingController();
   final _maxAutoBidController = TextEditingController();
   final _customIncrementController = TextEditingController();
-  final List<double> _customIncrements = [];
+  final _customBidController = TextEditingController();
   late double _nextMinimumBid;
+  late double _selectedBidAmount; // User-chosen bid (>= next minimum)
   bool _showAutoBidSection = false;
   double _selectedIncrement = 0; // Set in initState based on listing config
+
+  // Local countdown timer for the 60s turn window
+  Timer? _turnCountdownTimer;
+  int _turnSecondsRemaining = 0;
 
   @override
   void initState() {
@@ -50,11 +77,15 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
     _nextMinimumBid = nextBidBase < widget.minimumBid
         ? widget.minimumBid
         : nextBidBase;
-    _bidController.text = _nextMinimumBid.toStringAsFixed(0);
-    _selectedIncrement = widget.minBidIncrement;
+    _selectedBidAmount = _nextMinimumBid;
+    _selectedIncrement = widget.bidIncrement;
     _showAutoBidSection = widget.isAutoBidActive;
     if (widget.maxAutoBid != null) {
       _maxAutoBidController.text = widget.maxAutoBid!.toStringAsFixed(0);
+    }
+    // Start turn countdown if it's already my turn
+    if (widget.isMyTurn && widget.turnRemainingMs > 0) {
+      _startTurnCountdown(widget.turnRemainingMs);
     }
   }
 
@@ -67,15 +98,57 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
       _nextMinimumBid = nextBidBase < widget.minimumBid
           ? widget.minimumBid
           : nextBidBase;
-      _bidController.text = _nextMinimumBid.toStringAsFixed(0);
-      _selectedIncrement = widget.minBidIncrement;
+      // Reset selection to minimum when current bid changes
+      _selectedBidAmount = _nextMinimumBid;
+      _customBidController.clear();
     }
+    // Sync auto-bid state from controller (server may have deactivated it)
+    if (oldWidget.isAutoBidActive != widget.isAutoBidActive) {
+      _showAutoBidSection = widget.isAutoBidActive;
+      if (widget.isAutoBidActive && widget.maxAutoBid != null) {
+        _maxAutoBidController.text = widget.maxAutoBid!.toStringAsFixed(0);
+      }
+      _selectedIncrement = widget.bidIncrement;
+    }
+    // Start/stop turn countdown when isMyTurn changes
+    if (widget.isMyTurn && !oldWidget.isMyTurn && widget.turnRemainingMs > 0) {
+      _startTurnCountdown(widget.turnRemainingMs);
+    } else if (!widget.isMyTurn && oldWidget.isMyTurn) {
+      _stopTurnCountdown();
+    } else if (widget.isMyTurn &&
+        widget.turnRemainingMs > 0 &&
+        _turnSecondsRemaining <= 0) {
+      // Re-sync if server sends a new value while timer was at 0
+      _startTurnCountdown(widget.turnRemainingMs);
+    }
+  }
+
+  void _startTurnCountdown(int remainingMs) {
+    _stopTurnCountdown();
+    _turnSecondsRemaining = (remainingMs / 1000).ceil().clamp(0, 60);
+    _turnCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_turnSecondsRemaining <= 0) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _turnSecondsRemaining = (_turnSecondsRemaining - 1).clamp(0, 60);
+      });
+    });
+  }
+
+  void _stopTurnCountdown() {
+    _turnCountdownTimer?.cancel();
+    _turnCountdownTimer = null;
+    _turnSecondsRemaining = 0;
   }
 
   @override
   void dispose() {
-    _bidController.dispose();
+    _stopTurnCountdown();
     _maxAutoBidController.dispose();
+    _customIncrementController.dispose();
+    _customBidController.dispose();
     super.dispose();
   }
 
@@ -87,14 +160,14 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
         ? widget.minBidIncrement
         : _selectedIncrement;
 
+    // Generate preset increments based on the seller's configured minimum increment
     final presetIncrements = <double>{
-      widget.minBidIncrement,
-      widget.minBidIncrement * 2,
-      5000,
-      10000,
-      25000,
-      50000,
-    }.where((inc) => inc >= widget.minBidIncrement).toList()..sort();
+      widget.minBidIncrement, // 1x
+      widget.minBidIncrement * 2, // 2x
+      widget.minBidIncrement * 3, // 3x
+      widget.minBidIncrement * 5, // 5x
+      widget.minBidIncrement * 10, // 10x
+    }.toList()..sort();
 
     showDialog(
       context: context,
@@ -205,11 +278,8 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                   ),
                   onChanged: (value) {
                     final customValue = double.tryParse(value);
-                    if (customValue != null && customValue > 0) {
-                      final effective = customValue < widget.minBidIncrement
-                          ? widget.minBidIncrement
-                          : customValue;
-                      setDialogState(() => selectedIncrement = effective);
+                    if (customValue != null) {
+                      setDialogState(() => selectedIncrement = customValue);
                     }
                   },
                 ),
@@ -253,7 +323,9 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
               onPressed: () {
                 final amount = double.tryParse(tempController.text) ?? 0;
                 if (amount < _nextMinimumBid + 10000) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(
+                    context,
+                  )..clearSnackBars()).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Maximum must be at least ₱${_formatNumber(_nextMinimumBid + 10000)}',
@@ -265,7 +337,9 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 }
 
                 if (selectedIncrement < widget.minBidIncrement) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  (ScaffoldMessenger.of(
+                    context,
+                  )..clearSnackBars()).showSnackBar(
                     SnackBar(
                       content: Text(
                         'Increment must be at least ₱${_formatNumber(widget.minBidIncrement)}',
@@ -273,7 +347,21 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                       backgroundColor: ColorConstants.error,
                     ),
                   );
-                  selectedIncrement = widget.minBidIncrement;
+                  return;
+                }
+
+                // Enforce increment is a multiple of min increment (optional but cleaner)
+                if (selectedIncrement % widget.minBidIncrement != 0) {
+                  (ScaffoldMessenger.of(
+                    context,
+                  )..clearSnackBars()).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Increment must be a multiple of ₱${_formatNumber(widget.minBidIncrement)}',
+                      ),
+                      backgroundColor: ColorConstants.error,
+                    ),
+                  );
                   return;
                 }
 
@@ -284,7 +372,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 });
                 widget.onAutoBidToggle?.call(true, amount, selectedIncrement);
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+                (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                   SnackBar(
                     content: Text(
                       'Auto-bid activated! Increment: ₱${_formatNumber(selectedIncrement)}',
@@ -303,16 +391,6 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   }
 
   void _toggleAutoBid() {
-    if (!widget.enableIncrementalBidding) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Auto-bid is disabled for this auction by the seller'),
-          backgroundColor: ColorConstants.error,
-        ),
-      );
-      return;
-    }
-
     if (widget.isAutoBidActive || _showAutoBidSection) {
       // Deactivate auto-bid
       setState(() {
@@ -320,7 +398,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
         _maxAutoBidController.clear();
       });
       widget.onAutoBidToggle?.call(false, null, 0);
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auto-bid deactivated'),
           backgroundColor: ColorConstants.warning,
@@ -330,64 +408,6 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
       // Show setup dialog
       _showAutoBidDialog();
     }
-  }
-
-  void _addCustomIncrement() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final controller = TextEditingController();
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text('Add Custom Increment'),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Increment Amount',
-              hintText: 'Min: ₱${_formatNumber(widget.minBidIncrement)}',
-              prefixText: '₱ ',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final amount = double.tryParse(controller.text) ?? 0;
-                if (amount < widget.minBidIncrement) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Custom increment must be at least ₱${_formatNumber(widget.minBidIncrement)}',
-                      ),
-                      backgroundColor: ColorConstants.error,
-                    ),
-                  );
-                  return;
-                }
-
-                setState(() => _customIncrements.add(amount));
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _selectBidAmount(double amount) {
-    setState(() => _bidController.text = amount.toStringAsFixed(0));
   }
 
   @override
@@ -483,7 +503,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '₱10,000 Deposit',
+                  '₱${_formatNumber(widget.depositAmount)} Deposit',
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: ColorConstants.primary,
                     fontWeight: FontWeight.bold,
@@ -571,14 +591,6 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   }
 
   Widget _buildUnlockedBidding(ThemeData theme, bool isDark) {
-    // Show increment amounts (how much to add), not total amounts
-    final defaultIncrements = [
-      widget.minBidIncrement,
-      widget.minBidIncrement * 2,
-      widget.minBidIncrement * 3,
-      widget.minBidIncrement * 4,
-    ];
-
     return Column(
       children: [
         Container(
@@ -628,98 +640,17 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    'Minimum Bid:',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: isDark
-                          ? ColorConstants.textSecondaryDark
-                          : ColorConstants.textSecondaryLight,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '₱${_formatNumber(_nextMinimumBid)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _bidController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Your Bid Amount',
-                  prefixText: '₱ ',
-                  prefixIcon: const Icon(Icons.monetization_on_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  filled: true,
-                  fillColor: isDark
-                      ? ColorConstants.backgroundSecondaryDark
-                      : ColorConstants.backgroundSecondaryLight,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Text(
-                    'Quick Amounts',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: _addCustomIncrement,
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.add_circle_outline,
-                          size: 16,
-                          color: ColorConstants.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Custom',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: ColorConstants.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ...defaultIncrements.map(
-                    (increment) =>
-                        _buildIncrementChip(increment, theme, isDark),
-                  ),
-                  ..._customIncrements.map(
-                    (increment) => _buildIncrementChip(
-                      increment,
-                      theme,
-                      isDark,
-                      isCustom: true,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+              // Queue status display
+              if (widget.queueStatus != null) ...[
+                _buildQueueStatusBanner(theme, isDark),
+                const SizedBox(height: 16),
+              ],
+              // Bid amount selection — only show when NOT in queue
+              // (the turn UI in _buildRaiseHandButton has its own bid selector)
+              if (!widget.isMyTurn && !widget.hasRaisedHand) ...[
+                _buildBidAmountSelector(theme, isDark),
+                const SizedBox(height: 20),
+              ],
               // Auto-bid section
               if (_showAutoBidSection || widget.isAutoBidActive) ...[
                 Container(
@@ -848,55 +779,8 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 ),
                 const SizedBox(height: 16),
               ],
-              // Manual bid button
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: widget.isProcessing
-                      ? null
-                      : () {
-                          final amount =
-                              double.tryParse(_bidController.text) ?? 0;
-                          final increment = amount - widget.currentBid;
-                          final meetsMinIncrement =
-                              increment >= widget.minBidIncrement;
-                          if (amount >= _nextMinimumBid && meetsMinIncrement) {
-                            widget.onPlaceBid(amount);
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Bid must be at least ₱${_formatNumber(_nextMinimumBid)} and increase by ≥ ₱${_formatNumber(widget.minBidIncrement)}',
-                                ),
-                                backgroundColor: ColorConstants.error,
-                              ),
-                            );
-                          }
-                        },
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: widget.isProcessing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          'Place Bid',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
-              ),
+              // Raise Hand button
+              _buildRaiseHandButton(theme, isDark),
               // Auto-bid toggle button
               if (!_showAutoBidSection && !widget.isAutoBidActive) ...[
                 const SizedBox(height: 12),
@@ -931,44 +815,581 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
     );
   }
 
-  Widget _buildIncrementChip(
-    double increment,
-    ThemeData theme,
-    bool isDark, {
-    bool isCustom = false,
-  }) {
-    final totalAmount = widget.currentBid + increment;
-    final isSelected = _bidController.text == totalAmount.toStringAsFixed(0);
+  Widget _buildQueueStatusBanner(ThemeData theme, bool isDark) {
+    final status = widget.queueStatus!;
+    final state = status.state;
 
-    return GestureDetector(
-      onTap: () => _selectBidAmount(totalAmount),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? ColorConstants.primary
-              : isCustom
-              ? ColorConstants.primary.withValues(alpha: 0.1)
-              : (isDark
-                    ? ColorConstants.backgroundSecondaryDark
-                    : ColorConstants.backgroundSecondaryLight),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected
-                ? ColorConstants.primary
-                : (isDark
-                      ? ColorConstants.borderDark
-                      : ColorConstants.borderLight),
+    Color stateColor;
+    IconData stateIcon;
+    String stateLabel;
+    String stateDescription;
+
+    switch (state) {
+      case 'open':
+        stateColor = ColorConstants.success;
+        stateIcon = Icons.pan_tool_outlined;
+        stateLabel = 'Queue Open';
+        stateDescription = 'Raise your hand to join this bidding round';
+      case 'locked':
+        stateColor = ColorConstants.warning;
+        stateIcon = Icons.lock_clock;
+        stateLabel = 'Queue Locked';
+        stateDescription = 'Preparing to process bids...';
+      case 'processing':
+        stateColor = ColorConstants.primary;
+        stateIcon = Icons.sync;
+        stateLabel = 'Processing Bids';
+        stateDescription = 'Executing bids in order...';
+      default:
+        stateColor = isDark
+            ? ColorConstants.textSecondaryDark
+            : ColorConstants.textSecondaryLight;
+        stateIcon = Icons.hourglass_empty;
+        stateLabel = 'Waiting';
+        stateDescription = 'Next round will start when someone bids';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: stateColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: stateColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(stateIcon, size: 20, color: stateColor),
+              const SizedBox(width: 10),
+              Text(
+                stateLabel,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: stateColor,
+                ),
+              ),
+              const Spacer(),
+              if (status.cycleNumber > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: stateColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Round ${status.cycleNumber}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: stateColor,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  stateDescription,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: stateColor.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
+              if (status.queue.isNotEmpty)
+                Text(
+                  '${status.queue.length} in queue',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: stateColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ),
+          // Show user's position if hand is raised
+          if (widget.hasRaisedHand && widget.queuePosition != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: isDark ? 0.1 : 0.6),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Text('✋', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Hand Raised!',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: ColorConstants.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '#${widget.queuePosition}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Build bid amount selector with increment chips + custom amount input.
+  Widget _buildBidAmountSelector(ThemeData theme, bool isDark) {
+    final inc = widget.minBidIncrement;
+    // Preset increments: 1x, 2x, 3x, 5x of minimum increment
+    final presets = <double>[
+      _nextMinimumBid, // 1x increment (minimum)
+      widget.currentBid + inc * 2, // 2x
+      widget.currentBid + inc * 3, // 3x
+      widget.currentBid + inc * 5, // 5x
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark
+            ? ColorConstants.backgroundSecondaryDark
+            : ColorConstants.backgroundSecondaryLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.monetization_on_outlined,
+                color: ColorConstants.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Choose Your Bid',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: ColorConstants.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Min +₱${_formatNumber(inc)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: ColorConstants.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Selected amount display
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  ColorConstants.primary.withValues(alpha: 0.08),
+                  ColorConstants.primary.withValues(alpha: 0.03),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: ColorConstants.primary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '₱${_formatNumber(_selectedBidAmount)}',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: ColorConstants.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '(+₱${_formatNumber(_selectedBidAmount - widget.currentBid)})',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isDark
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Increment chips
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final amount in presets)
+                ChoiceChip(
+                  label: Text('+₱${_formatNumber(amount - widget.currentBid)}'),
+                  selected: _selectedBidAmount == amount,
+                  selectedColor: ColorConstants.primary,
+                  backgroundColor: isDark
+                      ? ColorConstants.surfaceDark
+                      : ColorConstants.surfaceVariantLight,
+                  labelStyle: TextStyle(
+                    color: _selectedBidAmount == amount
+                        ? Colors.white
+                        : (isDark
+                              ? ColorConstants.textPrimaryDark
+                              : ColorConstants.textPrimaryLight),
+                    fontWeight: _selectedBidAmount == amount
+                        ? FontWeight.bold
+                        : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                  side: BorderSide(
+                    color: _selectedBidAmount == amount
+                        ? ColorConstants.primary
+                        : (isDark
+                              ? ColorConstants.borderDark
+                              : ColorConstants.borderLight),
+                  ),
+                  onSelected: (selected) {
+                    if (selected) {
+                      setState(() {
+                        _selectedBidAmount = amount;
+                        _customBidController.clear();
+                      });
+                    }
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Custom amount input
+          TextField(
+            controller: _customBidController,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              isDense: true,
+              labelText: 'Custom Amount',
+              hintText: 'e.g., ${_formatNumber(_nextMinimumBid + inc * 10)}',
+              prefixText: '₱ ',
+              suffixIcon: _customBidController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _customBidController.clear();
+                        setState(() {
+                          _selectedBidAmount = _nextMinimumBid;
+                        });
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              helperText:
+                  'Min ₱${_formatNumber(_nextMinimumBid)}, multiples of ₱100',
+              helperMaxLines: 2,
+            ),
+            onChanged: (value) {
+              final parsed = double.tryParse(value);
+              if (parsed != null && parsed >= _nextMinimumBid) {
+                // Round up to nearest 100
+                final rounded = (parsed / 100).ceil() * 100.0;
+                setState(() {
+                  _selectedBidAmount = rounded;
+                });
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRaiseHandButton(ThemeData theme, bool isDark) {
+    final hasRaised = widget.hasRaisedHand;
+
+    // =========================================================
+    // IT'S YOUR TURN — show bid amount selector + timer + Place Bid
+    // =========================================================
+    if (widget.isMyTurn) {
+      final turnSeconds = _turnSecondsRemaining;
+      return Column(
+        children: [
+          // Timer banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.timer, color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'IT\'S YOUR TURN!',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${turnSeconds}s',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: turnSeconds <= 10 ? Colors.yellow : Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Bid amount selector (only shown during turn)
+          _buildBidAmountSelector(theme, isDark),
+          const SizedBox(height: 12),
+          // Place Bid button
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: widget.isProcessing
+                  ? null
+                  : () => widget.onSubmitTurnBid?.call(_selectedBidAmount),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                backgroundColor: ColorConstants.success,
+              ),
+              icon: widget.isProcessing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.gavel, color: Colors.white),
+              label: Text(
+                widget.isProcessing
+                    ? 'Placing Bid...'
+                    : 'Place Bid — ₱${_formatNumber(_selectedBidAmount)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Lower hand / withdraw option
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: widget.isProcessing ? null : widget.onLowerHand,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                side: BorderSide(
+                  color: ColorConstants.error.withValues(alpha: 0.6),
+                ),
+                foregroundColor: ColorConstants.error,
+              ),
+              icon: const Icon(Icons.pan_tool_alt, size: 16),
+              label: const Text(
+                'Lower Hand — Skip My Turn',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Choose your bid amount and place it before the timer runs out.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // =========================================================
+    // Already raised hand — show position + Lower Hand option
+    // =========================================================
+    if (hasRaised) {
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: null,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                backgroundColor: ColorConstants.success,
+                disabledBackgroundColor: ColorConstants.success.withValues(
+                  alpha: 0.7,
+                ),
+              ),
+              icon: const Text('✋', style: TextStyle(fontSize: 18)),
+              label: Text(
+                widget.queuePosition != null
+                    ? 'In Queue — #${widget.queuePosition} in line'
+                    : 'In Queue — Waiting for your turn',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: widget.isProcessing ? null : widget.onLowerHand,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                side: BorderSide(
+                  color: ColorConstants.error.withValues(alpha: 0.6),
+                ),
+                foregroundColor: ColorConstants.error,
+              ),
+              icon: widget.isProcessing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: ColorConstants.error,
+                      ),
+                    )
+                  : const Icon(Icons.pan_tool_alt, size: 18),
+              label: Text(
+                widget.isProcessing
+                    ? 'Withdrawing...'
+                    : 'Lower Hand — Back Out',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'You\'re in the queue. When it\'s your turn, you\'ll have 60 seconds to choose your bid amount and place it.',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // =========================================================
+    // Ready to raise hand — simple queue join (no bid amount)
+    // =========================================================
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: widget.isProcessing
+            ? null
+            : () => widget.onRaiseHand?.call(),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
-        child: Text(
-          '+₱${_formatNumber(increment)}',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: isSelected
-                ? Colors.white
-                : (isCustom ? ColorConstants.primary : null),
-          ),
+        icon: widget.isProcessing
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Text('✋', style: TextStyle(fontSize: 18)),
+        label: Text(
+          widget.isProcessing ? 'Raising Hand...' : 'Raise Hand — Join Queue',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
     );

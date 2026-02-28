@@ -43,7 +43,7 @@ class _QASectionState extends State<QASection> {
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('You need to be signed in to reply')),
       );
       return;
@@ -60,15 +60,15 @@ class _QASectionState extends State<QASection> {
         _replyController.clear();
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(content: Text('Reply sent successfully')),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
+        (ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error sending reply: $e')));
+        )..clearSnackBars()).showSnackBar(SnackBar(content: Text('Error sending reply: $e')));
       }
     }
   }
@@ -83,7 +83,7 @@ class _QASectionState extends State<QASection> {
   Future<void> _toggleLike(String questionId) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('You need to be signed in to like')),
       );
       return;

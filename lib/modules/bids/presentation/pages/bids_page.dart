@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/presentation/pages/auction_detail_page.dart';
-import '../../../browse/browse_module.dart';
-import '../../../notifications/notifications_module.dart';
+import '../../../browse/presentation/controllers/auction_detail_controller.dart';
+import '../../../notifications/presentation/controllers/notification_controller.dart';
 import '../../../notifications/presentation/pages/notifications_page.dart';
 import '../controllers/bids_controller.dart';
 import '../widgets/user_bids_list.dart';
@@ -47,14 +48,14 @@ class _BidsPageState extends State<BidsPage>
   }
 
   void _navigateToActiveBid(BuildContext context, UserBidEntity bid) {
-    print(
+    debugPrint(
       '[BidsPage] _navigateToActiveBid called with auctionId=${bid.auctionId}',
     );
 
     // Navigate to auction detail page from browse module
     // This shows the actual auction with live bidding functionality
-    final controller = BrowseModule.instance.createAuctionDetailController();
-    print(
+    final controller = GetIt.instance<AuctionDetailController>();
+    debugPrint(
       '[BidsPage] Created AuctionDetailController, navigating to AuctionDetailPage',
     );
     Navigator.push(
@@ -68,7 +69,7 @@ class _BidsPageState extends State<BidsPage>
 
   void _navigateToWonBid(BuildContext context, UserBidEntity bid) {
     if (!bid.canAccess) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: const Text('Waiting for seller to proceed to transaction.'),
           backgroundColor: ColorConstants.warning,
@@ -77,7 +78,7 @@ class _BidsPageState extends State<BidsPage>
       );
       return;
     }
-    print(
+    debugPrint(
       '[BidsPage] _navigateToWonBid called with auctionId=${bid.auctionId}',
     );
     Navigator.push(
@@ -89,7 +90,7 @@ class _BidsPageState extends State<BidsPage>
   }
 
   void _navigateToLostBid(BuildContext context, UserBidEntity bid) {
-    print(
+    debugPrint(
       '[BidsPage] _navigateToLostBid called with auctionId=${bid.auctionId}',
     );
     Navigator.push(
@@ -113,10 +114,10 @@ class _BidsPageState extends State<BidsPage>
         actions: [
           // Notification bell with unread count badge
           ListenableBuilder(
-            listenable: NotificationsModule.instance.controller,
+            listenable: GetIt.instance<NotificationController>(),
             builder: (context, _) {
               final notificationController =
-                  NotificationsModule.instance.controller;
+                  GetIt.instance<NotificationController>();
               final unreadCount = notificationController.unreadCount;
 
               return Stack(
@@ -305,7 +306,7 @@ class _BidsPageState extends State<BidsPage>
 
   void _navigateToCancelledBid(BuildContext context, UserBidEntity bid) {
     // Cancelled bids are read-only - just show auction details
-    print(
+    debugPrint(
       '[BidsPage] _navigateToCancelledBid called with auctionId=${bid.auctionId}',
     );
     Navigator.push(

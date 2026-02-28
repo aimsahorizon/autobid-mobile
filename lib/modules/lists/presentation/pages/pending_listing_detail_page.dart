@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../../domain/usecases/submission_usecases.dart';
+import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
-import '../widgets/invite_user_dialog.dart';
+import '../widgets/invite_management_dialog.dart';
+import '../controllers/lists_controller.dart';
 
 class PendingListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
@@ -20,6 +24,20 @@ class PendingListingDetailPage extends StatefulWidget {
 
 class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
   bool _isLoading = false;
+
+  void _showInviteManagement(BuildContext context) {
+    // Resolve a fresh controller for the dialog since this page might not own the main ListsController
+    final controller = GetIt.instance<ListsController>();
+    
+    showDialog(
+      context: context,
+      builder: (context) => InviteManagementDialog(
+        controller: controller,
+        auctionId: widget.listing.id,
+        carName: widget.listing.carName,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,15 +76,36 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
   Widget _buildActionButtons(BuildContext context, bool isDark) {
     // Determine if seller can invite users
     // Invites allowed: pending_approval (after admin approval), scheduled, or live
+    // AND must be a private auction
     final canInvite =
-        widget.listing.status == ListingStatus.pending ||
-        widget.listing.status == ListingStatus.scheduled ||
-        widget.listing.status == ListingStatus.active;
+        (widget.listing.status == ListingStatus.pending ||
+            widget.listing.status == ListingStatus.scheduled ||
+            widget.listing.status == ListingStatus.active) &&
+        widget.listing.visibility == 'private';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
+          // Update End Time button
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading ? null : () => _updateEndTime(context),
+                  icon: const Icon(Icons.schedule),
+                  label: const Text('Update End Time'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           // Invite Users button - only show during pending_approval, scheduled, or live
           if (canInvite)
             Row(
@@ -75,18 +114,9 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
                   child: OutlinedButton.icon(
                     onPressed: _isLoading
                         ? null
-                        : () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => InviteUserDialog(
-                                auctionId: widget.listing.id,
-                                auctionTitle:
-                                    '${widget.listing.year} ${widget.listing.brand} ${widget.listing.model}',
-                              ),
-                            );
-                          },
+                        : () => _showInviteManagement(context),
                     icon: const Icon(Icons.person_add),
-                    label: const Text('Invite Users'),
+                    label: const Text('Manage Invites'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -122,6 +152,114 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
     );
   }
 
+  Future<void> _updateEndTime(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate:
+          widget.listing.endTime ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+    );
+
+    if (picked == null || !context.mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+        widget.listing.endTime ?? DateTime.now().add(const Duration(hours: 1)),
+      ),
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              dayPeriodColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary.withValues(alpha: 0.2);
+                }
+                return Colors.transparent;
+              }),
+              dayPeriodTextColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary;
+                }
+                return isDark ? Colors.white70 : Colors.black87;
+              }),
+              hourMinuteColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary.withValues(alpha: 0.2);
+                }
+                return isDark ? const Color(0xFF2A0D3D) : Colors.grey.shade200;
+              }),
+              hourMinuteTextColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary;
+                }
+                return isDark ? Colors.white : Colors.black87;
+              }),
+              dialHandColor: ColorConstants.primary,
+              dialBackgroundColor: isDark
+                  ? const Color(0xFF2A0D3D)
+                  : Colors.grey.shade50,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: ColorConstants.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null || !context.mounted) return;
+
+    final localDateTime = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      pickedTime.hour,
+      pickedTime.minute,
+      59,
+    );
+
+    final newEndTime = localDateTime.toUtc();
+
+    // Capture references before setState and async operations
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    setState(() => _isLoading = true);
+
+    try {
+      final datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+      await datasource.updateAuctionEndTime(widget.listing.id, newEndTime);
+
+      if (mounted) {
+        (messenger..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Auction end time updated successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        navigator.pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        (messenger..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _cancelListing(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -143,7 +281,11 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !context.mounted) return;
+
+    // Capture references before setState and async operations
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
     setState(() => _isLoading = true);
 
@@ -153,7 +295,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
       if (mounted) {
         result.fold(
           (failure) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            (messenger..clearSnackBars()).showSnackBar(
               SnackBar(
                 content: Text('Error: ${failure.message}'),
                 backgroundColor: Colors.red,
@@ -163,7 +305,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
             setState(() => _isLoading = false);
           },
           (_) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            (messenger..clearSnackBars()).showSnackBar(
               const SnackBar(
                 content: Text('Listing cancelled successfully'),
                 backgroundColor: Colors.green,
@@ -172,7 +314,7 @@ class _PendingListingDetailPageState extends State<PendingListingDetailPage> {
             );
             Future.delayed(const Duration(milliseconds: 500), () {
               if (mounted) {
-                Navigator.pop(context, true); // Return true to trigger list refresh
+                navigator.pop(true); // Return true to trigger list refresh
               }
             });
           },

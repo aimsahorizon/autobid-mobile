@@ -49,7 +49,7 @@ class _FillFormDialogState extends State<FillFormDialog> {
   void _submitForm() {
     if (!_formKey.currentState!.validate()) return;
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('Please agree to terms')),
       );
       return;
@@ -78,7 +78,7 @@ class _FillFormDialogState extends State<FillFormDialog> {
     widget.controller.submitForm(form).then((success) {
       if (success && mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Form submitted successfully'),
             backgroundColor: ColorConstants.success,

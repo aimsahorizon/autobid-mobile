@@ -4,14 +4,12 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 class ProfileInfoSection extends StatelessWidget {
   final String fullName;
   final String username;
-  final String contactNumber;
   final String email;
 
   const ProfileInfoSection({
     super.key,
     required this.fullName,
     required this.username,
-    required this.contactNumber,
     required this.email,
   });
 
@@ -24,10 +22,14 @@ class ProfileInfoSection extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Column(
@@ -48,14 +50,6 @@ class ProfileInfoSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          _buildInfoRow(
-            icon: Icons.phone_rounded,
-            label: 'Contact',
-            value: contactNumber,
-            theme: theme,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
           _buildInfoRow(
             icon: Icons.email_rounded,
             label: 'Email',
@@ -84,11 +78,7 @@ class ProfileInfoSection extends StatelessWidget {
             color: ColorConstants.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: ColorConstants.primary,
-          ),
+          child: Icon(icon, size: 20, color: ColorConstants.primary),
         ),
         const SizedBox(width: 12),
         Expanded(

@@ -1,8 +1,14 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/transaction_entity.dart';
+import '../../domain/entities/transaction_review_entity.dart';
+import '../../domain/entities/agreement_field_entity.dart';
 
 /// Supabase datasource for real-time transaction data
+// ... (omitting lines for brevity in explanation, but including them in actual call)
+
 /// Handles chat, forms, timeline with real-time subscriptions
 class TransactionRealtimeDataSource {
   final SupabaseClient _supabase;
@@ -10,29 +16,93 @@ class TransactionRealtimeDataSource {
   // Real-time subscriptions
   RealtimeChannel? _chatChannel;
   RealtimeChannel? _transactionChannel;
+  RealtimeChannel? _formsChannel;
+  RealtimeChannel? _timelineChannel;
+  RealtimeChannel? _agreementFieldsChannel;
+  RealtimeChannel? _sellerTxnChannel;
+  RealtimeChannel? _buyerTxnChannel;
 
   // Stream controllers for real-time updates
   final _chatStreamController = StreamController<ChatMessageEntity>.broadcast();
   final _transactionUpdateController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _userTransactionsUpdateController = StreamController<void>.broadcast();
 
   TransactionRealtimeDataSource(this._supabase);
 
   /// Stream of new chat messages
   Stream<ChatMessageEntity> get chatStream => _chatStreamController.stream;
 
-  /// Stream of transaction updates
+  /// Stream of transaction updates (single transaction)
   Stream<Map<String, dynamic>> get transactionUpdateStream =>
       _transactionUpdateController.stream;
 
+  /// Stream of user transactions list updates
+  Stream<void> get userTransactionsUpdateStream =>
+      _userTransactionsUpdateController.stream;
+
+  // ... (rest of the class) ...
+
   // ============================================================================
-  // TRANSACTION CRUD
+  // SUBSCRIPTIONS
   // ============================================================================
+
+  /// Subscribe to all transactions for a user (buyer or seller)
+  /// Used for refreshing the transactions list in real-time
+  void subscribeToUserTransactions(String userId) {
+    // Unsubscribe from previous channels to avoid duplicates
+    _sellerTxnChannel?.unsubscribe();
+    _buyerTxnChannel?.unsubscribe();
+
+    // Listen for changes where user is seller
+    _sellerTxnChannel = _supabase
+        .channel('seller_txns_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'auction_transactions',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'seller_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionRealtimeDataSource] Seller transaction update received',
+            );
+            _userTransactionsUpdateController.add(null);
+          },
+        )
+        .subscribe();
+
+    // Listen for changes where user is buyer
+    _buyerTxnChannel = _supabase
+        .channel('buyer_txns_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'auction_transactions',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'buyer_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionRealtimeDataSource] Buyer transaction update received',
+            );
+            _userTransactionsUpdateController.add(null);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Subscribe to real-time chat messages
 
   /// Get transaction by auction ID (for buyer/seller navigation)
   Future<TransactionEntity?> getTransactionByAuctionId(String auctionId) async {
     try {
-      print(
+      debugPrint(
         '[TransactionRealtimeDataSource] Getting transaction for auction: $auctionId',
       );
 
@@ -42,7 +112,7 @@ class TransactionRealtimeDataSource {
       );
 
       if (response == null || (response is List && response.isEmpty)) {
-        print(
+        debugPrint(
           '[TransactionRealtimeDataSource] No transaction found for auction',
         );
         return null;
@@ -51,7 +121,9 @@ class TransactionRealtimeDataSource {
       final data = response is List ? response.first : response;
       return _mapToTransactionEntity(data as Map<String, dynamic>);
     } catch (e) {
-      print('[TransactionRealtimeDataSource] Error getting transaction: $e');
+      debugPrint(
+        '[TransactionRealtimeDataSource] Error getting transaction: $e',
+      );
       return null;
     }
   }
@@ -59,7 +131,7 @@ class TransactionRealtimeDataSource {
   /// Get transaction by transaction ID
   Future<TransactionEntity?> getTransaction(String transactionId) async {
     try {
-      print(
+      debugPrint(
         '[TransactionRealtimeDataSource] Getting transaction: $transactionId',
       );
 
@@ -68,21 +140,21 @@ class TransactionRealtimeDataSource {
           .from('auction_transactions')
           .select('''
             *,
-            auctions(title, auction_vehicles(brand, model))
+            auctions(title, allows_installment, auction_vehicles(brand, model))
           ''')
           .eq('id', transactionId)
           .maybeSingle();
 
       // If not found, try as auction ID (get the most recent transaction)
       if (response == null) {
-        print(
+        debugPrint(
           '[TransactionRealtimeDataSource] Not found by ID, trying auction_id...',
         );
         final multiResponse = await _supabase
             .from('auction_transactions')
             .select('''
               *,
-              auctions(title, auction_vehicles(brand, model))
+              auctions(title, allows_installment, auction_vehicles(brand, model))
             ''')
             .eq('auction_id', transactionId)
             .order('created_at', ascending: false)
@@ -90,42 +162,48 @@ class TransactionRealtimeDataSource {
 
         if (multiResponse.isNotEmpty) {
           response = multiResponse.first;
-          print(
+          debugPrint(
             '[TransactionRealtimeDataSource] Found ${multiResponse.length} transaction(s) by auction_id, using most recent',
           );
         }
       }
 
       if (response == null) {
-        print('[TransactionRealtimeDataSource] Transaction not found');
+        debugPrint('[TransactionRealtimeDataSource] Transaction not found');
         return null;
       }
 
-      print(
+      debugPrint(
         '[TransactionRealtimeDataSource] ✅ Found transaction: ${response['id']}',
       );
-      print('[TransactionRealtimeDataSource] Status: ${response['status']}');
-      print(
+      debugPrint(
+        '[TransactionRealtimeDataSource] Status: ${response['status']}',
+      );
+      debugPrint(
         '[TransactionRealtimeDataSource] Raw data keys: ${response.keys.toList()}',
       );
 
       try {
         final entity = _mapToTransactionEntity(response);
-        print(
+        debugPrint(
           '[TransactionRealtimeDataSource] ✅ Mapped to entity successfully',
         );
         return entity;
       } catch (mappingError, mappingStack) {
-        print(
+        debugPrint(
           '[TransactionRealtimeDataSource] ❌ Error mapping transaction: $mappingError',
         );
-        print('[TransactionRealtimeDataSource] Mapping stack: $mappingStack');
-        print('[TransactionRealtimeDataSource] Response data: $response');
+        debugPrint(
+          '[TransactionRealtimeDataSource] Mapping stack: $mappingStack',
+        );
+        debugPrint('[TransactionRealtimeDataSource] Response data: $response');
         rethrow;
       }
     } catch (e, stackTrace) {
-      print('[TransactionRealtimeDataSource] ❌ Error getting transaction: $e');
-      print('[TransactionRealtimeDataSource] Stack: $stackTrace');
+      debugPrint(
+        '[TransactionRealtimeDataSource] ❌ Error getting transaction: $e',
+      );
+      debugPrint('[TransactionRealtimeDataSource] Stack: $stackTrace');
       return null;
     }
   }
@@ -138,9 +216,18 @@ class TransactionRealtimeDataSource {
     if (data['auctions'] is Map) {
       final auctions = data['auctions'] as Map<String, dynamic>;
       final vehicles = auctions['auction_vehicles'];
-      if (vehicles is List && vehicles.isNotEmpty) {
-        final v = vehicles.first;
-        carName = '${v['brand'] ?? ''} ${v['model'] ?? ''}'.trim();
+
+      Map<String, dynamic>? vehicle;
+      if (vehicles is Map<String, dynamic>) {
+        // Single object
+        vehicle = vehicles;
+      } else if (vehicles is List && vehicles.isNotEmpty) {
+        // Array of objects
+        vehicle = vehicles.first as Map<String, dynamic>?;
+      }
+
+      if (vehicle != null) {
+        carName = '${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''}'.trim();
       } else if (auctions['title'] != null) {
         carName = auctions['title'] as String;
       }
@@ -174,7 +261,80 @@ class TransactionRealtimeDataSource {
       adminApprovedAt: data['admin_approved_at'] != null
           ? DateTime.parse(data['admin_approved_at'] as String)
           : null,
+      bothConfirmedAt: data['both_confirmed_at'] != null
+          ? DateTime.parse(data['both_confirmed_at'] as String)
+          : null,
+      // Delivery Status Mapping
+      deliveryStatus: _mapDeliveryStatus(
+        data['delivery_status'] as String? ?? 'pending',
+      ),
+      deliveryStartedAt: data['delivery_started_at'] != null
+          ? DateTime.parse(data['delivery_started_at'] as String)
+          : null,
+      deliveryCompletedAt: data['delivery_completed_at'] != null
+          ? DateTime.parse(data['delivery_completed_at'] as String)
+          : null,
+      // Buyer Acceptance Mapping
+      buyerAcceptanceStatus: _mapBuyerAcceptanceStatus(
+        data['buyer_acceptance_status'] as String? ?? 'pending',
+      ),
+      buyerAcceptedAt: data['buyer_accepted_at'] != null
+          ? DateTime.parse(data['buyer_accepted_at'] as String)
+          : null,
+      buyerRejectionReason: data['buyer_rejection_reason'] as String?,
+      sellerRejectionReason: data['seller_rejection_reason'] as String?,
+      cancelledBy: _inferCancelledBy(data),
+      paymentMethod: data['payment_method'] as String? ?? 'full_payment',
+      allowsInstallment: _extractAllowsInstallment(data),
     );
+  }
+
+  /// Extract allows_installment from nested auctions join or direct column
+  bool _extractAllowsInstallment(Map<String, dynamic> data) {
+    if (data['auctions'] is Map) {
+      final auctions = data['auctions'] as Map<String, dynamic>;
+      return auctions['allows_installment'] as bool? ?? false;
+    }
+    return data['allows_installment'] as bool? ?? false;
+  }
+
+  /// Infer who cancelled based on available rejection reasons
+  String? _inferCancelledBy(Map<String, dynamic> data) {
+    final status = data['status'] as String?;
+    if (status != 'deal_failed') return null;
+
+    final sellerReason = data['seller_rejection_reason'] as String?;
+    final buyerStatus = data['buyer_acceptance_status'] as String?;
+
+    if (sellerReason != null && sellerReason.isNotEmpty) return 'seller';
+    if (buyerStatus == 'rejected') return 'buyer';
+    return 'buyer'; // default assumption
+  }
+
+  DeliveryStatus _mapDeliveryStatus(String status) {
+    switch (status) {
+      case 'preparing':
+        return DeliveryStatus.preparing;
+      case 'in_transit':
+        return DeliveryStatus.inTransit;
+      case 'delivered':
+        return DeliveryStatus.delivered;
+      case 'completed':
+        return DeliveryStatus.completed;
+      default:
+        return DeliveryStatus.pending;
+    }
+  }
+
+  BuyerAcceptanceStatus _mapBuyerAcceptanceStatus(String status) {
+    switch (status) {
+      case 'accepted':
+        return BuyerAcceptanceStatus.accepted;
+      case 'rejected':
+        return BuyerAcceptanceStatus.rejected;
+      default:
+        return BuyerAcceptanceStatus.pending;
+    }
   }
 
   TransactionStatus _mapStatus(String status) {
@@ -222,7 +382,7 @@ class TransactionRealtimeDataSource {
           )
           .toList();
     } catch (e) {
-      print('[TransactionRealtimeDataSource] Error getting chat: $e');
+      debugPrint('[TransactionRealtimeDataSource] Error getting chat: $e');
       return [];
     }
   }
@@ -282,7 +442,7 @@ class TransactionRealtimeDataSource {
         type: MessageType.text,
       );
     } catch (e) {
-      print('[TransactionRealtimeDataSource] Error sending message: $e');
+      debugPrint('[TransactionRealtimeDataSource] Error sending message: $e');
       return null;
     }
   }
@@ -347,7 +507,7 @@ class TransactionRealtimeDataSource {
 
       return _mapToFormEntity(response);
     } catch (e) {
-      print('[TransactionRealtimeDataSource] Error getting form: $e');
+      debugPrint('[TransactionRealtimeDataSource] Error getting form: $e');
       return null;
     }
   }
@@ -409,8 +569,24 @@ class TransactionRealtimeDataSource {
   /// Submit or update a form
   Future<TransactionFormEntity?> submitForm(TransactionFormEntity form) async {
     try {
+      debugPrint(
+        '[TransactionRealtimeDataSource] Submitting form for role: ${form.role}',
+      );
       final txnId = await _resolveTransactionId(form.transactionId);
       if (txnId == null) throw Exception('Transaction not found');
+
+      // Fetch transaction to get agreed_price (required field in transaction_forms)
+      final txnResponse = await _supabase
+          .from('auction_transactions')
+          .select('agreed_price')
+          .eq('id', txnId)
+          .maybeSingle();
+
+      final agreedPrice =
+          (txnResponse?['agreed_price'] as num?)?.toDouble() ?? 0.0;
+      debugPrint(
+        '[TransactionRealtimeDataSource] Resolved agreed_price: $agreedPrice',
+      );
 
       final roleStr = form.role == FormRole.seller ? 'seller' : 'buyer';
 
@@ -418,7 +594,7 @@ class TransactionRealtimeDataSource {
         'transaction_id': txnId,
         'role': roleStr,
         'status': 'submitted',
-        'agreed_price': form.agreedPrice,
+        'agreed_price': agreedPrice,
         'payment_method': form.paymentMethod,
         'delivery_date': form.preferredDate.toIso8601String(),
         'delivery_location': form.handoverLocation,
@@ -426,29 +602,36 @@ class TransactionRealtimeDataSource {
         'delivery_address': form.deliveryAddress,
         'contact_number': form.contactNumber,
         'handover_time_slot': form.handoverTimeSlot,
+        // Seller specific
         'or_cr_verified': form.orCrOriginalAvailable,
         'deeds_of_sale_ready': form.deedOfSaleReady,
         'release_of_mortgage': form.releaseOfMortgage,
         'registration_valid': form.registrationValid,
         'no_outstanding_loans': form.noLiensEncumbrances,
         'mechanical_inspection_done': form.conditionMatchesListing,
+        'new_issues_disclosure': form.newIssuesDisclosure,
+        'fuel_level': form.fuelLevel,
+        'accessories_included': form.accessoriesIncluded,
+        // Buyer specific
         'reviewed_vehicle_condition': form.reviewedVehicleCondition,
         'understood_auction_terms': form.understoodAuctionTerms,
         'will_arrange_insurance': form.willArrangeInsurance,
         'accepts_as_is_condition': form.acceptsAsIsCondition,
-        'new_issues_disclosure': form.newIssuesDisclosure,
-        'fuel_level': form.fuelLevel,
-        'accessories_included': form.accessoriesIncluded,
+        // Shared
         'additional_terms': form.additionalNotes,
         'submitted_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       };
+
+      debugPrint('[TransactionRealtimeDataSource] UPSERT data: $data');
 
       final response = await _supabase
           .from('transaction_forms')
           .upsert(data, onConflict: 'transaction_id,role')
           .select()
           .single();
+
+      debugPrint('[TransactionRealtimeDataSource] Form UPSERT successful');
 
       // Update transaction flags
       final flagColumn = form.role == FormRole.seller
@@ -462,6 +645,8 @@ class TransactionRealtimeDataSource {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', txnId);
+
+      debugPrint('[TransactionRealtimeDataSource] Transaction flag updated');
 
       // Add timeline event
       final userId = _supabase.auth.currentUser?.id ?? '';
@@ -478,8 +663,15 @@ class TransactionRealtimeDataSource {
 
       return _mapToFormEntity(response);
     } catch (e) {
-      print('[TransactionRealtimeDataSource] Error submitting form: $e');
-      return null;
+      debugPrint('[TransactionRealtimeDataSource] ❌ Error submitting form: $e');
+      if (e is PostgrestException) {
+        debugPrint(
+          '[TransactionRealtimeDataSource] PostgreSQL Error: ${e.message} (${e.code})',
+        );
+        debugPrint('[TransactionRealtimeDataSource] Details: ${e.details}');
+        debugPrint('[TransactionRealtimeDataSource] Hint: ${e.hint}');
+      }
+      rethrow;
     }
   }
 
@@ -528,7 +720,7 @@ class TransactionRealtimeDataSource {
 
       return true;
     } catch (e) {
-      print('[TransactionRealtimeDataSource] Error confirming form: $e');
+      debugPrint('[TransactionRealtimeDataSource] Error confirming form: $e');
       return false;
     }
   }
@@ -583,65 +775,78 @@ class TransactionRealtimeDataSource {
 
       return true;
     } catch (e) {
-      print(
+      debugPrint(
         '[TransactionRealtimeDataSource] Error withdrawing confirmation: $e',
       );
       return false;
     }
   }
 
-  /// Buyer cancels the deal
+  /// Cancel the deal ( Buyer or Seller )
   /// This sets the transaction to deal_failed and the auction to deal_failed
   /// Seller can then choose to offer to next bidder or relist
-  Future<bool> buyerCancelDeal(
-    String transactionId, {
+  Future<bool> cancelDeal(
+    String transactionId,
+    FormRole role, {
     String reason = '',
   }) async {
-    print('[BuyerCancelDeal] 🚀 Starting cancel for: $transactionId');
+    debugPrint(
+      '[CancelDeal] 🚀 Starting cancel for: $transactionId (Role: $role)',
+    );
 
     try {
       // Step 1: Resolve transaction ID
-      print('[BuyerCancelDeal] Step 1: Resolving transaction ID...');
+      debugPrint('[CancelDeal] Step 1: Resolving transaction ID...');
       final txnId = await _resolveTransactionId(transactionId);
       if (txnId == null) {
-        print('[BuyerCancelDeal] ❌ Failed: Could not resolve transaction ID');
+        debugPrint('[CancelDeal] ❌ Failed: Could not resolve transaction ID');
         return false;
       }
-      print('[BuyerCancelDeal] ✅ Resolved txnId: $txnId');
+      debugPrint('[CancelDeal] ✅ Resolved txnId: $txnId');
 
       // Step 2: Get transaction summary
-      print('[BuyerCancelDeal] Step 2: Getting transaction summary...');
+      debugPrint('[CancelDeal] Step 2: Getting transaction summary...');
       final txn = await _getTransactionSummary(txnId);
       if (txn == null) {
-        print('[BuyerCancelDeal] ❌ Failed: Could not get transaction summary');
+        debugPrint('[CancelDeal] ❌ Failed: Could not get transaction summary');
         return false;
       }
-      print('[BuyerCancelDeal] ✅ Transaction summary: $txn');
+      debugPrint('[CancelDeal] ✅ Transaction summary: $txn');
 
       final auctionId = txn['auctionId'] as String?;
       if (auctionId == null) {
-        print('[BuyerCancelDeal] ❌ Failed: No auction ID in transaction');
+        debugPrint('[CancelDeal] ❌ Failed: No auction ID in transaction');
         return false;
       }
-      print('[BuyerCancelDeal] ✅ Auction ID: $auctionId');
+      debugPrint('[CancelDeal] ✅ Auction ID: $auctionId');
 
       final now = DateTime.now().toIso8601String();
 
       // Step 3: Update transaction status
-      print('[BuyerCancelDeal] Step 3: Updating transaction status...');
+      debugPrint('[CancelDeal] Step 3: Updating transaction status...');
       try {
+        final updateData = {'status': 'deal_failed', 'updated_at': now};
+
+        if (role == FormRole.buyer) {
+          updateData['buyer_rejection_reason'] = reason;
+          updateData['buyer_acceptance_status'] = 'rejected';
+          updateData['buyer_accepted_at'] = now;
+        } else {
+          updateData['seller_rejection_reason'] = reason;
+        }
+
         await _supabase
             .from('auction_transactions')
-            .update({'status': 'deal_failed', 'updated_at': now})
+            .update(updateData)
             .eq('id', txnId);
-        print('[BuyerCancelDeal] ✅ Transaction status updated to deal_failed');
+        debugPrint('[CancelDeal] ✅ Transaction status updated to deal_failed');
       } catch (e) {
-        print('[BuyerCancelDeal] ❌ Failed to update transaction: $e');
+        debugPrint('[CancelDeal] ❌ Failed to update transaction: $e');
         return false;
       }
 
       // Step 4: Update auction status to cancelled/deal_failed
-      print('[BuyerCancelDeal] Step 4: Updating auction status...');
+      debugPrint('[CancelDeal] Step 4: Updating auction status...');
       try {
         // Get 'cancelled' status ID (for failed deals)
         final cancelledStatusResponse = await _supabase
@@ -658,19 +863,19 @@ class TransactionRealtimeDataSource {
                 'updated_at': now,
               })
               .eq('id', auctionId);
-          print('[BuyerCancelDeal] ✅ Auction status updated to cancelled');
+          debugPrint('[CancelDeal] ✅ Auction status updated to cancelled');
         } else {
-          print('[BuyerCancelDeal] ⚠️ Cancelled status not found');
+          debugPrint('[CancelDeal] ⚠️ Cancelled status not found');
         }
       } catch (e) {
-        print('[BuyerCancelDeal] ⚠️ Warning: Failed to update auction: $e');
+        debugPrint('[CancelDeal] ⚠️ Warning: Failed to update auction: $e');
         // Don't return false - auction update is secondary
       }
 
       // Step 5: Update buyer's bid status to 'lost' (cancelled bids are marked as lost)
       final buyerId = txn['buyerId'] as String?;
-      print(
-        '[BuyerCancelDeal] Step 5: Updating bid status for buyer: $buyerId',
+      debugPrint(
+        '[CancelDeal] Step 5: Updating bid status for buyer: $buyerId',
       );
       if (buyerId != null) {
         try {
@@ -688,70 +893,75 @@ class TransactionRealtimeDataSource {
                 .update({'status_id': lostStatusId, 'updated_at': now})
                 .eq('auction_id', auctionId)
                 .eq('bidder_id', buyerId);
-            print('[BuyerCancelDeal] ✅ Bid status updated to lost');
+            debugPrint('[CancelDeal] ✅ Bid status updated to lost');
           }
         } catch (e) {
-          print('[BuyerCancelDeal] ⚠️ Warning: Failed to update bid: $e');
+          debugPrint('[CancelDeal] ⚠️ Warning: Failed to update bid: $e');
           // Don't return false - bid update is secondary
         }
       }
 
       // Step 6: Add timeline event
-      print('[BuyerCancelDeal] Step 6: Adding timeline event...');
+      debugPrint('[CancelDeal] Step 6: Adding timeline event...');
       final userId = _supabase.auth.currentUser?.id ?? '';
+      final roleLabel = role == FormRole.buyer ? 'Buyer' : 'Seller';
       final userName =
-          _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Buyer';
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+          roleLabel;
       try {
         await _addTimelineEvent(
           txnId,
-          'Deal Cancelled by Buyer',
+          'Deal Cancelled by $roleLabel',
           reason.isNotEmpty
-              ? 'Buyer cancelled the deal. Reason: $reason'
-              : 'Buyer cancelled the deal.',
+              ? '$roleLabel cancelled the deal. Reason: $reason'
+              : '$roleLabel cancelled the deal.',
           'cancelled',
           userId,
           userName,
         );
-        print('[BuyerCancelDeal] ✅ Timeline event added');
+        debugPrint('[CancelDeal] ✅ Timeline event added');
       } catch (e) {
-        print('[BuyerCancelDeal] ⚠️ Warning: Failed to add timeline: $e');
+        debugPrint('[CancelDeal] ⚠️ Warning: Failed to add timeline: $e');
         // Don't return false - timeline is secondary
       }
 
-      print('[BuyerCancelDeal] 🎉 SUCCESS: Deal cancelled successfully');
+      debugPrint('[CancelDeal] 🎉 SUCCESS: Deal cancelled successfully');
       return true;
     } catch (e, stackTrace) {
-      print('[BuyerCancelDeal] ❌ FATAL ERROR: $e');
-      print('[BuyerCancelDeal] Stack trace: $stackTrace');
+      debugPrint('[CancelDeal] ❌ FATAL ERROR: $e');
+      debugPrint('[CancelDeal] Stack trace: $stackTrace');
       return false;
     }
   }
 
   /// Reassign the transaction to the next highest bidder when the winner fails
-  /// Falls back gracefully if no secondary bidder exists
+  /// FIXES: Uses UPDATE (not INSERT) because auction_id has UNIQUE constraint.
+  /// Resets the existing transaction to a fresh state with the new buyer.
+  /// Clears old chat, timeline, and agreement fields for a clean start.
+  /// Notifies the new buyer immediately.
   Future<bool> offerToNextHighestBidder(String transactionId) async {
     try {
-      print('[OfferNextBidder] Starting for transaction: $transactionId');
+      debugPrint('[OfferNextBidder] Starting for transaction: $transactionId');
 
       final txn = await _getTransactionSummary(transactionId);
       if (txn == null) {
-        print('[OfferNextBidder] ❌ Transaction summary not found');
+        debugPrint('[OfferNextBidder] ❌ Transaction summary not found');
         return false;
       }
 
       final auctionId = txn['auctionId'] as String?;
       final currentBuyerId = txn['buyerId'] as String?;
-      if (auctionId == null) {
-        print('[OfferNextBidder] ❌ Auction ID not found');
+      final txnId = txn['transactionId'] as String?;
+      if (auctionId == null || txnId == null) {
+        debugPrint('[OfferNextBidder] ❌ Auction/Transaction ID not found');
         return false;
       }
 
-      print(
+      debugPrint(
         '[OfferNextBidder] Auction: $auctionId, Current buyer: $currentBuyerId',
       );
 
       // Query all bids for this auction, ordered by amount descending
-      // Join with bid_statuses to filter out lost/refunded bids
       final bidsResponse = await _supabase
           .from('bids')
           .select('''
@@ -764,14 +974,14 @@ class TransactionRealtimeDataSource {
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);
 
-      print('[OfferNextBidder] Found ${bidsResponse.length} bids');
+      debugPrint('[OfferNextBidder] Found ${bidsResponse.length} bids');
 
       if (bidsResponse.isEmpty) {
-        print('[OfferNextBidder] ❌ No bids found for this auction');
+        debugPrint('[OfferNextBidder] ❌ No bids found for this auction');
         return false;
       }
 
-      // Find the next highest bidder (excluding current buyer and lost bids)
+      // Find the next highest bidder (excluding current buyer and lost/refunded bids)
       Map<String, dynamic>? nextBid;
       for (final bid in bidsResponse) {
         final bidderId = bid['bidder_id'] as String?;
@@ -780,23 +990,24 @@ class TransactionRealtimeDataSource {
             ? statusData['status_name'] as String?
             : null;
 
-        print(
+        debugPrint(
           '[OfferNextBidder] Bid: bidder=$bidderId, amount=${bid['bid_amount']}, status=$statusName',
         );
 
-        // Skip current buyer and lost/refunded bids
         if (bidderId != null &&
             bidderId != currentBuyerId &&
             statusName != 'lost' &&
             statusName != 'refunded') {
           nextBid = Map<String, dynamic>.from(bid);
-          print('[OfferNextBidder] ✅ Found eligible next bidder: $bidderId');
+          debugPrint(
+            '[OfferNextBidder] ✅ Found eligible next bidder: $bidderId',
+          );
           break;
         }
       }
 
       if (nextBid == null) {
-        print('[OfferNextBidder] ❌ No eligible next bidder found');
+        debugPrint('[OfferNextBidder] ❌ No eligible next bidder found');
         return false;
       }
 
@@ -804,18 +1015,17 @@ class TransactionRealtimeDataSource {
       final nextAmount = (nextBid['bid_amount'] as num?)?.toDouble();
 
       if (nextBidderId == null || nextAmount == null) {
-        print('[OfferNextBidder] ❌ Invalid next bidder data');
+        debugPrint('[OfferNextBidder] ❌ Invalid next bidder data');
         return false;
       }
 
-      print(
+      debugPrint(
         '[OfferNextBidder] Reassigning to: $nextBidderId with amount: $nextAmount',
       );
 
       final now = DateTime.now().toIso8601String();
-      final txnId = txn['transactionId'] as String;
 
-      // Update transaction with new buyer
+      // 1. UPDATE existing transaction (UNIQUE constraint on auction_id prevents INSERT)
       await _supabase
           .from('auction_transactions')
           .update({
@@ -828,25 +1038,59 @@ class TransactionRealtimeDataSource {
             'buyer_confirmed': false,
             'admin_approved': false,
             'admin_approved_at': null,
+            'both_confirmed_at': null,
             'delivery_status': 'pending',
             'delivery_started_at': null,
             'delivery_completed_at': null,
+            'buyer_acceptance_status': 'pending',
+            'buyer_accepted_at': null,
+            'buyer_rejection_reason': null,
+            'seller_rejection_reason': null,
             'completed_at': null,
             'updated_at': now,
           })
           .eq('id', txnId);
+      debugPrint('[OfferNextBidder] ✅ Transaction reassigned to new buyer');
 
-      print('[OfferNextBidder] ✅ Transaction updated');
+      // 2. Clear old chat messages, timeline, forms, and agreement fields
+      await Future.wait([
+        _supabase.from('transaction_chat').delete().eq('transaction_id', txnId),
+        _supabase
+            .from('transaction_timeline')
+            .delete()
+            .eq('transaction_id', txnId),
+        _supabase
+            .from('transaction_forms')
+            .delete()
+            .eq('transaction_id', txnId),
+        _supabase
+            .from('transaction_agreement_fields')
+            .delete()
+            .eq('transaction_id', txnId),
+      ]);
+      debugPrint('[OfferNextBidder] ✅ Cleared old chat/timeline/forms');
 
-      // Update auction current_price to reflect the new winning bid
-      await _supabase
-          .from('auctions')
-          .update({'current_price': nextAmount, 'updated_at': now})
-          .eq('id', auctionId);
+      // 3. Update auction: set auction status back to in_transaction, update price
+      final inTxnStatus = await _supabase
+          .from('auction_statuses')
+          .select('id')
+          .eq('status_name', 'in_transaction')
+          .maybeSingle();
 
-      print('[OfferNextBidder] ✅ Auction current_price updated');
+      if (inTxnStatus != null) {
+        await _supabase
+            .from('auctions')
+            .update({
+              'current_price': nextAmount,
+              'status_id': inTxnStatus['id'],
+              'updated_at': now,
+            })
+            .eq('id', auctionId);
+      }
 
-      // Mark the previous buyer's bid as lost
+      debugPrint('[OfferNextBidder] ✅ Auction price + status updated');
+
+      // 4. Mark the previous buyer's bid as lost
       if (currentBuyerId != null) {
         try {
           final lostStatusResponse = await _supabase
@@ -864,175 +1108,196 @@ class TransactionRealtimeDataSource {
                 })
                 .eq('auction_id', auctionId)
                 .eq('bidder_id', currentBuyerId);
-            print('[OfferNextBidder] ✅ Previous buyer bid marked as lost');
+            debugPrint('[OfferNextBidder] ✅ Previous buyer bid marked as lost');
           }
         } catch (e) {
-          print('[OfferNextBidder] ⚠️ Warning: Failed to update old bid: $e');
+          debugPrint(
+            '[OfferNextBidder] ⚠️ Warning: Failed to update old bid: $e',
+          );
         }
       }
 
-      // Add timeline event
+      // 5. Add timeline event to the fresh transaction
       final actorId = _supabase.auth.currentUser?.id ?? '';
       final actorName =
           _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Seller';
 
       await _addTimelineEvent(
         txnId,
-        'Offered to next highest bidder',
-        'Seller reassigned the transaction to the next eligible bidder.',
-        'message_sent',
+        'Transaction Started',
+        'Seller reassigned the winning bid to the next highest bidder.',
+        'created',
         actorId,
         actorName,
       );
 
-      print('[OfferNextBidder] 🎉 SUCCESS');
+      // 6. Notify the new buyer
+      try {
+        final auctionTitle =
+            (await _supabase
+                    .from('auctions')
+                    .select('title')
+                    .eq('id', auctionId)
+                    .maybeSingle())?['title']
+                as String? ??
+            'an auction';
+
+        await _supabase.from('notifications').insert({
+          'user_id': nextBidderId,
+          'type_id': await _getNotificationTypeId('outbid'),
+          'title': 'You Won! 🎉',
+          'message':
+              'The seller has selected you as the new winner for "$auctionTitle" at ₱${nextAmount.toStringAsFixed(0)}. Open the transaction to begin.',
+          'data': {
+            'auction_id': auctionId,
+            'transaction_id': txnId,
+            'action': 'open_transaction',
+          },
+          'is_read': false,
+        });
+        debugPrint('[OfferNextBidder] ✅ New buyer notified');
+      } catch (e) {
+        debugPrint(
+          '[OfferNextBidder] ⚠️ Warning: Failed to notify new buyer: $e',
+        );
+      }
+
+      debugPrint('[OfferNextBidder] 🎉 SUCCESS');
       return true;
     } catch (e, stack) {
-      print('[OfferNextBidder] ❌ Error: $e');
-      print('[OfferNextBidder] Stack: $stack');
+      debugPrint('[OfferNextBidder] ❌ Error: $e');
+      debugPrint('[OfferNextBidder] Stack: $stack');
       return false;
     }
   }
 
   /// Relist the auction for a fresh round of bidding
-  /// Resets auction timing and clears winner fields
+  /// Moves auction back to pending_approval for admin review
+  /// Clears ALL existing bids, auto_bid_settings, and auto_bid_queue for a fresh start
   Future<bool> relistAuction(String transactionId) async {
     try {
-      print('[RelistAuction] Starting for transaction: $transactionId');
+      debugPrint('[RelistAuction] Starting for transaction: $transactionId');
 
       final txn = await _getTransactionSummary(transactionId);
       if (txn == null) {
-        print('[RelistAuction] ❌ Transaction summary not found');
+        debugPrint('[RelistAuction] ❌ Transaction summary not found');
         return false;
       }
 
       final auctionId = txn['auctionId'] as String?;
       final txnId = txn['transactionId'] as String?;
       if (auctionId == null) {
-        print('[RelistAuction] ❌ Auction ID not found');
+        debugPrint('[RelistAuction] ❌ Auction ID not found');
         return false;
       }
 
-      print('[RelistAuction] Auction: $auctionId');
+      debugPrint('[RelistAuction] Auction: $auctionId');
 
-      final now = DateTime.now();
-      final newEnd = now.add(const Duration(days: 7));
+      final now = DateTime.now().toIso8601String();
 
-      // Get the 'live' status ID (auctions use 'live' not 'active')
-      final liveStatusResponse = await _supabase
+      // Get the 'pending_approval' status ID
+      final pendingStatusResponse = await _supabase
           .from('auction_statuses')
           .select('id')
-          .eq('status_name', 'live')
+          .eq('status_name', 'pending_approval')
           .maybeSingle();
 
-      if (liveStatusResponse == null) {
-        print('[RelistAuction] ❌ Live status not found');
+      if (pendingStatusResponse == null) {
+        debugPrint('[RelistAuction] ❌ Pending status not found');
         return false;
       }
 
-      final liveStatusId = liveStatusResponse['id'] as String;
+      final pendingStatusId = pendingStatusResponse['id'] as String;
 
-      // Update auction to live status with new timing
-      // Note: auctions table only has status_id, current_price, start_time, end_time
-      // Winner info is stored in auction_transactions, not auctions
+      // 1. Update auction to pending_approval status, reset price and bid count
       await _supabase
           .from('auctions')
           .update({
-            'status_id': liveStatusId,
+            'status_id': pendingStatusId,
             'current_price': 0,
-            'start_time': now.toIso8601String(),
-            'end_time': newEnd.toIso8601String(),
-            'updated_at': now.toIso8601String(),
+            'total_bids': 0,
+            'updated_at': now,
           })
           .eq('id', auctionId);
 
-      print('[RelistAuction] ✅ Auction updated to live');
+      debugPrint('[RelistAuction] ✅ Auction updated to pending_approval');
 
-      // Delete the failed transaction record (start fresh)
+      // 2. Clear ALL bids, auto_bid_settings, and auto_bid_queue for fresh start
+      await Future.wait([
+        _supabase.from('bids').delete().eq('auction_id', auctionId),
+        _supabase
+            .from('auto_bid_settings')
+            .delete()
+            .eq('auction_id', auctionId),
+        _supabase.from('auto_bid_queue').delete().eq('auction_id', auctionId),
+      ]);
+      debugPrint('[RelistAuction] ✅ Cleared all bids and auto-bid data');
+
+      // 3. Clear the old transaction's chat, forms, timeline, agreement fields
       if (txnId != null) {
-        try {
-          // Delete related records first
-          await _supabase
+        await Future.wait([
+          _supabase
+              .from('transaction_chat')
+              .delete()
+              .eq('transaction_id', txnId),
+          _supabase
               .from('transaction_timeline')
               .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase
-              .from('transaction_chat_messages')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase
+              .eq('transaction_id', txnId),
+          _supabase
               .from('transaction_forms')
               .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase.from('auction_transactions').delete().eq('id', txnId);
-
-          print('[RelistAuction] ✅ Old transaction deleted');
-        } catch (e) {
-          print(
-            '[RelistAuction] ⚠️ Warning: Failed to delete old transaction: $e',
-          );
-        }
+              .eq('transaction_id', txnId),
+          _supabase
+              .from('transaction_agreement_fields')
+              .delete()
+              .eq('transaction_id', txnId),
+        ]);
+        debugPrint('[RelistAuction] ✅ Cleared old transaction data');
       }
 
-      print('[RelistAuction] 🎉 SUCCESS');
+      // 4. Delete the old transaction record so a new one can be created
+      //    when the auction sells again (UNIQUE constraint on auction_id)
+      if (txnId != null) {
+        await _supabase.from('auction_transactions').delete().eq('id', txnId);
+        debugPrint('[RelistAuction] ✅ Old transaction deleted');
+      }
+
+      // 5. Add timeline event (before deleting the transaction)
+      // Note: Since we deleted the transaction, we log to debug instead
+      debugPrint(
+        '[RelistAuction] Auction relisted and awaiting admin approval',
+      );
+
+      debugPrint('[RelistAuction] 🎉 SUCCESS');
       return true;
     } catch (e, stack) {
-      print('[RelistAuction] ❌ Error: $e');
-      print('[RelistAuction] Stack: $stack');
+      debugPrint('[RelistAuction] ❌ Error: $e');
+      debugPrint('[RelistAuction] Stack: $stack');
       return false;
     }
   }
 
   /// Delete the auction entirely after a failed deal
-  /// Removes the auction and transaction records
+  /// Marks the auction as cancelled (soft delete)
   Future<bool> deleteAuction(String transactionId) async {
     try {
-      print('[DeleteAuction] Starting for transaction: $transactionId');
+      debugPrint('[DeleteAuction] Starting for transaction: $transactionId');
 
       final txn = await _getTransactionSummary(transactionId);
       if (txn == null) {
-        print('[DeleteAuction] ❌ Transaction summary not found');
+        debugPrint('[DeleteAuction] ❌ Transaction summary not found');
         return false;
       }
 
       final auctionId = txn['auctionId'] as String?;
       final txnId = txn['transactionId'] as String?;
       if (auctionId == null) {
-        print('[DeleteAuction] ❌ Auction ID not found');
+        debugPrint('[DeleteAuction] ❌ Auction ID not found');
         return false;
       }
 
-      print('[DeleteAuction] Auction: $auctionId, Transaction: $txnId');
-
-      // Delete transaction record first (foreign key constraint)
-      if (txnId != null) {
-        try {
-          // Delete related records first
-          await _supabase
-              .from('transaction_timeline')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase
-              .from('transaction_chat_messages')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase
-              .from('transaction_forms')
-              .delete()
-              .eq('transaction_id', txnId);
-
-          await _supabase.from('auction_transactions').delete().eq('id', txnId);
-
-          print('[DeleteAuction] ✅ Transaction records deleted');
-        } catch (e) {
-          print('[DeleteAuction] ⚠️ Warning: Failed to delete transaction: $e');
-        }
-      }
+      debugPrint('[DeleteAuction] Auction: $auctionId, Transaction: $txnId');
 
       // Get the 'cancelled' status ID
       final cancelledStatusResponse = await _supabase
@@ -1042,14 +1307,13 @@ class TransactionRealtimeDataSource {
           .maybeSingle();
 
       if (cancelledStatusResponse == null) {
-        print('[DeleteAuction] ❌ Cancelled status not found');
+        debugPrint('[DeleteAuction] ❌ Cancelled status not found');
         return false;
       }
 
       final cancelledStatusId = cancelledStatusResponse['id'] as String;
 
       // Update auction status to cancelled (soft delete)
-      // Note: auctions table only has status_id, current_price - winner info is in auction_transactions
       await _supabase
           .from('auctions')
           .update({
@@ -1058,12 +1322,30 @@ class TransactionRealtimeDataSource {
           })
           .eq('id', auctionId);
 
-      print('[DeleteAuction] ✅ Auction marked as cancelled');
-      print('[DeleteAuction] 🎉 SUCCESS');
+      debugPrint('[DeleteAuction] ✅ Auction marked as cancelled');
+
+      // Add timeline event to the failed transaction
+      if (txnId != null) {
+        final actorId = _supabase.auth.currentUser?.id ?? '';
+        final actorName =
+            _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+            'Seller';
+
+        await _addTimelineEvent(
+          txnId,
+          'Auction Deleted',
+          'Seller chose to delete the auction after the deal failed.',
+          'cancelled',
+          actorId,
+          actorName,
+        );
+      }
+
+      debugPrint('[DeleteAuction] 🎉 SUCCESS');
       return true;
     } catch (e, stack) {
-      print('[DeleteAuction] ❌ Error: $e');
-      print('[DeleteAuction] Stack: $stack');
+      debugPrint('[DeleteAuction] ❌ Error: $e');
+      debugPrint('[DeleteAuction] Stack: $stack');
       return false;
     }
   }
@@ -1078,22 +1360,24 @@ class TransactionRealtimeDataSource {
     String transactionId,
   ) async {
     try {
-      print('[GetAuctionBidders] Starting for transaction: $transactionId');
+      debugPrint(
+        '[GetAuctionBidders] Starting for transaction: $transactionId',
+      );
 
       final txn = await _getTransactionSummary(transactionId);
       if (txn == null) {
-        print('[GetAuctionBidders] ❌ Transaction not found');
+        debugPrint('[GetAuctionBidders] ❌ Transaction not found');
         return [];
       }
 
       final auctionId = txn['auctionId'] as String?;
       final currentBuyerId = txn['buyerId'] as String?;
       if (auctionId == null) {
-        print('[GetAuctionBidders] ❌ Auction ID not found');
+        debugPrint('[GetAuctionBidders] ❌ Auction ID not found');
         return [];
       }
 
-      print(
+      debugPrint(
         '[GetAuctionBidders] Auction: $auctionId, CurrentBuyer: $currentBuyerId',
       );
 
@@ -1104,12 +1388,14 @@ class TransactionRealtimeDataSource {
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);
 
-      print(
+      debugPrint(
         '[GetAuctionBidders] Raw bids query returned: ${bidsResponse.length} bids',
       );
 
       if (bidsResponse.isEmpty) {
-        print('[GetAuctionBidders] ⚠️ No bids found for auction $auctionId');
+        debugPrint(
+          '[GetAuctionBidders] ⚠️ No bids found for auction $auctionId',
+        );
         return [];
       }
 
@@ -1121,7 +1407,7 @@ class TransactionRealtimeDataSource {
         final bidAmount = (bid['bid_amount'] as num?)?.toDouble() ?? 0;
         final statusId = bid['status_id'] as String?;
 
-        print(
+        debugPrint(
           '[GetAuctionBidders] Processing bid: bidder=$bidderId, amount=$bidAmount',
         );
 
@@ -1141,7 +1427,7 @@ class TransactionRealtimeDataSource {
               avatarUrl = userResponse['profile_image_url'] as String?;
             }
           } catch (e) {
-            print('[GetAuctionBidders] ⚠️ Failed to get user info: $e');
+            debugPrint('[GetAuctionBidders] ⚠️ Failed to get user info: $e');
           }
         }
 
@@ -1161,7 +1447,7 @@ class TransactionRealtimeDataSource {
               statusDisplay = statusResponse['display_name'] as String?;
             }
           } catch (e) {
-            print('[GetAuctionBidders] ⚠️ Failed to get status info: $e');
+            debugPrint('[GetAuctionBidders] ⚠️ Failed to get status info: $e');
           }
         }
 
@@ -1183,44 +1469,47 @@ class TransactionRealtimeDataSource {
         });
       }
 
-      print('[GetAuctionBidders] Processed ${bidders.length} bidders');
+      debugPrint('[GetAuctionBidders] Processed ${bidders.length} bidders');
       return bidders;
     } catch (e, stack) {
-      print('[GetAuctionBidders] ❌ Error: $e');
-      print('[GetAuctionBidders] Stack: $stack');
+      debugPrint('[GetAuctionBidders] ❌ Error: $e');
+      debugPrint('[GetAuctionBidders] Stack: $stack');
       return [];
     }
   }
 
   /// Offer to a specific bidder (not just the next highest)
+  /// FIXES: Uses UPDATE (not INSERT) because auction_id has UNIQUE constraint.
   Future<bool> offerToSpecificBidder(
     String transactionId,
     String newBidderId,
     double bidAmount,
   ) async {
     try {
-      print(
+      debugPrint(
         '[OfferToSpecificBidder] Starting: txn=$transactionId, bidder=$newBidderId',
       );
 
       final txn = await _getTransactionSummary(transactionId);
       if (txn == null) {
-        print('[OfferToSpecificBidder] ❌ Transaction not found');
+        debugPrint('[OfferToSpecificBidder] ❌ Transaction not found');
         return false;
       }
 
       final auctionId = txn['auctionId'] as String?;
       final currentBuyerId = txn['buyerId'] as String?;
-      final txnId = txn['transactionId'] as String;
+      final txnId = txn['transactionId'] as String?;
 
-      if (auctionId == null) {
-        print('[OfferToSpecificBidder] ❌ Auction ID not found');
+      if (auctionId == null || txnId == null) {
+        debugPrint(
+          '[OfferToSpecificBidder] ❌ Auction/Transaction ID not found',
+        );
         return false;
       }
 
       final now = DateTime.now().toIso8601String();
 
-      // Update transaction with new buyer
+      // 1. UPDATE existing transaction (UNIQUE constraint on auction_id prevents INSERT)
       await _supabase
           .from('auction_transactions')
           .update({
@@ -1233,26 +1522,61 @@ class TransactionRealtimeDataSource {
             'buyer_confirmed': false,
             'admin_approved': false,
             'admin_approved_at': null,
+            'both_confirmed_at': null,
             'delivery_status': 'pending',
             'delivery_started_at': null,
             'delivery_completed_at': null,
+            'buyer_acceptance_status': 'pending',
+            'buyer_accepted_at': null,
+            'buyer_rejection_reason': null,
+            'seller_rejection_reason': null,
             'completed_at': null,
             'updated_at': now,
           })
           .eq('id', txnId);
+      debugPrint(
+        '[OfferToSpecificBidder] ✅ Transaction reassigned to new buyer',
+      );
 
-      print('[OfferToSpecificBidder] ✅ Transaction updated');
+      // 2. Clear old chat messages, timeline, forms, and agreement fields
+      await Future.wait([
+        _supabase.from('transaction_chat').delete().eq('transaction_id', txnId),
+        _supabase
+            .from('transaction_timeline')
+            .delete()
+            .eq('transaction_id', txnId),
+        _supabase
+            .from('transaction_forms')
+            .delete()
+            .eq('transaction_id', txnId),
+        _supabase
+            .from('transaction_agreement_fields')
+            .delete()
+            .eq('transaction_id', txnId),
+      ]);
+      debugPrint('[OfferToSpecificBidder] ✅ Cleared old chat/timeline/forms');
 
-      // Update auction current_price to reflect the new winning bid
-      // Note: winner info is stored in auction_transactions, not auctions table
-      await _supabase
-          .from('auctions')
-          .update({'current_price': bidAmount, 'updated_at': now})
-          .eq('id', auctionId);
+      // 3. Update auction: set status back to in_transaction, update price
+      final inTxnStatus = await _supabase
+          .from('auction_statuses')
+          .select('id')
+          .eq('status_name', 'in_transaction')
+          .maybeSingle();
 
-      print('[OfferToSpecificBidder] ✅ Auction current_price updated');
+      if (inTxnStatus != null) {
+        await _supabase
+            .from('auctions')
+            .update({
+              'current_price': bidAmount,
+              'status_id': inTxnStatus['id'],
+              'updated_at': now,
+            })
+            .eq('id', auctionId);
+      }
 
-      // Mark the previous buyer's bid as lost
+      debugPrint('[OfferToSpecificBidder] ✅ Auction price + status updated');
+
+      // 4. Mark the previous buyer's bid as lost
       if (currentBuyerId != null) {
         try {
           final lostStatusResponse = await _supabase
@@ -1270,38 +1594,264 @@ class TransactionRealtimeDataSource {
                 })
                 .eq('auction_id', auctionId)
                 .eq('bidder_id', currentBuyerId);
-            print(
+            debugPrint(
               '[OfferToSpecificBidder] ✅ Previous buyer bid marked as lost',
             );
           }
         } catch (e) {
-          print(
+          debugPrint(
             '[OfferToSpecificBidder] ⚠️ Warning: Failed to update old bid: $e',
           );
         }
       }
 
-      // Add timeline event
+      // 5. Add timeline event to the fresh transaction
       final actorId = _supabase.auth.currentUser?.id ?? '';
       final actorName =
           _supabase.auth.currentUser?.userMetadata?['display_name'] ?? 'Seller';
 
       await _addTimelineEvent(
         txnId,
-        'Offered to selected bidder',
+        'Transaction Started',
         'Seller selected a new buyer for this transaction.',
-        'message_sent',
+        'created',
         actorId,
         actorName,
       );
 
-      print('[OfferToSpecificBidder] 🎉 SUCCESS');
+      // 6. Notify the new buyer
+      try {
+        final auctionTitle =
+            (await _supabase
+                    .from('auctions')
+                    .select('title')
+                    .eq('id', auctionId)
+                    .maybeSingle())?['title']
+                as String? ??
+            'an auction';
+
+        await _supabase.from('notifications').insert({
+          'user_id': newBidderId,
+          'type_id': await _getNotificationTypeId('outbid'),
+          'title': 'You Won! 🎉',
+          'message':
+              'The seller has selected you as the new winner for "$auctionTitle" at ₱${bidAmount.toStringAsFixed(0)}. Open the transaction to begin.',
+          'data': {
+            'auction_id': auctionId,
+            'transaction_id': txnId,
+            'action': 'open_transaction',
+          },
+          'is_read': false,
+        });
+        debugPrint('[OfferToSpecificBidder] ✅ New buyer notified');
+      } catch (e) {
+        debugPrint(
+          '[OfferToSpecificBidder] ⚠️ Warning: Failed to notify new buyer: $e',
+        );
+      }
+
+      debugPrint('[OfferToSpecificBidder] 🎉 SUCCESS');
       return true;
     } catch (e, stack) {
-      print('[OfferToSpecificBidder] ❌ Error: $e');
-      print('[OfferToSpecificBidder] Stack: $stack');
+      debugPrint('[OfferToSpecificBidder] ❌ Error: $e');
+      debugPrint('[OfferToSpecificBidder] Stack: $stack');
       return false;
     }
+  }
+
+  // ============================================================================
+  // DELIVERY & COMPLETION
+  // ============================================================================
+
+  /// Update delivery status (Seller only)
+  Future<bool> updateDeliveryStatus(
+    String transactionId,
+    String sellerId,
+    DeliveryStatus status,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      String statusStr;
+      switch (status) {
+        case DeliveryStatus.preparing:
+          statusStr = 'preparing';
+          break;
+        case DeliveryStatus.inTransit:
+          statusStr = 'in_transit';
+          break;
+        case DeliveryStatus.delivered:
+          statusStr = 'delivered';
+          break;
+        default:
+          return false;
+      }
+
+      final response = await _supabase.rpc(
+        'update_delivery_status',
+        params: {
+          'p_transaction_id': txnId,
+          'p_seller_id': sellerId,
+          'p_delivery_status': statusStr,
+        },
+      );
+
+      return response['success'] == true;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error updating delivery: $e');
+      return false;
+    }
+  }
+
+  /// Respond to delivery (Buyer only) - Accept or Reject
+  Future<bool> respondToDelivery({
+    required String transactionId,
+    required String buyerId,
+    required bool accepted,
+    String? rejectionReason,
+    List<File>? rejectionPhotos,
+  }) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      // 1. Upload photos if rejected and photos provided
+      List<String>? photoUrls;
+      if (!accepted && rejectionPhotos != null && rejectionPhotos.isNotEmpty) {
+        photoUrls = await _uploadRejectionPhotos(txnId, rejectionPhotos);
+
+        // Update the photos column manually first since RPC doesn't accept arrays well in all versions
+        // or to keep RPC signature simple.
+        await _supabase
+            .from('auction_transactions')
+            .update({'buyer_rejection_photos': photoUrls})
+            .eq('id', txnId);
+      }
+
+      // 2. Call RPC to handle status updates and notifications
+      final response = await _supabase.rpc(
+        'handle_buyer_acceptance',
+        params: {
+          'p_transaction_id': txnId,
+          'p_buyer_id': buyerId,
+          'p_accepted': accepted,
+          'p_rejection_reason': rejectionReason,
+        },
+      );
+
+      return response['success'] == true;
+    } catch (e) {
+      debugPrint(
+        '[TransactionRealtimeDataSource] Error responding to delivery: $e',
+      );
+      return false;
+    }
+  }
+
+  /// Helper: Upload rejection photos
+  Future<List<String>> _uploadRejectionPhotos(
+    String transactionId,
+    List<File> photos,
+  ) async {
+    final List<String> urls = [];
+    try {
+      for (var i = 0; i < photos.length; i++) {
+        final file = photos[i];
+        final ext = file.path.split('.').last;
+        final path = 'rejections/$transactionId/proof_$i.$ext';
+
+        await _supabase.storage
+            .from('auction-images')
+            .upload(path, file, fileOptions: const FileOptions(upsert: true));
+
+        final url = _supabase.storage.from('auction-images').getPublicUrl(path);
+        urls.add(url);
+      }
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error uploading photos: $e');
+    }
+    return urls;
+  }
+
+  // ============================================================================
+  // REVIEWS
+  // ============================================================================
+
+  /// Submit a transaction review
+  Future<TransactionReviewEntity?> submitReview({
+    required String transactionId,
+    required String reviewerId,
+    required String revieweeId,
+    required int rating,
+    int? ratingCommunication,
+    int? ratingReliability,
+    String? comment,
+  }) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return null;
+
+      final data = {
+        'transaction_id': txnId,
+        'reviewer_id': reviewerId,
+        'reviewee_id': revieweeId,
+        'rating': rating,
+        'rating_communication': ratingCommunication,
+        'rating_reliability': ratingReliability,
+        'comment': comment,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      final response = await _supabase
+          .from('transaction_reviews')
+          .upsert(data, onConflict: 'transaction_id,reviewer_id')
+          .select()
+          .single();
+
+      return _mapToReviewEntity(response);
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error submitting review: $e');
+      return null;
+    }
+  }
+
+  /// Get review for a transaction by a specific user
+  Future<TransactionReviewEntity?> getReview(
+    String transactionId,
+    String reviewerId,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return null;
+
+      final response = await _supabase
+          .from('transaction_reviews')
+          .select()
+          .eq('transaction_id', txnId)
+          .eq('reviewer_id', reviewerId)
+          .maybeSingle();
+
+      if (response == null) return null;
+      return _mapToReviewEntity(response);
+    } catch (e) {
+      debugPrint('[TransactionRealtimeDataSource] Error getting review: $e');
+      return null;
+    }
+  }
+
+  TransactionReviewEntity _mapToReviewEntity(Map<String, dynamic> data) {
+    return TransactionReviewEntity(
+      id: data['id'] as String,
+      transactionId: data['transaction_id'] as String,
+      reviewerId: data['reviewer_id'] as String,
+      revieweeId: data['reviewee_id'] as String,
+      rating: data['rating'] as int,
+      ratingCommunication: data['rating_communication'] as int?,
+      ratingReliability: data['rating_reliability'] as int?,
+      comment: data['comment'] as String?,
+      createdAt: DateTime.parse(data['created_at'] as String),
+    );
   }
 
   // ============================================================================
@@ -1336,7 +1886,7 @@ class TransactionRealtimeDataSource {
           )
           .toList();
     } catch (e) {
-      print('[TransactionRealtimeDataSource] Error getting timeline: $e');
+      debugPrint('[TransactionRealtimeDataSource] Error getting timeline: $e');
       return [];
     }
   }
@@ -1388,7 +1938,7 @@ class TransactionRealtimeDataSource {
         'actor_name': actorName,
       });
     } catch (e) {
-      print('[TransactionRealtimeDataSource] Error adding timeline: $e');
+      debugPrint('[TransactionRealtimeDataSource] Error adding timeline: $e');
     }
   }
 
@@ -1396,9 +1946,33 @@ class TransactionRealtimeDataSource {
   // HELPERS
   // ============================================================================
 
+  /// Look up a notification_type ID by its type_name string.
+  /// Falls back to 'message_received' if the requested type doesn't exist.
+  Future<String?> _getNotificationTypeId(String typeName) async {
+    try {
+      final row = await _supabase
+          .from('notification_types')
+          .select('id')
+          .eq('type_name', typeName)
+          .maybeSingle();
+      if (row != null) return row['id'] as String?;
+
+      // Fallback
+      final fallback = await _supabase
+          .from('notification_types')
+          .select('id')
+          .eq('type_name', 'message_received')
+          .maybeSingle();
+      return fallback?['id'] as String?;
+    } catch (e) {
+      debugPrint('[_getNotificationTypeId] ❌ Error: $e');
+      return null;
+    }
+  }
+
   /// Resolve transaction ID from either transaction ID or auction ID
   Future<String?> _resolveTransactionId(String idOrAuctionId) async {
-    print('[_resolveTransactionId] Input: $idOrAuctionId');
+    debugPrint('[_resolveTransactionId] Input: $idOrAuctionId');
     try {
       // First try as transaction ID
       final txnById = await _supabase
@@ -1408,14 +1982,16 @@ class TransactionRealtimeDataSource {
           .maybeSingle();
 
       if (txnById != null) {
-        print(
+        debugPrint(
           '[_resolveTransactionId] Found by transaction ID: ${txnById['id']}',
         );
         return txnById['id'] as String;
       }
 
       // Try as auction ID (get most recent to handle multiple transactions)
-      print('[_resolveTransactionId] Not found by ID, trying as auction ID...');
+      debugPrint(
+        '[_resolveTransactionId] Not found by ID, trying as auction ID...',
+      );
       final txnByAuctionList = await _supabase
           .from('auction_transactions')
           .select('id')
@@ -1424,16 +2000,16 @@ class TransactionRealtimeDataSource {
           .limit(1);
 
       if (txnByAuctionList.isNotEmpty) {
-        print(
+        debugPrint(
           '[_resolveTransactionId] Found by auction ID: ${txnByAuctionList.first['id']}',
         );
         return txnByAuctionList.first['id'] as String;
       }
 
-      print('[_resolveTransactionId] ❌ Not found by either method');
+      debugPrint('[_resolveTransactionId] ❌ Not found by either method');
       return null;
     } catch (e) {
-      print('[_resolveTransactionId] ❌ Error: $e');
+      debugPrint('[_resolveTransactionId] ❌ Error: $e');
       return null;
     }
   }
@@ -1487,11 +2063,453 @@ class TransactionRealtimeDataSource {
         .subscribe();
   }
 
-  /// Clean up subscriptions
+  /// Subscribe to transaction form changes (INSERT + UPDATE)
+  /// Fires when the other party submits or updates their form
+  void subscribeToForms(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return;
+
+    _formsChannel?.unsubscribe();
+    _formsChannel = _supabase
+        .channel('forms_$txnId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'transaction_forms',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'transaction_id',
+            value: txnId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionRealtimeDataSource] 📝 Form change detected: ${payload.eventType}',
+            );
+            // Re-use the transaction update stream to trigger a full reload
+            _transactionUpdateController.add(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Subscribe to transaction timeline changes (INSERT)
+  /// Fires when any timeline event is added (covers most activities)
+  void subscribeToTimeline(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return;
+
+    _timelineChannel?.unsubscribe();
+    _timelineChannel = _supabase
+        .channel('timeline_$txnId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'transaction_timeline',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'transaction_id',
+            value: txnId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionRealtimeDataSource] ⏱️ Timeline event detected',
+            );
+            // Re-use the transaction update stream to trigger a full reload
+            _transactionUpdateController.add(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  // ============================================================================
+  // AGREEMENT FIELDS (Collaborative Form)
+  // ============================================================================
+
+  /// Load all agreement fields for a transaction
+  Future<List<AgreementFieldEntity>> getAgreementFields(
+    String transactionId,
+  ) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return [];
+
+    final response = await _supabase
+        .from('transaction_agreement_fields')
+        .select()
+        .eq('transaction_id', txnId)
+        .order('category')
+        .order('display_order');
+
+    return (response as List)
+        .map(
+          (e) => AgreementFieldEntity(
+            id: e['id'] as String,
+            transactionId: e['transaction_id'] as String,
+            label: e['label'] as String? ?? '',
+            value: e['value'] as String? ?? '',
+            fieldType: e['field_type'] as String? ?? 'text',
+            category: e['category'] as String? ?? 'general',
+            options: e['options'] as String?,
+            addedBy: e['added_by'] as String?,
+            displayOrder: e['display_order'] as int? ?? 0,
+          ),
+        )
+        .toList();
+  }
+
+  /// Add a new agreement field
+  Future<AgreementFieldEntity?> addAgreementField({
+    required String transactionId,
+    required String label,
+    String value = '',
+    String fieldType = 'text',
+    String category = 'general',
+    String? options,
+  }) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return null;
+
+    final userId = _supabase.auth.currentUser?.id;
+
+    // Get next display order
+    final maxOrder = await _supabase
+        .from('transaction_agreement_fields')
+        .select('display_order')
+        .eq('transaction_id', txnId)
+        .order('display_order', ascending: false)
+        .limit(1);
+
+    final nextOrder = maxOrder.isNotEmpty
+        ? ((maxOrder.first['display_order'] as int?) ?? 0) + 1
+        : 0;
+
+    final response = await _supabase
+        .from('transaction_agreement_fields')
+        .insert({
+          'transaction_id': txnId,
+          'label': label,
+          'value': value,
+          'field_type': fieldType,
+          'category': category,
+          'options': options,
+          'added_by': userId,
+          'display_order': nextOrder,
+        })
+        .select()
+        .single();
+
+    return AgreementFieldEntity(
+      id: response['id'] as String,
+      transactionId: txnId,
+      label: response['label'] as String? ?? '',
+      value: response['value'] as String? ?? '',
+      fieldType: response['field_type'] as String? ?? 'text',
+      category: response['category'] as String? ?? 'general',
+      options: response['options'] as String?,
+      addedBy: response['added_by'] as String?,
+      displayOrder: response['display_order'] as int? ?? 0,
+    );
+  }
+
+  /// Update a single agreement field value
+  Future<bool> updateAgreementField(String fieldId, String value) async {
+    try {
+      await _supabase
+          .from('transaction_agreement_fields')
+          .update({
+            'value': value,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', fieldId);
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error updating agreement field: $e');
+      return false;
+    }
+  }
+
+  /// Delete an agreement field
+  Future<bool> deleteAgreementField(String fieldId) async {
+    try {
+      await _supabase
+          .from('transaction_agreement_fields')
+          .delete()
+          .eq('id', fieldId);
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error deleting agreement field: $e');
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // AGREEMENT LOCK / CONFIRM / FINALIZE
+  // ============================================================================
+
+  /// Lock the agreement (user signals they are done editing)
+  Future<bool> lockAgreement(String transactionId, FormRole role) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      final col = role == FormRole.seller
+          ? 'seller_form_submitted'
+          : 'buyer_form_submitted';
+      await _supabase
+          .from('auction_transactions')
+          .update({col: true, 'updated_at': DateTime.now().toIso8601String()})
+          .eq('id', txnId);
+
+      final roleLabel = role == FormRole.seller ? 'Seller' : 'Buyer';
+      final userId = _supabase.auth.currentUser?.id ?? '';
+      final userName =
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+          roleLabel;
+      await _addTimelineEvent(
+        txnId,
+        '$roleLabel Locked Agreement',
+        '$userName locked the agreement',
+        'form_submitted',
+        userId,
+        userName,
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error locking agreement: $e');
+      return false;
+    }
+  }
+
+  /// Unlock the agreement (resets ALL confirmations)
+  Future<bool> unlockAgreement(String transactionId, FormRole role) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      final col = role == FormRole.seller
+          ? 'seller_form_submitted'
+          : 'buyer_form_submitted';
+      await _supabase
+          .from('auction_transactions')
+          .update({
+            col: false,
+            'seller_confirmed': false,
+            'buyer_confirmed': false,
+            'both_confirmed_at': null,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', txnId);
+
+      final roleLabel = role == FormRole.seller ? 'Seller' : 'Buyer';
+      final userId = _supabase.auth.currentUser?.id ?? '';
+      final userName =
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+          roleLabel;
+      await _addTimelineEvent(
+        txnId,
+        '$roleLabel Unlocked Agreement',
+        '$userName unlocked the agreement for editing',
+        'form_confirmation_withdrawn',
+        userId,
+        userName,
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error unlocking agreement: $e');
+      return false;
+    }
+  }
+
+  /// Confirm the agreement (sets current user's confirmed flag)
+  Future<bool> confirmAgreement(String transactionId, FormRole role) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      final myConfCol = role == FormRole.seller
+          ? 'seller_confirmed'
+          : 'buyer_confirmed';
+      final otherConfCol = role == FormRole.seller
+          ? 'buyer_confirmed'
+          : 'seller_confirmed';
+
+      // Check if other party already confirmed
+      final txn = await _supabase
+          .from('auction_transactions')
+          .select(otherConfCol)
+          .eq('id', txnId)
+          .single();
+
+      final otherConfirmed = txn[otherConfCol] as bool? ?? false;
+
+      final updateData = <String, dynamic>{
+        myConfCol: true,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // If both now confirmed, set timestamp for grace period
+      if (otherConfirmed) {
+        updateData['both_confirmed_at'] = DateTime.now().toIso8601String();
+      }
+
+      await _supabase
+          .from('auction_transactions')
+          .update(updateData)
+          .eq('id', txnId);
+
+      final roleLabel = role == FormRole.seller ? 'Seller' : 'Buyer';
+      final userId = _supabase.auth.currentUser?.id ?? '';
+      final userName =
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+          roleLabel;
+      await _addTimelineEvent(
+        txnId,
+        '$roleLabel Confirmed Agreement',
+        '$userName confirmed the transaction agreement',
+        'form_confirmed',
+        userId,
+        userName,
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error confirming agreement: $e');
+      return false;
+    }
+  }
+
+  /// Withdraw agreement confirmation
+  Future<bool> withdrawAgreementConfirmation(
+    String transactionId,
+    FormRole role,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      final myConfCol = role == FormRole.seller
+          ? 'seller_confirmed'
+          : 'buyer_confirmed';
+
+      await _supabase
+          .from('auction_transactions')
+          .update({
+            myConfCol: false,
+            'both_confirmed_at': null,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', txnId);
+
+      final roleLabel = role == FormRole.seller ? 'Seller' : 'Buyer';
+      final userId = _supabase.auth.currentUser?.id ?? '';
+      final userName =
+          _supabase.auth.currentUser?.userMetadata?['display_name'] ??
+          roleLabel;
+      await _addTimelineEvent(
+        txnId,
+        '$roleLabel Withdrew Confirmation',
+        '$userName withdrew their confirmation',
+        'form_confirmation_withdrawn',
+        userId,
+        userName,
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error withdrawing confirmation: $e');
+      return false;
+    }
+  }
+
+  /// Finalize transaction (called after 15s grace period)
+  Future<bool> finalizeTransaction(String transactionId) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      final result = await _supabase.rpc(
+        'finalize_transaction',
+        params: {'p_transaction_id': txnId},
+      );
+
+      if (result is Map && result['success'] == true) {
+        return true;
+      }
+      debugPrint('[TransactionDS] Finalize result: $result');
+      return false;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error finalizing: $e');
+      return false;
+    }
+  }
+
+  /// Subscribe to agreement fields changes (realtime)
+  void subscribeToAgreementFields(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return;
+
+    _agreementFieldsChannel?.unsubscribe();
+    _agreementFieldsChannel = _supabase
+        .channel('agreement_fields_$txnId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'transaction_agreement_fields',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'transaction_id',
+            value: txnId,
+          ),
+          callback: (payload) {
+            debugPrint(
+              '[TransactionDS] 📋 Agreement field change: ${payload.eventType}',
+            );
+            _transactionUpdateController.add(payload.newRecord);
+          },
+        )
+        .subscribe();
+  }
+
+  /// Unsubscribe from detail-level channels (chat, transaction, forms)
+  /// Called by individual controllers when they are disposed.
+  /// Does NOT close the shared stream controllers or user-level channels.
+  void unsubscribeDetailChannels() {
+    _chatChannel?.unsubscribe();
+    _chatChannel = null;
+    _transactionChannel?.unsubscribe();
+    _transactionChannel = null;
+    _formsChannel?.unsubscribe();
+    _formsChannel = null;
+    _timelineChannel?.unsubscribe();
+    _timelineChannel = null;
+    _agreementFieldsChannel?.unsubscribe();
+    _agreementFieldsChannel = null;
+  }
+
+  /// Full cleanup — closes all channels AND stream controllers.
+  /// Only call when the datasource itself is being permanently destroyed.
   void dispose() {
     _chatChannel?.unsubscribe();
     _transactionChannel?.unsubscribe();
+    _formsChannel?.unsubscribe();
+    _timelineChannel?.unsubscribe();
+    _agreementFieldsChannel?.unsubscribe();
+    _sellerTxnChannel?.unsubscribe();
+    _buyerTxnChannel?.unsubscribe();
     _chatStreamController.close();
     _transactionUpdateController.close();
+    _userTransactionsUpdateController.close();
+  }
+
+  /// Update payment_method on the transaction
+  Future<void> updatePaymentMethod(String transactionId, String method) async {
+    await _supabase
+        .from('auction_transactions')
+        .update({
+          'payment_method': method,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', transactionId);
   }
 }

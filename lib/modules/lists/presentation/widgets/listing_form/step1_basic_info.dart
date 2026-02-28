@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// ...existing code...
 import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
 import 'combo_box_widget.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step1BasicInfo extends StatefulWidget {
   final ListingDraftController controller;
@@ -23,21 +21,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
   String? _brand;
   String? _model;
   String? _variant;
-
-  static const _brands = [
-    'Toyota', 'Honda', 'Ford', 'Mitsubishi', 'Nissan',
-    'Hyundai', 'Mazda', 'Suzuki', 'Isuzu', 'Chevrolet',
-  ];
-
-  static const _models = [
-    'Corolla', 'Civic', 'Mustang', 'Vios', 'City',
-    'Fortuner', 'CR-V', 'Ranger', 'Hilux', 'Wigo',
-  ];
-
-  static const _variants = [
-    'Altis', 'RS', 'GT', 'XLE', 'Base', 'V',
-    'Sport', 'Limited', 'Premium', 'Standard',
-  ];
+  String? _bodyType;
 
   @override
   void initState() {
@@ -46,8 +30,20 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
     _brand = draft.brand;
     _model = draft.model;
     _variant = draft.variant;
+    _bodyType = draft.bodyType;
     _yearController = TextEditingController(text: draft.year?.toString());
     _yearController.addListener(_updateDraft);
+
+    // Initial load
+    widget.controller.loadBrands().then((_) {
+      if (_brand != null && mounted) {
+        widget.controller.loadModels(_brand!).then((_) {
+          if (_model != null && mounted) {
+            widget.controller.loadVariants(_model!);
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -59,73 +55,17 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
   void _updateDraft() {
     final draft = widget.controller.currentDraft!;
     widget.controller.updateDraft(
-      ListingDraftEntity(
-        id: draft.id,
-        sellerId: draft.sellerId,
-        currentStep: draft.currentStep,
+      draft.copyWith(
         lastSaved: DateTime.now(),
         brand: _brand,
         model: _model,
         variant: _variant,
-        year: _yearController.text.isEmpty ? null : int.tryParse(_yearController.text),
-        engineType: draft.engineType,
-        engineDisplacement: draft.engineDisplacement,
-        cylinderCount: draft.cylinderCount,
-        horsepower: draft.horsepower,
-        torque: draft.torque,
-        transmission: draft.transmission,
-        fuelType: draft.fuelType,
-        driveType: draft.driveType,
-        length: draft.length,
-        width: draft.width,
-        height: draft.height,
-        wheelbase: draft.wheelbase,
-        groundClearance: draft.groundClearance,
-        seatingCapacity: draft.seatingCapacity,
-        doorCount: draft.doorCount,
-        fuelTankCapacity: draft.fuelTankCapacity,
-        curbWeight: draft.curbWeight,
-        grossWeight: draft.grossWeight,
-        exteriorColor: draft.exteriorColor,
-        paintType: draft.paintType,
-        rimType: draft.rimType,
-        rimSize: draft.rimSize,
-        tireSize: draft.tireSize,
-        tireBrand: draft.tireBrand,
-        condition: draft.condition,
-        mileage: draft.mileage,
-        previousOwners: draft.previousOwners,
-        hasModifications: draft.hasModifications,
-        modificationsDetails: draft.modificationsDetails,
-        hasWarranty: draft.hasWarranty,
-        warrantyDetails: draft.warrantyDetails,
-        usageType: draft.usageType,
-        plateNumber: draft.plateNumber,
-        orcrStatus: draft.orcrStatus,
-        registrationStatus: draft.registrationStatus,
-        registrationExpiry: draft.registrationExpiry,
-        province: draft.province,
-        cityMunicipality: draft.cityMunicipality,
-        photoUrls: draft.photoUrls,
-        description: draft.description,
-        knownIssues: draft.knownIssues,
-        features: draft.features,
-        startingPrice: draft.startingPrice,
-        reservePrice: draft.reservePrice,
-        auctionEndDate: draft.auctionEndDate,
+        bodyType: _bodyType,
+        year: _yearController.text.isEmpty
+            ? null
+            : int.tryParse(_yearController.text),
       ),
     );
-  }
-
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(1);
-    setState(() {
-      _brand = demoData['brand'];
-      _model = demoData['model'];
-      _variant = demoData['variant'];
-      _yearController.text = demoData['year'].toString();
-    });
-    _updateDraft();
   }
 
   @override
@@ -144,17 +84,25 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
             'Enter the basic details of your vehicle',
             style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
-          const SizedBox(height: 16),
-          DemoAutofillButton(onPressed: _autofillDemoData),
           const SizedBox(height: 24),
+          if (widget.controller.isLoadingVehicleData && widget.controller.brands.isEmpty)
+             const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator())),
+          
           ComboBoxWidget(
             label: 'Brand *',
             value: _brand,
-            items: _brands,
-            hint: 'e.g., Toyota, Honda, Ford',
+            items: widget.controller.brands.map((e) => e.name).toList(),
+            hint: 'Select Brand',
             onChanged: (v) {
-              setState(() => _brand = v);
+              setState(() {
+                _brand = v;
+                _model = null; // Reset dependent fields
+                _variant = null;
+              });
               _updateDraft();
+              if (v != null) {
+                widget.controller.loadModels(v);
+              }
             },
             validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
           ),
@@ -162,25 +110,55 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
           ComboBoxWidget(
             label: 'Model *',
             value: _model,
-            items: _models,
-            hint: 'e.g., Corolla, Civic, Mustang',
+            items: widget.controller.models.map((e) => e.name).toList(),
+            hint: 'Select Model',
             onChanged: (v) {
-              setState(() => _model = v);
+              setState(() {
+                _model = v;
+                _variant = null; // Reset dependent field
+              });
               _updateDraft();
+              if (v != null) {
+                widget.controller.loadVariants(v);
+              }
             },
             validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+            enabled: _brand != null,
+          ),
+          const SizedBox(height: 16),
+          ComboBoxWidget(
+            label: 'Body Type',
+            value: _bodyType,
+            items: const [
+              'Sedan',
+              'SUV',
+              'Hatchback',
+              'Pickup',
+              'MPV',
+              'Van',
+              'Crossover',
+              'Coupe',
+              'Convertible',
+              'Wagon'
+            ],
+            hint: 'Select Body Type',
+            onChanged: (v) {
+              setState(() => _bodyType = v);
+              _updateDraft();
+            },
           ),
           const SizedBox(height: 16),
           ComboBoxWidget(
             label: 'Variant *',
             value: _variant,
-            items: _variants,
-            hint: 'e.g., Altis, RS, GT',
+            items: widget.controller.variants.map((e) => e.name).toList(),
+            hint: 'Select Variant',
             onChanged: (v) {
               setState(() => _variant = v);
               _updateDraft();
             },
             validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+            enabled: _model != null,
           ),
           const SizedBox(height: 16),
           FormFieldWidget(

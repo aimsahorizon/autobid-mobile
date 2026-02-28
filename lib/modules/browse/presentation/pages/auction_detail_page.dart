@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../domain/entities/payment_entity.dart';
 import '../controllers/auction_detail_controller.dart';
 import '../widgets/auction_detail/auction_cover_photo.dart';
 import '../widgets/auction_detail/bidding_info_section.dart';
 import '../widgets/auction_detail/car_photos_section.dart';
 import '../widgets/auction_detail/bidding_card_section.dart';
 import '../widgets/auction_detail/detail_tabs_section.dart';
-import '../widgets/payment/gcash_payment_form.dart';
-import '../widgets/payment/maya_payment_form.dart';
-import '../widgets/payment/card_payment_form.dart';
-import '../widgets/payment/payment_success_sheet.dart';
 import 'deposit_payment_page.dart';
 
 class AuctionDetailPage extends StatefulWidget {
@@ -29,8 +25,6 @@ class AuctionDetailPage extends StatefulWidget {
 }
 
 class _AuctionDetailPageState extends State<AuctionDetailPage> {
-  bool _isPaymentProcessing = false;
-
   @override
   void initState() {
     super.initState();
@@ -44,7 +38,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     // Get current user ID
     final userId = SupabaseConfig.currentUser?.id;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Please login to participate in auction'),
           backgroundColor: ColorConstants.error,
@@ -53,10 +47,12 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
       return;
     }
 
-    // Get deposit amount (default 5000 if not specified)
-    final depositAmount = 5000.0; // Auction deposit amount
+    // Get deposit amount from auction configuration
+    final depositAmount = auction.depositAmount > 0
+        ? auction.depositAmount
+        : 5000.0;
 
-    // Navigate to Stripe deposit payment page
+    // Navigate to PayMongo deposit payment page
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -74,7 +70,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
 
     if (result == true && mounted) {
       // Deposit successful - show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text(
             'Deposit successful! You can now place bids on this auction.',
@@ -85,65 +81,120 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     }
   }
 
-  Widget _buildPaymentForm(PaymentMethod method) {
-    switch (method) {
-      case PaymentMethod.gcash:
-        return GCashPaymentForm(
-          amount: 10000,
-          isProcessing: _isPaymentProcessing,
-          onCancel: () => Navigator.pop(context),
-          onSubmit: (phone) => _processPayment(method, phone),
-        );
-      case PaymentMethod.maya:
-        return MayaPaymentForm(
-          amount: 10000,
-          isProcessing: _isPaymentProcessing,
-          onCancel: () => Navigator.pop(context),
-          onSubmit: (phone) => _processPayment(method, phone),
-        );
-      case PaymentMethod.card:
-        return CardPaymentForm(
-          amount: 10000,
-          isProcessing: _isPaymentProcessing,
-          onCancel: () => Navigator.pop(context),
-          onSubmit: (card, expiry, cvv, name) => _processPayment(method, card),
-        );
+  void _handleRaiseHand() async {
+    final success = await widget.controller.raiseHand();
+    if (!mounted) return;
+
+    if (success) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Text('✋', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Hand raised! You\'re in the queue. When it\'s your turn, you\'ll have 60 seconds to place your bid.',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: ColorConstants.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (widget.controller.errorMessage != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      widget.controller.clearError();
     }
   }
 
-  Future<void> _processPayment(PaymentMethod method, String details) async {
-    setState(() => _isPaymentProcessing = true);
-
-    // Simulate payment processing (mock)
-    await Future.delayed(const Duration(seconds: 2));
-
+  void _handleSubmitTurnBid(double amount) async {
+    final success = await widget.controller.submitTurnBid(bidAmount: amount);
     if (!mounted) return;
-    Navigator.pop(context);
 
-    // Process deposit through controller
-    await widget.controller.processDeposit();
-
-    if (!mounted) return;
-    setState(() => _isPaymentProcessing = false);
-
-    // Show success sheet
-    _showPaymentSuccess(method);
+    if (success) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.gavel, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Bid of ₱${amount.toStringAsFixed(0)} placed successfully!',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: ColorConstants.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (widget.controller.errorMessage != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      widget.controller.clearError();
+    }
   }
 
-  void _showPaymentSuccess(PaymentMethod method) {
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: Colors.transparent,
-      builder: (context) => PaymentSuccessSheet(
-        amount: 10000,
-        paymentMethod: method.label,
-        onContinue: () {
-          Navigator.pop(context);
-        },
-      ),
-    );
+  void _handleLowerHand() async {
+    final success = await widget.controller.lowerHand();
+    if (!mounted) return;
+
+    if (success) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.pan_tool_alt, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text('Hand lowered — you have withdrawn from the queue.'),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (widget.controller.errorMessage != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      widget.controller.clearError();
+    }
   }
 
   void _handleBid(double amount) async {
@@ -156,7 +207,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Row(
             children: [
@@ -174,7 +225,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
       );
     } else if (widget.controller.errorMessage != null) {
       // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(widget.controller.errorMessage!),
           backgroundColor: ColorConstants.error,
@@ -188,10 +239,20 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     }
   }
 
-  void _handleAutoBidToggle(bool isActive, double? maxBid, double increment) {
-    widget.controller.setAutoBid(isActive, maxBid, increment);
-    if (isActive && maxBid != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+  void _handleAutoBidToggle(
+    bool isActive,
+    double? maxBid,
+    double increment,
+  ) async {
+    final success = await widget.controller.setAutoBid(
+      isActive,
+      maxBid,
+      increment,
+    );
+    if (!mounted) return;
+
+    if (success && isActive && maxBid != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Row(
             children: [
@@ -207,96 +268,130 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           ),
         ),
       );
+    } else if (success && !isActive) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        const SnackBar(
+          content: Text('Auto-bid deactivated'),
+          backgroundColor: ColorConstants.warning,
+        ),
+      );
+    } else if (!success && widget.controller.errorMessage != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+        ),
+      );
+      widget.controller.clearError();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: ListenableBuilder(
-        listenable: widget.controller,
-        builder: (context, _) {
-          if (widget.controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-          if (widget.controller.hasError) {
-            return _buildErrorState();
-          }
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value:
+          (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+              .copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        body: ListenableBuilder(
+          listenable: widget.controller,
+          builder: (context, _) {
+            if (widget.controller.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final auction = widget.controller.auction;
-          if (auction == null) return const SizedBox.shrink();
+            if (widget.controller.hasError) {
+              return _buildErrorState();
+            }
 
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 250,
-                pinned: true,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: AuctionCoverPhoto(
-                    imageUrl: auction.carImageUrl,
-                    carName: auction.carName,
-                    status: auction.status,
+            final auction = widget.controller.auction;
+            if (auction == null) return const SizedBox.shrink();
+
+            return CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 250,
+                  pinned: true,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: AuctionCoverPhoto(
+                      imageUrl: auction.carImageUrl,
+                      carName: auction.carName,
+                      status: auction.status,
+                    ),
                   ),
-                ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: widget.controller.isLoading
-                        ? null
-                        : () => widget.controller.loadAuctionDetail(
-                            widget.auctionId,
-                          ),
-                    tooltip: 'Refresh auction details',
-                  ),
-                ],
-              ),
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    BiddingInfoSection(
-                      endTime: auction.endTime,
-                      currentBid: auction.currentBid,
-                      reservePrice: auction.reservePrice,
-                      isReserveMet: auction.isReserveMet,
-                      showReservePrice: auction.showReservePrice,
-                      totalBids: auction.totalBids,
-                      watchersCount: auction.watchersCount,
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: widget.controller.isLoading
+                          ? null
+                          : () => widget.controller.loadAuctionDetail(
+                              widget.auctionId,
+                            ),
+                      tooltip: 'Refresh auction details',
                     ),
-                    CarPhotosSection(photos: auction.photos),
-                    const SizedBox(height: 16),
-                    BiddingCardSection(
-                      hasDeposited: auction.hasUserDeposited,
-                      minimumBid: auction.minimumBid,
-                      currentBid: auction.currentBid,
-                      minBidIncrement: auction.minBidIncrement,
-                      enableIncrementalBidding:
-                          auction.enableIncrementalBidding,
-                      onDeposit: _handleDeposit,
-                      onPlaceBid: _handleBid,
-                      onAutoBidToggle: _handleAutoBidToggle,
-                      isProcessing: widget.controller.isProcessing,
-                      isAutoBidActive: widget.controller.isAutoBidActive,
-                      maxAutoBid: widget.controller.maxAutoBid,
-                    ),
-                    const SizedBox(height: 24),
-                    DetailTabsSection(
-                      auction: widget.controller.auction!,
-                      bidHistory: widget.controller.bidHistory,
-                      questions: widget.controller.questions,
-                      isLoadingBidHistory:
-                          widget.controller.isLoadingBidHistory,
-                      isLoadingQA: widget.controller.isLoadingQA,
-                      onAskQuestion: widget.controller.askQuestion,
-                      onToggleLike: widget.controller.toggleQuestionLike,
-                    ),
-                    const SizedBox(height: 32),
                   ],
                 ),
-              ),
-            ],
-          );
-        },
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      BiddingInfoSection(
+                        endTime: auction.endTime,
+                        currentBid: auction.currentBid,
+                        reservePrice: auction.reservePrice,
+                        isReserveMet: auction.isReserveMet,
+                        showReservePrice: auction.showReservePrice,
+                        totalBids: auction.totalBids,
+                        watchersCount: auction.watchersCount,
+                      ),
+                      CarPhotosSection(photos: auction.photos),
+                      const SizedBox(height: 16),
+                      BiddingCardSection(
+                        hasDeposited: auction.hasUserDeposited,
+                        minimumBid: auction.minimumBid,
+                        currentBid: auction.currentBid,
+                        minBidIncrement: auction.minBidIncrement,
+                        depositAmount: auction.depositAmount > 0
+                            ? auction.depositAmount
+                            : 5000.0,
+                        enableIncrementalBidding:
+                            auction.enableIncrementalBidding,
+                        onDeposit: _handleDeposit,
+                        onPlaceBid: _handleBid,
+                        onAutoBidToggle: _handleAutoBidToggle,
+                        isProcessing: widget.controller.isProcessing,
+                        isAutoBidActive: widget.controller.isAutoBidActive,
+                        maxAutoBid: widget.controller.maxAutoBid,
+                        bidIncrement: widget.controller.bidIncrement,
+                        queueStatus: widget.controller.queueStatus,
+                        hasRaisedHand: widget.controller.hasRaisedHand,
+                        isMyTurn: widget.controller.isMyTurn,
+                        turnRemainingMs: widget.controller.turnRemainingMs,
+                        onRaiseHand: _handleRaiseHand,
+                        onLowerHand: _handleLowerHand,
+                        onSubmitTurnBid: _handleSubmitTurnBid,
+                        queuePosition: widget.controller.queuePosition,
+                      ),
+                      const SizedBox(height: 24),
+                      DetailTabsSection(
+                        auction: widget.controller.auction!,
+                        bidHistory: widget.controller.bidHistory,
+                        questions: widget.controller.questions,
+                        isLoadingBidHistory:
+                            widget.controller.isLoadingBidHistory,
+                        isLoadingQA: widget.controller.isLoadingQA,
+                        onAskQuestion: widget.controller.askQuestion,
+                        onToggleLike: widget.controller.toggleQuestionLike,
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -1,3 +1,6 @@
+import 'listing_detail_entity.dart';
+import 'seller_listing_entity.dart';
+
 /// Represents a car listing draft that can be saved at any step
 /// Supports the 9-step create listing flow with partial data
 class ListingDraftEntity {
@@ -11,6 +14,7 @@ class ListingDraftEntity {
   final String? brand;
   final String? model;
   final String? variant;
+  final String? bodyType; // Added field
   final int? year;
 
   // Step 2: Mechanical Specification
@@ -60,6 +64,7 @@ class ListingDraftEntity {
   final DateTime? registrationExpiry;
   final String? province;
   final String? cityMunicipality;
+  final String? barangay;
 
   // Step 7: Photos (56 categories) & Documents
   final Map<String, List<String>>? photoUrls; // category -> list of URLs
@@ -80,6 +85,18 @@ class ListingDraftEntity {
   final double? depositAmount; // Required deposit to bid
   final bool? enableIncrementalBidding; // Allow price-based increments
 
+  // Snipe Guard Configuration
+  final bool? snipeGuardEnabled;
+  final int?
+  snipeGuardThresholdSeconds; // Seconds before end to trigger extension
+  final int? snipeGuardExtendSeconds; // Seconds to extend by
+
+  // Installment Option
+  final bool? allowsInstallment;
+
+  // Validation State
+  final bool? isPlateValid;
+
   const ListingDraftEntity({
     required this.id,
     required this.sellerId,
@@ -89,6 +106,7 @@ class ListingDraftEntity {
     this.brand,
     this.model,
     this.variant,
+    this.bodyType,
     this.year,
     this.engineType,
     this.engineDisplacement,
@@ -128,6 +146,7 @@ class ListingDraftEntity {
     this.registrationExpiry,
     this.province,
     this.cityMunicipality,
+    this.barangay,
     this.photoUrls,
     this.tags,
     this.deedOfSaleUrl,
@@ -142,7 +161,225 @@ class ListingDraftEntity {
     this.minBidIncrement,
     this.depositAmount,
     this.enableIncrementalBidding,
+    this.snipeGuardEnabled,
+    this.snipeGuardThresholdSeconds,
+    this.snipeGuardExtendSeconds,
+    this.allowsInstallment,
+    this.isPlateValid,
   });
+
+  /// Create a copy of this entity with updated fields
+  ListingDraftEntity copyWith({
+    String? id,
+    String? sellerId,
+    int? currentStep,
+    DateTime? lastSaved,
+    bool? isComplete,
+    String? brand,
+    String? model,
+    String? variant,
+    String? bodyType,
+    int? year,
+    String? engineType,
+    double? engineDisplacement,
+    int? cylinderCount,
+    int? horsepower,
+    int? torque,
+    String? transmission,
+    String? fuelType,
+    String? driveType,
+    double? length,
+    double? width,
+    double? height,
+    double? wheelbase,
+    double? groundClearance,
+    int? seatingCapacity,
+    int? doorCount,
+    double? fuelTankCapacity,
+    double? curbWeight,
+    double? grossWeight,
+    String? exteriorColor,
+    String? paintType,
+    String? rimType,
+    String? rimSize,
+    String? tireSize,
+    String? tireBrand,
+    String? condition,
+    int? mileage,
+    int? previousOwners,
+    bool? hasModifications,
+    String? modificationsDetails,
+    bool? hasWarranty,
+    String? warrantyDetails,
+    String? usageType,
+    String? plateNumber,
+    String? orcrStatus,
+    String? registrationStatus,
+    DateTime? registrationExpiry,
+    String? province,
+    String? cityMunicipality,
+    String? barangay,
+    Map<String, List<String>>? photoUrls,
+    List<String>? tags,
+    String? deedOfSaleUrl,
+    String? description,
+    String? knownIssues,
+    List<String>? features,
+    double? startingPrice,
+    double? reservePrice,
+    DateTime? auctionEndDate,
+    String? biddingType,
+    double? bidIncrement,
+    double? minBidIncrement,
+    double? depositAmount,
+    bool? enableIncrementalBidding,
+    bool? snipeGuardEnabled,
+    int? snipeGuardThresholdSeconds,
+    int? snipeGuardExtendSeconds,
+    bool? allowsInstallment,
+    bool? isPlateValid,
+  }) {
+    return ListingDraftEntity(
+      id: id ?? this.id,
+      sellerId: sellerId ?? this.sellerId,
+      currentStep: currentStep ?? this.currentStep,
+      lastSaved: lastSaved ?? this.lastSaved,
+      isComplete: isComplete ?? this.isComplete,
+      brand: brand ?? this.brand,
+      model: model ?? this.model,
+      variant: variant ?? this.variant,
+      bodyType: bodyType ?? this.bodyType,
+      year: year ?? this.year,
+      engineType: engineType ?? this.engineType,
+      engineDisplacement: engineDisplacement ?? this.engineDisplacement,
+      cylinderCount: cylinderCount ?? this.cylinderCount,
+      horsepower: horsepower ?? this.horsepower,
+      torque: torque ?? this.torque,
+      transmission: transmission ?? this.transmission,
+      fuelType: fuelType ?? this.fuelType,
+      driveType: driveType ?? this.driveType,
+      length: length ?? this.length,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      wheelbase: wheelbase ?? this.wheelbase,
+      groundClearance: groundClearance ?? this.groundClearance,
+      seatingCapacity: seatingCapacity ?? this.seatingCapacity,
+      doorCount: doorCount ?? this.doorCount,
+      fuelTankCapacity: fuelTankCapacity ?? this.fuelTankCapacity,
+      curbWeight: curbWeight ?? this.curbWeight,
+      grossWeight: grossWeight ?? this.grossWeight,
+      exteriorColor: exteriorColor ?? this.exteriorColor,
+      paintType: paintType ?? this.paintType,
+      rimType: rimType ?? this.rimType,
+      rimSize: rimSize ?? this.rimSize,
+      tireSize: tireSize ?? this.tireSize,
+      tireBrand: tireBrand ?? this.tireBrand,
+      condition: condition ?? this.condition,
+      mileage: mileage ?? this.mileage,
+      previousOwners: previousOwners ?? this.previousOwners,
+      hasModifications: hasModifications ?? this.hasModifications,
+      modificationsDetails: modificationsDetails ?? this.modificationsDetails,
+      hasWarranty: hasWarranty ?? this.hasWarranty,
+      warrantyDetails: warrantyDetails ?? this.warrantyDetails,
+      usageType: usageType ?? this.usageType,
+      plateNumber: plateNumber ?? this.plateNumber,
+      orcrStatus: orcrStatus ?? this.orcrStatus,
+      registrationStatus: registrationStatus ?? this.registrationStatus,
+      registrationExpiry: registrationExpiry ?? this.registrationExpiry,
+      province: province ?? this.province,
+      cityMunicipality: cityMunicipality ?? this.cityMunicipality,
+      barangay: barangay ?? this.barangay,
+      photoUrls: photoUrls ?? this.photoUrls,
+      tags: tags ?? this.tags,
+      deedOfSaleUrl: deedOfSaleUrl ?? this.deedOfSaleUrl,
+      description: description ?? this.description,
+      knownIssues: knownIssues ?? this.knownIssues,
+      features: features ?? this.features,
+      startingPrice: startingPrice ?? this.startingPrice,
+      reservePrice: reservePrice ?? this.reservePrice,
+      auctionEndDate: auctionEndDate ?? this.auctionEndDate,
+      biddingType: biddingType ?? this.biddingType,
+      bidIncrement: bidIncrement ?? this.bidIncrement,
+      minBidIncrement: minBidIncrement ?? this.minBidIncrement,
+      depositAmount: depositAmount ?? this.depositAmount,
+      enableIncrementalBidding:
+          enableIncrementalBidding ?? this.enableIncrementalBidding,
+      snipeGuardEnabled: snipeGuardEnabled ?? this.snipeGuardEnabled,
+      snipeGuardThresholdSeconds:
+          snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds:
+          snipeGuardExtendSeconds ?? this.snipeGuardExtendSeconds,
+      allowsInstallment: allowsInstallment ?? this.allowsInstallment,
+      isPlateValid: isPlateValid ?? this.isPlateValid,
+    );
+  }
+
+  /// Convert to ListingDetailEntity for viewing in detail page
+  ListingDetailEntity toListingDetailEntity() {
+    return ListingDetailEntity(
+      id: id,
+      status: ListingStatus.draft,
+      startingPrice: startingPrice ?? 0,
+      createdAt: lastSaved,
+      endTime: auctionEndDate,
+      brand: brand,
+      model: model,
+      variant: variant,
+      bodyType: bodyType,
+      year: year,
+      engineType: engineType,
+      engineDisplacement: engineDisplacement,
+      cylinderCount: cylinderCount,
+      horsepower: horsepower,
+      torque: torque,
+      transmission: transmission,
+      fuelType: fuelType,
+      driveType: driveType,
+      length: length,
+      width: width,
+      height: height,
+      wheelbase: wheelbase,
+      groundClearance: groundClearance,
+      seatingCapacity: seatingCapacity,
+      doorCount: doorCount,
+      fuelTankCapacity: fuelTankCapacity,
+      curbWeight: curbWeight,
+      grossWeight: grossWeight,
+      exteriorColor: exteriorColor,
+      paintType: paintType,
+      rimType: rimType,
+      rimSize: rimSize,
+      tireSize: tireSize,
+      tireBrand: tireBrand,
+      condition: condition,
+      mileage: mileage,
+      previousOwners: previousOwners,
+      hasModifications: hasModifications,
+      modificationsDetails: modificationsDetails,
+      hasWarranty: hasWarranty,
+      warrantyDetails: warrantyDetails,
+      usageType: usageType,
+      plateNumber: plateNumber,
+      orcrStatus: orcrStatus,
+      registrationStatus: registrationStatus,
+      registrationExpiry: registrationExpiry,
+      province: province,
+      cityMunicipality: cityMunicipality,
+      barangay: barangay,
+      photoUrls: photoUrls,
+      description: description,
+      knownIssues: knownIssues,
+      features: features,
+      auctionEndDate: auctionEndDate,
+      biddingType: biddingType ?? 'public',
+      bidIncrement: bidIncrement ?? 100,
+      minBidIncrement: minBidIncrement ?? 100,
+      depositAmount: depositAmount ?? 0,
+      enableIncrementalBidding: enableIncrementalBidding ?? true,
+      deedOfSaleUrl: deedOfSaleUrl,
+      allowsInstallment: allowsInstallment ?? false,
+    );
+  }
 
   /// Get car name from basic info
   String get carName {
@@ -181,7 +418,12 @@ class ListingDraftEntity {
         return condition != null && mileage != null && previousOwners != null;
       case 7:
         // Step 7: Documentation & Location
-        return plateNumber != null && orcrStatus != null && province != null;
+        return plateNumber != null &&
+            isPlateValid == true &&
+            orcrStatus != null &&
+            province != null &&
+            cityMunicipality != null &&
+            barangay != null;
       case 8:
         // Step 8: Final Details, Pricing & Bidding
         return description != null &&
@@ -286,4 +528,9 @@ class PhotoCategories {
     'Wheels & Tires': 4,
     'Documents': 5,
   };
+
+  /// Convert display name to standardized key (snake_case)
+  static String toKey(String displayName) {
+    return displayName.toLowerCase().replaceAll(' ', '_').replaceAll('/', '_');
+  }
 }

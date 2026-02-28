@@ -99,7 +99,7 @@ class _SellerFormTabState extends State<SellerFormTab> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_isDocumentChecklistComplete) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Please complete all required checkboxes'),
           backgroundColor: ColorConstants.error,
@@ -140,10 +140,17 @@ class _SellerFormTabState extends State<SellerFormTab> {
 
     final success = await widget.controller.submitForm(form);
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Seller form submitted successfully!'),
           backgroundColor: ColorConstants.success,
+        ),
+      );
+    } else if (mounted) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage ?? 'Failed to submit seller form'),
+          backgroundColor: ColorConstants.error,
         ),
       );
     }

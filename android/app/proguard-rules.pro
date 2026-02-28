@@ -23,3 +23,13 @@
 
 # With R8 full mode generic signatures are stripped for classes that are not kept
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+# UCrop / image_cropper - prevent stripping in release builds
+-keep class com.yalantis.ucrop.** { *; }
+-dontwarn com.yalantis.ucrop.**
+
+# Google ML Kit Text Recognition - Ignore warnings for optional language models
+-dontwarn com.google.mlkit.vision.text.chinese.**
+-dontwarn com.google.mlkit.vision.text.devanagari.**
+-dontwarn com.google.mlkit.vision.text.japanese.**
+-dontwarn com.google.mlkit.vision.text.korean.**

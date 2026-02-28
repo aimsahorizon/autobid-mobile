@@ -2,15 +2,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../domain/entities/user_bid_entity.dart';
 import '../../domain/usecases/get_user_bids_usecase.dart';
+import '../../domain/usecases/stream_user_bids_usecase.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 
 /// Controller for managing user's bid history state
 /// Handles loading and categorizing bids by status (active, won, lost)
 class BidsController extends ChangeNotifier {
   final GetUserBidsUseCase _getUserBidsUseCase;
+  final StreamUserBidsUseCase _streamUserBidsUseCase;
   final AuthRepository _authRepository;
 
-  BidsController(this._getUserBidsUseCase, this._authRepository);
+  BidsController(
+    this._getUserBidsUseCase,
+    this._streamUserBidsUseCase,
+    this._authRepository,
+  );
 
   // State properties - private with public getters
   List<UserBidEntity> _activeBids = [];
@@ -20,8 +26,9 @@ class BidsController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  // Polling mechanism for auto-refresh when auctions end
+  // Polling mechanism and stream subscription
   Timer? _pollTimer;
+  StreamSubscription? _bidsSubscription;
 
   // Public getters for accessing state
   List<UserBidEntity> get activeBids => _activeBids;
@@ -43,7 +50,10 @@ class BidsController extends ChangeNotifier {
 
     try {
       // Get current user ID
-      final userId = (await _authRepository.getCurrentUser()).fold((l) => null, (r) => r?.id);
+      final userId = (await _authRepository.getCurrentUser()).fold(
+        (l) => null,
+        (r) => r?.id,
+      );
 
       if (userId == null) {
         _errorMessage = 'User not authenticated';
@@ -72,6 +82,11 @@ class BidsController extends ChangeNotifier {
           } else {
             _stopPolling();
           }
+
+          // Start Realtime Subscription if not active
+          if (_bidsSubscription == null) {
+            _subscribeToBids(userId);
+          }
         },
       );
     } catch (e) {
@@ -84,6 +99,19 @@ class BidsController extends ChangeNotifier {
     }
   }
 
+  void _subscribeToBids(String userId) {
+    _bidsSubscription?.cancel();
+    _bidsSubscription = _streamUserBidsUseCase(userId).listen(
+      (_) {
+        debugPrint('DEBUG: Realtime user bid update received');
+        refreshActiveBids(); // Reuse existing refresh logic
+      },
+      onError: (e) {
+        debugPrint('ERROR: Realtime user bid subscription error: $e');
+      },
+    );
+  }
+
   /// Starts polling to check if active auctions have ended
   /// Polls every 10 seconds to refresh bid status
   void _startPolling() {
@@ -91,11 +119,14 @@ class BidsController extends ChangeNotifier {
 
     _pollTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
       try {
-        final userId = (await _authRepository.getCurrentUser()).fold((l) => null, (r) => r?.id);
+        final userId = (await _authRepository.getCurrentUser()).fold(
+          (l) => null,
+          (r) => r?.id,
+        );
         if (userId == null) return;
 
         final result = await _getUserBidsUseCase.call(userId);
-        
+
         result.fold(
           (failure) => null, // Silent fail on polling
           (bidsMap) {
@@ -109,7 +140,9 @@ class BidsController extends ChangeNotifier {
                 newWonBids.length != _wonBids.length ||
                 newLostBids.length != _lostBids.length ||
                 newCancelledBids.length != _cancelledBids.length) {
-              print('[BidsController] Bids changed during polling - updating UI');
+              debugPrint(
+                '[BidsController] Bids changed during polling - updating UI',
+              );
               _activeBids = newActiveBids;
               _wonBids = newWonBids;
               _lostBids = newLostBids;
@@ -121,10 +154,10 @@ class BidsController extends ChangeNotifier {
                 _stopPolling();
               }
             }
-          }
+          },
         );
       } catch (e) {
-        print('[BidsController] Polling error: $e');
+        debugPrint('[BidsController] Polling error: $e');
         // Silent fail - don't interrupt user experience
       }
     });
@@ -139,24 +172,28 @@ class BidsController extends ChangeNotifier {
   @override
   void dispose() {
     _stopPolling();
+    _bidsSubscription?.cancel();
     super.dispose();
   }
 
-  /// Refreshes only active bids for real-time updates
+  /// Refreshes all bids for real-time updates
   Future<void> refreshActiveBids() async {
     try {
-      final userId = (await _authRepository.getCurrentUser()).fold((l) => null, (r) => r?.id);
+      final userId = (await _authRepository.getCurrentUser()).fold(
+        (l) => null,
+        (r) => r?.id,
+      );
       if (userId == null) return;
 
       final result = await _getUserBidsUseCase.call(userId);
-      
-      result.fold(
-        (failure) => null,
-        (bidsMap) {
-          _activeBids = bidsMap['active'] ?? [];
-          notifyListeners();
-        }
-      );
+
+      result.fold((failure) => null, (bidsMap) {
+        _activeBids = bidsMap['active'] ?? [];
+        _wonBids = bidsMap['won'] ?? [];
+        _lostBids = bidsMap['lost'] ?? [];
+        _cancelledBids = bidsMap['cancelled'] ?? [];
+        notifyListeners();
+      });
     } catch (e) {
       // Silent fail
     }

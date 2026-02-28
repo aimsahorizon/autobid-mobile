@@ -24,12 +24,15 @@ class Step9Summary extends StatelessWidget {
 
     if (success) {
       onSubmitSuccess();
-    } else {
-      final errorMessage =
-          controller.errorMessage ?? 'Please complete all required fields';
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(errorMessage)));
+    } else if (controller.errorMessage != null) {
+      // Only show error if submission failed and there is an error message
+      // If success is false but no error message, it might be a silent failure or handled elsewhere
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(controller.errorMessage!),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -41,6 +44,11 @@ class Step9Summary extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
+        // Guard against null draft (e.g., after successful submission)
+        if (controller.currentDraft == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         final draft = controller.currentDraft!;
 
         return ListView(
@@ -97,6 +105,75 @@ class Step9Summary extends StatelessWidget {
               final isComplete = draft.isStepComplete(step);
               return _buildStepSummary(step, isComplete, isDark);
             }),
+            const SizedBox(height: 24),
+
+            // Bidding Type Summary
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: (draft.biddingType ?? 'public') == 'private'
+                    ? Colors.orange.withAlpha((0.08 * 255).toInt())
+                    : Colors.blue.withAlpha((0.08 * 255).toInt()),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (draft.biddingType ?? 'public') == 'private'
+                      ? Colors.orange.withAlpha((0.3 * 255).toInt())
+                      : Colors.blue.withAlpha((0.3 * 255).toInt()),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    (draft.biddingType ?? 'public') == 'private'
+                        ? Icons.lock
+                        : Icons.public,
+                    color: (draft.biddingType ?? 'public') == 'private'
+                        ? Colors.orange
+                        : Colors.blue,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Bidding Type',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          (draft.biddingType ?? 'public') == 'private'
+                              ? 'Private Auction'
+                              : 'Public Auction',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          (draft.biddingType ?? 'public') == 'private'
+                              ? 'Only invited buyers can view and bid'
+                              : 'Any buyer can view and bid on this auction',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed:

@@ -18,7 +18,7 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -59,6 +59,7 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
               Tab(text: 'Condition'),
               Tab(text: 'Documents'),
               Tab(text: 'Photos'),
+              Tab(text: 'Config'),
             ],
           ),
           SizedBox(
@@ -71,11 +72,83 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
                 _buildConditionTab(isDark),
                 _buildDocumentsTab(isDark),
                 _buildPhotosTab(isDark),
+                _buildConfigTab(isDark),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildConfigTab(bool isDark) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSpecGroup(
+          'Bidding Settings',
+          [
+            _SpecRow(
+              'Bidding Type',
+              widget.listing.biddingType == 'public' ? 'Public' : 'Private',
+            ),
+            _SpecRow(
+              'Increment Type',
+              widget.listing.enableIncrementalBidding ? 'Dynamic' : 'Fixed',
+            ),
+            _SpecRow(
+              'Bid Increment',
+              '₱${widget.listing.bidIncrement.toStringAsFixed(0)}',
+            ),
+            _SpecRow(
+              'Min Increment',
+              '₱${widget.listing.minBidIncrement.toStringAsFixed(0)}',
+            ),
+            _SpecRow(
+              'Buyer Deposit',
+              '₱${widget.listing.depositAmount.toStringAsFixed(0)}',
+            ),
+          ],
+          isDark,
+        ),
+        const SizedBox(height: 16),
+        _buildSpecGroup(
+          'Snipe Guard',
+          [
+            _SpecRow(
+              'Status',
+              widget.listing.snipeGuardEnabled ? 'Enabled' : 'Disabled',
+            ),
+            if (widget.listing.snipeGuardEnabled) ...[
+              _SpecRow(
+                'Threshold',
+                '${widget.listing.snipeGuardThresholdSeconds}s',
+              ),
+              _SpecRow(
+                'Extension',
+                '+${widget.listing.snipeGuardExtendSeconds}s',
+              ),
+            ],
+          ],
+          isDark,
+        ),
+        const SizedBox(height: 16),
+        _buildSpecGroup(
+          'Pricing',
+          [
+            _SpecRow(
+              'Starting Price',
+              '₱${widget.listing.startingPrice.toStringAsFixed(0)}',
+            ),
+            if (widget.listing.reservePrice != null)
+              _SpecRow(
+                'Reserve Price',
+                '₱${widget.listing.reservePrice!.toStringAsFixed(0)}',
+              ),
+          ],
+          isDark,
+        ),
+      ],
     );
   }
 
@@ -294,6 +367,48 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (widget.listing.deedOfSaleUrl != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.verified, color: Colors.green),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Deed of Sale',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Document Uploaded',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? ColorConstants.textSecondaryDark
+                              : ColorConstants.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.check_circle, color: Colors.green, size: 20),
+              ],
+            ),
+          ),
         if (widget.listing.plateNumber != null)
           _InfoCard(
             icon: Icons.pin,

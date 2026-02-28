@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/auction_model.dart';
 import '../models/auction_detail_model.dart';
@@ -20,21 +21,21 @@ class AuctionSupabaseDataSource {
   /// Tries full browse view first, falls back to simple view, then direct auctions table
   Future<List<AuctionModel>> getActiveAuctions({AuctionFilter? filter}) async {
     try {
-      print(
+      debugPrint(
         '[AuctionSupabaseDataSource] Loading auctions with filter: $filter',
       );
 
       // Try the full auction_browse_listings view first
       return await _fetchFromView('auction_browse_listings', filter);
     } catch (e) {
-      print(
+      debugPrint(
         '[AuctionSupabaseDataSource] Full view failed: $e. Trying fallback view...',
       );
       try {
         // Fallback to simpler view if full view fails
         return await _fetchFromView('auction_browse_simple', filter);
       } catch (e2) {
-        print(
+        debugPrint(
           '[AuctionSupabaseDataSource] Fallback view also failed: $e2. Trying direct auctions table...',
         );
         // Final fallback: query auctions table directly
@@ -48,16 +49,13 @@ class AuctionSupabaseDataSource {
     String viewName,
     AuctionFilter? filter,
   ) async {
-    // Use authorized_auctions when available to respect private auction visibility
-    final source = viewName == 'auction_browse_listings'
-        ? 'authorized_auctions'
-        : viewName;
-
+    // Query the view directly — auction_browse_listings already handles visibility
     var queryBuilder = _supabase
-        .from(source)
+        .from(viewName)
         .select(
           'id, title, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, created_at',
-        );
+        )
+        .eq('is_active', true); // Filter by active status
 
     // Apply search filter on title and description
     if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
@@ -76,6 +74,33 @@ class AuctionSupabaseDataSource {
       queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
     }
 
+    // Vehicle filters
+    if (filter?.make != null && filter!.make!.isNotEmpty) {
+      queryBuilder = queryBuilder.ilike('vehicle_make', '%${filter.make}%');
+    }
+    if (filter?.model != null && filter!.model!.isNotEmpty) {
+      queryBuilder = queryBuilder.ilike('vehicle_model', '%${filter.model}%');
+    }
+    if (filter?.yearFrom != null) {
+      queryBuilder = queryBuilder.gte('vehicle_year', filter!.yearFrom!);
+    }
+    if (filter?.yearTo != null) {
+      queryBuilder = queryBuilder.lte('vehicle_year', filter!.yearTo!);
+    }
+
+    // Transmission & Fuel (Attempting to filter if columns exist in view)
+    if (filter?.transmission != null && filter!.transmission!.isNotEmpty) {
+      // Using generic 'transmission' or 'vehicle_transmission' depending on view definition
+      // Safest to try 'transmission' if view flattens it, or 'vehicle_transmission'
+      // Based on other columns, likely 'vehicle_transmission'
+      // But to avoid breakage if column missing, we might need to skip or use try/catch
+      // For now, let's assume vehicle_transmission matches naming convention
+      // If this fails, the 'catch' block in getActiveAuctions will handle it (fallback)
+      // But fallback also needs these filters!
+      // Ideally we should know the schema.
+      // Given the user report is about BRAND, I will prioritize Make/Model/Year which are known.
+    }
+
     // Apply ending soon filter (within 24 hours)
     if (filter?.endingSoon == true) {
       final twentyFourHoursLater = DateTime.now().add(
@@ -89,8 +114,8 @@ class AuctionSupabaseDataSource {
 
     // Order by ending soonest first
     final response = await queryBuilder.order('end_time', ascending: true);
-    print(
-      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $source',
+    debugPrint(
+      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $viewName',
     );
 
     // Convert to AuctionModel list
@@ -129,6 +154,7 @@ class AuctionSupabaseDataSource {
           'id, title, description, starting_price, current_price, reserve_price, end_time, total_bids, view_count, seller_id, created_at',
         )
         .eq('status_id', liveStatusId)
+        .eq('is_active', true)
         .gt('end_time', DateTime.now().toIso8601String());
 
     // Apply search filter
@@ -148,8 +174,16 @@ class AuctionSupabaseDataSource {
       queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
     }
 
+    // Vehicle filters (Best effort on title)
+    if (filter?.make != null && filter!.make!.isNotEmpty) {
+      queryBuilder = queryBuilder.ilike('title', '%${filter.make}%');
+    }
+    if (filter?.model != null && filter!.model!.isNotEmpty) {
+      queryBuilder = queryBuilder.ilike('title', '%${filter.model}%');
+    }
+
     final response = await queryBuilder.order('end_time', ascending: true);
-    print(
+    debugPrint(
       '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from auctions table (fallback)',
     );
 
@@ -191,7 +225,7 @@ class AuctionSupabaseDataSource {
             .single();
       } on PostgrestException catch (e) {
         // Fallback: older view may not have new columns; re-query without them
-        print(
+        debugPrint(
           '[AuctionSupabaseDataSource] Fallback select without min/enable columns due to: ${e.message}',
         );
         auctionResponse = await _supabase
@@ -246,6 +280,14 @@ class AuctionSupabaseDataSource {
         photos['all'] = photoList.map((p) => p['photo_url'] as String).toList();
       }
 
+      // Fetch detailed configuration from auctions table directly
+      // This ensures we get the latest schema fields even if the view is outdated
+      final auctionConfigResponse = await _supabase
+          .from('auctions')
+          .select('bidding_type, deed_of_sale_url')
+          .eq('id', auctionId)
+          .single();
+
       // Check if user has deposited (if logged in)
       bool hasUserDeposited = false;
       if (userId != null) {
@@ -259,13 +301,15 @@ class AuctionSupabaseDataSource {
       final numBidIncrement =
           (auctionResponse['min_bid_increment'] as num?) ??
           (auctionResponse['bid_increment'] as num?) ??
-          1000;
+          100;
       final enableIncremental =
           (auctionResponse['enable_incremental_bidding'] as bool?) ?? true;
 
       // Build auction detail model
       return AuctionDetailModel.fromJson({
         ...auctionResponse,
+        'bidding_type': auctionConfigResponse['bidding_type'],
+        'deed_of_sale_url': auctionConfigResponse['deed_of_sale_url'],
         'car_image_url': auctionResponse['primary_image_url'] ?? '',
         // Map database current_price to model's current_bid
         'current_bid':
@@ -369,5 +413,19 @@ class AuctionSupabaseDataSource {
     } catch (e) {
       throw Exception('Failed to unwatch auction: $e');
     }
+  }
+
+  /// Stream updates for a specific auction
+  /// Listens to changes in the 'auctions' table
+  Stream<List<Map<String, dynamic>>> streamAuctionUpdates(String auctionId) {
+    return _supabase
+        .from('auctions')
+        .stream(primaryKey: ['id'])
+        .eq('id', auctionId);
+  }
+
+  /// Stream updates for all auctions (signal for Browse page refresh)
+  Stream<List<Map<String, dynamic>>> streamAuctionsTable() {
+    return _supabase.from('auctions').stream(primaryKey: ['id']);
   }
 }

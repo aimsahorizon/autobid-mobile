@@ -2,7 +2,6 @@ import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/datasources/transaction_remote_datasource.dart';
 import 'data/datasources/transaction_composite_supabase_datasource.dart';
-import 'data/datasources/transaction_mock_datasource.dart';
 import 'data/datasources/transaction_supabase_datasource.dart';
 import 'data/datasources/transaction_realtime_datasource.dart';
 import 'data/datasources/seller_transaction_supabase_datasource.dart';
@@ -23,7 +22,6 @@ Future<void> initTransactionsModule() async {
   final sl = GetIt.instance;
 
   // Primitive Datasources
-  sl.registerLazySingleton(() => TransactionMockDataSource());
   sl.registerLazySingleton(() => TransactionSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => SellerTransactionSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => BuyerTransactionSupabaseDataSource(sl()));
@@ -43,7 +41,7 @@ Future<void> initTransactionsModule() async {
 
   // Repositories
   sl.registerLazySingleton<TransactionRepository>(
-    () => TransactionRepositoryImpl(sl()),
+    () => TransactionRepositoryImpl(sl(), sl()),
   );
 
   // Use Cases
@@ -58,6 +56,9 @@ Future<void> initTransactionsModule() async {
   sl.registerLazySingleton(() => UpdateDeliveryStatusUseCase(sl()));
   sl.registerLazySingleton(() => AcceptVehicleUseCase(sl()));
   sl.registerLazySingleton(() => RejectVehicleUseCase(sl()));
+
+  // Realtime Datasource (Singleton)
+  sl.registerLazySingleton(() => TransactionRealtimeDataSource(sl()));
 
   // Controllers (Factory)
   sl.registerFactory(() => TransactionController(
@@ -75,17 +76,18 @@ Future<void> initTransactionsModule() async {
   ));
 
   sl.registerFactory(() => TransactionRealtimeController(
-    TransactionRealtimeDataSource(sl()),
+    sl(),
   ));
   
   sl.registerFactory(() => TransactionsStatusController(
     sl(), // TransactionSupabaseDataSource
+    sl<TransactionRealtimeDataSource>(),
     sl<SupabaseClient>().auth.currentUser?.id ?? '',
   ));
   
   sl.registerFactory(() => BuyerSellerTransactionsController(
     sl<TransactionSupabaseDataSource>(),
-    null,
+    sl<TransactionRealtimeDataSource>(),
     sl<SupabaseClient>().auth.currentUser?.id ?? '',
   ));
 }

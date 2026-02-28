@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
@@ -6,7 +7,11 @@ import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import '../widgets/detail_sections/auction_stats_section.dart';
 import '../widgets/detail_sections/qa_section.dart';
+import '../widgets/detail_sections/seller_bid_history_section.dart';
+import '../widgets/detail_sections/bid_queue_live_section.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
+import '../widgets/invite_management_dialog.dart';
+import '../controllers/lists_controller.dart';
 
 class ActiveListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;
@@ -23,23 +28,66 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
     SupabaseConfig.client,
   );
   late ListingDetailEntity _listing;
+  List<Map<String, dynamic>> _bids = [];
   bool _isLoading = false;
+  bool _isLoadingBids = false;
 
   @override
   void initState() {
     super.initState();
     _listing = widget.listing;
+    _loadBids();
+  }
+
+  void _showInviteManagement(BuildContext context) {
+    final controller = GetIt.instance<ListsController>();
+
+    showDialog(
+      context: context,
+      builder: (context) => InviteManagementDialog(
+        controller: controller,
+        auctionId: _listing.id,
+        carName: _listing.carName,
+      ),
+    );
+  }
+
+  Future<void> _loadBids() async {
+    setState(() => _isLoadingBids = true);
+    try {
+      final bids = await _datasource.getBids(_listing.id);
+      if (mounted) {
+        setState(() {
+          _bids = bids;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading bids: $e');
+      if (mounted) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load bid history: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingBids = false);
+      }
+    }
   }
 
   Future<void> _refreshListing() async {
     setState(() => _isLoading = true);
     try {
-      // Note: You may need to fetch the updated listing from datasource
-      // For now, this shows the refresh loading state
-      await Future.delayed(const Duration(seconds: 1));
+      // Refresh both listing details and bids
+      await _loadBids();
+      // TODO: Ideally fetch fresh listing details here too
+      // _listing = await _datasource.getListing(_listing.id);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to refresh: $e'),
             backgroundColor: ColorConstants.error,
@@ -94,7 +142,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
       Navigator.pop(context); // Close loading
       Navigator.pop(context, true); // Return to trigger reload
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auction ended. Check the Ended tab for next steps.'),
           backgroundColor: ColorConstants.success,
@@ -105,7 +153,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
       if (!context.mounted) return;
       Navigator.pop(context); // Close loading
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to end auction: $e'),
           backgroundColor: ColorConstants.error,
@@ -148,6 +196,13 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
                 const SizedBox(height: 16),
                 AuctionStatsSection(listing: _listing),
                 const SizedBox(height: 16),
+                BidQueueLiveSection(
+                  auctionId: _listing.id,
+                  supabase: SupabaseConfig.client,
+                ),
+                const SizedBox(height: 16),
+                SellerBidHistorySection(bids: _bids, isLoading: _isLoadingBids),
+                const SizedBox(height: 16),
                 ListingInfoSection(listing: _listing),
                 const SizedBox(height: 16),
                 QASection(listingId: _listing.id),
@@ -171,17 +226,38 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
         child: SafeArea(
           child: SizedBox(
             height: 48,
-            child: FilledButton.icon(
-              onPressed: () => _endAuction(context),
-              style: FilledButton.styleFrom(
-                backgroundColor: ColorConstants.warning,
-                foregroundColor: Colors.white,
-              ),
-              icon: const Icon(Icons.flag),
-              label: const Text(
-                'End Auction',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+            child: Row(
+              children: [
+                if (_listing.visibility == 'private') ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showInviteManagement(context),
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Invite'),
+                      style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  flex: 2,
+                  child: FilledButton.icon(
+                    onPressed: () => _endAuction(context),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: ColorConstants.warning,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.flag),
+                    label: const Text(
+                      'End Auction',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

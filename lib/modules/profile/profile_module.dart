@@ -1,11 +1,11 @@
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'data/datasources/pricing_supabase_datasource.dart';
-import 'data/datasources/profile_mock_datasource.dart';
 import 'data/datasources/profile_supabase_datasource.dart';
 import 'data/datasources/support_supabase_datasource.dart';
 import 'data/repositories/pricing_repository_impl.dart';
-import 'data/repositories/profile_repository_mock_impl.dart';
 import 'data/repositories/profile_repository_supabase_impl.dart';
 import 'data/repositories/support_repository_supabase_impl.dart';
 import 'domain/repositories/pricing_repository.dart';
@@ -23,13 +23,16 @@ import 'domain/usecases/purchase_token_package_usecase.dart';
 import 'domain/usecases/subscribe_to_plan_usecase.dart';
 import 'domain/usecases/update_ticket_status_usecase.dart';
 import 'domain/usecases/check_email_exists_usecase.dart';
+import 'domain/usecases/get_user_profile_usecase.dart';
 import 'domain/usecases/get_user_profile_by_email_usecase.dart';
 import 'domain/usecases/consume_bidding_token_usecase.dart';
 import 'domain/usecases/upload_profile_photo_usecase.dart';
 import 'domain/usecases/upload_cover_photo_usecase.dart';
 import 'domain/usecases/update_profile_with_photo_usecase.dart';
+import 'domain/usecases/change_password_usecase.dart';
 import 'presentation/controllers/pricing_controller.dart';
 import 'presentation/controllers/profile_controller.dart';
+import 'presentation/controllers/review_controller.dart';
 import 'presentation/controllers/support_controller.dart';
 
 /// Initialize Profile module dependencies
@@ -49,21 +52,23 @@ Future<void> initProfileModule() async {
 
   // Repositories
   sl.registerLazySingleton<ProfileRepository>(
-    () => ProfileRepositorySupabaseImpl(sl()),
+    () => ProfileRepositorySupabaseImpl(sl(), sl()),
   );
   sl.registerLazySingleton<SupportRepository>(
-    () => SupportRepositorySupabaseImpl(sl()),
+    () => SupportRepositorySupabaseImpl(sl(), sl()),
   );
   sl.registerLazySingleton<PricingRepository>(
-    () => PricingRepositoryImpl(datasource: sl()),
+    () => PricingRepositoryImpl(datasource: sl(), networkInfo: sl()),
   );
 
   // Use Cases
   sl.registerLazySingleton(() => CheckEmailExistsUseCase(sl()));
+  sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
   sl.registerLazySingleton(() => GetUserProfileByEmailUseCase(sl()));
   sl.registerLazySingleton(() => UploadProfilePhotoUseCase(sl()));
   sl.registerLazySingleton(() => UploadCoverPhotoUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileWithPhotoUseCase(sl()));
+  sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
   sl.registerLazySingleton(() => GetTokenBalanceUsecase(repository: sl()));
   sl.registerLazySingleton(() => GetUserSubscriptionUsecase(repository: sl()));
   sl.registerLazySingleton(() => GetTokenPackagesUsecase(repository: sl()));
@@ -86,6 +91,7 @@ Future<void> initProfileModule() async {
       uploadProfilePhotoUseCase: sl(),
       uploadCoverPhotoUseCase: sl(),
       updateProfileWithPhotoUseCase: sl(),
+      changePasswordUseCase: sl(),
     ),
   );
   sl.registerFactory(
@@ -97,6 +103,7 @@ Future<void> initProfileModule() async {
       subscribeToPlanUsecase: sl(),
     ),
   );
+  sl.registerFactory(() => ReviewController(dataSource: sl()));
   sl.registerFactory(
     () => SupportController(
       getSupportCategoriesUsecase: sl(),
@@ -116,18 +123,13 @@ class ProfileModule {
 
   ProfileModule._();
 
-  /// Toggle this to switch between mock and real data
-  static const bool useMockData = false;
-
   /// Singleton instances
   ProfileSupabaseDataSource? _dataSourceInstance;
   ProfileRepository? _repositoryInstance;
   ProfileController? _controllerInstance;
 
-  /// Create mock data source
-  ProfileMockDataSource _createMockDataSource() {
-    return ProfileMockDataSource();
-  }
+  /// Helper to create legacy network info
+  NetworkInfo _createLegacyNetworkInfo() => NetworkInfoImpl(Connectivity());
 
   /// Create Supabase data source
   ProfileSupabaseDataSource _getOrCreateDataSource() {
@@ -138,14 +140,10 @@ class ProfileModule {
   /// Create profile repository
   ProfileRepository _getOrCreateRepository() {
     if (_repositoryInstance != null) return _repositoryInstance!;
-
-    if (useMockData) {
-      _repositoryInstance = ProfileRepositoryMockImpl(_createMockDataSource());
-    } else {
-      _repositoryInstance = ProfileRepositorySupabaseImpl(
-        _getOrCreateDataSource(),
-      );
-    }
+    _repositoryInstance = ProfileRepositorySupabaseImpl(
+      _getOrCreateDataSource(),
+      _createLegacyNetworkInfo(),
+    );
     return _repositoryInstance!;
   }
 
@@ -153,7 +151,7 @@ class ProfileModule {
   ProfileRepository get repository => _getOrCreateRepository();
 
   /// Get or create profile controller (singleton)
-  /// @deprecated Use GetIt.instance.get<ProfileController>() instead
+  /// @deprecated Use GetIt.instance.get[ProfileController] instead
   @Deprecated('Use GetIt.instance.get<ProfileController>()')
   ProfileController get controller {
     // Return GetIt controller if available
@@ -170,6 +168,9 @@ class ProfileModule {
         _getOrCreateRepository(),
       ),
       updateProfileWithPhotoUseCase: UpdateProfileWithPhotoUseCase(
+        _getOrCreateRepository(),
+      ),
+      changePasswordUseCase: ChangePasswordUseCase(
         _getOrCreateRepository(),
       ),
     );
@@ -189,7 +190,10 @@ class ProfileModule {
 
   /// Create support repository
   SupportRepository _createSupportRepository() {
-    return SupportRepositorySupabaseImpl(_createSupportDataSource());
+    return SupportRepositorySupabaseImpl(
+      _createSupportDataSource(),
+      _createLegacyNetworkInfo(),
+    );
   }
 
   /// Create support use cases
@@ -236,7 +240,10 @@ class ProfileModule {
 
   /// Create pricing repository
   PricingRepositoryImpl _createPricingRepository() {
-    return PricingRepositoryImpl(datasource: _createPricingDataSource());
+    return PricingRepositoryImpl(
+      datasource: _createPricingDataSource(),
+      networkInfo: _createLegacyNetworkInfo(),
+    );
   }
 
   /// Create pricing use cases

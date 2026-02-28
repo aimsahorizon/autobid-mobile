@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/transaction_realtime_controller.dart';
+import '../controllers/installment_controller.dart';
 import '../../domain/entities/transaction_entity.dart';
+import '../../data/datasources/installment_supabase_datasource.dart';
 import '../widgets/transaction_realtime/chat_realtime_tab.dart';
-import '../widgets/transaction_realtime/seller_form_tab.dart';
-import '../widgets/transaction_realtime/buyer_form_tab.dart';
-import '../widgets/transaction_realtime/other_form_realtime_tab.dart';
 import '../widgets/transaction_realtime/progress_realtime_tab.dart';
+import '../widgets/transaction_realtime/unified_agreement_tab.dart';
+import '../widgets/transaction_realtime/installment_tracker_tab.dart';
 
 /// Real-time Pre-Transaction Page
 /// Supports live chat and form updates between buyer and seller
@@ -32,16 +33,19 @@ class PreTransactionRealtimePage extends StatefulWidget {
 class _PreTransactionRealtimePageState
     extends State<PreTransactionRealtimePage> {
   String _debugStatus = 'initializing';
+  InstallmentController? _installmentController;
 
   @override
   void initState() {
     super.initState();
-    print('[DEBUG PreTransactionRealtimePage] initState called');
-    print(
+    debugPrint('[DEBUG PreTransactionRealtimePage] initState called');
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] transactionId: ${widget.transactionId}',
     );
-    print('[DEBUG PreTransactionRealtimePage] userId: ${widget.userId}');
-    print('[DEBUG PreTransactionRealtimePage] userName: ${widget.userName}');
+    debugPrint('[DEBUG PreTransactionRealtimePage] userId: ${widget.userId}');
+    debugPrint(
+      '[DEBUG PreTransactionRealtimePage] userName: ${widget.userName}',
+    );
     _debugStatus = 'loading...';
     _loadWithDebug();
   }
@@ -65,7 +69,7 @@ class _PreTransactionRealtimePageState
         });
       }
     } catch (e) {
-      print(
+      debugPrint(
         '[DEBUG PreTransactionRealtimePage] Exception in loadTransaction: $e',
       );
       if (mounted) {
@@ -76,24 +80,35 @@ class _PreTransactionRealtimePageState
 
   @override
   void dispose() {
-    print('[DEBUG PreTransactionRealtimePage] dispose called');
+    debugPrint('[DEBUG PreTransactionRealtimePage] dispose called');
+    _installmentController?.dispose();
     widget.controller.dispose();
     super.dispose();
   }
 
+  /// Lazily create the installment controller when needed
+  InstallmentController _getInstallmentController() {
+    _installmentController ??= InstallmentController(
+      datasource: InstallmentSupabaseDatasource(),
+    );
+    return _installmentController!;
+  }
+
   @override
   Widget build(BuildContext context) {
-    print('[DEBUG PreTransactionRealtimePage] build called - $_debugStatus');
-    print(
+    debugPrint(
+      '[DEBUG PreTransactionRealtimePage] build called - $_debugStatus',
+    );
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] isLoading: ${widget.controller.isLoading}',
     );
-    print(
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] hasError: ${widget.controller.hasError}',
     );
-    print(
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] transaction: ${widget.controller.transaction?.id}',
     );
-    print(
+    debugPrint(
       '[DEBUG PreTransactionRealtimePage] transaction status: ${widget.controller.transaction?.status}',
     );
 
@@ -145,7 +160,7 @@ class _PreTransactionRealtimePageState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh),
-                tooltip: 'Refresh',
+                tooltip: 'Refreshed',
               );
             },
           ),
@@ -264,54 +279,17 @@ class _PreTransactionRealtimePageState
               return _buildSellerDealFailedOptions(transaction, isDark);
             }
 
-            // Buyer just sees cancellation info
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.cancel_outlined,
-                      size: 80,
-                      color: ColorConstants.error,
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Deal Cancelled',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'This transaction has been cancelled and is no longer active.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isDark
-                            ? ColorConstants.textSecondaryDark
-                            : ColorConstants.textSecondaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    FilledButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back),
-                      label: const Text('Go Back'),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            // Buyer sees detailed cancellation record
+            return _buildBuyerCancelledView(transaction, isDark);
           }
 
-          final role = widget.controller.getUserRole(widget.userId);
-          final otherRoleLabel = role == FormRole.seller ? 'Buyer' : 'Seller';
+          final showInstallment = transaction.showInstallmentTab;
+          final tabCount = showInstallment ? 4 : 3;
+          final userRole = widget.controller.getUserRole(widget.userId);
 
           return DefaultTabController(
-            length: 4,
+            key: ValueKey('tabs_$tabCount'),
+            length: tabCount,
             child: Column(
               children: [
                 // Transaction status banner
@@ -355,9 +333,9 @@ class _PreTransactionRealtimePageState
                     ),
                     tabs: [
                       const Tab(text: 'Chat'),
-                      const Tab(text: 'My Form'),
-                      Tab(text: '$otherRoleLabel Form'),
+                      const Tab(text: 'Agreement'),
                       const Tab(text: 'Progress'),
+                      if (showInstallment) const Tab(text: 'Installment'),
                     ],
                   ),
                 ),
@@ -371,24 +349,23 @@ class _PreTransactionRealtimePageState
                         userId: widget.userId,
                         userName: widget.userName,
                       ),
-                      // Role-specific form: Seller sees SellerFormTab, Buyer sees BuyerFormTab
-                      role == FormRole.seller
-                          ? SellerFormTab(
-                              controller: widget.controller,
-                              userId: widget.userId,
-                            )
-                          : BuyerFormTab(
-                              controller: widget.controller,
-                              userId: widget.userId,
-                            ),
-                      OtherFormRealtimeTab(
+                      UnifiedAgreementTab(
                         controller: widget.controller,
+                        installmentController: _getInstallmentController(),
+                        transactionId: transaction.id,
                         userId: widget.userId,
                       ),
                       ProgressRealtimeTab(
                         controller: widget.controller,
                         userId: widget.userId,
                       ),
+                      if (showInstallment)
+                        InstallmentTrackerTab(
+                          controller: _getInstallmentController(),
+                          transactionId: transaction.id,
+                          userId: widget.userId,
+                          userRole: userRole,
+                        ),
                     ],
                   ),
                 ),
@@ -567,6 +544,247 @@ class _PreTransactionRealtimePageState
     );
   }
 
+  /// Build detailed buyer cancellation view showing transaction record
+  Widget _buildBuyerCancelledView(TransactionEntity transaction, bool isDark) {
+    final reason = transaction.cancellationReason;
+    final cancelledByLabel = transaction.cancelledBy == 'buyer'
+        ? 'You'
+        : transaction.cancelledBy == 'seller'
+        ? 'Seller'
+        : 'Unknown';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          // Header icon
+          Icon(Icons.cancel_outlined, size: 64, color: ColorConstants.error),
+          const SizedBox(height: 16),
+          const Text(
+            'Deal Cancelled',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+
+          // Car details card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? ColorConstants.surfaceDark : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
+                    : Colors.grey.shade300,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Car image
+                if (transaction.carImageUrl.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      transaction.carImageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 180,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.directions_car, size: 48),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (transaction.carImageUrl.isNotEmpty)
+                  const SizedBox(height: 16),
+
+                // Car name
+                Text(
+                  transaction.carName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Details rows
+                _buildDetailRow(
+                  icon: Icons.attach_money,
+                  label: 'Agreed Price',
+                  value: '₱${transaction.agreedPrice.toStringAsFixed(2)}',
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.person,
+                  label: 'Cancelled By',
+                  value: cancelledByLabel,
+                  isDark: isDark,
+                  valueColor: ColorConstants.error,
+                ),
+                const SizedBox(height: 12),
+                _buildDetailRow(
+                  icon: Icons.calendar_today,
+                  label: 'Transaction Date',
+                  value: _formatDate(transaction.createdAt),
+                  isDark: isDark,
+                ),
+
+                // Cancellation reason
+                if (reason != null && reason.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: ColorConstants.error.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: ColorConstants.error.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: ColorConstants.error,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Cancellation Reason',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: ColorConstants.error,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          reason,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark
+                                ? ColorConstants.textSecondaryDark
+                                : ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Status badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: ColorConstants.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'TRANSACTION CLOSED',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: ColorConstants.error,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Go back button
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Go Back'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build a detail row for the buyer cancelled view
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool isDark,
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: isDark
+              ? ColorConstants.textSecondaryDark
+              : ColorConstants.textSecondaryLight,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: isDark
+                ? ColorConstants.textSecondaryDark
+                : ColorConstants.textSecondaryLight,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: valueColor,
+            ),
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Format date for display
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
   Future<void> _showNextBidderDialog() async {
     // Show loading dialog while fetching bidders
     showDialog(
@@ -587,7 +805,7 @@ class _PreTransactionRealtimePageState
         .toList();
 
     if (bidders.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('No bidders found for this auction'),
           backgroundColor: ColorConstants.error,
@@ -616,7 +834,7 @@ class _PreTransactionRealtimePageState
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 'Transaction offered to ${selectedBidder['bidder_name']}',
@@ -625,7 +843,7 @@ class _PreTransactionRealtimePageState
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 widget.controller.errorMessage ?? 'Failed to reassign',
@@ -680,7 +898,7 @@ class _PreTransactionRealtimePageState
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Auction relisted successfully'),
               backgroundColor: ColorConstants.success,
@@ -688,7 +906,7 @@ class _PreTransactionRealtimePageState
           );
           Navigator.pop(context);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 widget.controller.errorMessage ?? 'Failed to relist auction',
@@ -745,7 +963,7 @@ class _PreTransactionRealtimePageState
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Auction deleted successfully'),
               backgroundColor: ColorConstants.success,
@@ -753,7 +971,7 @@ class _PreTransactionRealtimePageState
           );
           Navigator.pop(context);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 widget.controller.errorMessage ?? 'Failed to delete auction',
@@ -781,22 +999,22 @@ class _PreTransactionRealtimePageState
       bgColor = ColorConstants.success.withValues(alpha: 0.1);
       textColor = ColorConstants.success;
       icon = Icons.verified;
-      text = 'Admin Approved - Proceed with delivery';
+      text = 'Transaction Finalized - Proceed with delivery';
     } else if (transaction.bothFormsSubmitted && transaction.bothConfirmed) {
-      bgColor = ColorConstants.info.withValues(alpha: 0.1);
-      textColor = ColorConstants.info;
-      icon = Icons.hourglass_bottom;
-      text = 'Ready for admin review';
-    } else if (transaction.bothFormsSubmitted) {
       bgColor = ColorConstants.warning.withValues(alpha: 0.1);
       textColor = ColorConstants.warning;
+      icon = Icons.timer;
+      text = 'Both confirmed - Finalizing shortly...';
+    } else if (transaction.bothFormsSubmitted) {
+      bgColor = ColorConstants.info.withValues(alpha: 0.1);
+      textColor = ColorConstants.info;
       icon = Icons.rate_review;
-      text = 'Review and confirm each other\'s forms';
+      text = 'Agreement locked - Review and confirm';
     } else {
       bgColor = ColorConstants.primary.withValues(alpha: 0.1);
       textColor = ColorConstants.primary;
       icon = Icons.edit_document;
-      text = 'Submit your transaction form';
+      text = 'Collaborate on the transaction agreement';
     }
 
     return Container(

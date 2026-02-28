@@ -20,7 +20,6 @@ class UpdateProfileWithPhotoUseCase {
       email: profile.email,
       fullName: profile.fullName,
       username: profile.username,
-      contactNumber: profile.contactNumber,
       profilePhotoUrl: profilePhotoUrl ?? profile.profilePhotoUrl,
       coverPhotoUrl: coverPhotoUrl ?? profile.coverPhotoUrl,
     );

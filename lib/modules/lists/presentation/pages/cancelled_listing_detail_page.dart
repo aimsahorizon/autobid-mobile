@@ -32,6 +32,7 @@ class _CancelledListingDetailPageState
     extends State<CancelledListingDetailPage> {
   late final ListingSupabaseDataSource _datasource;
   late final String? _effectiveSellerId;
+  bool _isDeleteEnabled = false;
 
   @override
   void initState() {
@@ -42,9 +43,25 @@ class _CancelledListingDetailPageState
         widget.sellerId ?? SupabaseConfig.client.auth.currentUser?.id;
   }
 
+  void _toggleDeleteEnabled() {
+    setState(() {
+      _isDeleteEnabled = !_isDeleteEnabled;
+    });
+
+    if (_isDeleteEnabled) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        const SnackBar(
+          content: Text('Deletion enabled. You can now delete this listing.'),
+          backgroundColor: ColorConstants.warning,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   Future<void> _editListing(BuildContext context) async {
     if (_effectiveSellerId == null || widget.controller == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Unable to edit: Please log in first'),
           backgroundColor: ColorConstants.error,
@@ -75,9 +92,13 @@ class _CancelledListingDetailPageState
 
     if (confirmed != true || !mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(this.context);
+    final messenger = ScaffoldMessenger.of(this.context);
+
     // Show loading indicator
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
@@ -100,11 +121,10 @@ class _CancelledListingDetailPageState
       }
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
       // Navigate to create listing page with the copied draft
-      await Navigator.push(
-        context,
+      await navigator.push(
         MaterialPageRoute(
           builder: (context) => CreateListingPage(
             controller: widget.controller!,
@@ -116,7 +136,7 @@ class _CancelledListingDetailPageState
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text(
             'Draft created successfully. Edit and resubmit for approval.',
@@ -126,12 +146,12 @@ class _CancelledListingDetailPageState
       );
 
       // Inform parent to refresh lists and remove the cancelled card
-      Navigator.pop(context, true);
+      navigator.pop(true);
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to create draft: $e'),
           backgroundColor: ColorConstants.error,
@@ -142,7 +162,7 @@ class _CancelledListingDetailPageState
 
   Future<void> _reAuction(BuildContext context) async {
     if (_effectiveSellerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Unable to re-auction: Please log in first'),
           backgroundColor: ColorConstants.error,
@@ -174,9 +194,13 @@ class _CancelledListingDetailPageState
 
     if (confirmed != true || !mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(this.context);
+    final messenger = ScaffoldMessenger.of(this.context);
+
     // Show loading indicator
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
@@ -191,12 +215,12 @@ class _CancelledListingDetailPageState
       );
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
       // Pop back to listing view
-      Navigator.pop(context);
+      navigator.pop();
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(
             'New auction created (ID: $newAuctionId). It is pending admin approval.',
@@ -206,9 +230,9 @@ class _CancelledListingDetailPageState
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to create new auction: $e'),
           backgroundColor: ColorConstants.error,
@@ -219,7 +243,7 @@ class _CancelledListingDetailPageState
 
   Future<void> _deleteListing(BuildContext context) async {
     if (_effectiveSellerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Unable to delete: Please log in first'),
           backgroundColor: ColorConstants.error,
@@ -251,9 +275,13 @@ class _CancelledListingDetailPageState
 
     if (confirmed != true || !mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(this.context);
+    final messenger = ScaffoldMessenger.of(this.context);
+
     // Show loading indicator
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
@@ -263,12 +291,12 @@ class _CancelledListingDetailPageState
       await _datasource.deleteListing(widget.listing.id, _effectiveSellerId);
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
       // Return to listing view with result to trigger refresh
-      Navigator.pop(context, true);
+      navigator.pop(true);
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Listing deleted successfully'),
           backgroundColor: ColorConstants.success,
@@ -276,9 +304,9 @@ class _CancelledListingDetailPageState
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
+      navigator.pop(); // Close loading dialog
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to delete listing: $e'),
           backgroundColor: ColorConstants.error,
@@ -293,7 +321,19 @@ class _CancelledListingDetailPageState
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cancelled Listing')),
+      appBar: AppBar(
+        title: const Text('Cancelled Listing'),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isDeleteEnabled ? Icons.lock_open : Icons.lock_outline,
+              color: _isDeleteEnabled ? Colors.red : null,
+            ),
+            tooltip: _isDeleteEnabled ? 'Disable Deletion' : 'Enable Deletion',
+            onPressed: _toggleDeleteEnabled,
+          ),
+        ],
+      ),
       backgroundColor: isDark
           ? ColorConstants.backgroundDark
           : ColorConstants.backgroundLight,
@@ -476,15 +516,17 @@ class _CancelledListingDetailPageState
             onTap: () => _reAuction(context),
             isDark: isDark,
           ),
-          const SizedBox(height: 12),
-          _ActionOption(
-            icon: Icons.delete,
-            title: 'Delete Listing',
-            description: 'Permanently remove this listing',
-            color: Colors.red,
-            onTap: () => _deleteListing(context),
-            isDark: isDark,
-          ),
+          if (_isDeleteEnabled) ...[
+            const SizedBox(height: 12),
+            _ActionOption(
+              icon: Icons.delete,
+              title: 'Delete Listing',
+              description: 'Permanently remove this listing',
+              color: Colors.red,
+              onTap: () => _deleteListing(context),
+              isDark: isDark,
+            ),
+          ],
         ],
       ),
     );

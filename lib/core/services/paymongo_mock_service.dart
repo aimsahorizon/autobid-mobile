@@ -1,35 +1,42 @@
-import 'paymongo_service.dart';
+import 'dart:async';
+import 'ipaymongo_service.dart';
 
-/// Mock PayMongo service for demo/testing without API keys
-/// Simulates successful payments after a short delay
-class PayMongoMockService extends PayMongoService {
-  static const _mockDelay = Duration(seconds: 2);
+/// Mock PayMongo payment service for testing flows without hitting the API
+class PayMongoMockService implements IPayMongoService {
+  bool _useSuccess = true;
 
+  /// Set whether to return success or failure responses
+  void setSuccessMode(bool success) {
+    _useSuccess = success;
+  }
+
+  /// Create a PaymentIntent (Mock)
   @override
   Future<Map<String, dynamic>> createPaymentIntent({
     required double amount,
     required String description,
     Map<String, dynamic>? metadata,
   }) async {
-    await Future.delayed(_mockDelay);
+    await Future.delayed(const Duration(seconds: 1));
 
-    // Return mock payment intent
+    if (!_useSuccess) {
+      throw Exception('Mock Error: Failed to create payment intent');
+    }
+
     return {
-      'data': {
-        'id': 'pi_mock_${DateTime.now().millisecondsSinceEpoch}',
-        'type': 'payment_intent',
-        'attributes': {
-          'amount': (amount * 100).toInt(),
-          'currency': 'PHP',
-          'description': description,
-          'status': 'awaiting_payment_method',
-          'client_key': 'mock_client_key_${DateTime.now().millisecondsSinceEpoch}',
-          'metadata': metadata ?? {},
-        },
+      'id': 'pi_mock_${DateTime.now().millisecondsSinceEpoch}',
+      'type': 'payment_intent',
+      'attributes': {
+        'amount': (amount * 100).toInt(),
+        'currency': 'PHP',
+        'status': 'awaiting_payment_method',
+        'client_key': 'pi_mock_client_key',
+        'metadata': metadata ?? {},
       },
     };
   }
 
+  /// Create a PaymentMethod (Mock)
   @override
   Future<Map<String, dynamic>> createPaymentMethod({
     required String cardNumber,
@@ -40,54 +47,49 @@ class PayMongoMockService extends PayMongoService {
     required String billingEmail,
     String? billingPhone,
   }) async {
-    await Future.delayed(_mockDelay);
+    await Future.delayed(const Duration(seconds: 1));
 
-    // Return mock payment method
+    if (!_useSuccess) {
+      throw Exception('Mock Error: Invalid card details');
+    }
+
     return {
-      'data': {
-        'id': 'pm_mock_${DateTime.now().millisecondsSinceEpoch}',
-        'type': 'payment_method',
-        'attributes': {
-          'type': 'card',
-          'billing': {
-            'name': billingName,
-            'email': billingEmail,
-            'phone': billingPhone,
-          },
-          'details': {
-            'last4': cardNumber.substring(cardNumber.length - 4),
-            'exp_month': expMonth,
-            'exp_year': expYear,
-          },
+      'id': 'pm_mock_${DateTime.now().millisecondsSinceEpoch}',
+      'type': 'payment_method',
+      'attributes': {
+        'type': 'card',
+        'details': {
+          'last4': cardNumber.substring(cardNumber.length - 4),
+          'exp_month': expMonth,
+          'exp_year': expYear,
         },
+        'billing': {'name': billingName, 'email': billingEmail},
       },
     };
   }
 
+  /// Attach PaymentMethod to PaymentIntent (Mock)
   @override
   Future<Map<String, dynamic>> attachPaymentMethod({
     required String paymentIntentId,
     required String paymentMethodId,
     String? clientKey,
+    String? returnUrl,
   }) async {
-    await Future.delayed(_mockDelay);
+    await Future.delayed(const Duration(seconds: 2));
 
-    // Simulate successful payment
+    if (!_useSuccess) {
+      throw Exception('Mock Error: Payment declined by bank');
+    }
+
     return {
-      'data': {
-        'id': paymentIntentId,
-        'type': 'payment_intent',
-        'attributes': {
-          'status': 'succeeded',
-          'amount': 10000, // Mock amount
-          'currency': 'PHP',
-          'payment_method': paymentMethodId,
-          'paid_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        },
-      },
+      'id': paymentIntentId,
+      'type': 'payment_intent',
+      'attributes': {'status': 'succeeded', 'metadata': {}},
     };
   }
 
+  /// Create a Source (Mock)
   @override
   Future<Map<String, dynamic>> createSource({
     required double amount,
@@ -96,9 +98,12 @@ class PayMongoMockService extends PayMongoService {
     required String redirectFailedUrl,
     Map<String, dynamic>? metadata,
   }) async {
-    await Future.delayed(_mockDelay);
+    await Future.delayed(const Duration(seconds: 1));
 
-    // Return mock source with checkout URL
+    if (!_useSuccess) {
+      throw Exception('Mock Error: Provider unavailable');
+    }
+
     return {
       'data': {
         'id': 'src_mock_${DateTime.now().millisecondsSinceEpoch}',
@@ -109,9 +114,7 @@ class PayMongoMockService extends PayMongoService {
           'type': type,
           'status': 'pending',
           'redirect': {
-            'checkout_url': 'https://mock-checkout.paymongo.com/sources/mock_${DateTime.now().millisecondsSinceEpoch}',
-            'success': redirectSuccessUrl,
-            'failed': redirectFailedUrl,
+            'checkout_url': 'https://mock.paymongo.com/checkout/mock_source_id',
           },
           'metadata': metadata ?? {},
         },
@@ -119,61 +122,35 @@ class PayMongoMockService extends PayMongoService {
     };
   }
 
+  /// Retrieve Source (Mock)
   @override
   Future<Map<String, dynamic>> retrieveSource(String sourceId) async {
-    await Future.delayed(_mockDelay);
+    await Future.delayed(const Duration(milliseconds: 500));
 
-    // Return mock source with chargeable status
     return {
       'data': {
         'id': sourceId,
         'type': 'source',
-        'attributes': {
-          'status': 'chargeable',
-          'amount': 10000,
-          'currency': 'PHP',
-        },
+        'attributes': {'status': 'chargeable'},
       },
     };
   }
 
+  /// Create a Payment (Mock)
   @override
   Future<Map<String, dynamic>> createPayment({
     required String sourceId,
     required String description,
   }) async {
-    await Future.delayed(_mockDelay);
+    await Future.delayed(const Duration(seconds: 1));
 
-    // Simulate successful payment
     return {
       'data': {
         'id': 'pay_mock_${DateTime.now().millisecondsSinceEpoch}',
         'type': 'payment',
         'attributes': {
-          'status': 'paid',
-          'amount': 10000,
-          'currency': 'PHP',
-          'source': {
-            'id': sourceId,
-            'type': 'source',
-          },
-          'paid_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        },
-      },
-    };
-  }
-
-  @override
-  Future<Map<String, dynamic>> retrievePaymentIntent(String paymentIntentId) async {
-    await Future.delayed(_mockDelay);
-
-    return {
-      'data': {
-        'id': paymentIntentId,
-        'type': 'payment_intent',
-        'attributes': {
           'status': 'succeeded',
-          'amount': 10000,
+          'amount': 100000,
           'currency': 'PHP',
         },
       },

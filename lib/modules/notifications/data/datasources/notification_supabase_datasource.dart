@@ -8,6 +8,22 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
 
   NotificationSupabaseDataSource({required this.supabase});
 
+  /// Standard select query with the joined type name and direct columns
+  static const String _selectQuery = '''
+    *,
+    type:notification_types(type_name)
+  ''';
+
+  /// Flatten the joined notification_types row into a simple type string
+  Map<String, dynamic> _flattenRow(Map<String, dynamic> json) {
+    final data = Map<String, dynamic>.from(json);
+    // Flatten the joined type name from {type_name: 'outbid'} → 'outbid'
+    if (json['type'] != null && json['type'] is Map) {
+      data['type'] = json['type']['type_name'];
+    }
+    return data;
+  }
+
   @override
   Future<List<NotificationModel>> getNotifications({
     required String userId,
@@ -16,7 +32,7 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
   }) async {
     var query = supabase
         .from('notifications')
-        .select()
+        .select(_selectQuery)
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
@@ -30,7 +46,7 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
 
     final response = await query;
     return (response as List)
-        .map((json) => NotificationModel.fromJson(json))
+        .map((json) => NotificationModel.fromJson(_flattenRow(json)))
         .toList();
   }
 
@@ -68,13 +84,38 @@ class NotificationSupabaseDataSource implements INotificationDataSource {
   }) async {
     final response = await supabase
         .from('notifications')
-        .select()
+        .select(_selectQuery)
         .eq('user_id', userId)
         .eq('is_read', false)
         .order('created_at', ascending: false);
 
     return (response as List)
-        .map((json) => NotificationModel.fromJson(json))
+        .map((json) => NotificationModel.fromJson(_flattenRow(json)))
         .toList();
+  }
+
+  @override
+  Future<void> respondToInvite({
+    required String inviteId,
+    required String decision,
+  }) async {
+    await supabase.rpc(
+      'respond_to_auction_invite',
+      params: {'p_invite_id': inviteId, 'p_decision': decision},
+    );
+  }
+
+  @override
+  Stream<List<Map<String, dynamic>>> streamNotifications({
+    required String userId,
+  }) {
+    // Uses Supabase Realtime — requires notifications table in
+    // supabase_realtime publication (added in migration 00106)
+    return supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(50);
   }
 }

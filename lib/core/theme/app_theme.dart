@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 // import 'package:google_fonts/google_fonts.dart';
 import '../constants/color_constants.dart';
 
@@ -16,6 +17,17 @@ class AppTheme {
       scaffoldBackgroundColor: ColorConstants.backgroundLight,
       cardColor: ColorConstants.surfaceLight,
       dividerColor: ColorConstants.textSecondaryLight.withValues(alpha: 0.2),
+
+      // AppBar theme
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
+      ),
 
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
@@ -154,6 +166,9 @@ class AppTheme {
     );
   }
 
+  /// DEPRECATED: Dark theme is currently disabled in the app
+  /// This theme is kept for future implementation if dark mode is re-enabled
+  /// To re-enable: Uncomment ThemeController methods and update app.dart
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
@@ -167,6 +182,17 @@ class AppTheme {
       scaffoldBackgroundColor: ColorConstants.backgroundDark,
       cardColor: ColorConstants.surfaceDark,
       dividerColor: ColorConstants.textSecondaryDark.withValues(alpha: 0.2),
+
+      // AppBar theme
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+      ),
 
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(

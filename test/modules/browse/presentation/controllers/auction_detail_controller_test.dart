@@ -14,6 +14,17 @@ import 'package:autobid_mobile/modules/browse/domain/usecases/unlike_question_us
 import 'package:autobid_mobile/modules/browse/domain/usecases/get_bid_increment_usecase.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/upsert_bid_increment_usecase.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/process_deposit_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_auction_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_bid_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_qa_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/save_auto_bid_settings_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_auto_bid_settings_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/deactivate_auto_bid_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/raise_hand_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/lower_hand_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/submit_turn_bid_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_queue_status_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_queue_updates_usecase.dart';
 import 'package:autobid_mobile/modules/browse/presentation/controllers/auction_detail_controller.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/consume_bidding_token_usecase.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
@@ -42,8 +53,37 @@ class MockUpsertBidIncrementUseCase extends Mock
 
 class MockProcessDepositUseCase extends Mock implements ProcessDepositUseCase {}
 
+class MockStreamAuctionUpdatesUseCase extends Mock
+    implements StreamAuctionUpdatesUseCase {}
+
+class MockStreamBidUpdatesUseCase extends Mock
+    implements StreamBidUpdatesUseCase {}
+
+class MockStreamQAUpdatesUseCase extends Mock
+    implements StreamQAUpdatesUseCase {}
+
 class MockConsumeBiddingTokenUsecase extends Mock
     implements ConsumeBiddingTokenUsecase {}
+
+class MockSaveAutoBidSettingsUseCase extends Mock
+    implements SaveAutoBidSettingsUseCase {}
+
+class MockGetAutoBidSettingsUseCase extends Mock
+    implements GetAutoBidSettingsUseCase {}
+
+class MockDeactivateAutoBidUseCase extends Mock
+    implements DeactivateAutoBidUseCase {}
+
+class MockRaiseHandUseCase extends Mock implements RaiseHandUseCase {}
+
+class MockLowerHandUseCase extends Mock implements LowerHandUseCase {}
+
+class MockSubmitTurnBidUseCase extends Mock implements SubmitTurnBidUseCase {}
+
+class MockGetQueueStatusUseCase extends Mock implements GetQueueStatusUseCase {}
+
+class MockStreamQueueUpdatesUseCase extends Mock
+    implements StreamQueueUpdatesUseCase {}
 
 void main() {
   late AuctionDetailController controller;
@@ -58,6 +98,17 @@ void main() {
   late MockUpsertBidIncrementUseCase mockUpsertBidIncrement;
   late MockProcessDepositUseCase mockProcessDeposit;
   late MockConsumeBiddingTokenUsecase mockConsumeBiddingToken;
+  late MockStreamAuctionUpdatesUseCase mockStreamAuctionUpdates;
+  late MockStreamBidUpdatesUseCase mockStreamBidUpdates;
+  late MockStreamQAUpdatesUseCase mockStreamQAUpdates;
+  late MockSaveAutoBidSettingsUseCase mockSaveAutoBidSettings;
+  late MockGetAutoBidSettingsUseCase mockGetAutoBidSettings;
+  late MockDeactivateAutoBidUseCase mockDeactivateAutoBid;
+  late MockRaiseHandUseCase mockRaiseHand;
+  late MockLowerHandUseCase mockLowerHand;
+  late MockSubmitTurnBidUseCase mockSubmitTurnBid;
+  late MockGetQueueStatusUseCase mockGetQueueStatus;
+  late MockStreamQueueUpdatesUseCase mockStreamQueueUpdates;
 
   const testUserId = 'test-user-123';
   const testAuctionId = 'auction-123';
@@ -141,6 +192,34 @@ void main() {
     mockUpsertBidIncrement = MockUpsertBidIncrementUseCase();
     mockProcessDeposit = MockProcessDepositUseCase();
     mockConsumeBiddingToken = MockConsumeBiddingTokenUsecase();
+    mockStreamAuctionUpdates = MockStreamAuctionUpdatesUseCase();
+    mockStreamBidUpdates = MockStreamBidUpdatesUseCase();
+    mockStreamQAUpdates = MockStreamQAUpdatesUseCase();
+    mockSaveAutoBidSettings = MockSaveAutoBidSettingsUseCase();
+    mockGetAutoBidSettings = MockGetAutoBidSettingsUseCase();
+    mockDeactivateAutoBid = MockDeactivateAutoBidUseCase();
+    mockRaiseHand = MockRaiseHandUseCase();
+    mockLowerHand = MockLowerHandUseCase();
+    mockSubmitTurnBid = MockSubmitTurnBidUseCase();
+    mockGetQueueStatus = MockGetQueueStatusUseCase();
+    mockStreamQueueUpdates = MockStreamQueueUpdatesUseCase();
+
+    // Default stream behavior
+    when(
+      () => mockStreamAuctionUpdates.call(auctionId: any(named: 'auctionId')),
+    ).thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockStreamBidUpdates.call(auctionId: any(named: 'auctionId')),
+    ).thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockStreamQAUpdates.call(
+        auctionId: any(named: 'auctionId'),
+        currentUserId: any(named: 'currentUserId'),
+      ),
+    ).thenAnswer((_) => const Stream.empty());
+    when(
+      () => mockStreamQueueUpdates.call(auctionId: any(named: 'auctionId')),
+    ).thenAnswer((_) => const Stream.empty());
 
     controller = AuctionDetailController(
       getAuctionDetailUseCase: mockGetAuctionDetail,
@@ -154,6 +233,17 @@ void main() {
       upsertBidIncrementUseCase: mockUpsertBidIncrement,
       processDepositUseCase: mockProcessDeposit,
       consumeBiddingTokenUsecase: mockConsumeBiddingToken,
+      streamAuctionUpdatesUseCase: mockStreamAuctionUpdates,
+      streamBidUpdatesUseCase: mockStreamBidUpdates,
+      streamQAUpdatesUseCase: mockStreamQAUpdates,
+      saveAutoBidSettingsUseCase: mockSaveAutoBidSettings,
+      getAutoBidSettingsUseCase: mockGetAutoBidSettings,
+      deactivateAutoBidUseCase: mockDeactivateAutoBid,
+      raiseHandUseCase: mockRaiseHand,
+      lowerHandUseCase: mockLowerHand,
+      submitTurnBidUseCase: mockSubmitTurnBid,
+      getQueueStatusUseCase: mockGetQueueStatus,
+      streamQueueUpdatesUseCase: mockStreamQueueUpdates,
       userId: testUserId,
     );
 
@@ -471,6 +561,18 @@ void main() {
           upsertBidIncrementUseCase: mockUpsertBidIncrement,
           processDepositUseCase: mockProcessDeposit,
           consumeBiddingTokenUsecase: mockConsumeBiddingToken,
+          streamAuctionUpdatesUseCase: mockStreamAuctionUpdates,
+          streamBidUpdatesUseCase: mockStreamBidUpdates,
+          streamQAUpdatesUseCase: mockStreamQAUpdates,
+          saveAutoBidSettingsUseCase: mockSaveAutoBidSettings,
+          getAutoBidSettingsUseCase: mockGetAutoBidSettings,
+          deactivateAutoBidUseCase: mockDeactivateAutoBid,
+          raiseHandUseCase: mockRaiseHand,
+          lowerHandUseCase: mockLowerHand,
+          submitTurnBidUseCase: mockSubmitTurnBid,
+          getQueueStatusUseCase: mockGetQueueStatus,
+          streamQueueUpdatesUseCase: mockStreamQueueUpdates,
+
           userId: null,
         );
 

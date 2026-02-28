@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
-import 'form_field_widget.dart';
 import 'combo_box_widget.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
+import 'form_field_widget.dart';
 
 class Step5Condition extends StatefulWidget {
   final ListingDraftController controller;
@@ -116,21 +114,6 @@ class _Step5ConditionState extends State<Step5Condition> {
     );
   }
 
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(5);
-    setState(() {
-      _condition = demoData['condition'];
-      _mileageController.text = demoData['mileage'].toString();
-      _ownersController.text = demoData['previousOwners'].toString();
-      _hasModifications = demoData['hasModifications'];
-      _modificationsController.text = demoData['modificationsDetails'] ?? '';
-      _hasWarranty = demoData['hasWarranty'];
-      _warrantyController.text = demoData['warrantyDetails'] ?? '';
-      _usageType = demoData['usageType'];
-    });
-    _updateDraft();
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -140,8 +123,6 @@ class _Step5ConditionState extends State<Step5Condition> {
           'Step 5: Condition & History',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         ComboBoxWidget(
           label: 'Condition *',

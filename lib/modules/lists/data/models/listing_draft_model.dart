@@ -12,6 +12,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.brand,
     super.model,
     super.variant,
+    super.bodyType,
     super.year,
     super.engineType,
     super.engineDisplacement,
@@ -51,6 +52,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.registrationExpiry,
     super.province,
     super.cityMunicipality,
+    super.barangay,
     super.photoUrls,
     super.tags,
     super.deedOfSaleUrl,
@@ -65,6 +67,11 @@ class ListingDraftModel extends ListingDraftEntity {
     super.minBidIncrement,
     super.depositAmount,
     super.enableIncrementalBidding,
+    super.snipeGuardEnabled,
+    super.snipeGuardThresholdSeconds,
+    super.snipeGuardExtendSeconds,
+    super.allowsInstallment,
+    super.isPlateValid,
   });
 
   /// Convert database row to model
@@ -79,6 +86,7 @@ class ListingDraftModel extends ListingDraftEntity {
       brand: json['brand'] as String?,
       model: json['model'] as String?,
       variant: json['variant'] as String?,
+      bodyType: json['body_type'] as String?,
       year: json['year'] as int?,
       // Step 2: Mechanical
       engineType: json['engine_type'] as String?,
@@ -125,6 +133,7 @@ class ListingDraftModel extends ListingDraftEntity {
           : null,
       province: json['province'] as String?,
       cityMunicipality: json['city_municipality'] as String?,
+      barangay: json['barangay'] as String?,
       // Step 7: Photos (JSONB) & Documents
       photoUrls: json['photo_urls'] != null
           ? _parsePhotoUrls(json['photo_urls'] as Map<String, dynamic>)
@@ -151,6 +160,11 @@ class ListingDraftModel extends ListingDraftEntity {
       depositAmount: _toDouble(json['deposit_amount']),
       enableIncrementalBidding:
           json['enable_incremental_bidding'] as bool? ?? true,
+      snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
+      snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int?,
+      snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int?,
+      allowsInstallment: json['allows_installment'] as bool? ?? false,
+      isPlateValid: json['is_plate_valid'] as bool? ?? false,
     );
   }
 
@@ -210,6 +224,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'registration_expiry': registrationExpiry?.toIso8601String(),
       'province': province,
       'city_municipality': cityMunicipality,
+      'barangay': barangay,
       // Step 7 (JSONB & Documents)
       'photo_urls': photoUrls,
       'tags': tags,
@@ -218,12 +233,8 @@ class ListingDraftModel extends ListingDraftEntity {
       'description': description,
       'known_issues': knownIssues,
       'features': features,
-      'starting_price': (startingPrice != null && startingPrice! > 0)
-          ? startingPrice
-          : null,
-      'reserve_price': (reservePrice != null && reservePrice! > 0)
-          ? reservePrice
-          : null,
+      'starting_price': startingPrice,
+      'reserve_price': reservePrice,
       'auction_end_date': auctionEndDate?.toIso8601String(),
       // Step 8: Bidding Configuration
       'bidding_type': biddingType,
@@ -231,6 +242,12 @@ class ListingDraftModel extends ListingDraftEntity {
       'min_bid_increment': minBidIncrement,
       'deposit_amount': depositAmount,
       'enable_incremental_bidding': enableIncrementalBidding,
+      'snipe_guard_enabled': snipeGuardEnabled,
+      'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
+      'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
+      'allows_installment': allowsInstallment ?? false,
+      // TODO: Uncomment after migration 00073 is applied to production DB
+      // 'is_plate_valid': isPlateValid,
     };
   }
 

@@ -41,7 +41,7 @@ class BuyerFormTab extends StatelessWidget {
     if (confirmed == true && context.mounted) {
       final success = await controller.confirmForm(FormRole.buyer);
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(content: Text('Form confirmed successfully')),
         );
       }

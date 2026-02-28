@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../lists/data/models/listing_model.dart';
 
@@ -24,7 +25,9 @@ class TransactionSupabaseDataSource {
           .select('''
             id,
             auction_id,
-            auctions(
+            seller_rejection_reason,
+            buyer_rejection_reason,
+            auctions!inner(
               *,
               auction_statuses(status_name),
               auction_vehicles(
@@ -102,13 +105,13 @@ class TransactionSupabaseDataSource {
       // Extract auction data from transaction records
       final transactions = (response as List);
       if (transactions.isEmpty) {
-        print(
+        debugPrint(
           '[TransactionSupabaseDataSource] No transactions found for status: $status',
         );
         return [];
       }
 
-      print(
+      debugPrint(
         '[TransactionSupabaseDataSource] Found ${transactions.length} transactions for status: $status',
       );
 
@@ -123,10 +126,22 @@ class TransactionSupabaseDataSource {
         // This ensures navigation to PreTransactionRealtimePage works correctly
         final transactionId = txn['id'] as String;
         final auctionId = txn['auction_id'] as String?;
-        print(
+        debugPrint(
           '[TransactionSupabaseDataSource] Transaction ID: $transactionId, Auction ID: $auctionId',
         );
         auctionData['id'] = transactionId; // Use transaction ID for navigation
+        auctionData['transaction_id'] = transactionId;
+
+        // Determine cancellation reason
+        String? cancellationReason;
+        final sellerReason = txn['seller_rejection_reason'] as String?;
+        final buyerReason = txn['buyer_rejection_reason'] as String?;
+        if (sellerReason != null && sellerReason.isNotEmpty) {
+          cancellationReason = sellerReason;
+        } else if (buyerReason != null && buyerReason.isNotEmpty) {
+          cancellationReason = buyerReason;
+        }
+        auctionData['cancellation_reason'] = cancellationReason;
 
         // Prefer transaction status, otherwise use joined auction_statuses.status_name
         final txnStatus = txn['status'] as String?;
@@ -182,7 +197,9 @@ class TransactionSupabaseDataSource {
             id,
             auction_id,
             seller_id,
-            auctions(
+            seller_rejection_reason,
+            buyer_rejection_reason,
+            auctions!inner(
               *,
               auction_statuses(status_name),
               auction_vehicles(
@@ -221,6 +238,18 @@ class TransactionSupabaseDataSource {
         // IMPORTANT: Override the auction's id with the TRANSACTION id
         final transactionId = txn['id'] as String;
         auctionData['id'] = transactionId;
+        auctionData['transaction_id'] = transactionId;
+
+        // Determine cancellation reason
+        String? cancellationReason;
+        final sellerReason = txn['seller_rejection_reason'] as String?;
+        final buyerReason = txn['buyer_rejection_reason'] as String?;
+        if (sellerReason != null && sellerReason.isNotEmpty) {
+          cancellationReason = sellerReason;
+        } else if (buyerReason != null && buyerReason.isNotEmpty) {
+          cancellationReason = buyerReason;
+        }
+        auctionData['cancellation_reason'] = cancellationReason;
 
         final txnStatus = txn['status'] as String?;
         final joinedStatus = auctionData['auction_statuses'] is Map

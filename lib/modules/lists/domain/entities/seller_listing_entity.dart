@@ -16,6 +16,9 @@ class SellerListingEntity {
   /// Car model (e.g., Supra, M4)
   final String model;
 
+  /// Car variant (e.g., 3.0 Premium, Competition)
+  final String? variant;
+
   /// Current status of the listing
   final ListingStatus status;
 
@@ -59,12 +62,22 @@ class SellerListingEntity {
   /// Used for cancelled listings that came from failed transactions
   final String? transactionId;
 
+  /// Reason for cancellation (if status is dealFailed or cancelled)
+  final String? cancellationReason;
+
+  /// Visibility of the auction (public or private)
+  final String visibility;
+
+  /// Whether seller accepts installment payments
+  final bool allowsInstallment;
+
   const SellerListingEntity({
     required this.id,
     required this.imageUrl,
     required this.year,
     required this.make,
     required this.model,
+    this.variant,
     required this.status,
     required this.startingPrice,
     this.startTime,
@@ -79,10 +92,13 @@ class SellerListingEntity {
     this.soldPrice,
     this.sellerId,
     this.transactionId,
+    this.cancellationReason,
+    this.visibility = 'public',
+    this.allowsInstallment = false,
   });
 
   /// Get formatted car name
-  String get carName => '$year $make $model';
+  String get carName => '$year $make $model ${variant ?? ''}'.trim();
 
   /// Check if reserve price has been met
   bool get isReserveMet =>
@@ -91,12 +107,10 @@ class SellerListingEntity {
       currentBid! >= reservePrice!;
 
   /// Get time remaining (for active listings)
-  Duration? get timeRemaining =>
-      endTime?.difference(DateTime.now());
+  Duration? get timeRemaining => endTime?.difference(DateTime.now());
 
   /// Time until auction starts (for scheduled listings)
-  Duration? get timeUntilStart =>
-      startTime?.difference(DateTime.now());
+  Duration? get timeUntilStart => startTime?.difference(DateTime.now());
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);

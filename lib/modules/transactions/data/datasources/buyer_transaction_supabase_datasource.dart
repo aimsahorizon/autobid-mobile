@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/buyer_transaction_entity.dart';
 
@@ -9,7 +10,7 @@ class BuyerTransactionSupabaseDataSource {
   BuyerTransactionSupabaseDataSource(this._supabase);
 
   /// Get all transactions for buyer
-  /// Joins with vehicles and seller profiles
+  /// Joins with auctions and seller users
   Future<List<Map<String, dynamic>>> getBuyerTransactions(
     String buyerId,
   ) async {
@@ -17,13 +18,13 @@ class BuyerTransactionSupabaseDataSource {
       final response = await _supabase
           .from('auction_transactions')
           .select('''
-            id, auction_id, seller_id, buyer_id, agreed_price, deposit_amount, status, 
+            id, auction_id, seller_id, buyer_id, agreed_price, status, 
             created_at, completed_at, seller_form_submitted, buyer_form_submitted, 
             seller_confirmed, buyer_confirmed, admin_approved, admin_approved_at, 
             delivery_status, delivery_started_at, delivery_completed_at,
             buyer_acceptance_status, buyer_accepted_at, buyer_rejection_reason,
-            vehicles!vehicle_id(id, brand, model, year, main_image_url),
-            user_profiles!seller_id(id, username, full_name, profile_photo_url)
+            auctions!auction_id(id, title, auction_vehicles(brand, model, year)),
+            users!seller_id(id, full_name, profile_image_url)
           ''')
           .eq('buyer_id', buyerId)
           .order('created_at', ascending: false);
@@ -38,19 +39,36 @@ class BuyerTransactionSupabaseDataSource {
 
   /// Get single transaction detail
   /// Includes all related data including delivery and acceptance status
+  /// Supports lookup by transaction ID or auction ID
   Future<Map<String, dynamic>> getTransactionDetail(
-    String transactionId,
+    String idOrAuctionId,
   ) async {
     try {
-      final response = await _supabase
+      // 1. Try by transaction ID
+      var response = await _supabase
           .from('auction_transactions')
           .select('''
             *,
-            vehicles!vehicle_id(*),
-            user_profiles!seller_id(id, username, full_name, email, contact_number, profile_photo_url)
+            auctions!auction_id(id, title, auction_vehicles(brand, model, year)),
+            users!seller_id(id, full_name, email, profile_image_url)
           ''')
-          .eq('id', transactionId)
-          .single();
+          .eq('id', idOrAuctionId)
+          .maybeSingle();
+
+      // 2. If not found, try by auction ID
+      response ??= await _supabase
+          .from('auction_transactions')
+          .select('''
+              *,
+              auctions!auction_id(id, title, auction_vehicles(brand, model, year)),
+              users!seller_id(id, full_name, email, profile_image_url)
+            ''')
+          .eq('auction_id', idOrAuctionId)
+          .maybeSingle();
+
+      if (response == null) {
+        throw Exception('Transaction not found');
+      }
 
       return response;
     } on PostgrestException catch (e) {
@@ -61,32 +79,51 @@ class BuyerTransactionSupabaseDataSource {
   }
 
   /// Get transaction as BuyerTransactionEntity
-  Future<BuyerTransactionEntity?> getTransaction(String transactionId) async {
+  Future<BuyerTransactionEntity?> getTransaction(String idOrAuctionId) async {
     try {
-      final data = await getTransactionDetail(transactionId);
+      final data = await getTransactionDetail(idOrAuctionId);
       return _mapToEntity(data);
     } catch (e) {
+      debugPrint('[BuyerTransactionDS] Error getting transaction: $e');
       return null;
     }
   }
 
   /// Map Supabase data to BuyerTransactionEntity
   BuyerTransactionEntity _mapToEntity(Map<String, dynamic> data) {
-    final vehicle = data['vehicles'] as Map<String, dynamic>?;
+    final auctions = data['auctions'] as Map<String, dynamic>?;
+
+    // Handle auction_vehicles - can be either a Map (single object) or List (array)
+    dynamic vehiclesData = auctions?['auction_vehicles'];
+    Map<String, dynamic>? vehicle;
+
+    if (vehiclesData is Map<String, dynamic>) {
+      // Single object
+      vehicle = vehiclesData;
+    } else if (vehiclesData is List && vehiclesData.isNotEmpty) {
+      // Array of objects
+      vehicle = vehiclesData.first as Map<String, dynamic>?;
+    }
+
     final carName = vehicle != null
         ? '${vehicle['year'] ?? ''} ${vehicle['brand'] ?? ''} ${vehicle['model'] ?? ''}'
               .trim()
-        : 'Unknown Vehicle';
+        : (auctions?['title'] ?? 'Unknown Vehicle');
+
+    // Get cover photo URL
+    String carImageUrl = '';
+    // We'd need another join for photos if we want them here,
+    // but for now we'll use a placeholder or empty string
 
     return BuyerTransactionEntity(
       id: data['id'] as String,
-      auctionId: data['auction_id'] as String? ?? data['id'] as String,
+      auctionId: data['auction_id'] as String,
       sellerId: data['seller_id'] as String,
       buyerId: data['buyer_id'] as String,
       carName: carName,
-      carImageUrl: vehicle?['main_image_url'] as String? ?? '',
+      carImageUrl: carImageUrl,
       agreedPrice: (data['agreed_price'] as num?)?.toDouble() ?? 0,
-      depositPaid: (data['deposit_amount'] as num?)?.toDouble() ?? 0,
+      depositPaid: 0, // In newer schema, deposit is separate
       status: _mapTransactionStatus(data['status'] as String?),
       createdAt: DateTime.parse(data['created_at'] as String),
       completedAt: data['completed_at'] != null
@@ -119,19 +156,11 @@ class BuyerTransactionSupabaseDataSource {
 
   TransactionStatus _mapTransactionStatus(String? status) {
     switch (status) {
-      case 'discussion':
+      case 'in_transaction':
         return TransactionStatus.discussion;
-      case 'form_submission':
-        return TransactionStatus.formSubmission;
-      case 'form_review':
-        return TransactionStatus.formReview;
-      case 'pending_approval':
-        return TransactionStatus.pendingApproval;
-      case 'approved':
-        return TransactionStatus.approved;
-      case 'completed':
+      case 'sold':
         return TransactionStatus.completed;
-      case 'cancelled':
+      case 'deal_failed':
         return TransactionStatus.cancelled;
       default:
         return TransactionStatus.discussion;
@@ -178,16 +207,6 @@ class BuyerTransactionSupabaseDataSource {
         },
       );
 
-      // Add timeline event
-      await _supabase.from('transaction_timeline').insert({
-        'transaction_id': transactionId,
-        'title': 'Vehicle Accepted',
-        'description':
-            'Buyer has accepted the vehicle. Transaction completed successfully!',
-        'event_type': 'completed',
-        'actor_name': 'Buyer',
-      });
-
       return true;
     } on PostgrestException catch (e) {
       throw Exception('Failed to accept vehicle: ${e.message}');
@@ -214,15 +233,6 @@ class BuyerTransactionSupabaseDataSource {
         },
       );
 
-      // Add timeline event
-      await _supabase.from('transaction_timeline').insert({
-        'transaction_id': transactionId,
-        'title': 'Vehicle Rejected',
-        'description': 'Buyer has rejected the vehicle. Reason: $reason',
-        'event_type': 'issue',
-        'actor_name': 'Buyer',
-      });
-
       return true;
     } on PostgrestException catch (e) {
       throw Exception('Failed to reject vehicle: ${e.message}');
@@ -237,7 +247,7 @@ class BuyerTransactionSupabaseDataSource {
   ) async {
     try {
       final response = await _supabase
-          .from('transaction_messages')
+          .from('transaction_chat_messages')
           .select('*')
           .eq('transaction_id', transactionId)
           .order('created_at', ascending: true);
@@ -267,11 +277,12 @@ class BuyerTransactionSupabaseDataSource {
     String message,
   ) async {
     try {
-      await _supabase.from('transaction_messages').insert({
+      await _supabase.from('transaction_chat_messages').insert({
         'transaction_id': transactionId,
         'sender_id': senderId,
         'sender_name': senderName,
         'message': message,
+        'message_type': 'text',
       });
       return true;
     } on PostgrestException catch (e) {
@@ -301,26 +312,28 @@ class BuyerTransactionSupabaseDataSource {
         id: response['id'] as String,
         transactionId: response['transaction_id'] as String,
         role: role,
-        fullName: response['full_name'] as String? ?? '',
+        fullName:
+            response['full_name'] as String? ??
+            '', // Maps to old field if still exists or fallback
         email: response['email'] as String? ?? '',
-        phone: response['phone'] as String? ?? '',
-        address: response['address'] as String? ?? '',
-        city: response['city'] as String? ?? '',
-        province: response['province'] as String? ?? '',
-        zipCode: response['zip_code'] as String? ?? '',
-        idType: response['id_type'] as String? ?? '',
-        idNumber: response['id_number'] as String? ?? '',
-        idPhotoUrl: response['id_photo_url'] as String?,
+        phone: response['contact_number'] as String? ?? '',
+        address: response['delivery_address'] as String? ?? '',
+        city: '',
+        province: '',
+        zipCode: '',
+        idType: '',
+        idNumber: '',
+        idPhotoUrl: null,
         paymentMethod: response['payment_method'] as String? ?? '',
         bankName: response['bank_name'] as String?,
         accountNumber: response['account_number'] as String?,
-        deliveryMethod: response['delivery_method'] as String? ?? '',
+        deliveryMethod: response['pickup_or_delivery'] as String? ?? '',
         deliveryAddress: response['delivery_address'] as String?,
-        agreedToTerms: response['agreed_to_terms'] as bool? ?? false,
+        agreedToTerms: true,
         submittedAt: response['submitted_at'] != null
             ? DateTime.parse(response['submitted_at'] as String)
             : null,
-        isConfirmed: response['is_confirmed'] as bool? ?? false,
+        isConfirmed: response['status'] == 'confirmed',
       );
     } on PostgrestException catch (e) {
       throw Exception('Failed to get transaction form: ${e.message}');
@@ -332,42 +345,27 @@ class BuyerTransactionSupabaseDataSource {
   /// Submit buyer form
   Future<bool> submitForm(BuyerTransactionFormEntity form) async {
     try {
+      // Note: This logic might need to be refined to match the newer transaction_forms schema
+      // which uses more specific fields.
       await _supabase.from('transaction_forms').upsert({
         'transaction_id': form.transactionId,
         'role': 'buyer',
-        'full_name': form.fullName,
-        'email': form.email,
-        'phone': form.phone,
-        'address': form.address,
-        'city': form.city,
-        'province': form.province,
-        'zip_code': form.zipCode,
-        'id_type': form.idType,
-        'id_number': form.idNumber,
-        'id_photo_url': form.idPhotoUrl,
+        'status': 'submitted',
         'payment_method': form.paymentMethod,
         'bank_name': form.bankName,
         'account_number': form.accountNumber,
-        'delivery_method': form.deliveryMethod,
+        'pickup_or_delivery': form.deliveryMethod,
         'delivery_address': form.deliveryAddress,
-        'agreed_to_terms': form.agreedToTerms,
+        'contact_number': form.phone,
         'submitted_at': DateTime.now().toIso8601String(),
-      });
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'transaction_id,role');
 
       // Update transaction to mark buyer form submitted
       await _supabase
           .from('auction_transactions')
           .update({'buyer_form_submitted': true})
           .eq('id', form.transactionId);
-
-      // Add timeline event
-      await _supabase.from('transaction_timeline').insert({
-        'transaction_id': form.transactionId,
-        'title': 'Buyer Form Submitted',
-        'description': 'Buyer has submitted transaction form for review',
-        'event_type': 'form_submitted',
-        'actor_name': 'Buyer',
-      });
 
       return true;
     } on PostgrestException catch (e) {

@@ -3,16 +3,14 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 
 class AccountSettingsSection extends StatelessWidget {
   final String email;
-  final String phone;
   final VoidCallback onUpdateEmail;
-  final VoidCallback onUpdatePhone;
+  final VoidCallback onChangePassword;
 
   const AccountSettingsSection({
     super.key,
     required this.email,
-    required this.phone,
     required this.onUpdateEmail,
-    required this.onUpdatePhone,
+    required this.onChangePassword,
   });
 
   @override
@@ -24,10 +22,14 @@ class AccountSettingsSection extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Column(
@@ -47,13 +49,13 @@ class AccountSettingsSection extends StatelessWidget {
             subtitle: email,
             onTap: onUpdateEmail,
           ),
-          const Divider(height: 1),
+          const SizedBox(height: 12),
           _buildSettingsTile(
             context,
-            icon: Icons.phone_outlined,
-            title: 'Phone Number',
-            subtitle: phone,
-            onTap: onUpdatePhone,
+            icon: Icons.lock_outline,
+            title: 'Change Password',
+            subtitle: 'Update your security credentials',
+            onTap: onChangePassword,
           ),
         ],
       ),

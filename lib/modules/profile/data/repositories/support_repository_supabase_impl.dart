@@ -1,14 +1,19 @@
+import 'package:autobid_mobile/core/network/network_info.dart';
 import '../../domain/entities/support_ticket_entity.dart';
 import '../../domain/repositories/support_repository.dart';
 import '../datasources/support_supabase_datasource.dart';
 
 class SupportRepositorySupabaseImpl implements SupportRepository {
   final SupportSupabaseDatasource datasource;
+  final NetworkInfo networkInfo;
 
-  SupportRepositorySupabaseImpl(this.datasource);
+  SupportRepositorySupabaseImpl(this.datasource, this.networkInfo);
 
   @override
   Future<List<SupportCategoryEntity>> getCategories() async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.getCategories();
     } catch (e) {
@@ -22,6 +27,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
     int? limit,
     int? offset,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.getUserTickets(
         status: status,
@@ -35,6 +43,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
 
   @override
   Future<SupportTicketEntity> getTicketById(String ticketId) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.getTicketById(ticketId);
     } catch (e) {
@@ -49,6 +60,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
     required String description,
     required TicketPriority priority,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.createTicket(
         categoryId: categoryId,
@@ -67,6 +81,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
     required String message,
     List<String>? attachmentPaths,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.addMessage(
         ticketId: ticketId,
@@ -83,6 +100,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
     required String ticketId,
     required TicketStatus status,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.updateTicketStatus(
         ticketId: ticketId,
@@ -98,6 +118,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
     required String ticketId,
     required TicketPriority priority,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.updateTicketPriority(
         ticketId: ticketId,
@@ -110,6 +133,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
 
   @override
   Future<SupportTicketEntity> closeTicket(String ticketId) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.closeTicket(ticketId);
     } catch (e) {
@@ -119,6 +145,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
 
   @override
   Future<SupportTicketEntity> reopenTicket(String ticketId) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.reopenTicket(ticketId);
     } catch (e) {
@@ -128,6 +157,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
 
   @override
   Future<Map<String, int>> getUserTicketStats() async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.getUserTicketStats();
     } catch (e) {
@@ -141,6 +173,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
     required String filePath,
     String? messageId,
   }) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.uploadAttachment(
         ticketId: ticketId,
@@ -154,6 +189,9 @@ class SupportRepositorySupabaseImpl implements SupportRepository {
 
   @override
   Future<void> deleteAttachment(String attachmentId) async {
+    if (!await networkInfo.isConnected) {
+      throw Exception('No internet connection');
+    }
     try {
       return await datasource.deleteAttachment(attachmentId);
     } catch (e) {

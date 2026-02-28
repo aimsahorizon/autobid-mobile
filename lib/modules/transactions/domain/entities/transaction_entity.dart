@@ -19,6 +19,7 @@ class TransactionEntity {
   final bool buyerConfirmed;
   final bool adminApproved;
   final DateTime? adminApprovedAt;
+  final DateTime? bothConfirmedAt;
 
   // Delivery tracking (only active after admin approval)
   final DeliveryStatus deliveryStatus;
@@ -29,6 +30,16 @@ class TransactionEntity {
   final BuyerAcceptanceStatus buyerAcceptanceStatus;
   final DateTime? buyerAcceptedAt;
   final String? buyerRejectionReason;
+
+  // Cancellation tracking
+  final String? sellerRejectionReason;
+  final String? cancelledBy; // 'buyer' or 'seller'
+
+  // Payment method agreed in the transaction
+  final String paymentMethod; // 'full_payment' or 'installment'
+
+  // Whether the listing allows installment payments
+  final bool allowsInstallment;
 
   const TransactionEntity({
     required this.id,
@@ -47,13 +58,24 @@ class TransactionEntity {
     this.buyerConfirmed = false,
     this.adminApproved = false,
     this.adminApprovedAt,
+    this.bothConfirmedAt,
     this.deliveryStatus = DeliveryStatus.pending,
     this.deliveryStartedAt,
     this.deliveryCompletedAt,
     this.buyerAcceptanceStatus = BuyerAcceptanceStatus.pending,
     this.buyerAcceptedAt,
     this.buyerRejectionReason,
+    this.sellerRejectionReason,
+    this.cancelledBy,
+    this.paymentMethod = 'full_payment',
+    this.allowsInstallment = false,
   });
+
+  /// Check if this transaction uses installment payments
+  bool get isInstallment => paymentMethod == 'installment';
+
+  /// Whether the installment tab should be visible
+  bool get showInstallmentTab => isInstallment;
 
   /// Check if both parties have submitted forms
   bool get bothFormsSubmitted => sellerFormSubmitted && buyerFormSubmitted;
@@ -84,6 +106,17 @@ class TransactionEntity {
       buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected ||
       status == TransactionStatus.cancelled;
 
+  /// Get the cancellation reason (from whichever party cancelled)
+  String? get cancellationReason {
+    if (sellerRejectionReason != null && sellerRejectionReason!.isNotEmpty) {
+      return sellerRejectionReason;
+    }
+    if (buyerRejectionReason != null && buyerRejectionReason!.isNotEmpty) {
+      return buyerRejectionReason;
+    }
+    return null;
+  }
+
   /// Copy with method for updating fields
   TransactionEntity copyWith({
     String? id,
@@ -102,12 +135,17 @@ class TransactionEntity {
     bool? buyerConfirmed,
     bool? adminApproved,
     DateTime? adminApprovedAt,
+    DateTime? bothConfirmedAt,
     DeliveryStatus? deliveryStatus,
     DateTime? deliveryStartedAt,
     DateTime? deliveryCompletedAt,
     BuyerAcceptanceStatus? buyerAcceptanceStatus,
     DateTime? buyerAcceptedAt,
     String? buyerRejectionReason,
+    String? sellerRejectionReason,
+    String? cancelledBy,
+    String? paymentMethod,
+    bool? allowsInstallment,
   }) {
     return TransactionEntity(
       id: id ?? this.id,
@@ -126,6 +164,7 @@ class TransactionEntity {
       buyerConfirmed: buyerConfirmed ?? this.buyerConfirmed,
       adminApproved: adminApproved ?? this.adminApproved,
       adminApprovedAt: adminApprovedAt ?? this.adminApprovedAt,
+      bothConfirmedAt: bothConfirmedAt ?? this.bothConfirmedAt,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
       deliveryStartedAt: deliveryStartedAt ?? this.deliveryStartedAt,
       deliveryCompletedAt: deliveryCompletedAt ?? this.deliveryCompletedAt,
@@ -133,6 +172,11 @@ class TransactionEntity {
           buyerAcceptanceStatus ?? this.buyerAcceptanceStatus,
       buyerAcceptedAt: buyerAcceptedAt ?? this.buyerAcceptedAt,
       buyerRejectionReason: buyerRejectionReason ?? this.buyerRejectionReason,
+      sellerRejectionReason:
+          sellerRejectionReason ?? this.sellerRejectionReason,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      allowsInstallment: allowsInstallment ?? this.allowsInstallment,
     );
   }
 }

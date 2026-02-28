@@ -19,7 +19,10 @@ Future<void> initGuestModule() async {
 
   // Repositories
   sl.registerLazySingleton<GuestRepository>(
-    () => GuestRepositoryImpl(remoteDataSource: sl()),
+    () => GuestRepositoryImpl(
+      remoteDataSource: sl(),
+      networkInfo: sl(),
+    ),
   );
 
   // Use Cases
@@ -33,28 +36,4 @@ Future<void> initGuestModule() async {
       getGuestAuctionListingsUseCase: sl(),
     ),
   );
-}
-
-/// Legacy Dependency injection container for Guest module
-/// @deprecated - Use GetIt service locator via initGuestModule() instead
-class GuestModule {
-  static GuestModule? _instance;
-
-  GuestModule._() {
-    _initializeDependencies();
-  }
-
-  static GuestModule get instance {
-    _instance ??= GuestModule._();
-    return _instance!;
-  }
-
-  void _initializeDependencies() {
-    // Dependencies are now managed via GetIt in initGuestModule()
-  }
-
-  /// @deprecated - Use GetIt.instance.get<GuestController>() instead
-  GuestController createGuestController() {
-    return GetIt.instance<GuestController>();
-  }
 }

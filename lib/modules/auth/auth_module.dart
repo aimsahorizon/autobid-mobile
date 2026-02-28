@@ -1,7 +1,12 @@
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/network/network_info.dart';
+import '../../core/services/ai_id_extraction_service.dart';
 import '../profile/profile_module.dart';
 import 'data/datasources/auth_remote_datasource.dart';
+import 'data/datasources/auth_local_datasource.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'domain/repositories/auth_repository.dart';
 import 'domain/usecases/send_email_otp_usecase.dart';
@@ -14,6 +19,9 @@ import 'domain/usecases/verify_email_otp_usecase.dart';
 import 'domain/usecases/verify_otp_usecase.dart';
 import 'domain/usecases/verify_phone_otp_usecase.dart';
 import 'domain/usecases/reset_password_usecase.dart';
+import 'domain/usecases/manage_local_auth_usecase.dart';
+import 'domain/usecases/check_national_id_exists_usecase.dart';
+import 'domain/usecases/check_secondary_id_exists_usecase.dart';
 import '../profile/domain/usecases/check_email_exists_usecase.dart';
 import '../profile/domain/usecases/get_user_profile_by_email_usecase.dart';
 
@@ -31,10 +39,13 @@ Future<void> initAuthModule() async {
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(sl()),
   );
+  sl.registerLazySingleton<AuthLocalDataSource>(
+    () => AuthLocalDataSourceImpl(sl()),
+  );
 
   // Repositories
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(sl()),
+    () => AuthRepositoryImpl(sl(), sl(), sl()),
   );
 
   // Use Cases
@@ -48,39 +59,53 @@ Future<void> initAuthModule() async {
   sl.registerLazySingleton(() => SendPhoneOtpUseCase(sl()));
   sl.registerLazySingleton(() => VerifyEmailOtpUseCase(sl()));
   sl.registerLazySingleton(() => VerifyPhoneOtpUseCase(sl()));
+  sl.registerLazySingleton(() => ManageLocalAuthUseCase(sl()));
+  sl.registerLazySingleton(() => CheckNationalIdExistsUseCase(sl()));
+  sl.registerLazySingleton(() => CheckSecondaryIdExistsUseCase(sl()));
 
   // Controllers (Factory)
-  sl.registerFactory(() => LoginController(
-    signInUseCase: sl(),
-    signInWithGoogleUseCase: sl(),
-    checkEmailExistsUseCase: sl(), // Registered in initProfileModule
-    getUserProfileByEmailUseCase: sl(), // Registered in initProfileModule
-  ));
+  sl.registerFactory(
+    () => LoginController(
+      signInUseCase: sl(),
+      signInWithGoogleUseCase: sl(),
+      checkEmailExistsUseCase: sl(), // Registered in initProfileModule
+      getUserProfileByEmailUseCase: sl(), // Registered in initProfileModule
+      manageLocalAuthUseCase: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => LoginOtpController(
-    sendEmailOtpUseCase: sl(),
-    sendPhoneOtpUseCase: sl(),
-    verifyEmailOtpUseCase: sl(),
-    verifyPhoneOtpUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => LoginOtpController(
+      sendEmailOtpUseCase: sl(),
+      sendPhoneOtpUseCase: sl(),
+      verifyEmailOtpUseCase: sl(),
+      verifyPhoneOtpUseCase: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => ForgotPasswordController(
-    sendPasswordResetUseCase: sl(),
-    verifyOtpUseCase: sl(),
-    resetPasswordUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => ForgotPasswordController(
+      sendPasswordResetUseCase: sl(),
+      verifyOtpUseCase: sl(),
+      resetPasswordUseCase: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => RegistrationController(
-    signUpUseCase: sl(),
-  ));
+  sl.registerFactory(() => RegistrationController(signUpUseCase: sl()));
 
-  sl.registerFactory(() => KYCRegistrationController(
-    authDataSource: sl(), // Needs AuthRemoteDataSource
-    sendEmailOtpUseCase: sl(),
-    sendPhoneOtpUseCase: sl(),
-    verifyEmailOtpUseCase: sl(),
-    verifyPhoneOtpUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => KYCRegistrationController(
+      authDataSource: sl(), // Needs AuthRemoteDataSource
+      sendEmailOtpUseCase: sl(),
+      sendPhoneOtpUseCase: sl(),
+      verifyEmailOtpUseCase: sl(),
+      verifyPhoneOtpUseCase: sl(),
+      checkNationalIdExistsUseCase: sl(),
+      checkSecondaryIdExistsUseCase: sl(),
+      sharedPreferences: sl(),
+      aiService: sl(),
+    ),
+  );
 }
 
 class AuthModule {
@@ -88,6 +113,7 @@ class AuthModule {
 
   // Datasources
   late final AuthRemoteDataSource _remoteDataSource;
+  late final AuthLocalDataSource _localDataSource;
 
   // Repositories
   late final AuthRepository _authRepository;
@@ -103,11 +129,16 @@ class AuthModule {
   late final SendPhoneOtpUseCase _sendPhoneOtpUseCase;
   late final VerifyEmailOtpUseCase _verifyEmailOtpUseCase;
   late final VerifyPhoneOtpUseCase _verifyPhoneOtpUseCase;
+  late final ManageLocalAuthUseCase _manageLocalAuthUseCase;
+  late final CheckNationalIdExistsUseCase _checkNationalIdExistsUseCase;
+  late final CheckSecondaryIdExistsUseCase _checkSecondaryIdExistsUseCase;
 
   // Profile Use Cases (Cross-module)
   late final CheckEmailExistsUseCase _checkEmailExistsUseCase;
   late final GetUserProfileByEmailUseCase _getUserProfileByEmailUseCase;
-
+  
+  // Services
+  late final IAiIdExtractionService _aiService;
 
   AuthModule._() {
     _initializeDependencies();
@@ -121,9 +152,22 @@ class AuthModule {
   void _initializeDependencies() {
     // Datasources - inject Supabase client
     _remoteDataSource = AuthRemoteDataSourceImpl(SupabaseConfig.client);
+    final sharedPreferences = GetIt.instance<SharedPreferences>();
+    _localDataSource = AuthLocalDataSourceImpl(sharedPreferences);
+
+    // Services
+    _aiService = GetIt.instance<IAiIdExtractionService>();
 
     // Repositories
-    _authRepository = AuthRepositoryImpl(_remoteDataSource);
+    // Create NetworkInfo for manual injection
+    final connectivity = Connectivity();
+    final networkInfo = NetworkInfoImpl(connectivity);
+
+    _authRepository = AuthRepositoryImpl(
+      _remoteDataSource,
+      networkInfo,
+      _localDataSource,
+    );
     final profileRepository = ProfileModule.instance.repository;
 
     // Use cases
@@ -137,10 +181,15 @@ class AuthModule {
     _sendPhoneOtpUseCase = SendPhoneOtpUseCase(_authRepository);
     _verifyEmailOtpUseCase = VerifyEmailOtpUseCase(_authRepository);
     _verifyPhoneOtpUseCase = VerifyPhoneOtpUseCase(_authRepository);
-    
+    _manageLocalAuthUseCase = ManageLocalAuthUseCase(_authRepository);
+    _checkNationalIdExistsUseCase = CheckNationalIdExistsUseCase(_authRepository);
+    _checkSecondaryIdExistsUseCase = CheckSecondaryIdExistsUseCase(_authRepository);
+
     // Profile Use Cases
     _checkEmailExistsUseCase = CheckEmailExistsUseCase(profileRepository);
-    _getUserProfileByEmailUseCase = GetUserProfileByEmailUseCase(profileRepository);
+    _getUserProfileByEmailUseCase = GetUserProfileByEmailUseCase(
+      profileRepository,
+    );
   }
 
   // Controllers
@@ -150,6 +199,7 @@ class AuthModule {
       signInWithGoogleUseCase: _signInWithGoogleUseCase,
       checkEmailExistsUseCase: _checkEmailExistsUseCase,
       getUserProfileByEmailUseCase: _getUserProfileByEmailUseCase,
+      manageLocalAuthUseCase: _manageLocalAuthUseCase,
     );
   }
 
@@ -171,9 +221,7 @@ class AuthModule {
   }
 
   RegistrationController createRegistrationController() {
-    return RegistrationController(
-      signUpUseCase: _signUpUseCase,
-    );
+    return RegistrationController(signUpUseCase: _signUpUseCase);
   }
 
   /// Create KYC registration controller with Supabase integration
@@ -185,6 +233,9 @@ class AuthModule {
       sendPhoneOtpUseCase: _sendPhoneOtpUseCase,
       verifyEmailOtpUseCase: _verifyEmailOtpUseCase,
       verifyPhoneOtpUseCase: _verifyPhoneOtpUseCase,
+      checkNationalIdExistsUseCase: _checkNationalIdExistsUseCase,
+      checkSecondaryIdExistsUseCase: _checkSecondaryIdExistsUseCase,
+      aiService: _aiService,
     );
   }
 }

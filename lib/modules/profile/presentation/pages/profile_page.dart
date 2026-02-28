@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
@@ -9,31 +10,36 @@ import '../../../admin/admin_module.dart';
 import '../../../admin/presentation/pages/admin_main_page.dart';
 import '../controllers/pricing_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../controllers/review_controller.dart';
 import '../widgets/pricing_section.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_section.dart';
+import '../widgets/reviews_section.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/account_settings_section.dart';
 import '../widgets/support_section.dart';
 import 'subscription_page.dart';
 import 'token_purchase_page.dart';
 import 'update_email_page.dart';
-import 'update_phone_page.dart';
+import 'change_password_page.dart';
 import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
-import 'notifications_page.dart';
+import 'user_reviews_page.dart';
+import '../../../notifications/presentation/pages/notifications_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final ProfileController controller;
   final PricingController pricingController;
   final ThemeController themeController;
+  final ReviewController reviewController;
 
   const ProfilePage({
     super.key,
     required this.controller,
     required this.pricingController,
     required this.themeController,
+    required this.reviewController,
   });
 
   @override
@@ -48,10 +54,11 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     widget.controller.loadProfile();
 
-    // Load pricing data
+    // Load pricing data and reviews
     final userId = SupabaseConfig.client.auth.currentUser?.id;
     if (userId != null) {
       widget.pricingController.loadUserPricing(userId);
+      widget.reviewController.loadReviews(userId);
     }
   }
 
@@ -154,7 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (!mounted) return;
         Navigator.pop(context); // Close loading
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(
               '${isCover ? 'Cover' : 'Profile'} photo updated successfully',
@@ -166,7 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (!mounted) return;
         Navigator.pop(context); // Close loading
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to upload: $e'),
             backgroundColor: ColorConstants.error,
@@ -175,7 +182,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to pick image: $e'),
             backgroundColor: ColorConstants.error,
@@ -192,25 +199,16 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UpdateEmailPage(
-          currentEmail: profile.email,
-          currentPhone: profile.contactNumber,
-        ),
+        builder: (context) => UpdateEmailPage(currentEmail: profile.email),
       ),
     );
   }
 
-  void _navigateToUpdatePhone() {
-    final profile = widget.controller.profile;
-    if (profile == null) return;
-
+  void _navigateToChangePassword() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UpdatePhonePage(
-          currentEmail: profile.email,
-          currentPhone: profile.contactNumber,
-        ),
+        builder: (context) => ChangePasswordPage(controller: widget.controller),
       ),
     );
   }
@@ -291,7 +289,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Failed to access admin dashboard'),
           backgroundColor: ColorConstants.error,
@@ -319,6 +317,16 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const NotificationsPage()),
+    );
+  }
+
+  void _navigateToReviews() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            UserReviewsPage(reviewController: widget.reviewController),
+      ),
     );
   }
 
@@ -354,8 +362,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+          .copyWith(
+            statusBarColor: Colors.transparent,
+          ),
+      child: Scaffold(
+        appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
@@ -391,12 +406,24 @@ class _ProfilePageState extends State<ProfilePage> {
                     icon: const Icon(Icons.refresh_rounded),
                     label: const Text('Retry'),
                   ),
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: _handleSignOut,
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Sign Out'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: ColorConstants.error,
+                    ),
+                  ),
                 ],
               ),
             );
           }
 
-          final profile = widget.controller.profile!;
+          final profile = widget.controller.profile;
+          if (profile == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           return RefreshIndicator(
             onRefresh: widget.controller.loadProfile,
@@ -414,8 +441,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   ProfileInfoSection(
                     fullName: profile.fullName,
                     username: profile.username,
-                    contactNumber: profile.contactNumber,
                     email: profile.email,
+                  ),
+                  const SizedBox(height: 16),
+                  ReviewsSummarySection(
+                    reviewController: widget.reviewController,
+                    onViewAll: _navigateToReviews,
                   ),
                   const SizedBox(height: 16),
                   PricingSection(
@@ -426,9 +457,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 16),
                   AccountSettingsSection(
                     email: profile.email,
-                    phone: profile.contactNumber,
                     onUpdateEmail: _navigateToUpdateEmail,
-                    onUpdatePhone: _navigateToUpdatePhone,
+                    onChangePassword: _navigateToChangePassword,
                   ),
                   const SizedBox(height: 16),
                   SupportSection(
@@ -452,6 +482,7 @@ class _ProfilePageState extends State<ProfilePage> {
           );
         },
       ),
+    ),
     );
   }
 

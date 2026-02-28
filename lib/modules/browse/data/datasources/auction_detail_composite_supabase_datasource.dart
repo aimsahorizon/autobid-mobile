@@ -1,5 +1,6 @@
 import '../../domain/entities/auction_detail_entity.dart';
 import '../../domain/entities/bid_history_entity.dart';
+import '../../domain/entities/bid_queue_entity.dart';
 import '../../domain/entities/qa_entity.dart';
 import 'auction_detail_remote_datasource.dart';
 import 'auction_supabase_datasource.dart';
@@ -50,10 +51,14 @@ class AuctionDetailCompositeSupabaseDataSource
     return bidsData.map((bidData) {
       // Extract bidder username from nested users data
       String bidderName = 'Bidder';
+      String? username;
       final bidderData = bidData['bidder'] as Map<String, dynamic>?;
       if (bidderData != null) {
         final displayName = bidderData['display_name'] as String?;
-        final username = bidderData['username'] as String?;
+        final uname = bidderData['username'] as String?;
+
+        username = uname; // Store username separately
+
         // Prefer display_name if available, fallback to username
         if (displayName != null && displayName.isNotEmpty) {
           bidderName = displayName;
@@ -67,6 +72,7 @@ class AuctionDetailCompositeSupabaseDataSource
         auctionId: auctionId,
         amount: (bidData['bid_amount'] as num).toDouble(),
         bidderName: bidderName,
+        username: username,
         timestamp: DateTime.parse(bidData['created_at'] as String),
         isCurrentUser: false, // Will be set by repository/usecase if needed
         isWinning: false, // Will be set based on current auction state
@@ -90,6 +96,45 @@ class AuctionDetailCompositeSupabaseDataSource
       isAutoBid: isAutoBid,
       maxAutoBid: maxAutoBid,
       autoBidIncrement: autoBidIncrement,
+    );
+  }
+
+  @override
+  Future<void> saveAutoBidSettings({
+    required String auctionId,
+    required String userId,
+    required double maxBidAmount,
+    double? bidIncrement,
+    bool isActive = true,
+  }) {
+    return _bidDataSource.saveAutoBidSettings(
+      auctionId: auctionId,
+      userId: userId,
+      maxBidAmount: maxBidAmount,
+      bidIncrement: bidIncrement,
+      isActive: isActive,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getAutoBidSettings({
+    required String auctionId,
+    required String userId,
+  }) {
+    return _bidDataSource.getAutoBidSettings(
+      auctionId: auctionId,
+      userId: userId,
+    );
+  }
+
+  @override
+  Future<void> deactivateAutoBid({
+    required String auctionId,
+    required String userId,
+  }) {
+    return _bidDataSource.deactivateAutoBid(
+      auctionId: auctionId,
+      userId: userId,
     );
   }
 
@@ -159,5 +204,62 @@ class AuctionDetailCompositeSupabaseDataSource
   @override
   Future<void> processDeposit({required String auctionId}) {
     return _depositDataSource.processDeposit(auctionId);
+  }
+
+  @override
+  Stream<void> streamAuctionUpdates({required String auctionId}) {
+    return _auctionDataSource.streamAuctionUpdates(auctionId);
+  }
+
+  @override
+  Stream<void> streamBidUpdates({required String auctionId}) {
+    return _bidDataSource.streamBidUpdates(auctionId);
+  }
+
+  @override
+  Stream<List<QAEntity>> streamQAUpdates({
+    required String auctionId,
+    String? currentUserId,
+  }) {
+    return _qaDataSource.subscribeToQA(auctionId, currentUserId: currentUserId);
+  }
+
+  @override
+  Future<Map<String, dynamic>> raiseHand({
+    required String auctionId,
+    required String bidderId,
+  }) {
+    return _bidDataSource.raiseHand(auctionId: auctionId, bidderId: bidderId);
+  }
+
+  @override
+  Future<Map<String, dynamic>> submitTurnBid({
+    required String auctionId,
+    required String bidderId,
+    required double bidAmount,
+  }) {
+    return _bidDataSource.submitTurnBid(
+      auctionId: auctionId,
+      bidderId: bidderId,
+      bidAmount: bidAmount,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> lowerHand({
+    required String auctionId,
+    required String bidderId,
+  }) {
+    return _bidDataSource.lowerHand(auctionId: auctionId, bidderId: bidderId);
+  }
+
+  @override
+  Future<BidQueueCycleEntity> getQueueStatus({required String auctionId}) {
+    return _bidDataSource.getQueueStatus(auctionId);
+  }
+
+  @override
+  Stream<BidQueueCycleEntity> streamQueueUpdates({required String auctionId}) {
+    return _bidDataSource.streamQueueUpdates(auctionId);
   }
 }

@@ -18,8 +18,6 @@ void main() {
   });
 
   group('MarkAllAsReadUseCase', () {
-    const testUserId = 'test-user-id';
-
     test('should mark all notifications as read successfully', () async {
       // Arrange
       const expectedCount = 5;

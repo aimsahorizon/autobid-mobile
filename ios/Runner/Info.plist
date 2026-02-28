@@ -41,6 +41,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>AutoBid needs camera access to take photos of your vehicle for your listing.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>AutoBid needs photo library access to select photos of your vehicle for your listing.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>AutoBid needs permission to save photos to your photo library.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

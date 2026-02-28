@@ -1,12 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import 'package:autobid_mobile/core/services/car_detection_service.dart';
+import 'package:autobid_mobile/core/utils/image_helper.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
-import '../../../data/datasources/demo_listing_data.dart';
 import '../../../data/datasources/sample_photo_guide_datasource.dart';
-import 'demo_autofill_button.dart';
 
 class Step7Photos extends StatefulWidget {
   final ListingDraftController controller;
@@ -18,13 +17,12 @@ class Step7Photos extends StatefulWidget {
 }
 
 class _Step7PhotosState extends State<Step7Photos> {
-  final _carDetectionService = CarDetectionService();
-  bool _useAIDetection = true; // Toggle for AI vs Mock
+  // AI Detection logic moved to CreateListingPage
   bool _isUploadingDeedOfSale = false;
 
   Future<void> _pickImage(BuildContext context, String category) async {
-    print('DEBUG [Step7Photos]: ========================================');
-    print(
+    debugPrint('DEBUG [Step7Photos]: ========================================');
+    debugPrint(
       'DEBUG [Step7Photos]: Attempting to pick image for category: $category',
     );
 
@@ -49,11 +47,11 @@ class _Step7PhotosState extends State<Step7Photos> {
     );
 
     if (action == null) {
-      print('DEBUG [Step7Photos]: User cancelled image selection');
+      debugPrint('DEBUG [Step7Photos]: User cancelled image selection');
       return;
     }
 
-    print('DEBUG [Step7Photos]: User selected: $action');
+    debugPrint('DEBUG [Step7Photos]: User selected: $action');
 
     if (!context.mounted) return;
 
@@ -62,7 +60,7 @@ class _Step7PhotosState extends State<Step7Photos> {
       XFile? pickedFile;
 
       if (action == 'camera') {
-        print('DEBUG [Step7Photos]: Opening camera...');
+        debugPrint('DEBUG [Step7Photos]: Opening camera...');
         pickedFile = await picker.pickImage(
           source: ImageSource.camera,
           maxWidth: 1920,
@@ -70,7 +68,7 @@ class _Step7PhotosState extends State<Step7Photos> {
           imageQuality: 85,
         );
       } else {
-        print('DEBUG [Step7Photos]: Opening gallery...');
+        debugPrint('DEBUG [Step7Photos]: Opening gallery...');
         pickedFile = await picker.pickImage(
           source: ImageSource.gallery,
           maxWidth: 1920,
@@ -80,38 +78,79 @@ class _Step7PhotosState extends State<Step7Photos> {
       }
 
       if (pickedFile == null) {
-        print('DEBUG [Step7Photos]: No image selected');
+        debugPrint('DEBUG [Step7Photos]: No image selected');
         if (context.mounted) {
-          ScaffoldMessenger.of(
+          (ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('No image selected')));
+          )..clearSnackBars()).showSnackBar(const SnackBar(content: Text('No image selected')));
         }
         return;
       }
 
-      print('DEBUG [Step7Photos]: Image picked - Path: ${pickedFile.path}');
-      print(
-        'DEBUG [Step7Photos]: Image size: ${await pickedFile.length()} bytes',
+      // Crop the image (fallback to uncropped if cropper fails)
+      File imageFile = File(pickedFile.path);
+      try {
+        final croppedFile = await ImageHelper.cropImage(
+          file: imageFile,
+          title: 'Crop $category',
+        );
+
+        if (croppedFile == null) {
+          debugPrint('DEBUG [Step7Photos]: Image cropping cancelled');
+          return;
+        }
+        imageFile = croppedFile;
+      } catch (cropError) {
+        debugPrint(
+          'DEBUG [Step7Photos]: Cropper failed ($cropError), using original image',
+        );
+        // Continue with uncropped image
+      }
+
+      if (!context.mounted) return;
+
+      debugPrint(
+        'DEBUG [Step7Photos]: Image ready - Path: ${imageFile.path}',
       );
-      print('DEBUG [Step7Photos]: Uploading to controller...');
+      debugPrint(
+        'DEBUG [Step7Photos]: Image size: ${await imageFile.length()} bytes',
+      );
+      debugPrint('DEBUG [Step7Photos]: Uploading to controller...');
+
+      final categoryKey = PhotoCategories.toKey(category);
+
+      // Clear existing photo for this category if any (Enforce 1 photo per view)
+      final currentPhotos = widget.controller.currentDraft?.photoUrls ?? {};
+      if (currentPhotos.containsKey(categoryKey) &&
+          currentPhotos[categoryKey]!.isNotEmpty) {
+        final updatedPhotoUrls = Map<String, List<String>>.from(currentPhotos);
+        updatedPhotoUrls.remove(categoryKey);
+
+        widget.controller.updateDraft(
+          widget.controller.currentDraft!.copyWith(
+            photoUrls: updatedPhotoUrls,
+            lastSaved: DateTime.now(),
+          ),
+        );
+      }
 
       final success = await widget.controller.uploadPhoto(
-        category,
-        pickedFile.path,
+        category, // Pass display name, controller converts it
+        imageFile.path,
       );
 
-      print('DEBUG [Step7Photos]: Upload result: $success');
+      debugPrint('DEBUG [Step7Photos]: Upload result: $success');
 
       if (context.mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text('✅ Photo uploaded for $category'),
               backgroundColor: Colors.green,
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text('❌ Failed to upload photo for $category'),
               backgroundColor: Colors.red,
@@ -120,11 +159,11 @@ class _Step7PhotosState extends State<Step7Photos> {
         }
       }
     } catch (e, stackTrace) {
-      print('ERROR [Step7Photos]: Failed to pick/upload image: $e');
-      print('STACK [Step7Photos]: $stackTrace');
+      debugPrint('ERROR [Step7Photos]: Failed to pick/upload image: $e');
+      debugPrint('STACK [Step7Photos]: $stackTrace');
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
@@ -132,85 +171,12 @@ class _Step7PhotosState extends State<Step7Photos> {
         );
       }
     } finally {
-      print('DEBUG [Step7Photos]: ========================================');
+      debugPrint(
+        'DEBUG [Step7Photos]: ========================================',
+      );
     }
   }
 
-  Future<void> _autofillDemoPhotos(BuildContext context) async {
-    final currentDraft = widget.controller.currentDraft;
-    if (currentDraft == null) return;
-
-    final demoData = DemoListingData.getDemoDataForStep(7);
-    final demoPhotoUrls = demoData['photoUrls'] as Map<String, List<String>>;
-
-    // Update draft with demo photo URLs directly
-    final updatedDraft = ListingDraftEntity(
-      id: currentDraft.id,
-      sellerId: currentDraft.sellerId,
-      currentStep: currentDraft.currentStep,
-      lastSaved: DateTime.now(),
-      isComplete: currentDraft.isComplete,
-      brand: currentDraft.brand,
-      model: currentDraft.model,
-      variant: currentDraft.variant,
-      year: currentDraft.year,
-      engineType: currentDraft.engineType,
-      engineDisplacement: currentDraft.engineDisplacement,
-      cylinderCount: currentDraft.cylinderCount,
-      horsepower: currentDraft.horsepower,
-      torque: currentDraft.torque,
-      transmission: currentDraft.transmission,
-      fuelType: currentDraft.fuelType,
-      driveType: currentDraft.driveType,
-      length: currentDraft.length,
-      width: currentDraft.width,
-      height: currentDraft.height,
-      wheelbase: currentDraft.wheelbase,
-      groundClearance: currentDraft.groundClearance,
-      seatingCapacity: currentDraft.seatingCapacity,
-      doorCount: currentDraft.doorCount,
-      fuelTankCapacity: currentDraft.fuelTankCapacity,
-      curbWeight: currentDraft.curbWeight,
-      grossWeight: currentDraft.grossWeight,
-      exteriorColor: currentDraft.exteriorColor,
-      paintType: currentDraft.paintType,
-      rimType: currentDraft.rimType,
-      rimSize: currentDraft.rimSize,
-      tireSize: currentDraft.tireSize,
-      tireBrand: currentDraft.tireBrand,
-      condition: currentDraft.condition,
-      mileage: currentDraft.mileage,
-      previousOwners: currentDraft.previousOwners,
-      hasModifications: currentDraft.hasModifications,
-      modificationsDetails: currentDraft.modificationsDetails,
-      hasWarranty: currentDraft.hasWarranty,
-      warrantyDetails: currentDraft.warrantyDetails,
-      usageType: currentDraft.usageType,
-      plateNumber: currentDraft.plateNumber,
-      orcrStatus: currentDraft.orcrStatus,
-      registrationStatus: currentDraft.registrationStatus,
-      registrationExpiry: currentDraft.registrationExpiry,
-      province: currentDraft.province,
-      cityMunicipality: currentDraft.cityMunicipality,
-      photoUrls: demoPhotoUrls, // Use demo photos
-      description: currentDraft.description,
-      knownIssues: currentDraft.knownIssues,
-      features: currentDraft.features,
-      startingPrice: currentDraft.startingPrice,
-      reservePrice: currentDraft.reservePrice,
-      auctionEndDate: currentDraft.auctionEndDate,
-    );
-
-    widget.controller.updateDraft(updatedDraft);
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('All demo photos added!')));
-    }
-  }
-
-  /// Pick and upload deed of sale document
   Future<void> _pickDeedOfSale(BuildContext context) async {
     // Directly open camera for document capture
     setState(() => _isUploadingDeedOfSale = true);
@@ -226,25 +192,41 @@ class _Step7PhotosState extends State<Step7Photos> {
 
       if (pickedFile == null) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
+          (ScaffoldMessenger.of(
             context,
-          ).showSnackBar(const SnackBar(content: Text('No file selected')));
+          )..clearSnackBars()).showSnackBar(const SnackBar(content: Text('No file selected')));
         }
         return;
       }
 
-      final url = await widget.controller.uploadDeedOfSale(pickedFile.path);
+      // Crop the deed of sale (fallback to uncropped if cropper fails)
+      File documentFile = File(pickedFile.path);
+      try {
+        final croppedFile = await ImageHelper.cropImage(
+          file: documentFile,
+          title: 'Crop Deed of Sale',
+        );
+
+        if (croppedFile == null) return;
+        documentFile = croppedFile;
+      } catch (cropError) {
+        debugPrint(
+          'DEBUG [Step7Photos]: Deed cropper failed ($cropError), using original',
+        );
+      }
+
+      final url = await widget.controller.uploadDeedOfSale(documentFile.path);
 
       if (context.mounted) {
         if (url != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Deed of sale uploaded successfully'),
               backgroundColor: Colors.green,
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 widget.controller.errorMessage ??
@@ -257,7 +239,7 @@ class _Step7PhotosState extends State<Step7Photos> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
@@ -303,14 +285,14 @@ class _Step7PhotosState extends State<Step7Photos> {
 
     if (context.mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Deed of sale removed'),
             backgroundColor: Colors.orange,
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Failed to remove deed of sale'),
             backgroundColor: Colors.red,
@@ -420,14 +402,17 @@ class _Step7PhotosState extends State<Step7Photos> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    deedOfSaleUrl.toLowerCase().endsWith('.pdf')
-                        ? Icons.picture_as_pdf
-                        : Icons.image,
-                    color: deedOfSaleUrl.toLowerCase().endsWith('.pdf')
-                        ? Colors.red
-                        : Colors.blue,
-                    size: 40,
+                  GestureDetector(
+                    onTap: () => _showFullImage(context, deedOfSaleUrl),
+                    child: Icon(
+                      deedOfSaleUrl.toLowerCase().endsWith('.pdf')
+                          ? Icons.picture_as_pdf
+                          : Icons.image,
+                      color: deedOfSaleUrl.toLowerCase().endsWith('.pdf')
+                          ? Colors.red
+                          : Colors.blue,
+                      size: 40,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -445,7 +430,7 @@ class _Step7PhotosState extends State<Step7Photos> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Tap to view',
+                          'Tap icon to view',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -535,255 +520,6 @@ class _Step7PhotosState extends State<Step7Photos> {
     );
   }
 
-  /// AI Detection: Auto-fill car details from uploaded photo
-  Future<void> _detectCarAndAutoFill(BuildContext context) async {
-    final photoUrls = widget.controller.currentDraft?.photoUrls;
-    if (photoUrls == null || photoUrls.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please upload at least one photo first'),
-          ),
-        );
-      }
-      return;
-    }
-
-    // Get first uploaded photo for detection
-    final firstPhoto = photoUrls.values.first.first;
-
-    // Show confirmation dialog
-    final shouldProceed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              _useAIDetection ? Icons.psychology : Icons.auto_awesome,
-              color: ColorConstants.primary,
-            ),
-            const SizedBox(width: 12),
-            Text(_useAIDetection ? 'AI Detection' : 'Mock AI Detection'),
-          ],
-        ),
-        content: Text(
-          _useAIDetection
-              ? 'Use AI to analyze your car photo and auto-fill basic details?\n\nNote: Real AI is not yet implemented. Using Mock AI for demo.'
-              : 'Use Mock AI to generate randomized car details for demo purposes?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ColorConstants.primary,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Detect & Auto-Fill'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldProceed != true || !context.mounted) return;
-
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Detecting car details...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    try {
-      // Call AI detection service (Mock for now)
-      final detectedData = await _carDetectionService.detectCarFromImage(
-        firstPhoto,
-      );
-
-      if (!context.mounted) return;
-      Navigator.pop(context); // Close loading
-
-      // Update draft with detected data
-      final currentDraft = widget.controller.currentDraft!;
-      final updatedDraft = ListingDraftEntity(
-        id: currentDraft.id,
-        sellerId: currentDraft.sellerId,
-        currentStep: currentDraft.currentStep,
-        lastSaved: DateTime.now(),
-        isComplete: currentDraft.isComplete,
-        // AI-detected fields
-        brand: detectedData['brand'] as String?,
-        model: detectedData['model'] as String?,
-        variant: '${detectedData['bodyType']} ${detectedData['transmission']}',
-        year: detectedData['year'] as int?,
-        transmission: detectedData['transmission'] as String?,
-        exteriorColor: detectedData['color'] as String?,
-        tags: (detectedData['tags'] as List<dynamic>?)?.cast<String>(),
-        // Preserve existing data
-        engineType: currentDraft.engineType,
-        engineDisplacement: currentDraft.engineDisplacement,
-        cylinderCount: currentDraft.cylinderCount,
-        horsepower: currentDraft.horsepower,
-        torque: currentDraft.torque,
-        fuelType: currentDraft.fuelType,
-        driveType: currentDraft.driveType,
-        length: currentDraft.length,
-        width: currentDraft.width,
-        height: currentDraft.height,
-        wheelbase: currentDraft.wheelbase,
-        groundClearance: currentDraft.groundClearance,
-        seatingCapacity: currentDraft.seatingCapacity,
-        doorCount: currentDraft.doorCount,
-        fuelTankCapacity: currentDraft.fuelTankCapacity,
-        curbWeight: currentDraft.curbWeight,
-        grossWeight: currentDraft.grossWeight,
-        paintType: currentDraft.paintType,
-        rimType: currentDraft.rimType,
-        rimSize: currentDraft.rimSize,
-        tireSize: currentDraft.tireSize,
-        tireBrand: currentDraft.tireBrand,
-        condition: currentDraft.condition,
-        mileage: currentDraft.mileage,
-        previousOwners: currentDraft.previousOwners,
-        hasModifications: currentDraft.hasModifications,
-        modificationsDetails: currentDraft.modificationsDetails,
-        hasWarranty: currentDraft.hasWarranty,
-        warrantyDetails: currentDraft.warrantyDetails,
-        usageType: currentDraft.usageType,
-        plateNumber: currentDraft.plateNumber,
-        orcrStatus: currentDraft.orcrStatus,
-        registrationStatus: currentDraft.registrationStatus,
-        registrationExpiry: currentDraft.registrationExpiry,
-        province: currentDraft.province,
-        cityMunicipality: currentDraft.cityMunicipality,
-        photoUrls: currentDraft.photoUrls,
-        description: currentDraft.description,
-        knownIssues: currentDraft.knownIssues,
-        features: currentDraft.features,
-        startingPrice: currentDraft.startingPrice,
-        reservePrice: currentDraft.reservePrice,
-        auctionEndDate: currentDraft.auctionEndDate,
-        biddingType: currentDraft.biddingType,
-        bidIncrement: currentDraft.bidIncrement,
-        minBidIncrement: currentDraft.minBidIncrement,
-        depositAmount: currentDraft.depositAmount,
-        enableIncrementalBidding: currentDraft.enableIncrementalBidding,
-      );
-
-      widget.controller.updateDraft(updatedDraft);
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})',
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context); // Close loading
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to detect car: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Widget _buildAIToggleSection(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark
-            ? ColorConstants.surfaceLight.withValues(alpha: 0.3)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: ColorConstants.primary.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                _useAIDetection ? Icons.psychology : Icons.auto_awesome,
-                color: ColorConstants.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'AI Car Detection',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-              ),
-              Switch(
-                value: _useAIDetection,
-                onChanged: (value) {
-                  setState(() {
-                    _useAIDetection = value;
-                  });
-                },
-                activeTrackColor: ColorConstants.primary,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _useAIDetection
-                ? 'Real AI (Not yet implemented - uses Mock AI)'
-                : 'Mock AI (Generates random demo data)',
-            style: TextStyle(
-              fontSize: 12,
-              color: isDark
-                  ? ColorConstants.textSecondaryDark
-                  : ColorConstants.textSecondaryLight,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _detectCarAndAutoFill(context),
-              icon: const Icon(Icons.auto_fix_high, size: 18),
-              label: const Text('Detect Car & Auto-Fill'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ColorConstants.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _showSamplePhoto(BuildContext context, String category) async {
     final datasource = SamplePhotoGuideDataSource();
     final sampleUrl = await datasource.getSamplePhoto(category);
@@ -821,28 +557,44 @@ class _Step7PhotosState extends State<Step7Photos> {
               ),
             ),
             if (sampleUrl != null)
-              Image.network(
-                sampleUrl,
-                height: 300,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return const SizedBox(
-                    height: 300,
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 300,
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 64),
-                    ),
-                  );
-                },
-              )
+              sampleUrl.startsWith('assets/')
+                  ? Image.asset(
+                      sampleUrl,
+                      height: 300,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 300,
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: Icon(Icons.image_not_supported, size: 64),
+                          ),
+                        );
+                      },
+                    )
+                  : Image.network(
+                      sampleUrl,
+                      height: 300,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const SizedBox(
+                          height: 300,
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 300,
+                          color: Colors.grey[300],
+                          child: const Center(
+                            child: Icon(Icons.image_not_supported, size: 64),
+                          ),
+                        );
+                      },
+                    )
             else
               Container(
                 height: 300,
@@ -861,6 +613,310 @@ class _Step7PhotosState extends State<Step7Photos> {
         ),
       ),
     );
+  }
+
+  /// Show full screen image
+  void _showFullImage(BuildContext context, String imageUrl) {
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Full screen image with zoom
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: imageUrl.startsWith('http')
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        );
+                      },
+                    )
+                  : Image.file(File(imageUrl), fit: BoxFit.contain),
+            ),
+            // Close button
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black.withValues(alpha: 0.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build photo preview with delete button
+  Widget _buildPhotoPreview(
+    BuildContext context,
+    String photoUrl,
+    String category,
+    int index,
+    bool isDark,
+  ) {
+    // Check if the URL is valid (has http/https scheme)
+    final isValidUrl =
+        photoUrl.startsWith('http://') || photoUrl.startsWith('https://');
+
+    return GestureDetector(
+      onTap: () => _showFullImage(context, photoUrl),
+      child: Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isDark
+                ? ColorConstants.surfaceLight.withValues(alpha: 0.3)
+                : Colors.grey.shade300,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Photo image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: isValidUrl
+                  ? Image.network(
+                      photoUrl,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      width: 100,
+                      height: 100,
+                      color: isDark
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade200,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.photo, color: Colors.grey, size: 32),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Mock',
+                            style: TextStyle(color: Colors.grey, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+            // Delete button overlay
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: () => _deletePhoto(context, category, index),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.9),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, color: Colors.white, size: 16),
+                ),
+              ),
+            ),
+            // Photo number badge
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Delete a photo from a category
+  Future<void> _deletePhoto(
+    BuildContext context,
+    String categoryDisplayName,
+    int index,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Photo?'),
+        content: Text(
+          'Are you sure you want to delete this photo from "$categoryDisplayName"?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !context.mounted) return;
+
+    final currentDraft = widget.controller.currentDraft;
+    if (currentDraft == null) return;
+
+    final categoryKey = PhotoCategories.toKey(categoryDisplayName);
+
+    final updatedPhotoUrls = Map<String, List<String>>.from(
+      currentDraft.photoUrls ?? {},
+    );
+
+    if (updatedPhotoUrls[categoryKey] != null) {
+      updatedPhotoUrls[categoryKey] = List<String>.from(
+        updatedPhotoUrls[categoryKey]!,
+      )..removeAt(index);
+
+      // Remove category key if empty
+      if (updatedPhotoUrls[categoryKey]!.isEmpty) {
+        updatedPhotoUrls.remove(categoryKey);
+      }
+
+      // Update draft with new photo URLs
+      final updatedDraft = ListingDraftEntity(
+        id: currentDraft.id,
+        sellerId: currentDraft.sellerId,
+        currentStep: currentDraft.currentStep,
+        lastSaved: DateTime.now(),
+        isComplete: currentDraft.isComplete,
+        brand: currentDraft.brand,
+        model: currentDraft.model,
+        variant: currentDraft.variant,
+        year: currentDraft.year,
+        engineType: currentDraft.engineType,
+        engineDisplacement: currentDraft.engineDisplacement,
+        cylinderCount: currentDraft.cylinderCount,
+        horsepower: currentDraft.horsepower,
+        torque: currentDraft.torque,
+        transmission: currentDraft.transmission,
+        fuelType: currentDraft.fuelType,
+        driveType: currentDraft.driveType,
+        length: currentDraft.length,
+        width: currentDraft.width,
+        height: currentDraft.height,
+        wheelbase: currentDraft.wheelbase,
+        groundClearance: currentDraft.groundClearance,
+        seatingCapacity: currentDraft.seatingCapacity,
+        doorCount: currentDraft.doorCount,
+        fuelTankCapacity: currentDraft.fuelTankCapacity,
+        curbWeight: currentDraft.curbWeight,
+        grossWeight: currentDraft.grossWeight,
+        exteriorColor: currentDraft.exteriorColor,
+        paintType: currentDraft.paintType,
+        rimType: currentDraft.rimType,
+        rimSize: currentDraft.rimSize,
+        tireSize: currentDraft.tireSize,
+        tireBrand: currentDraft.tireBrand,
+        condition: currentDraft.condition,
+        mileage: currentDraft.mileage,
+        previousOwners: currentDraft.previousOwners,
+        hasModifications: currentDraft.hasModifications,
+        modificationsDetails: currentDraft.modificationsDetails,
+        hasWarranty: currentDraft.hasWarranty,
+        warrantyDetails: currentDraft.warrantyDetails,
+        usageType: currentDraft.usageType,
+        plateNumber: currentDraft.plateNumber,
+        orcrStatus: currentDraft.orcrStatus,
+        registrationStatus: currentDraft.registrationStatus,
+        registrationExpiry: currentDraft.registrationExpiry,
+        province: currentDraft.province,
+        cityMunicipality: currentDraft.cityMunicipality,
+        photoUrls: updatedPhotoUrls,
+        description: currentDraft.description,
+        knownIssues: currentDraft.knownIssues,
+        features: currentDraft.features,
+        startingPrice: currentDraft.startingPrice,
+        reservePrice: currentDraft.reservePrice,
+        auctionEndDate: currentDraft.auctionEndDate,
+        biddingType: currentDraft.biddingType,
+        bidIncrement: currentDraft.bidIncrement,
+        minBidIncrement: currentDraft.minBidIncrement,
+        depositAmount: currentDraft.depositAmount,
+        enableIncrementalBidding: currentDraft.enableIncrementalBidding,
+        tags: currentDraft.tags,
+        deedOfSaleUrl: currentDraft.deedOfSaleUrl,
+        snipeGuardEnabled: currentDraft.snipeGuardEnabled,
+        snipeGuardThresholdSeconds: currentDraft.snipeGuardThresholdSeconds,
+        snipeGuardExtendSeconds: currentDraft.snipeGuardExtendSeconds,
+      );
+
+      widget.controller.updateDraft(updatedDraft);
+
+      if (context.mounted) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Photo deleted'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -935,12 +991,6 @@ class _Step7PhotosState extends State<Step7Photos> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  DemoAutofillButton(
-                    onPressed: () => _autofillDemoPhotos(context),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildAIToggleSection(isDark),
                 ],
               ),
             ),
@@ -1002,56 +1052,130 @@ class _Step7PhotosState extends State<Step7Photos> {
                             ),
                           ),
                         ),
-                        ...groupCategories.map((category) {
-                          final hasPhoto =
-                              photoUrls[category]?.isNotEmpty ?? false;
+                        ...groupCategories.map((categoryDisplayName) {
+                          final categoryKey = PhotoCategories.toKey(categoryDisplayName);
+                          final categoryPhotos = photoUrls[categoryKey] ?? [];
+                          final hasPhoto = categoryPhotos.isNotEmpty;
+
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
+                              color: isDark
+                                  ? ColorConstants.surfaceLight.withValues(
+                                      alpha: 0.1,
+                                    )
+                                  : Colors.white,
                               border: Border.all(
-                                color: isDark
-                                    ? ColorConstants.surfaceLight
-                                    : ColorConstants.backgroundSecondaryLight,
+                                color: hasPhoto
+                                    ? Colors.green.withValues(alpha: 0.3)
+                                    : (isDark
+                                          ? ColorConstants.surfaceLight
+                                          : ColorConstants
+                                                .backgroundSecondaryLight),
+                                width: hasPhoto ? 2 : 1,
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: ListTile(
-                              leading: Icon(
-                                hasPhoto
-                                    ? Icons.check_circle
-                                    : Icons.add_a_photo,
-                                color: hasPhoto
-                                    ? Colors.green
-                                    : ColorConstants.primary,
-                              ),
-                              title: Text(category),
-                              subtitle: hasPhoto
-                                  ? Text(
-                                      '${photoUrls[category]!.length} photo(s)',
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                      ),
-                                    )
-                                  : null,
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.info_outline,
-                                      size: 20,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Header row
+                                Row(
+                                  children: [
+                                    Icon(
+                                      hasPhoto
+                                          ? Icons.check_circle
+                                          : Icons.add_a_photo,
+                                      color: hasPhoto
+                                          ? Colors.green
+                                          : ColorConstants.primary,
+                                      size: 24,
                                     ),
-                                    tooltip: 'View sample',
-                                    onPressed: () =>
-                                        _showSamplePhoto(context, category),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.camera_alt),
-                                    onPressed: () =>
-                                        _pickImage(context, category),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            categoryDisplayName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          if (hasPhoto)
+                                            Text(
+                                              '${categoryPhotos.length} photo${categoryPhotos.length > 1 ? 's' : ''}',
+                                              style: const TextStyle(
+                                                color: Colors.green,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.info_outline,
+                                        size: 20,
+                                      ),
+                                      tooltip: 'View sample',
+                                      onPressed: () =>
+                                          _showSamplePhoto(context, categoryDisplayName),
+                                    ),
+                                    ElevatedButton.icon(
+                                      onPressed: () =>
+                                          _pickImage(context, categoryDisplayName),
+                                      icon: Icon(
+                                        hasPhoto
+                                            ? Icons.swap_horiz
+                                            : Icons.add_photo_alternate,
+                                        size: 18,
+                                      ),
+                                      label: Text(
+                                        hasPhoto ? 'Replace' : 'Upload',
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            hasPhoto
+                                                ? Colors.orange
+                                                : ColorConstants.primary,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // Photo previews
+                                if (hasPhoto) ...[
+                                  const SizedBox(height: 12),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: categoryPhotos
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
+                                          final index = entry.key;
+                                          final photoUrl = entry.value;
+
+                                          return _buildPhotoPreview(
+                                            context,
+                                            photoUrl,
+                                            categoryDisplayName,
+                                            index,
+                                            isDark,
+                                          );
+                                        })
+                                        .toList(),
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
                           );
                         }),
@@ -1080,3 +1204,4 @@ class _Step7PhotosState extends State<Step7Photos> {
     return allCategories.sublist(startIndex, startIndex + count);
   }
 }
+

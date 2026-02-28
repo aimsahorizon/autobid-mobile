@@ -67,7 +67,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: widget.controller.isLoading ? null : widget.controller.refresh,
+            onPressed: widget.controller.isLoading
+                ? null
+                : widget.controller.refresh,
             tooltip: 'Refresh transactions',
           ),
         ],
@@ -166,9 +168,8 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           return ListenableBuilder(
             listenable: widget.controller,
             builder: (context, _) {
-              final transactions = widget.controller.getBuyerTransactionsByStatus(
-                status,
-              );
+              final transactions = widget.controller
+                  .getBuyerTransactionsByStatus(status);
 
               if (transactions.isEmpty) {
                 return Center(
@@ -249,9 +250,8 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           return ListenableBuilder(
             listenable: widget.controller,
             builder: (context, _) {
-              final transactions = widget.controller.getSellerTransactionsByStatus(
-                status,
-              );
+              final transactions = widget.controller
+                  .getSellerTransactionsByStatus(status);
 
               if (transactions.isEmpty) {
                 return Center(
@@ -309,10 +309,10 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     BuildContext context,
     SellerListingEntity listing,
   ) async {
-    print('[DEBUG] _handleBuyerTransactionTap called');
-    print('[DEBUG] Listing ID: ${listing.id}');
-    print('[DEBUG] Listing status: ${listing.status}');
-    print('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
+    debugPrint('[DEBUG] _handleBuyerTransactionTap called');
+    debugPrint('[DEBUG] Listing ID: ${listing.id}');
+    debugPrint('[DEBUG] Listing status: ${listing.status}');
+    debugPrint('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
 
     final transactionController = sl<TransactionRealtimeController>();
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
@@ -321,9 +321,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
         'Buyer';
 
-    print('[DEBUG] User ID: $userId');
-    print('[DEBUG] User name: $userName');
-    print('[DEBUG] Navigating to PreTransactionRealtimePage...');
+    debugPrint('[DEBUG] User ID: $userId');
+    debugPrint('[DEBUG] User name: $userName');
+    debugPrint('[DEBUG] Navigating to PreTransactionRealtimePage...');
 
     await Navigator.push<void>(
       context,
@@ -337,7 +337,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       ),
     );
 
-    print('[DEBUG] Returned from PreTransactionRealtimePage');
+    debugPrint('[DEBUG] Returned from PreTransactionRealtimePage');
     await widget.controller.refresh();
   }
 
@@ -346,20 +346,10 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     BuildContext context,
     SellerListingEntity listing,
   ) async {
-    print('[DEBUG] _handleSellerTransactionTap called');
-    print('[DEBUG] Listing ID: ${listing.id}');
-    print('[DEBUG] Listing status: ${listing.status}');
-    print('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
-
-    // Show debug snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Opening: ${listing.id.substring(0, 8)}... status=${listing.status}',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    debugPrint('[DEBUG] _handleSellerTransactionTap called');
+    debugPrint('[DEBUG] Listing ID: ${listing.id}');
+    debugPrint('[DEBUG] Listing status: ${listing.status}');
+    debugPrint('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
 
     final transactionController = sl<TransactionRealtimeController>();
 
@@ -369,9 +359,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
         'Seller';
 
-    print('[DEBUG] User ID: $userId');
-    print('[DEBUG] User name: $userName');
-    print('[DEBUG] Navigating to PreTransactionRealtimePage...');
+    debugPrint('[DEBUG] User ID: $userId');
+    debugPrint('[DEBUG] User name: $userName');
+    debugPrint('[DEBUG] Navigating to PreTransactionRealtimePage...');
 
     try {
       await Navigator.push<void>(
@@ -385,12 +375,12 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           ),
         ),
       );
-      print('[DEBUG] Returned from PreTransactionRealtimePage normally');
+      debugPrint('[DEBUG] Returned from PreTransactionRealtimePage normally');
     } catch (e, stack) {
-      print('[DEBUG] ❌ Navigation error: $e');
-      print('[DEBUG] Stack: $stack');
+      debugPrint('[DEBUG] ❌ Navigation error: $e');
+      debugPrint('[DEBUG] Stack: $stack');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,

@@ -5,15 +5,19 @@ import 'package:autobid_mobile/modules/transactions/data/repositories/transactio
 import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_remote_datasource.dart';
 import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
 
 class MockTransactionRemoteDataSource extends Mock
     implements TransactionRemoteDataSource {}
+
+class MockNetworkInfo extends Mock implements NetworkInfo {}
 
 class FakeTransactionFormEntity extends Fake implements TransactionFormEntity {}
 
 void main() {
   late TransactionRepositoryImpl repository;
   late MockTransactionRemoteDataSource mockDataSource;
+  late MockNetworkInfo mockNetworkInfo;
 
   setUpAll(() {
     registerFallbackValue(FakeTransactionFormEntity());
@@ -23,7 +27,9 @@ void main() {
 
   setUp(() {
     mockDataSource = MockTransactionRemoteDataSource();
-    repository = TransactionRepositoryImpl(mockDataSource);
+    mockNetworkInfo = MockNetworkInfo();
+    when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => true);
+    repository = TransactionRepositoryImpl(mockDataSource, mockNetworkInfo);
   });
 
   final testTransaction = TransactionEntity(
@@ -70,6 +76,15 @@ void main() {
   );
 
   group('getTransaction', () {
+    test('should return NetworkFailure when offline', () async {
+      when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
+
+      final result = await repository.getTransaction('transaction-123');
+
+      expect(result, const Left(NetworkFailure('No internet connection')));
+      verifyZeroInteractions(mockDataSource);
+    });
+
     test('should return transaction when found', () async {
       when(
         () => mockDataSource.getTransaction(any()),

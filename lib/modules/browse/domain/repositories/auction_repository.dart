@@ -12,4 +12,7 @@ abstract class AuctionRepository {
 
   /// Search auctions by query
   Future<List<AuctionEntity>> searchAuctions(String query);
+
+  /// Stream signal for active auctions updates
+  Stream<void> streamActiveAuctions();
 }

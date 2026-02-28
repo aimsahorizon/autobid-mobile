@@ -36,15 +36,15 @@ class GuestController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> checkAccountStatus(String email) async {
+  Future<void> checkAccountStatus(String identifier) async {
     _isLoadingStatus = true;
     _errorMessage = null;
-    _statusEmail = email;
+    _statusEmail = identifier;
     notifyListeners();
 
     try {
       // Use UseCase to check account status
-      final result = await _checkAccountStatusUseCase(email);
+      final result = await _checkAccountStatusUseCase(identifier);
 
       result.fold(
         (failure) {
@@ -70,7 +70,7 @@ class GuestController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print('DEBUG [GuestController]: Loading guest auction listings');
+      debugPrint('DEBUG [GuestController]: Loading guest auction listings');
 
       // Use UseCase to get auction listings
       final result = await _getGuestAuctionListingsUseCase();
@@ -83,7 +83,9 @@ class GuestController extends ChangeNotifier {
         (auctions) {
           _auctions = auctions;
           _errorMessage = null;
-          print('DEBUG [GuestController]: Loaded ${auctions.length} auctions');
+          debugPrint(
+            'DEBUG [GuestController]: Loaded ${auctions.length} auctions',
+          );
         },
       );
     } catch (e) {

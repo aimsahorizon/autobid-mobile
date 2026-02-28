@@ -14,10 +14,18 @@ class AuthLoadingButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          disabledBackgroundColor: theme.colorScheme.primary.withValues(
+            alpha: 0.6,
+          ),
+          disabledForegroundColor: Colors.white,
+        ),
         child: isLoading
             ? const SizedBox(
                 height: 20,

@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/seller_listing_entity.dart';
+import '../../domain/entities/listing_detail_entity.dart';
 import 'listing_card.dart';
-import '../../data/datasources/listing_detail_mock_datasource.dart';
+import '../../data/datasources/listing_supabase_datasource.dart';
 import '../controllers/listing_draft_controller.dart';
 import '../pages/active_listing_detail_page.dart';
 import '../pages/pending_listing_detail_page.dart';
@@ -11,9 +12,6 @@ import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
 import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
-import 'package:get_it/get_it.dart';
-import '../../../transactions/presentation/controllers/transaction_controller.dart';
-import '../../../transactions/presentation/pages/pre_transaction_page.dart';
 import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
 import '../../../transactions/transactions_module.dart';
 
@@ -27,9 +25,13 @@ class ListingsGrid extends StatelessWidget {
   final bool enableNavigation;
   final ListingDraftController? draftController;
   final String? sellerId;
-  final VoidCallback? onListingUpdated;
   final Future<void> Function(BuildContext, SellerListingEntity)?
   onTransactionCardTap;
+  final bool isSelectionMode;
+  final Set<String> selectedIds;
+  final Function(String)? onSelectionToggle;
+  final Function(SellerListingEntity)? onInviteTap;
+  final VoidCallback? onListingUpdated;
 
   const ListingsGrid({
     super.key,
@@ -42,8 +44,12 @@ class ListingsGrid extends StatelessWidget {
     this.enableNavigation = true,
     this.draftController,
     this.sellerId,
-    this.onListingUpdated,
     this.onTransactionCardTap,
+    this.isSelectionMode = false,
+    this.selectedIds = const {},
+    this.onSelectionToggle,
+    this.onInviteTap,
+    this.onListingUpdated,
   });
 
   void _navigateToDetail(
@@ -52,138 +58,170 @@ class ListingsGrid extends StatelessWidget {
   ) async {
     if (!enableNavigation) return;
 
-    // Show loading indicator
+    // Handle transaction statuses immediately without fetching auction details
+    // because listing.id might be a transaction_id (from TransactionSupabaseDataSource)
+    // which won't be found in the auctions table.
+    if (listing.status == ListingStatus.inTransaction ||
+        listing.status == ListingStatus.sold ||
+        listing.status == ListingStatus.dealFailed) {
+      
+      if (onTransactionCardTap != null) {
+        await onTransactionCardTap!(context, listing);
+        return;
+      }
+
+      // Fallback: open pre-transaction page directly using the ID as transactionId
+      if (!context.mounted) return;
+      
+      // Use Realtime controller for consistent live experience
+      final realtimeController = TransactionsModule.instance
+          .createRealtimeTransactionController();
+
+      final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+      final userName =
+          SupabaseConfig
+              .client
+              .auth
+              .currentUser
+              ?.userMetadata?['full_name'] ??
+          'Seller';
+
+      await Navigator.push<void>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PreTransactionRealtimePage(
+            controller: realtimeController,
+            transactionId: listing.id,
+            userId: userId,
+            userName: userName,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Show loading indicator for other statuses where we need to fetch details
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // Convert to ListingDetailEntity
-    final datasource = ListingDetailMockDataSource();
-    final detailEntity = await datasource.convertToDetailEntity(listing);
+    try {
+      // Fetch full listing details from Supabase
+      final datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+      
+      ListingDetailEntity detailEntity;
+      
+      if (listing.status == ListingStatus.draft) {
+        // Fetch from listing_drafts table
+        final draftModel = await datasource.getDraft(listing.id);
+        if (draftModel == null) {
+          throw Exception('Draft not found');
+        }
+        detailEntity = draftModel.toListingDetailEntity();
+      } else {
+        // Fetch from auctions table
+        final listingModel = await datasource.getSellerListing(listing.id);
+        detailEntity = listingModel.toListingDetailEntity();
+      }
 
-    if (!context.mounted) return;
-    Navigator.pop(context); // Close loading dialog
+      if (!context.mounted) return;
+      Navigator.pop(context); // Close loading dialog
 
-    // Navigate to appropriate detail page based on status
-    Widget detailPage;
-    switch (listing.status) {
-      case ListingStatus.active:
-        detailPage = ActiveListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.pending:
-        detailPage = PendingListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.approved:
-        detailPage = ApprovedListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.scheduled:
-        // Scheduled listings are treated like approved listings for details
-        detailPage = ApprovedListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.draft:
-        if (draftController == null || sellerId == null) return;
-        detailPage = DraftListingDetailPage(
-          listing: detailEntity,
-          controller: draftController!,
-          sellerId: sellerId!,
-        );
-        break;
-      case ListingStatus.ended:
-        detailPage = EndedListingDetailPage(listing: detailEntity);
-        break;
-      case ListingStatus.cancelled:
-        // Check if this cancelled listing has an associated failed transaction
-        // If so, route to the transaction page with options to handle the failed deal
-        if (listing.transactionId != null) {
-          // Has a transaction - route to transaction page for deal failed options
-          // (next highest bidder, relist, delete)
-          if (!context.mounted) return;
-          final realtimeController = TransactionsModule.instance
-              .createRealtimeTransactionController();
-
-          final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
-          final userName =
-              SupabaseConfig
-                  .client
-                  .auth
-                  .currentUser
-                  ?.userMetadata?['full_name'] ??
-              'Seller';
-
-          await Navigator.push<void>(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PreTransactionRealtimePage(
-                controller: realtimeController,
-                transactionId: listing.transactionId!,
-                userId: userId,
-                userName: userName,
-              ),
-            ),
+      // Navigate to appropriate detail page based on status
+      Widget detailPage;
+      switch (listing.status) {
+        case ListingStatus.active:
+          detailPage = ActiveListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.pending:
+          detailPage = PendingListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.approved:
+          detailPage = ApprovedListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.scheduled:
+          // Scheduled listings are treated like approved listings for details
+          detailPage = ApprovedListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.draft:
+          if (draftController == null || sellerId == null) return;
+          detailPage = DraftListingDetailPage(
+            listing: detailEntity,
+            controller: draftController!,
+            sellerId: sellerId!,
           );
+          break;
+        case ListingStatus.ended:
+          detailPage = EndedListingDetailPage(listing: detailEntity);
+          break;
+        case ListingStatus.cancelled:
+          // Check if this cancelled listing has an associated failed transaction
+          // If so, route to the transaction page with options to handle the failed deal
+          if (listing.transactionId != null) {
+            // Has a transaction - route to transaction page for deal failed options
+            // (next highest bidder, relist, delete)
+            if (!context.mounted) return;
+            final realtimeController = TransactionsModule.instance
+                .createRealtimeTransactionController();
 
-          // Reload listings after returning from transaction page
-          if (onListingUpdated != null) {
-            onListingUpdated!();
+            final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+            final userName =
+                SupabaseConfig
+                    .client
+                    .auth
+                    .currentUser
+                    ?.userMetadata?['full_name'] ??
+                'Seller';
+
+            await Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PreTransactionRealtimePage(
+                  controller: realtimeController,
+                  transactionId: listing.transactionId!,
+                  userId: userId,
+                  userName: userName,
+                ),
+              ),
+            );
+
+            return;
           }
-          return;
-        }
 
-        // No transaction - regular cancelled listing page
-        // Controller and sellerId are optional - page handles null gracefully
-        detailPage = CancelledListingDetailPage(
-          listing: detailEntity,
-          controller: draftController,
-          sellerId: sellerId,
-        );
-        break;
-      case ListingStatus.inTransaction:
-      case ListingStatus.sold:
-      case ListingStatus.dealFailed:
-        // Transaction statuses MUST use callback or open pre-transaction page
-        // Never navigate to a listings detail page for transactions
-        if (onTransactionCardTap != null) {
-          await onTransactionCardTap!(context, listing);
-          return;
-        }
+          // No transaction - regular cancelled listing page
+          // Controller and sellerId are optional - page handles null gracefully
+          detailPage = CancelledListingDetailPage(
+            listing: detailEntity,
+            controller: draftController,
+            sellerId: sellerId,
+          );
+          break;
+        case ListingStatus.inTransaction:
+        case ListingStatus.sold:
+        case ListingStatus.dealFailed:
+          // Already handled above
+          return; 
+      }
 
-        // Fallback: open pre-transaction page directly
-        if (!context.mounted) return;
-        final transactionController = GetIt.I<TransactionController>();
-
-        final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
-        final userName =
-            SupabaseConfig
-                .client
-                .auth
-                .currentUser
-                ?.userMetadata?['full_name'] ??
-            'Seller';
-
-        await Navigator.push<void>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PreTransactionPage(
-              controller: transactionController,
-              transactionId: listing.id,
-              userId: userId,
-              userName: userName,
-            ),
+      if (!context.mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => detailPage),
+      );
+      
+      onListingUpdated?.call();
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load listing details: $e'),
+            backgroundColor: ColorConstants.error,
           ),
         );
-        return;
-    }
-
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => detailPage),
-    );
-
-    // Reload listings if there was an update (delete/submit)
-    if (result != null && onListingUpdated != null) {
-      onListingUpdated!();
+      }
     }
   }
 
@@ -214,7 +252,17 @@ class ListingsGrid extends StatelessWidget {
         itemBuilder: (context, index) => ListingCard(
           listing: listings[index],
           isGridView: true,
-          onTap: () => _navigateToDetail(context, listings[index]),
+          onTap: () {
+            if (isSelectionMode) {
+              onSelectionToggle?.call(listings[index].id);
+            } else {
+              _navigateToDetail(context, listings[index]);
+            }
+          },
+          isSelectionMode: isSelectionMode,
+          isSelected: selectedIds.contains(listings[index].id),
+          onLongPress: () => onSelectionToggle?.call(listings[index].id),
+          onInviteTap: onInviteTap != null ? () => onInviteTap!(listings[index]) : null,
         ),
       );
     }
@@ -226,7 +274,17 @@ class ListingsGrid extends StatelessWidget {
       itemBuilder: (context, index) => ListingCard(
         listing: listings[index],
         isGridView: false,
-        onTap: () => _navigateToDetail(context, listings[index]),
+        onTap: () {
+          if (isSelectionMode) {
+            onSelectionToggle?.call(listings[index].id);
+          } else {
+            _navigateToDetail(context, listings[index]);
+          }
+        },
+        isSelectionMode: isSelectionMode,
+        isSelected: selectedIds.contains(listings[index].id),
+        onLongPress: () => onSelectionToggle?.call(listings[index].id),
+        onInviteTap: onInviteTap != null ? () => onInviteTap!(listings[index]) : null,
       ),
     );
   }

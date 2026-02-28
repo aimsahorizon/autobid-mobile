@@ -1,20 +1,100 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'ipaymongo_service.dart';
 
 /// PayMongo payment service for handling payments
 /// Documentation: https://developers.paymongo.com/docs
-class PayMongoService {
-  // Sandbox credentials (test mode)
-  // Get your keys from: https://dashboard.paymongo.com/developers
-  static const String _sandboxPublicKey =
-      'pk_test_YOUR_PUBLIC_KEY_HERE'; // Replace with your test public key
-  static const String _sandboxSecretKey =
-      'sk_test_YOUR_SECRET_KEY_HERE'; // Replace with your test secret key
+/// Get your keys from: https://dashboard.paymongo.com/developers
+class PayMongoService implements IPayMongoService {
+  // API credentials loaded from environment variables
+  // Use getters to ensure we always get current value from dotenv
+  static String get _secretKey => dotenv.env['PAYMONGO_SECRET_KEY'] ?? '';
+  static String get _publicKey => dotenv.env['PAYMONGO_PUBLIC_KEY'] ?? '';
 
   static const String _baseUrl = 'https://api.paymongo.com/v1';
 
+  /// Initialize PayMongo
+  static Future<void> init() async {
+    // Only initialize if keys are available
+    if (_secretKey.isEmpty) {
+      debugPrint(
+        'Warning: PayMongo secret key not found in .env file. Skipping PayMongo initialization.',
+      );
+      return;
+    }
+
+    if (_publicKey.isEmpty) {
+      debugPrint(
+        'Warning: PayMongo public key not found in .env file. Some features may not work.',
+      );
+    }
+
+    debugPrint('PayMongo initialized successfully');
+  }
+
+  /// Get authorization header with base64 encoded secret key
+  Map<String, String> get _authHeaders {
+    _validateKeyEnvironment();
+    final auth = base64Encode(utf8.encode('$_secretKey:'));
+    return {'Authorization': 'Basic $auth', 'Content-Type': 'application/json'};
+  }
+
+  /// Get authorization header with base64 encoded public key
+  Map<String, String> get _publicAuthHeaders {
+    _validateKeyEnvironment();
+    final key = _publicKey.isNotEmpty ? _publicKey : _secretKey;
+    final auth = base64Encode(utf8.encode('$key:'));
+    return {'Authorization': 'Basic $auth', 'Content-Type': 'application/json'};
+  }
+
+  /// Ensure both keys are from the same environment (test or live)
+  void _validateKeyEnvironment() {
+    if (_secretKey.isEmpty) return;
+
+    // Debug prints to verify keys (safe: only prefixes)
+    final secretPrefix = _secretKey.length > 7
+        ? _secretKey.substring(0, 8)
+        : 'too_short';
+    final publicPrefix = _publicKey.length > 7
+        ? _publicKey.substring(0, 8)
+        : (_publicKey.isEmpty ? 'empty' : 'too_short');
+
+    debugPrint(
+      '[PayMongo] Validating Keys - Secret: $secretPrefix..., Public: $publicPrefix...',
+    );
+
+    final bool isSecretTest = _secretKey.startsWith('sk_test_');
+    final bool isPublicTest =
+        _publicKey.isEmpty || _publicKey.startsWith('pk_test_');
+    final bool isPublicLive = _publicKey.startsWith('pk_live_');
+    final bool isSecretLive = _secretKey.startsWith('sk_live_');
+
+    if (isSecretTest && isPublicLive) {
+      debugPrint(
+        '[PayMongo] ERROR: Mixed Environment Detected (Secret: TEST, Public: LIVE)',
+      );
+      throw PayMongoException(
+        'Environment Mismatch: You are using a TEST Secret Key with a LIVE Public Key. '
+        'Please check your .env file and ensure both keys are from the same environment.',
+      );
+    }
+
+    if (isSecretLive && isPublicTest && _publicKey.isNotEmpty) {
+      debugPrint(
+        '[PayMongo] ERROR: Mixed Environment Detected (Secret: LIVE, Public: TEST)',
+      );
+      throw PayMongoException(
+        'Environment Mismatch: You are using a LIVE Secret Key with a TEST Public Key. '
+        'Please check your .env file and ensure both keys are from the same environment.',
+      );
+    }
+  }
+
   /// Create a PaymentIntent for the purchase
   /// This is the first step in the payment flow
+  @override
   Future<Map<String, dynamic>> createPaymentIntent({
     required double amount,
     required String description,
@@ -23,8 +103,10 @@ class PayMongoService {
     // Convert amount to centavos (PayMongo uses smallest currency unit)
     final amountInCentavos = (amount * 100).toInt();
 
-    final url = Uri.parse('$_baseUrl/payment_intents');
-    final auth = base64Encode(utf8.encode('$_sandboxSecretKey:'));
+    // API v1 use /payment_intents or /payment_intent?
+    // Actually PayMongo v1 uses /payment_intents (plural). My previous code had it.
+    // Wait, let's stick to plural if it was working.
+    final intentsUrl = Uri.parse('$_baseUrl/payment_intents');
 
     final body = jsonEncode({
       'data': {
@@ -32,37 +114,32 @@ class PayMongoService {
           'amount': amountInCentavos,
           'currency': 'PHP',
           'description': description,
-          'statement_descriptor': 'AutoBid Tokens',
-          'payment_method_allowed': [
-            'card',
-            'gcash',
-            'paymaya',
-            'grab_pay',
-          ],
+          'statement_descriptor': 'AutoBid',
+          'payment_method_allowed': ['card', 'gcash', 'paymaya', 'grab_pay'],
           'metadata': metadata ?? {},
         },
       },
     });
 
     final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Basic $auth',
-        'Content-Type': 'application/json',
-      },
+      intentsUrl,
+      headers: _authHeaders,
       body: body,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      return responseData['data'] as Map<String, dynamic>;
     } else {
+      final error = jsonDecode(response.body);
       throw PayMongoException(
-        'Failed to create payment intent: ${response.statusCode} - ${response.body}',
+        'Failed to create payment intent: ${error['errors']?[0]?['detail'] ?? response.body}',
       );
     }
   }
 
   /// Create a PaymentMethod from card details
+  @override
   Future<Map<String, dynamic>> createPaymentMethod({
     required String cardNumber,
     required int expMonth,
@@ -73,108 +150,101 @@ class PayMongoService {
     String? billingPhone,
   }) async {
     final url = Uri.parse('$_baseUrl/payment_methods');
-    final auth = base64Encode(utf8.encode('$_sandboxPublicKey:'));
+
+    // Ensure card number contains ONLY digits and is trimmed
+    final cleanCardNumber = cardNumber.replaceAll(RegExp(r'[^0-9]'), '').trim();
 
     final body = jsonEncode({
       'data': {
         'attributes': {
           'type': 'card',
           'details': {
-            'card_number': cardNumber,
+            'card_number': cleanCardNumber,
             'exp_month': expMonth,
             'exp_year': expYear,
-            'cvc': cvc,
+            'cvc': cvc.trim(),
           },
           'billing': {
-            'name': billingName,
-            'email': billingEmail,
-            'phone': billingPhone,
+            'name': billingName.trim(),
+            'email': billingEmail.trim(),
+            if (billingPhone != null) 'phone': billingPhone.trim(),
           },
         },
       },
     });
 
+    // Use Public Key for creating payment methods
     final response = await http.post(
       url,
-      headers: {
-        'Authorization': 'Basic $auth',
-        'Content-Type': 'application/json',
-      },
+      headers: _publicAuthHeaders,
       body: body,
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      return responseData['data'] as Map<String, dynamic>;
     } else {
+      final error = jsonDecode(response.body);
       throw PayMongoException(
-        'Failed to create payment method: ${response.statusCode} - ${response.body}',
+        'Failed to create payment method: ${error['errors']?[0]?['detail'] ?? response.body}',
       );
     }
   }
 
   /// Attach PaymentMethod to PaymentIntent
+  @override
   Future<Map<String, dynamic>> attachPaymentMethod({
     required String paymentIntentId,
     required String paymentMethodId,
     String? clientKey,
+    String? returnUrl,
   }) async {
-    final url =
-        Uri.parse('$_baseUrl/payment_intents/$paymentIntentId/attach');
-
-    // Use public key if client key is provided, otherwise use secret key
-    final key = clientKey != null ? _sandboxPublicKey : _sandboxSecretKey;
-    final auth = base64Encode(utf8.encode('$key:'));
+    final url = Uri.parse('$_baseUrl/payment_intents/$paymentIntentId/attach');
 
     final body = jsonEncode({
       'data': {
         'attributes': {
           'payment_method': paymentMethodId,
           if (clientKey != null) 'client_key': clientKey,
+          'return_url': returnUrl ?? 'https://autobid.app/payment/redirect',
         },
       },
     });
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Basic $auth',
-        'Content-Type': 'application/json',
-      },
-      body: body,
-    );
+    final response = await http.post(url, headers: _authHeaders, body: body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      return responseData['data'] as Map<String, dynamic>;
     } else {
+      final error = jsonDecode(response.body);
       throw PayMongoException(
-        'Failed to attach payment method: ${response.statusCode} - ${response.body}',
+        'Failed to attach payment method: ${error['errors']?[0]?['detail'] ?? response.body}',
       );
     }
   }
 
   /// Retrieve PaymentIntent status
   Future<Map<String, dynamic>> retrievePaymentIntent(
-      String paymentIntentId) async {
+    String paymentIntentId,
+  ) async {
     final url = Uri.parse('$_baseUrl/payment_intents/$paymentIntentId');
-    final auth = base64Encode(utf8.encode('$_sandboxSecretKey:'));
 
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Basic $auth',
-      },
-    );
+    final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      return responseData['data'] as Map<String, dynamic>;
     } else {
+      final error = jsonDecode(response.body);
       throw PayMongoException(
-        'Failed to retrieve payment intent: ${response.statusCode} - ${response.body}',
+        'Failed to retrieve payment intent: ${error['errors']?[0]?['detail'] ?? response.body}',
       );
     }
   }
 
   /// Create a Source for e-wallet payments (GCash, PayMaya, GrabPay)
+  @override
   Future<Map<String, dynamic>> createSource({
     required double amount,
     required String type, // 'gcash', 'paymaya', 'grab_pay'
@@ -184,7 +254,6 @@ class PayMongoService {
   }) async {
     final amountInCentavos = (amount * 100).toInt();
     final url = Uri.parse('$_baseUrl/sources');
-    final auth = base64Encode(utf8.encode('$_sandboxPublicKey:'));
 
     final body = jsonEncode({
       'data': {
@@ -201,14 +270,7 @@ class PayMongoService {
       },
     });
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Basic $auth',
-        'Content-Type': 'application/json',
-      },
-      body: body,
-    );
+    final response = await http.post(url, headers: _authHeaders, body: body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -220,16 +282,11 @@ class PayMongoService {
   }
 
   /// Retrieve Source (for checking e-wallet payment status)
+  @override
   Future<Map<String, dynamic>> retrieveSource(String sourceId) async {
     final url = Uri.parse('$_baseUrl/sources/$sourceId');
-    final auth = base64Encode(utf8.encode('$_sandboxSecretKey:'));
 
-    final response = await http.get(
-      url,
-      headers: {
-        'Authorization': 'Basic $auth',
-      },
-    );
+    final response = await http.get(url, headers: _authHeaders);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -241,33 +298,23 @@ class PayMongoService {
   }
 
   /// Create a Payment from a Source (after successful redirect)
+  @override
   Future<Map<String, dynamic>> createPayment({
     required String sourceId,
     required String description,
   }) async {
     final url = Uri.parse('$_baseUrl/payments');
-    final auth = base64Encode(utf8.encode('$_sandboxSecretKey:'));
 
     final body = jsonEncode({
       'data': {
         'attributes': {
-          'source': {
-            'id': sourceId,
-            'type': 'source',
-          },
+          'source': {'id': sourceId, 'type': 'source'},
           'description': description,
         },
       },
     });
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Basic $auth',
-        'Content-Type': 'application/json',
-      },
-      body: body,
-    );
+    final response = await http.post(url, headers: _authHeaders, body: body);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -290,12 +337,7 @@ class PayMongoException implements Exception {
 }
 
 /// Payment method types
-enum PaymentMethodType {
-  card,
-  gcash,
-  paymaya,
-  grabPay,
-}
+enum PaymentMethodType { card, gcash, paymaya, grabPay }
 
 extension PaymentMethodTypeExtension on PaymentMethodType {
   String get value {
@@ -326,9 +368,4 @@ extension PaymentMethodTypeExtension on PaymentMethodType {
 }
 
 /// Payment status
-enum PaymentStatus {
-  awaiting,
-  processing,
-  succeeded,
-  failed,
-}
+enum PaymentStatus { awaiting, processing, succeeded, failed }

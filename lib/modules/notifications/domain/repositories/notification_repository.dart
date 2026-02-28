@@ -29,4 +29,10 @@ abstract class NotificationRepository {
   Future<Either<Failure, List<NotificationEntity>>> getUnreadNotifications({
     required String userId,
   });
+
+  /// Respond to an auction invitation
+  Future<Either<Failure, void>> respondToInvite({
+    required String inviteId,
+    required String decision,
+  });
 }

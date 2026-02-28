@@ -105,7 +105,7 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_areAcknowledgmentsComplete) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Please complete all acknowledgment checkboxes'),
           backgroundColor: ColorConstants.error,
@@ -150,10 +150,17 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
 
     final success = await widget.controller.submitForm(form);
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Buyer form submitted successfully!'),
           backgroundColor: ColorConstants.success,
+        ),
+      );
+    } else if (mounted) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage ?? 'Failed to submit buyer form'),
+          backgroundColor: ColorConstants.error,
         ),
       );
     }
@@ -287,6 +294,34 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
                   onSelectionChanged: isSubmitted
                       ? null
                       : (v) => setState(() => _pickupOrDelivery = v.first),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return ColorConstants.primary.withValues(alpha: 0.2);
+                      }
+                      return isDark
+                          ? ColorConstants.surfaceDark
+                          : ColorConstants.surfaceLight;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return ColorConstants.primary;
+                      }
+                      return isDark
+                          ? ColorConstants.textPrimaryDark
+                          : ColorConstants.textPrimaryLight;
+                    }),
+                    side: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return BorderSide(color: ColorConstants.primary);
+                      }
+                      return BorderSide(
+                        color: isDark
+                            ? ColorConstants.borderDark
+                            : ColorConstants.borderLight,
+                      );
+                    }),
+                  ),
                 ),
 
                 if (_pickupOrDelivery == 'Delivery') ...[

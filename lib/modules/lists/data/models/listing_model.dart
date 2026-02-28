@@ -15,6 +15,7 @@ class ListingModel {
   final String brand;
   final String model;
   final String? variant;
+  final String? bodyType; // Added
   final int year;
   final String? engineType;
   final double? engineDisplacement;
@@ -54,6 +55,7 @@ class ListingModel {
   final DateTime? registrationExpiry;
   final String province;
   final String cityMunicipality;
+  final String? barangay;
   final Map<String, List<String>> photoUrls;
   final String? coverPhotoUrl;
   final String description;
@@ -76,6 +78,30 @@ class ListingModel {
   /// Transaction ID for cancelled listings that have an associated failed transaction
   final String? transactionId;
 
+  /// Reason for cancellation (if applicable)
+  final String? cancellationReason;
+
+  // Bidding Configuration
+  final String biddingType;
+
+  final double bidIncrement;
+  final double minBidIncrement;
+  final double depositAmount;
+  final bool enableIncrementalBidding;
+
+  // Snipe Guard
+  final bool snipeGuardEnabled;
+  final int snipeGuardThresholdSeconds;
+  final int snipeGuardExtendSeconds;
+
+  // Documents
+  final String? deedOfSaleUrl;
+
+  final String visibility;
+
+  // Installment
+  final bool allowsInstallment;
+
   const ListingModel({
     required this.id,
     required this.sellerId,
@@ -88,6 +114,7 @@ class ListingModel {
     required this.brand,
     required this.model,
     this.variant,
+    this.bodyType,
     required this.year,
     this.engineType,
     this.engineDisplacement,
@@ -127,6 +154,7 @@ class ListingModel {
     this.registrationExpiry,
     required this.province,
     required this.cityMunicipality,
+    this.barangay,
     required this.photoUrls,
     this.coverPhotoUrl,
     required this.description,
@@ -146,6 +174,18 @@ class ListingModel {
     required this.createdAt,
     required this.updatedAt,
     this.transactionId,
+    this.cancellationReason,
+    this.biddingType = 'public',
+    this.bidIncrement = 100,
+    this.minBidIncrement = 100,
+    this.depositAmount = 0,
+    this.enableIncrementalBidding = true,
+    this.snipeGuardEnabled = true,
+    this.snipeGuardThresholdSeconds = 300,
+    this.snipeGuardExtendSeconds = 300,
+    this.deedOfSaleUrl,
+    this.visibility = 'public',
+    this.allowsInstallment = false,
   });
 
   /// Convert database row to model
@@ -207,6 +247,7 @@ class ListingModel {
           : null,
       province: json['province'] as String? ?? '',
       cityMunicipality: json['city_municipality'] as String? ?? '',
+      barangay: json['barangay'] as String?,
       photoUrls: json['photo_urls'] != null
           ? _parsePhotoUrls(json['photo_urls'] as Map<String, dynamic>)
           : {},
@@ -240,6 +281,24 @@ class ListingModel {
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
       transactionId: json['transaction_id'] as String?,
+      cancellationReason: json['cancellation_reason'] as String?,
+      biddingType: json['bidding_type'] as String? ?? 'public',
+      bidIncrement: _toDouble(json['bid_increment']) ?? 100,
+      minBidIncrement: _toDouble(json['min_bid_increment']) ?? 100,
+      depositAmount: _toDouble(json['deposit_amount']) ?? 0,
+      enableIncrementalBidding:
+          json['enable_incremental_bidding'] as bool? ?? true,
+      snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
+      snipeGuardThresholdSeconds:
+          json['snipe_guard_threshold_seconds'] as int? ?? 300,
+      snipeGuardExtendSeconds:
+          json['snipe_guard_extend_seconds'] as int? ?? 300,
+      deedOfSaleUrl: json['deed_of_sale_url'] as String?,
+      visibility:
+          json['visibility'] as String? ??
+          json['bidding_type'] as String? ??
+          'public',
+      allowsInstallment: json['allows_installment'] as bool? ?? false,
     );
   }
 
@@ -251,6 +310,7 @@ class ListingModel {
       year: year,
       make: brand,
       model: model,
+      variant: variant,
       status: _parseListingStatus(status),
       startingPrice: startingPrice,
       startTime: auctionStartTime,
@@ -265,6 +325,9 @@ class ListingModel {
       soldPrice: soldPrice,
       sellerId: sellerId,
       transactionId: transactionId,
+      cancellationReason: cancellationReason,
+      visibility: visibility != 'public' ? visibility : biddingType,
+      allowsInstallment: allowsInstallment,
     );
   }
 
@@ -325,11 +388,23 @@ class ListingModel {
       registrationExpiry: registrationExpiry,
       province: province,
       cityMunicipality: cityMunicipality,
+      barangay: barangay,
       photoUrls: photoUrls,
       description: description,
       knownIssues: knownIssues,
       features: features,
       auctionEndDate: auctionEndTime,
+      biddingType: biddingType,
+      bidIncrement: bidIncrement,
+      minBidIncrement: minBidIncrement,
+      depositAmount: depositAmount,
+      enableIncrementalBidding: enableIncrementalBidding,
+      snipeGuardEnabled: snipeGuardEnabled,
+      snipeGuardThresholdSeconds: snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds: snipeGuardExtendSeconds,
+      deedOfSaleUrl: deedOfSaleUrl,
+      visibility: visibility,
+      allowsInstallment: allowsInstallment,
     );
   }
 
@@ -358,6 +433,7 @@ class ListingModel {
       case 'scheduled':
         return ListingStatus.scheduled;
       case 'ended':
+      case 'unsold':
         return ListingStatus.ended;
       case 'cancelled':
         return ListingStatus.cancelled;
