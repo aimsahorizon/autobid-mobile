@@ -140,7 +140,7 @@ class TransactionRealtimeDataSource {
           .from('auction_transactions')
           .select('''
             *,
-            auctions(title, auction_vehicles(brand, model))
+            auctions(title, allows_installment, auction_vehicles(brand, model))
           ''')
           .eq('id', transactionId)
           .maybeSingle();
@@ -154,7 +154,7 @@ class TransactionRealtimeDataSource {
             .from('auction_transactions')
             .select('''
               *,
-              auctions(title, auction_vehicles(brand, model))
+              auctions(title, allows_installment, auction_vehicles(brand, model))
             ''')
             .eq('auction_id', transactionId)
             .order('created_at', ascending: false)
@@ -284,7 +284,18 @@ class TransactionRealtimeDataSource {
       buyerRejectionReason: data['buyer_rejection_reason'] as String?,
       sellerRejectionReason: data['seller_rejection_reason'] as String?,
       cancelledBy: _inferCancelledBy(data),
+      paymentMethod: data['payment_method'] as String? ?? 'full_payment',
+      allowsInstallment: _extractAllowsInstallment(data),
     );
+  }
+
+  /// Extract allows_installment from nested auctions join or direct column
+  bool _extractAllowsInstallment(Map<String, dynamic> data) {
+    if (data['auctions'] is Map) {
+      final auctions = data['auctions'] as Map<String, dynamic>;
+      return auctions['allows_installment'] as bool? ?? false;
+    }
+    return data['allows_installment'] as bool? ?? false;
   }
 
   /// Infer who cancelled based on available rejection reasons
@@ -2489,5 +2500,16 @@ class TransactionRealtimeDataSource {
     _chatStreamController.close();
     _transactionUpdateController.close();
     _userTransactionsUpdateController.close();
+  }
+
+  /// Update payment_method on the transaction
+  Future<void> updatePaymentMethod(String transactionId, String method) async {
+    await _supabase
+        .from('auction_transactions')
+        .update({
+          'payment_method': method,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', transactionId);
   }
 }
