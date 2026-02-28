@@ -35,6 +35,12 @@ class TransactionEntity {
   final String? sellerRejectionReason;
   final String? cancelledBy; // 'buyer' or 'seller'
 
+  // Payment method agreed in the transaction
+  final String paymentMethod; // 'full_payment' or 'installment'
+
+  // Whether the listing allows installment payments
+  final bool allowsInstallment;
+
   const TransactionEntity({
     required this.id,
     required this.listingId,
@@ -61,7 +67,15 @@ class TransactionEntity {
     this.buyerRejectionReason,
     this.sellerRejectionReason,
     this.cancelledBy,
+    this.paymentMethod = 'full_payment',
+    this.allowsInstallment = false,
   });
+
+  /// Check if this transaction uses installment payments
+  bool get isInstallment => paymentMethod == 'installment';
+
+  /// Whether the installment tab should be visible
+  bool get showInstallmentTab => isInstallment;
 
   /// Check if both parties have submitted forms
   bool get bothFormsSubmitted => sellerFormSubmitted && buyerFormSubmitted;
@@ -130,6 +144,8 @@ class TransactionEntity {
     String? buyerRejectionReason,
     String? sellerRejectionReason,
     String? cancelledBy,
+    String? paymentMethod,
+    bool? allowsInstallment,
   }) {
     return TransactionEntity(
       id: id ?? this.id,
@@ -159,6 +175,8 @@ class TransactionEntity {
       sellerRejectionReason:
           sellerRejectionReason ?? this.sellerRejectionReason,
       cancelledBy: cancelledBy ?? this.cancelledBy,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      allowsInstallment: allowsInstallment ?? this.allowsInstallment,
     );
   }
 }

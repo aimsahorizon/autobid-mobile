@@ -974,6 +974,21 @@ class TransactionRealtimeController extends ChangeNotifier {
     }
   }
 
+  /// Toggle installment payment method on/off
+  Future<void> toggleInstallment(bool enabled) async {
+    if (_transaction == null) return;
+    final method = enabled ? 'installment' : 'full_payment';
+    try {
+      await _dataSource.updatePaymentMethod(_transaction!.id, method);
+      _transaction = _transaction!.copyWith(paymentMethod: method);
+      notifyListeners();
+    } catch (e) {
+      debugPrint(
+        '[TransactionRealtimeController] Error toggling installment: $e',
+      );
+    }
+  }
+
   @override
   void dispose() {
     _graceTimer?.cancel();

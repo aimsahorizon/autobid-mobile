@@ -1421,9 +1421,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
   void initState() {
     super.initState();
     _totalCtrl = TextEditingController(
-      text: widget.agreedPrice > 0
-          ? widget.agreedPrice.toStringAsFixed(0)
-          : '',
+      text: widget.agreedPrice > 0 ? widget.agreedPrice.toStringAsFixed(0) : '',
     );
     _downCtrl = TextEditingController(text: '0');
     // Check if plan already exists
@@ -1439,17 +1437,17 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       widget.installmentController
           .loadInstallmentPlan(widget.transactionId)
           .then((_) {
-        if (mounted && widget.installmentController.hasPlan) {
-          final plan = widget.installmentController.plan!;
-          setState(() {
-            _planSaved = true;
-            _totalCtrl.text = plan.totalAmount.toStringAsFixed(0);
-            _downCtrl.text = plan.downPayment.toStringAsFixed(0);
-            _installments = plan.numInstallments;
-            _frequency = plan.frequency;
+            if (mounted && widget.installmentController.hasPlan) {
+              final plan = widget.installmentController.plan!;
+              setState(() {
+                _planSaved = true;
+                _totalCtrl.text = plan.totalAmount.toStringAsFixed(0);
+                _downCtrl.text = plan.downPayment.toStringAsFixed(0);
+                _installments = plan.numInstallments;
+                _frequency = plan.frequency;
+              });
+            }
           });
-        }
-      });
     }
   }
 
@@ -1487,15 +1485,15 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
         color: widget.isInstallment
             ? Colors.green.withValues(alpha: 0.06)
             : isDark
-                ? ColorConstants.surfaceDark
-                : Colors.grey.shade50,
+            ? ColorConstants.surfaceDark
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: widget.isInstallment
               ? Colors.green.withValues(alpha: 0.3)
               : isDark
-                  ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
-                  : Colors.grey.shade300,
+              ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
+              : Colors.grey.shade300,
         ),
       ),
       child: Column(
@@ -1560,9 +1558,18 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       child: Column(
         children: [
           _summaryRow('Total', '₱${total.toStringAsFixed(0)}', isDark),
-          if (down > 0) _summaryRow('Down Payment', '₱${down.toStringAsFixed(0)}', isDark),
-          _summaryRow('Installments', '$n × ₱${perPayment.toStringAsFixed(0)}', isDark),
-          _summaryRow('Frequency', freq[0].toUpperCase() + freq.substring(1), isDark),
+          if (down > 0)
+            _summaryRow('Down Payment', '₱${down.toStringAsFixed(0)}', isDark),
+          _summaryRow(
+            'Installments',
+            '$n × ₱${perPayment.toStringAsFixed(0)}',
+            isDark,
+          ),
+          _summaryRow(
+            'Frequency',
+            freq[0].toUpperCase() + freq.substring(1),
+            isDark,
+          ),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -1585,8 +1592,19 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight)),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
@@ -1640,7 +1658,9 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                       isDense: true,
                     ),
                     items: [2, 3, 4, 6, 9, 12, 18, 24]
-                        .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
+                        .map(
+                          (n) => DropdownMenuItem(value: n, child: Text('$n')),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _installments = v ?? 3),
                   ),
@@ -1657,10 +1677,17 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                     ),
                     items: const [
                       DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                      DropdownMenuItem(value: 'bi-weekly', child: Text('Bi-Weekly')),
-                      DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                      DropdownMenuItem(
+                        value: 'bi-weekly',
+                        child: Text('Bi-Weekly'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'monthly',
+                        child: Text('Monthly'),
+                      ),
                     ],
-                    onChanged: (v) => setState(() => _frequency = v ?? 'monthly'),
+                    onChanged: (v) =>
+                        setState(() => _frequency = v ?? 'monthly'),
                   ),
                 ),
               ],
@@ -1671,7 +1698,14 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
             FilledButton.icon(
               onPressed: processing ? null : _savePlan,
               icon: processing
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Icon(Icons.check, size: 18),
               label: const Text('Save Installment Plan'),
               style: FilledButton.styleFrom(
