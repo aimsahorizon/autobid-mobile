@@ -132,6 +132,7 @@ class AuctionDetailController extends ChangeNotifier {
   // Bid queue state
   BidQueueCycleEntity _queueStatus = BidQueueCycleEntity.idle();
   bool _hasRaisedHand = false;
+  Timer? _queuePollTimer;
 
   // Public getters
   AuctionDetailEntity? get auction => _auction;
@@ -164,11 +165,16 @@ class AuctionDetailController extends ChangeNotifier {
   /// Whether the user can currently raise their hand
   bool get canRaiseHand => !_isProcessing && !_hasRaisedHand;
 
-  /// The user's position in the current queue (null if not in queue)
+  /// The user's position in the current queue (null if not in queue).
+  /// Only counts entries with active statuses (pending or active_turn).
   int? get queuePosition {
     if (_userId == null) return null;
     final entry = _queueStatus.queue
-        .where((e) => e.bidderId == _userId)
+        .where(
+          (e) =>
+              e.bidderId == _userId &&
+              (e.status == 'pending' || e.status == 'active_turn'),
+        )
         .toList();
     return entry.isNotEmpty ? entry.first.position : null;
   }
@@ -631,8 +637,10 @@ class AuctionDetailController extends ChangeNotifier {
           debugPrint(
             '[AuctionDetailController] Hand raised! Position: ${data['position']}',
           );
-          // Reload queue status
+          // Reload queue status immediately
           _loadQueueStatus(_auction!.id);
+          // Start polling to catch cycle processing (grace period + turn assignment)
+          _startQueuePolling();
           return true;
         },
       );
@@ -724,6 +732,7 @@ class AuctionDetailController extends ChangeNotifier {
         (data) {
           _hasRaisedHand = false;
           debugPrint('[AuctionDetailController] Hand lowered.');
+          _stopQueuePolling();
           _loadQueueStatus(_auction!.id);
           return true;
         },
@@ -735,6 +744,28 @@ class AuctionDetailController extends ChangeNotifier {
       _isProcessing = false;
       notifyListeners();
     }
+  }
+
+  /// Start periodic polling of queue status.
+  /// Acts as a fallback in case realtime events are delayed or missed.
+  /// Stops automatically when the user gets their turn or the cycle completes.
+  void _startQueuePolling() {
+    _stopQueuePolling();
+    if (_auction == null) return;
+    final auctionId = _auction!.id;
+    _queuePollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      await _loadQueueStatus(auctionId);
+      // Stop polling once the user has their turn or is no longer in queue
+      if (isMyTurn || !_hasRaisedHand) {
+        _stopQueuePolling();
+      }
+    });
+  }
+
+  /// Stop queue polling.
+  void _stopQueuePolling() {
+    _queuePollTimer?.cancel();
+    _queuePollTimer = null;
   }
 
   /// Load queue status from server
@@ -932,11 +963,17 @@ class AuctionDetailController extends ChangeNotifier {
           'DEBUG: Queue update received — state: ${status.state}, cycle: ${status.cycleNumber}',
         );
         _queueStatus = status;
-        // Derive raised-hand state from server data
+        // Derive raised-hand state from server data.
+        // MUST filter by active statuses — withdrawn/executed/expired/skipped
+        // entries are still returned in the queue array from get_queue_status.
         if (status.state == 'complete' || status.state == 'idle') {
           _hasRaisedHand = false;
         } else if (_userId != null) {
-          _hasRaisedHand = status.queue.any((e) => e.bidderId == _userId);
+          _hasRaisedHand = status.queue.any(
+            (e) =>
+                e.bidderId == _userId &&
+                (e.status == 'pending' || e.status == 'active_turn'),
+          );
         }
         notifyListeners();
       },
@@ -955,6 +992,7 @@ class AuctionDetailController extends ChangeNotifier {
     _bidSubscription?.cancel();
     _qaSubscription?.cancel();
     _queueSubscription?.cancel();
+    _stopQueuePolling();
     _subscribedAuctionId = null;
     super.dispose();
   }

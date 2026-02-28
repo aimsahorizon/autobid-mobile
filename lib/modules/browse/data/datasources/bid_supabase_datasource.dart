@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/bid_queue_entity.dart';
@@ -415,15 +417,52 @@ class BidSupabaseDataSource {
     }
   }
 
-  /// Stream real-time queue cycle updates for an auction.
-  /// Listens to changes on the `bid_queue_cycles` table via Supabase Realtime,
-  /// and re-fetches full status (including queue entries) on each change.
+  /// Stream real-time queue updates for an auction.
+  /// Listens to changes on BOTH `bid_queue_cycles` (cycle state transitions)
+  /// AND `bid_queue` (new entries, status changes like active_turn/expired)
+  /// and re-fetches full status on each change.
   Stream<BidQueueCycleEntity> streamQueueUpdates(String auctionId) {
-    // Listen to cycle state changes and re-fetch full status
-    return _supabase
+    final controller = StreamController<BidQueueCycleEntity>.broadcast();
+    StreamSubscription? sub1;
+    StreamSubscription? sub2;
+    Timer? debounce;
+
+    void onChange(dynamic _) {
+      // Debounce rapid-fire events (e.g., auto-bidder execution changes
+      // both bid_queue and bid_queue_cycles in quick succession)
+      debounce?.cancel();
+      debounce = Timer(const Duration(milliseconds: 300), () async {
+        if (controller.isClosed) return;
+        try {
+          final status = await getQueueStatus(auctionId);
+          if (!controller.isClosed) controller.add(status);
+        } catch (e) {
+          debugPrint('streamQueueUpdates fetch error: $e');
+        }
+      });
+    }
+
+    // Listen to cycle state changes (open → processing → complete)
+    sub1 = _supabase
         .from('bid_queue_cycles')
         .stream(primaryKey: ['id'])
         .eq('auction_id', auctionId)
-        .asyncMap((_) => getQueueStatus(auctionId));
+        .listen(onChange);
+
+    // Listen to queue entry changes (new raises, turn assignments, withdrawals)
+    sub2 = _supabase
+        .from('bid_queue')
+        .stream(primaryKey: ['id'])
+        .eq('auction_id', auctionId)
+        .listen(onChange);
+
+    controller.onCancel = () {
+      debounce?.cancel();
+      sub1?.cancel();
+      sub2?.cancel();
+      controller.close();
+    };
+
+    return controller.stream;
   }
 }

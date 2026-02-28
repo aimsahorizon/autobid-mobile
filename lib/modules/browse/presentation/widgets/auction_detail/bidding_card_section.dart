@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
@@ -64,6 +66,10 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   bool _showAutoBidSection = false;
   double _selectedIncrement = 0; // Set in initState based on listing config
 
+  // Local countdown timer for the 60s turn window
+  Timer? _turnCountdownTimer;
+  int _turnSecondsRemaining = 0;
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +82,10 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
     _showAutoBidSection = widget.isAutoBidActive;
     if (widget.maxAutoBid != null) {
       _maxAutoBidController.text = widget.maxAutoBid!.toStringAsFixed(0);
+    }
+    // Start turn countdown if it's already my turn
+    if (widget.isMyTurn && widget.turnRemainingMs > 0) {
+      _startTurnCountdown(widget.turnRemainingMs);
     }
   }
 
@@ -100,10 +110,42 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
       }
       _selectedIncrement = widget.bidIncrement;
     }
+    // Start/stop turn countdown when isMyTurn changes
+    if (widget.isMyTurn && !oldWidget.isMyTurn && widget.turnRemainingMs > 0) {
+      _startTurnCountdown(widget.turnRemainingMs);
+    } else if (!widget.isMyTurn && oldWidget.isMyTurn) {
+      _stopTurnCountdown();
+    } else if (widget.isMyTurn &&
+        widget.turnRemainingMs > 0 &&
+        _turnSecondsRemaining <= 0) {
+      // Re-sync if server sends a new value while timer was at 0
+      _startTurnCountdown(widget.turnRemainingMs);
+    }
+  }
+
+  void _startTurnCountdown(int remainingMs) {
+    _stopTurnCountdown();
+    _turnSecondsRemaining = (remainingMs / 1000).ceil().clamp(0, 60);
+    _turnCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_turnSecondsRemaining <= 0) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _turnSecondsRemaining = (_turnSecondsRemaining - 1).clamp(0, 60);
+      });
+    });
+  }
+
+  void _stopTurnCountdown() {
+    _turnCountdownTimer?.cancel();
+    _turnCountdownTimer = null;
+    _turnSecondsRemaining = 0;
   }
 
   @override
   void dispose() {
+    _stopTurnCountdown();
     _maxAutoBidController.dispose();
     _customIncrementController.dispose();
     _customBidController.dispose();
@@ -349,16 +391,6 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   }
 
   void _toggleAutoBid() {
-    if (!widget.enableIncrementalBidding) {
-      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-        const SnackBar(
-          content: Text('Auto-bid is disabled for this auction by the seller'),
-          backgroundColor: ColorConstants.error,
-        ),
-      );
-      return;
-    }
-
     if (widget.isAutoBidActive || _showAutoBidSection) {
       // Deactivate auto-bid
       setState(() {
@@ -613,9 +645,12 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                 _buildQueueStatusBanner(theme, isDark),
                 const SizedBox(height: 16),
               ],
-              // Bid amount selection
-              _buildBidAmountSelector(theme, isDark),
-              const SizedBox(height: 20),
+              // Bid amount selection — only show when NOT in queue
+              // (the turn UI in _buildRaiseHandButton has its own bid selector)
+              if (!widget.isMyTurn && !widget.hasRaisedHand) ...[
+                _buildBidAmountSelector(theme, isDark),
+                const SizedBox(height: 20),
+              ],
               // Auto-bid section
               if (_showAutoBidSection || widget.isAutoBidActive) ...[
                 Container(
@@ -1117,7 +1152,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
     // IT'S YOUR TURN — show bid amount selector + timer + Place Bid
     // =========================================================
     if (widget.isMyTurn) {
-      final turnSeconds = (widget.turnRemainingMs / 1000).ceil().clamp(0, 60);
+      final turnSeconds = _turnSecondsRemaining;
       return Column(
         children: [
           // Timer banner
