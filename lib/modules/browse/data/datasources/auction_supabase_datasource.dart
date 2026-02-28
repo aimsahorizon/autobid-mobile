@@ -49,13 +49,9 @@ class AuctionSupabaseDataSource {
     String viewName,
     AuctionFilter? filter,
   ) async {
-    // Use authorized_auctions when available to respect private auction visibility
-    final source = viewName == 'auction_browse_listings'
-        ? 'authorized_auctions'
-        : viewName;
-
+    // Query the view directly — auction_browse_listings already handles visibility
     var queryBuilder = _supabase
-        .from(source)
+        .from(viewName)
         .select(
           'id, title, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, created_at',
         )
@@ -119,7 +115,7 @@ class AuctionSupabaseDataSource {
     // Order by ending soonest first
     final response = await queryBuilder.order('end_time', ascending: true);
     debugPrint(
-      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $source',
+      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $viewName',
     );
 
     // Convert to AuctionModel list
