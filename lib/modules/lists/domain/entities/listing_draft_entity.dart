@@ -91,6 +91,9 @@ class ListingDraftEntity {
   snipeGuardThresholdSeconds; // Seconds before end to trigger extension
   final int? snipeGuardExtendSeconds; // Seconds to extend by
 
+  // Installment Option
+  final bool? allowsInstallment;
+
   // Validation State
   final bool? isPlateValid;
 
@@ -161,6 +164,7 @@ class ListingDraftEntity {
     this.snipeGuardEnabled,
     this.snipeGuardThresholdSeconds,
     this.snipeGuardExtendSeconds,
+    this.allowsInstallment,
     this.isPlateValid,
   });
 
@@ -232,6 +236,7 @@ class ListingDraftEntity {
     bool? snipeGuardEnabled,
     int? snipeGuardThresholdSeconds,
     int? snipeGuardExtendSeconds,
+    bool? allowsInstallment,
     bool? isPlateValid,
   }) {
     return ListingDraftEntity(
@@ -304,6 +309,7 @@ class ListingDraftEntity {
           snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
       snipeGuardExtendSeconds:
           snipeGuardExtendSeconds ?? this.snipeGuardExtendSeconds,
+      allowsInstallment: allowsInstallment ?? this.allowsInstallment,
       isPlateValid: isPlateValid ?? this.isPlateValid,
     );
   }
@@ -371,6 +377,7 @@ class ListingDraftEntity {
       depositAmount: depositAmount ?? 0,
       enableIncrementalBidding: enableIncrementalBidding ?? true,
       deedOfSaleUrl: deedOfSaleUrl,
+      allowsInstallment: allowsInstallment ?? false,
     );
   }
 

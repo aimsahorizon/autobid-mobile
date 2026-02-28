@@ -70,6 +70,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.snipeGuardEnabled,
     super.snipeGuardThresholdSeconds,
     super.snipeGuardExtendSeconds,
+    super.allowsInstallment,
     super.isPlateValid,
   });
 
@@ -162,6 +163,7 @@ class ListingDraftModel extends ListingDraftEntity {
       snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
       snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int?,
       snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int?,
+      allowsInstallment: json['allows_installment'] as bool? ?? false,
       isPlateValid: json['is_plate_valid'] as bool? ?? false,
     );
   }
@@ -243,6 +245,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'snipe_guard_enabled': snipeGuardEnabled,
       'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
       'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
+      'allows_installment': allowsInstallment ?? false,
       // TODO: Uncomment after migration 00073 is applied to production DB
       // 'is_plate_valid': isPlateValid,
     };

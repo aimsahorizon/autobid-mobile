@@ -53,5 +53,5 @@ z_docs_files/
 
 node_modules/
 
-ai_lab/venv_train
 ai_lab/dataset
+ai_lab/venv_train

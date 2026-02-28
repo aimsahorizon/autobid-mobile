@@ -28,6 +28,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   DateTime? _auctionEndDate;
   String _biddingType = 'public'; // 'public' or 'private'
   bool _enableIncrementalBidding = true;
+  bool _allowsInstallment = false;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _auctionEndDate = draft?.auctionEndDate;
     _biddingType = draft?.biddingType ?? 'public';
     _enableIncrementalBidding = draft?.enableIncrementalBidding ?? true;
+    _allowsInstallment = draft?.allowsInstallment ?? false;
 
     _descriptionController.addListener(_updateDraft);
     _issuesController.addListener(_updateDraft);
@@ -126,6 +128,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
         enableIncrementalBidding: _enableIncrementalBidding,
+        allowsInstallment: _allowsInstallment,
       ),
     );
   }
@@ -624,6 +627,36 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         _buildDepositSuggestions(startingPrice),
         const SizedBox(height: 24),
 
+        // Allow Installment Payments
+        const Text(
+          'Installment Payments',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: SwitchListTile(
+            title: const Text('Allow Installment Payments'),
+            subtitle: Text(
+              _allowsInstallment
+                  ? 'Buyers can propose installment plans during the transaction'
+                  : 'Only one-time full payment accepted',
+              style: const TextStyle(fontSize: 12),
+            ),
+            secondary: Icon(
+              _allowsInstallment ? Icons.calendar_month : Icons.payment,
+              color: _allowsInstallment ? Colors.green : Colors.grey,
+            ),
+            value: _allowsInstallment,
+            onChanged: (value) {
+              setState(() {
+                _allowsInstallment = value;
+              });
+              _updateDraft();
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+
         // Summary Box
         Container(
           padding: const EdgeInsets.all(16),
@@ -731,6 +764,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         _summaryRow(
           'Buyer Deposit',
           '₱${_depositAmountController.text.isNotEmpty ? _depositAmountController.text : '0'}',
+        ),
+        const Divider(),
+        _summaryRow(
+          'Installment',
+          _allowsInstallment ? '✅ Allowed' : '❌ Not Allowed',
         ),
       ],
     );

@@ -1,0 +1,311 @@
+================================================================================
+AUTOBID MOBILE: THE COMPLETE MASTERY GUIDE
+================================================================================
+
+This document is designed to give you a complete, crystal-clear understanding of the entire Autobid Mobile project. It assumes you are a beginner coder and breaks down every complex part into simple, logical steps.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. PROJECT OVERVIEW
+   - What is this app?
+   - The Tech Stack (What tools are we using?)
+   - The Architecture (How is the code organized?)
+
+2. CORE CONCEPTS (Must Read First)
+   - Modular Architecture Explained
+   - Dependency Injection (DI)
+   - State Management
+   - Navigation
+   - The "Data Flow" (The golden rule of how data moves)
+
+3. FEATURE DEEP DIVES
+   (Detailed breakdown of every feature: UI -> Logic -> Database)
+   - A. Authentication (Login, Register, KYC)
+   - B. Browsing Auctions (Home, Search, Filter)
+   - C. Bidding System (Placing Bids, Auto-Bids)
+   - D. Selling & Listing Management (Creating Listings)
+   - E. Transactions (Post-Auction Flow, Payments)
+   - F. Profile & Settings
+
+4. THE BACKEND (Supabase)
+   - Key Database Tables
+   - Magic Functions (RPCs)
+   - Realtime Updates
+
+5. AI INTEGRATION (The "Smart" Part)
+   - Python Scripts
+   - TFLite in Flutter
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+WHAT IS THIS APP?
+-----------------
+Autobid is a vehicle auction platform. Think of it like eBay but specifically for cars in the Philippines.
+- Sellers list cars with details, photos, and a starting price.
+- Buyers browse listings, place bids, and compete in real-time.
+- The highest bidder wins, and the app facilitates the payment and handover process.
+- There is also an Admin Portal (web-based) for staff to approve listings and verify users.
+
+THE TECH STACK
+--------------
+- Mobile App: Flutter (Dart) - Runs on Android and iOS.
+- Backend: Supabase - A "Backend-as-a-Service" that provides:
+  - Database (PostgreSQL) - Stores all data.
+  - Auth - Handles user logins.
+  - Storage - Stores car photos and user avatars.
+  - Realtime - Pushes bid updates instantly to the app.
+- Admin Web: Next.js (React) - Separate project in `autobid_admin/`.
+- AI: Python (TensorFlow) - Trains a model to recognize cars from photos.
+
+THE ARCHITECTURE
+----------------
+The project follows a "Modular Clean Architecture". This sounds fancy, but it just means we split the code into small, independent chunks called "Modules".
+
+Structure:
+lib/
+  app/          -> Global setup (Theme, Routes, Injection)
+  core/         -> Shared code used by everyone (Widgets, Services, Configs)
+  modules/      -> The features! Each folder here is a mini-app.
+    auth/       -> Login/Register
+    browse/     -> Home feed & Search
+    bids/       -> Bidding logic
+    lists/      -> Selling & Managing listings
+    profile/    -> User profile
+    transactions/ -> Payments & Orders
+
+================================================================================
+2. CORE CONCEPTS (THE RULES OF THE ROAD)
+================================================================================
+
+RULE #1: THE 3 LAYERS
+---------------------
+Every module (e.g., `auth`, `browse`) is split into 3 layers. You must respect this order:
+
+1. PRESENTATION (The UI)
+   - Files: Pages (.dart), Widgets, Controllers.
+   - Job: Show data to the user and handle button clicks.
+   - Rule: NEVER talk to the database directly. Only talk to the "Domain".
+
+2. DOMAIN (The Logic)
+   - Files: Entities (Data structures), UseCases (Actions like "LoginUser"), Repositories (Interfaces).
+   - Job: Pure business logic. It doesn't care if data comes from Supabase or a mock file.
+   - Rule: Defines *what* we can do, but not *how* we do it.
+
+3. DATA (The Implementation)
+   - Files: Models (JSON parsers), Datasources (Supabase calls), RepositoryImpl (Connecting pieces).
+   - Job: Actually fetch data from the internet/database.
+   - Rule: The only place that imports `supabase_flutter`.
+
+THE DATA FLOW (Memorize This!)
+------------------------------
+When a user clicks "Login":
+1. UI (LoginPage) calls -> Controller (LoginController)
+2. Controller calls -> UseCase (LoginUserUseCase)
+3. UseCase calls -> Repository (AuthRepository)
+4. Repository calls -> Datasource (AuthRemoteDataSource)
+5. Datasource talks to -> Supabase (The Cloud)
+6. Data returns back up the chain to the UI.
+
+DEPENDENCY INJECTION (DI)
+-------------------------
+We use a tool called `GetIt` to find our classes. Instead of saying `new AuthRepository()`, we say `GetIt.I<AuthRepository>()`.
+- All setup happens in `lib/app/di/app_module.dart` (or module-specific files like `auth_module.dart`).
+- This makes it easy to swap real database calls for fake ones during testing.
+
+================================================================================
+3. FEATURE DEEP DIVES
+================================================================================
+
+--------------------------------------------------------------------------------
+A. AUTHENTICATION MODULE (lib/modules/auth)
+--------------------------------------------------------------------------------
+GOAL: Let users sign up, log in, and verify their identity (KYC).
+
+KEY FILES:
+- UI: `presentation/pages/login_page.dart`, `registration_page.dart`
+- Logic: `data/datasources/auth_remote_datasource.dart`
+
+THE PROCESS (LOGIN):
+1. User enters Username/Password.
+2. `AuthRemoteDataSource.signInWithUsername` is called.
+3. It first queries the `users` table to find the email associated with that username (since Supabase Auth uses emails primarily).
+4. If found, it calls `supabase.auth.signInWithPassword(email, password)`.
+5. If successful, it returns a `UserModel` and stores the session securely.
+
+THE PROCESS (REGISTER & KYC):
+1. User enters details (Email, Phone, ID Photos).
+2. App uploads photos to Supabase Storage (`buckets/kyc_documents`).
+3. App calls a special Database Function (RPC) named `register_user_with_kyc_v2`.
+   - This function is crucial! It wraps multiple steps (Creating Auth User + Creating Database Record) into one transaction so data never gets out of sync.
+
+--------------------------------------------------------------------------------
+B. BROWSING MODULE (lib/modules/browse)
+--------------------------------------------------------------------------------
+GOAL: Show a feed of cars, filter them by price/brand, and view details.
+
+KEY FILES:
+- UI: `presentation/pages/browse_page.dart`, `auction_detail_page.dart`
+- Logic: `data/datasources/auction_supabase_datasource.dart`
+
+THE PROCESS (FETCHING FEED):
+1. The app calls `getActiveAuctions()`.
+2. This function tries to read from a Database View called `auction_browse_listings`.
+   - A "View" is a virtual table that pre-joins Auctions + Vehicles + Photos so we don't have to make 3 separate requests.
+3. If the View fails (rare), it falls back to a simpler query on the `auctions` table.
+4. It applies filters (Make, Model, Price) directly in the SQL query using `.eq()`, `.gte()`, `.ilike()`.
+
+THE PROCESS (VIEWING DETAILS):
+1. User taps a car.
+2. `getAuctionDetail(id)` is called.
+3. It fetches:
+   - Auction info (Price, End Time)
+   - Vehicle specs (Engine, Mileage - joined from `auction_vehicles`)
+   - Photos (joined from `auction_photos`)
+4. It also checks if the current user has placed a deposit via `DepositSupabaseDataSource`.
+
+--------------------------------------------------------------------------------
+C. BIDDING MODULE (lib/modules/bids)
+--------------------------------------------------------------------------------
+GOAL: Place bids in real-time.
+
+KEY FILES:
+- Logic: `data/datasources/bids_remote_datasource.dart` (Conceptually - logic might be shared in Browse or separate)
+- Realtime: `streamAuctionUpdates` in `AuctionSupabaseDataSource`.
+
+THE PROCESS (PLACING A BID):
+1. User taps "Place Bid".
+2. App validates:
+   - Is amount > current price + increment?
+   - Is user verified?
+   - Has user paid deposit?
+3. App calls RPC `place_bid(auction_id, amount)`.
+4. This Database Function:
+   - Locks the row (prevents race conditions if 2 people bid at once).
+   - Updates `current_price` and `high_bidder_id`.
+   - Inserts a record into `bids` table.
+   - Extends time if < 5 mins remain ("Snipe Guard").
+
+THE PROCESS (REALTIME UPDATES):
+1. The Auction Detail page listens to `streamAuctionUpdates`.
+2. Supabase pushes a notification whenever the `auctions` row changes.
+3. The UI updates the price instantly without refreshing.
+
+--------------------------------------------------------------------------------
+D. LISTS MODULE (lib/modules/lists)
+--------------------------------------------------------------------------------
+GOAL: Allow users to sell cars (Create Listing) and manage them.
+
+KEY FILES:
+- UI: `presentation/pages/create_listing_page.dart`
+- Logic: Likely `data/datasources/listing_supabase_datasource.dart` (implied).
+
+THE PROCESS (SELLING A CAR):
+1. User fills 5 steps:
+   - Vehicle Details (VIN, Make, Model).
+   - Specs (Engine, Transmission).
+   - Condition (Scratches, Mileage).
+   - Pricing (Start Price, Reserve Price).
+   - Photos (Upload to `auction_images` bucket).
+2. On Submit:
+   - App uploads all images first.
+   - App calls RPC `create_draft_listing` or `submit_listing`.
+   - Data goes into `listing_drafts` or `auctions` table with status `pending_approval`.
+3. An Admin must approve it via the Web Portal before it goes live.
+
+--------------------------------------------------------------------------------
+E. TRANSACTIONS MODULE (lib/modules/transactions)
+--------------------------------------------------------------------------------
+GOAL: Handle what happens AFTER a car is sold.
+
+KEY FILES:
+- UI: `presentation/pages/transactions_page.dart`
+- Logic: `data/datasources/transaction_supabase_datasource.dart`
+
+THE PROCESS:
+1. When an auction ends with a winner, a row is created in `auction_transactions`.
+2. Both Buyer and Seller see this in their "Transactions" tab.
+3. Logic:
+   - Fetches transactions via `getTransactionsByStatus`.
+   - Uses a complex join: `auction_transactions` -> `auctions` -> `auction_vehicles`.
+   - IMPORTANT: The UI navigation uses the `transaction_id`, not the `auction_id`.
+4. States:
+   - `in_transaction`: Waiting for payment/handover.
+   - `sold`: Completed.
+   - `deal_failed`: Someone cancelled.
+
+--------------------------------------------------------------------------------
+F. PROFILE MODULE (lib/modules/profile)
+--------------------------------------------------------------------------------
+GOAL: User settings and profile management.
+
+KEY FILES:
+- Logic: `data/datasources/profile_supabase_datasource.dart`
+
+THE PROCESS:
+- `getUserProfile`: Fetches from `users` table joined with `user_addresses`.
+- `updateProfile`: Updates `users` table.
+- `uploadProfilePhoto`:
+  1. Uploads file to `avatars` bucket.
+  2. Gets public URL.
+  3. Updates `avatar_url` column in `users` table.
+
+================================================================================
+4. THE BACKEND (SUPABASE ARCHITECTURE)
+================================================================================
+
+Since we use Supabase, the "Backend" is really just our Database Schema.
+
+KEY TABLES:
+- `users`: The master user table. Stores profile info, KYC status.
+- `auctions`: The core table. Stores Price, End Time, Status.
+- `auction_vehicles`: 1-to-1 with Auctions. Stores the detailed car specs (Engine, Color).
+- `bids`: Ledger of all bids placed.
+- `auction_transactions`: Created when an auction wins. Links Buyer + Seller.
+- `listing_drafts`: Temporary storage for listings in progress.
+
+CRITICAL RPC FUNCTIONS (Stored Procedures):
+- `register_user_with_kyc_v2`: Handles complex signup.
+- `place_bid`: Handles bidding logic + sniping protection securely on the server.
+- `increment_watchers` / `decrement_watchers`: Simple counters.
+
+REALTIME:
+- We enable "Realtime" on the `auctions` table.
+- This allows the Flutter app to say `supabase.from('auctions').stream()` and get updates instantly.
+
+================================================================================
+5. AI INTEGRATION
+================================================================================
+
+The `ai_lab` folder contains Python scripts, but the App uses a `.tflite` model.
+
+HOW IT WORKS:
+1. Python Script (`train_model.py`) reads thousands of car photos.
+2. It "learns" to recognize shapes (e.g., "That looks like a Toyota Vios").
+3. It saves this knowledge into a file: `car_model.tflite`.
+4. This file is put into `assets/ai/` in the Flutter app.
+5. When you take a photo during "Create Listing", the Flutter app runs this model locally (on the phone).
+6. It suggests the Make/Model/Year automatically so you don't have to type it.
+
+================================================================================
+FINAL SUMMARY: HOW TO NAVIGATE THE CODE
+================================================================================
+
+- Want to change how the Home Screen looks?
+  -> Go to `lib/modules/browse/presentation/pages/browse_page.dart`.
+
+- Want to change the Login logic?
+  -> Go to `lib/modules/auth/data/datasources/auth_remote_datasource.dart`.
+
+- Want to add a new field to the Car Listing?
+  -> You need to update:
+     1. The Database (Supabase Table).
+     2. The Model (`lib/modules/lists/data/models/listing_model.dart`).
+     3. The UI (`create_listing_page.dart`).
+
+Use `Ctrl+P` (or Cmd+P) in VS Code to find these files quickly by name.
+
+Good luck! You now own this codebase.
+================================================================================

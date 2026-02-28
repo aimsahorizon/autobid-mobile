@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/transaction_realtime_controller.dart';
+import '../controllers/installment_controller.dart';
 import '../../domain/entities/transaction_entity.dart';
+import '../../data/datasources/installment_supabase_datasource.dart';
 import '../widgets/transaction_realtime/chat_realtime_tab.dart';
 import '../widgets/transaction_realtime/progress_realtime_tab.dart';
 import '../widgets/transaction_realtime/unified_agreement_tab.dart';
+import '../widgets/transaction_realtime/installment_tracker_tab.dart';
 
 /// Real-time Pre-Transaction Page
 /// Supports live chat and form updates between buyer and seller
@@ -30,6 +33,7 @@ class PreTransactionRealtimePage extends StatefulWidget {
 class _PreTransactionRealtimePageState
     extends State<PreTransactionRealtimePage> {
   String _debugStatus = 'initializing';
+  InstallmentController? _installmentController;
 
   @override
   void initState() {
@@ -77,8 +81,17 @@ class _PreTransactionRealtimePageState
   @override
   void dispose() {
     debugPrint('[DEBUG PreTransactionRealtimePage] dispose called');
+    _installmentController?.dispose();
     widget.controller.dispose();
     super.dispose();
+  }
+
+  /// Lazily create the installment controller when needed
+  InstallmentController _getInstallmentController() {
+    _installmentController ??= InstallmentController(
+      datasource: InstallmentSupabaseDatasource(),
+    );
+    return _installmentController!;
   }
 
   @override
@@ -147,7 +160,7 @@ class _PreTransactionRealtimePageState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh),
-                tooltip: 'Refresh',
+                tooltip: 'Refreshed',
               );
             },
           ),
@@ -270,8 +283,13 @@ class _PreTransactionRealtimePageState
             return _buildBuyerCancelledView(transaction, isDark);
           }
 
+          final showInstallment = transaction.showInstallmentTab;
+          final tabCount = showInstallment ? 4 : 3;
+          final userRole = widget.controller.getUserRole(widget.userId);
+
           return DefaultTabController(
-            length: 3,
+            key: ValueKey('tabs_$tabCount'),
+            length: tabCount,
             child: Column(
               children: [
                 // Transaction status banner
@@ -317,6 +335,7 @@ class _PreTransactionRealtimePageState
                       const Tab(text: 'Chat'),
                       const Tab(text: 'Agreement'),
                       const Tab(text: 'Progress'),
+                      if (showInstallment) const Tab(text: 'Installment'),
                     ],
                   ),
                 ),
@@ -332,12 +351,21 @@ class _PreTransactionRealtimePageState
                       ),
                       UnifiedAgreementTab(
                         controller: widget.controller,
+                        installmentController: _getInstallmentController(),
+                        transactionId: transaction.id,
                         userId: widget.userId,
                       ),
                       ProgressRealtimeTab(
                         controller: widget.controller,
                         userId: widget.userId,
                       ),
+                      if (showInstallment)
+                        InstallmentTrackerTab(
+                          controller: _getInstallmentController(),
+                          transactionId: transaction.id,
+                          userId: widget.userId,
+                          userRole: userRole,
+                        ),
                     ],
                   ),
                 ),

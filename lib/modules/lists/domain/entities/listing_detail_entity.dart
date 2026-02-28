@@ -100,6 +100,9 @@ class ListingDetailEntity {
   // Visibility
   final String visibility;
 
+  // Installment
+  final bool allowsInstallment;
+
   const ListingDetailEntity({
     required this.id,
     required this.status,
@@ -173,6 +176,7 @@ class ListingDetailEntity {
     this.snipeGuardExtendSeconds = 300,
     this.deedOfSaleUrl,
     this.visibility = 'public',
+    this.allowsInstallment = false,
   });
 
   /// Get formatted car name
