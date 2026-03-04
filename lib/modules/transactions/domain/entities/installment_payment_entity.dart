@@ -30,10 +30,18 @@ class InstallmentPaymentEntity {
     required this.updatedAt,
   });
 
+  /// Whether this payment has no scheduled due date (no_schedule frequency)
+  /// We detect this by checking if the due date is far in the future (year 9999)
+  bool get hasNoDueDate => dueDate.year >= 9999;
+
   /// Whether payment is overdue
-  bool get isOverdue =>
-      status == InstallmentPaymentStatus.pending &&
-      DateTime.now().isAfter(dueDate);
+  /// - Not overdue if frequency is no_schedule (far-future due date)
+  /// - Down payment (#0) gets a 3-day grace period
+  bool get isOverdue {
+    if (status != InstallmentPaymentStatus.pending) return false;
+    if (hasNoDueDate) return false;
+    return DateTime.now().isAfter(dueDate);
+  }
 
   /// Whether seller can act on this payment
   bool get canSellerAct => status == InstallmentPaymentStatus.submitted;

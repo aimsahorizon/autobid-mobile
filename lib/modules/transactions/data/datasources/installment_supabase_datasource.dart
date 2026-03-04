@@ -102,34 +102,43 @@ class InstallmentSupabaseDatasource {
     final perPayment = (remaining / numInstallments);
     final payments = <Map<String, dynamic>>[];
 
-    // Payment #0: Down payment (due immediately, needs buyer upload + seller confirm)
+    // Payment #0: Down payment (3-day grace period from start)
     if (downPayment > 0) {
+      final dpDueDate = startDate.add(const Duration(days: 3));
       payments.add({
         'installment_plan_id': planId,
         'payment_number': 0,
         'amount': downPayment,
-        'due_date': startDate.toIso8601String().split('T').first,
+        'due_date': dpDueDate.toIso8601String().split('T').first,
         'status': 'pending',
       });
     }
 
+    // For no_schedule frequency, use a far-future sentinel date
+    final isNoSchedule = frequency == 'no_schedule';
+
     for (int i = 0; i < numInstallments; i++) {
       DateTime dueDate;
-      switch (frequency) {
-        case 'weekly':
-          dueDate = startDate.add(Duration(days: 7 * (i + 1)));
-          break;
-        case 'bi-weekly':
-          dueDate = startDate.add(Duration(days: 14 * (i + 1)));
-          break;
-        case 'monthly':
-        default:
-          dueDate = DateTime(
-            startDate.year,
-            startDate.month + (i + 1),
-            startDate.day,
-          );
-          break;
+      if (isNoSchedule) {
+        // Sentinel date indicating no due date
+        dueDate = DateTime(9999, 12, 31);
+      } else {
+        switch (frequency) {
+          case 'weekly':
+            dueDate = startDate.add(Duration(days: 7 * (i + 1)));
+            break;
+          case 'bi-weekly':
+            dueDate = startDate.add(Duration(days: 14 * (i + 1)));
+            break;
+          case 'monthly':
+          default:
+            dueDate = DateTime(
+              startDate.year,
+              startDate.month + (i + 1),
+              startDate.day,
+            );
+            break;
+        }
       }
 
       // Last payment gets any rounding remainder
@@ -242,6 +251,7 @@ class InstallmentSupabaseDatasource {
   // =========================================================================
 
   /// Upload proof of payment image to Supabase storage
+  /// Returns a signed URL (private bucket) valid for 365 days
   Future<String> _uploadProofImage(String filePath, String paymentId) async {
     final file = File(filePath);
     final ext = filePath.split('.').last;
@@ -256,7 +266,12 @@ class InstallmentSupabaseDatasource {
           fileOptions: const FileOptions(upsert: true),
         );
 
-    return _supabase.storage.from('payment-proofs').getPublicUrl(storagePath);
+    // Use signed URL for private bucket (valid for 1 year)
+    final signedUrl = await _supabase.storage
+        .from('payment-proofs')
+        .createSignedUrl(storagePath, 60 * 60 * 24 * 365);
+
+    return signedUrl;
   }
 
   // =========================================================================

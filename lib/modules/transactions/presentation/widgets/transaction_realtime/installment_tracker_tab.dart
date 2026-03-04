@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../domain/entities/installment_plan_entity.dart';
 import '../../../domain/entities/installment_payment_entity.dart';
 import '../../controllers/installment_controller.dart';
@@ -14,6 +15,7 @@ class InstallmentTrackerTab extends StatefulWidget {
   final String transactionId;
   final String userId;
   final FormRole userRole;
+  final bool bothConfirmed;
 
   const InstallmentTrackerTab({
     super.key,
@@ -21,6 +23,7 @@ class InstallmentTrackerTab extends StatefulWidget {
     required this.transactionId,
     required this.userId,
     required this.userRole,
+    this.bothConfirmed = false,
   });
 
   @override
@@ -86,7 +89,7 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
   }
 
   // =========================================================================
-  // No Plan View — Buyer can set up an installment plan
+  // No Plan View — directs user to Agreement tab
   // =========================================================================
 
   Widget _buildNoPlanView(bool isDark) {
@@ -105,14 +108,12 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'No Installment Plan',
+              'No Gives Plan',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              isBuyer
-                  ? 'Set up an installment plan to spread your payments over time.'
-                  : 'The buyer has not set up an installment plan yet.',
+              'Set up a gives plan in the Agreement tab.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: isDark
@@ -120,14 +121,6 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                     : ColorConstants.textSecondaryLight,
               ),
             ),
-            if (isBuyer) ...[
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () => _showCreatePlanDialog(),
-                icon: const Icon(Icons.add),
-                label: const Text('Create Installment Plan'),
-              ),
-            ],
           ],
         ),
       ),
@@ -143,13 +136,37 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
 
     return Column(
       children: [
+        // Agreement gate banner
+        if (!widget.bothConfirmed)
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: Colors.orange),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Both parties must confirm the agreement before payments can be submitted.',
+                    style: TextStyle(fontSize: 12, color: Colors.orange),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         // Progress header
         _buildProgressHeader(plan, isDark),
 
         // Payments list
         Expanded(
           child: payments.isEmpty
-              ? const Center(child: Text('No payments scheduled'))
+              ? const Center(child: Text('No gives scheduled'))
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: payments.length,
@@ -159,8 +176,10 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                 ),
         ),
 
-        // Buyer FAB area
-        if (isBuyer && widget.controller.nextPendingPayment != null)
+        // Buyer FAB area — blocked until agreement confirmed
+        if (isBuyer &&
+            widget.bothConfirmed &&
+            widget.controller.nextPendingPayment != null)
           _buildBuyerActionBar(isDark),
       ],
     );
@@ -189,7 +208,7 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Payment Progress',
+                'Gives Progress',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               Container(
@@ -281,13 +300,13 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
             children: [
               _buildInfoChip(
                 Icons.calendar_today,
-                '${plan.numInstallments} payments',
+                '${plan.numInstallments} gives',
                 isDark,
               ),
               const SizedBox(width: 8),
               _buildInfoChip(
                 Icons.repeat,
-                plan.frequency[0].toUpperCase() + plan.frequency.substring(1),
+                _frequencyDisplayLabel(plan.frequency),
                 isDark,
               ),
               if (plan.downPayment > 0) ...[
@@ -377,7 +396,9 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                         ),
                       ),
                       Text(
-                        'Due: ${_formatDate(payment.dueDate)}${isOverdue ? ' (OVERDUE)' : ''}',
+                        payment.hasNoDueDate
+                            ? 'Due: Upon buyer\'s discretion'
+                            : 'Due: ${_formatDate(payment.dueDate)}${isOverdue ? ' (OVERDUE)' : ''}',
                         style: TextStyle(
                           fontSize: 12,
                           color: isOverdue
@@ -524,7 +545,7 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
           label: Text(
             next.paymentNumber == 0
                 ? 'Log Down Payment — ₱${next.amount.toStringAsFixed(0)}'
-                : 'Log Payment #${next.paymentNumber} — ₱${next.amount.toStringAsFixed(0)}',
+                : 'Log Give #${next.paymentNumber} — ₱${next.amount.toStringAsFixed(0)}',
           ),
           style: FilledButton.styleFrom(
             minimumSize: const Size(double.infinity, 48),
@@ -537,127 +558,6 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
   // =========================================================================
   // Dialogs / Sheets
   // =========================================================================
-
-  void _showCreatePlanDialog() {
-    final totalController = TextEditingController();
-    final downController = TextEditingController(text: '0');
-    int installments = 3;
-    String frequency = 'monthly';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Create Installment Plan',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextField(
-                    controller: totalController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Total Amount (₱)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  TextField(
-                    controller: downController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Down Payment (₱)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  DropdownButtonFormField<int>(
-                    value: installments,
-                    decoration: const InputDecoration(
-                      labelText: 'Number of Installments',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [2, 3, 4, 6, 9, 12, 18, 24].map((n) {
-                      return DropdownMenuItem(
-                        value: n,
-                        child: Text('$n payments'),
-                      );
-                    }).toList(),
-                    onChanged: (v) =>
-                        setSheetState(() => installments = v ?? 3),
-                  ),
-                  const SizedBox(height: 12),
-
-                  DropdownButtonFormField<String>(
-                    value: frequency,
-                    decoration: const InputDecoration(
-                      labelText: 'Frequency',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                      DropdownMenuItem(
-                        value: 'bi-weekly',
-                        child: Text('Bi-Weekly'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'monthly',
-                        child: Text('Monthly'),
-                      ),
-                    ],
-                    onChanged: (v) =>
-                        setSheetState(() => frequency = v ?? 'monthly'),
-                  ),
-                  const SizedBox(height: 20),
-
-                  FilledButton(
-                    onPressed: () async {
-                      final total = double.tryParse(totalController.text);
-                      final down = double.tryParse(downController.text) ?? 0;
-                      if (total == null || total <= 0) return;
-                      if (down >= total) return;
-
-                      Navigator.pop(ctx);
-                      await widget.controller.createPlan(
-                        transactionId: widget.transactionId,
-                        totalAmount: total,
-                        downPayment: down,
-                        numInstallments: installments,
-                        frequency: frequency,
-                        startDate: DateTime.now(),
-                      );
-                    },
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                    child: const Text('Create Plan'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   void _showSubmitPaymentSheet(InstallmentPaymentEntity payment) {
     final amountController = TextEditingController(
@@ -685,7 +585,7 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                   Text(
                     payment.paymentNumber == 0
                         ? 'Log Down Payment'
-                        : 'Log Payment #${payment.paymentNumber}',
+                        : 'Log Give #${payment.paymentNumber}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -796,7 +696,7 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
         return AlertDialog(
           title: const Text('Confirm Payment'),
           content: Text(
-            'Confirm receipt of ₱${payment.amount.toStringAsFixed(0)} for ${payment.paymentNumber == 0 ? 'down payment' : 'payment #${payment.paymentNumber}'}?',
+            'Confirm receipt of ₱${payment.amount.toStringAsFixed(0)} for ${payment.paymentNumber == 0 ? 'down payment' : 'give #${payment.paymentNumber}'}?',
           ),
           actions: [
             TextButton(
@@ -818,6 +718,8 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
   }
 
   void _showProofImage(String url) {
+    // The URL stored might be a public URL that won't work for private buckets.
+    // Extract the storage path and create a signed URL instead.
     showDialog(
       context: context,
       builder: (ctx) {
@@ -835,19 +737,71 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                   ),
                 ],
               ),
-              Image.network(
-                url,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Icon(Icons.broken_image, size: 64),
-                ),
+              FutureBuilder<String>(
+                future: _getSignedProofUrl(url),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+                  if (snapshot.hasError || !snapshot.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Icon(Icons.broken_image, size: 64),
+                    );
+                  }
+                  return Image.network(
+                    snapshot.data!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Icon(Icons.broken_image, size: 64),
+                    ),
+                  );
+                },
               ),
             ],
           ),
         );
       },
     );
+  }
+
+  /// Extract storage path from a Supabase URL and create a signed URL
+  Future<String> _getSignedProofUrl(String url) async {
+    try {
+      // Extract the path after /payment-proofs/
+      final bucket = 'payment-proofs';
+      final marker = '/object/public/$bucket/';
+      final markerAlt = '/object/$bucket/';
+      String storagePath;
+
+      if (url.contains(marker)) {
+        storagePath = Uri.decodeFull(url.split(marker).last);
+      } else if (url.contains(markerAlt)) {
+        storagePath = Uri.decodeFull(url.split(markerAlt).last);
+      } else {
+        // Fallback: try using the URL as-is (maybe already signed)
+        return url;
+      }
+
+      // Remove query params if any
+      if (storagePath.contains('?')) {
+        storagePath = storagePath.split('?').first;
+      }
+
+      final signedUrl = await Supabase.instance.client.storage
+          .from(bucket)
+          .createSignedUrl(storagePath, 3600); // 1 hour expiry
+
+      return signedUrl;
+    } catch (e) {
+      debugPrint('[InstallmentTracker] Error creating signed URL: $e');
+      // Fallback to original URL
+      return url;
+    }
   }
 
   // =========================================================================
@@ -869,5 +823,14 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
 
   String _formatDate(DateTime date) {
     return '${date.month}/${date.day}/${date.year}';
+  }
+
+  String _frequencyDisplayLabel(String frequency) {
+    switch (frequency) {
+      case 'no_schedule':
+        return "Buyer's discretion";
+      default:
+        return frequency[0].toUpperCase() + frequency.substring(1);
+    }
   }
 }

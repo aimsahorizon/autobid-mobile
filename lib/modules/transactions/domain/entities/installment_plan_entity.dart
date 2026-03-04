@@ -7,7 +7,7 @@ class InstallmentPlanEntity {
   final double remainingAmount;
   final double totalPaid;
   final int numInstallments;
-  final String frequency; // weekly, bi-weekly, monthly
+  final String frequency; // weekly, bi-weekly, monthly, no_schedule
   final DateTime startDate;
   final InstallmentPlanStatus status;
   final DateTime createdAt;

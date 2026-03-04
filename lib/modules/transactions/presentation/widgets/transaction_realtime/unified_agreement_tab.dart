@@ -1510,7 +1510,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Installment Payment',
+                  'Gives Payment',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1561,13 +1561,15 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
           if (down > 0)
             _summaryRow('Down Payment', '₱${down.toStringAsFixed(0)}', isDark),
           _summaryRow(
-            'Installments',
+            'Gives',
             '$n × ₱${perPayment.toStringAsFixed(0)}',
             isDark,
           ),
           _summaryRow(
             'Frequency',
-            freq[0].toUpperCase() + freq.substring(1),
+            freq == 'no_schedule'
+                ? "Buyer's discretion"
+                : freq[0].toUpperCase() + freq.substring(1),
             isDark,
           ),
           const SizedBox(height: 6),
@@ -1576,7 +1578,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
               const Icon(Icons.check_circle, size: 14, color: Colors.green),
               const SizedBox(width: 4),
               Text(
-                'Plan saved — see Installment tab for tracking',
+                'Plan saved — see Gives tab for tracking',
                 style: TextStyle(fontSize: 11, color: Colors.green.shade700),
               ),
             ],
@@ -1645,7 +1647,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
             ),
             const SizedBox(height: 8),
 
-            // Installments + Frequency row
+            // Gives + Frequency row
             Row(
               children: [
                 Expanded(
@@ -1653,7 +1655,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                     value: _installments,
                     isDense: true,
                     decoration: const InputDecoration(
-                      labelText: 'Payments',
+                      labelText: 'Gives',
                       border: OutlineInputBorder(),
                       isDense: true,
                     ),
@@ -1685,6 +1687,10 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                         value: 'monthly',
                         child: Text('Monthly'),
                       ),
+                      DropdownMenuItem(
+                        value: 'no_schedule',
+                        child: Text("Buyer's discretion"),
+                      ),
                     ],
                     onChanged: (v) =>
                         setState(() => _frequency = v ?? 'monthly'),
@@ -1707,7 +1713,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                       ),
                     )
                   : const Icon(Icons.check, size: 18),
-              label: const Text('Save Installment Plan'),
+              label: const Text('Save Gives Plan'),
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.green,
                 minimumSize: const Size(double.infinity, 40),
