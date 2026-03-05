@@ -21,7 +21,11 @@ class TransactionEntity {
   final DateTime? adminApprovedAt;
   final DateTime? bothConfirmedAt;
 
-  // Delivery tracking (only active after admin approval)
+  // Grace period skip tracking
+  final bool sellerAgreedToSkipGracePeriod;
+  final bool buyerAgreedToSkipGracePeriod;
+
+  // Delivery tracking (only active after finalization)
   final DeliveryStatus deliveryStatus;
   final DateTime? deliveryStartedAt;
   final DateTime? deliveryCompletedAt;
@@ -59,6 +63,8 @@ class TransactionEntity {
     this.adminApproved = false,
     this.adminApprovedAt,
     this.bothConfirmedAt,
+    this.sellerAgreedToSkipGracePeriod = false,
+    this.buyerAgreedToSkipGracePeriod = false,
     this.deliveryStatus = DeliveryStatus.pending,
     this.deliveryStartedAt,
     this.deliveryCompletedAt,
@@ -83,8 +89,12 @@ class TransactionEntity {
   /// Check if both parties have confirmed
   bool get bothConfirmed => sellerConfirmed && buyerConfirmed;
 
-  /// Check if transaction is ready for admin review
+  /// Check if transaction is ready for admin review (legacy, kept for compat)
   bool get readyForAdminReview => bothFormsSubmitted && bothConfirmed;
+
+  /// Check if both agreed to skip grace period
+  bool get bothAgreedToSkipGracePeriod =>
+      sellerAgreedToSkipGracePeriod && buyerAgreedToSkipGracePeriod;
 
   /// Check if transaction is active (can be modified)
   bool get isActive =>
@@ -136,6 +146,8 @@ class TransactionEntity {
     bool? adminApproved,
     DateTime? adminApprovedAt,
     DateTime? bothConfirmedAt,
+    bool? sellerAgreedToSkipGracePeriod,
+    bool? buyerAgreedToSkipGracePeriod,
     DeliveryStatus? deliveryStatus,
     DateTime? deliveryStartedAt,
     DateTime? deliveryCompletedAt,
@@ -165,6 +177,10 @@ class TransactionEntity {
       adminApproved: adminApproved ?? this.adminApproved,
       adminApprovedAt: adminApprovedAt ?? this.adminApprovedAt,
       bothConfirmedAt: bothConfirmedAt ?? this.bothConfirmedAt,
+      sellerAgreedToSkipGracePeriod:
+          sellerAgreedToSkipGracePeriod ?? this.sellerAgreedToSkipGracePeriod,
+      buyerAgreedToSkipGracePeriod:
+          buyerAgreedToSkipGracePeriod ?? this.buyerAgreedToSkipGracePeriod,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
       deliveryStartedAt: deliveryStartedAt ?? this.deliveryStartedAt,
       deliveryCompletedAt: deliveryCompletedAt ?? this.deliveryCompletedAt,
@@ -185,9 +201,9 @@ class TransactionEntity {
 enum TransactionStatus {
   discussion, // Initial discussion phase
   formReview, // Both forms submitted, parties reviewing
-  pendingApproval, // Submitted to admin for approval
-  approved, // Admin approved, deposit handled
-  ongoing, // Seller processing transaction
+  pendingApproval, // Submitted to admin for approval (legacy)
+  approved, // Admin approved, deposit handled (legacy)
+  ongoing, // In progress - delivery/handover phase
   completed, // Transaction finished
   cancelled, // Transaction cancelled
   disputed, // Issue raised, needs resolution
