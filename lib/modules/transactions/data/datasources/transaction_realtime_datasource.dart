@@ -286,6 +286,10 @@ class TransactionRealtimeDataSource {
       cancelledBy: _inferCancelledBy(data),
       paymentMethod: data['payment_method'] as String? ?? 'full_payment',
       allowsInstallment: _extractAllowsInstallment(data),
+      sellerAgreedToSkipGracePeriod:
+          data['seller_agreed_to_skip_grace_period'] as bool? ?? false,
+      buyerAgreedToSkipGracePeriod:
+          data['buyer_agreed_to_skip_grace_period'] as bool? ?? false,
     );
   }
 
@@ -2440,6 +2444,81 @@ class TransactionRealtimeDataSource {
       return false;
     } catch (e) {
       debugPrint('[TransactionDS] Error finalizing: $e');
+      return false;
+    }
+  }
+
+  /// Agree to skip the grace period (buyer or seller)
+  Future<bool> agreeToSkipGracePeriod(
+    String transactionId,
+    FormRole role,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      final col = role == FormRole.seller
+          ? 'seller_agreed_to_skip_grace_period'
+          : 'buyer_agreed_to_skip_grace_period';
+      final otherCol = role == FormRole.seller
+          ? 'buyer_agreed_to_skip_grace_period'
+          : 'seller_agreed_to_skip_grace_period';
+
+      // Check if other party already agreed
+      final txn = await _supabase
+          .from('auction_transactions')
+          .select(otherCol)
+          .eq('id', txnId)
+          .single();
+
+      final otherAgreed = txn[otherCol] as bool? ?? false;
+
+      await _supabase
+          .from('auction_transactions')
+          .update({col: true, 'updated_at': DateTime.now().toIso8601String()})
+          .eq('id', txnId);
+
+      // Add timeline event
+      final roleName = role == FormRole.seller ? 'Seller' : 'Buyer';
+      await _addTimelineEvent(
+        txnId,
+        '$roleName Agreed to Skip Grace Period',
+        otherAgreed
+            ? 'Both parties agreed. Starting 5-second countdown.'
+            : '$roleName wants to skip the grace period. Waiting for the other party.',
+        'form_confirmed',
+        _supabase.auth.currentUser?.id ?? 'system',
+        roleName,
+      );
+
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error agreeing to skip grace period: $e');
+      return false;
+    }
+  }
+
+  /// Withdraw agreement to skip the grace period
+  Future<bool> withdrawSkipGracePeriod(
+    String transactionId,
+    FormRole role,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      final col = role == FormRole.seller
+          ? 'seller_agreed_to_skip_grace_period'
+          : 'buyer_agreed_to_skip_grace_period';
+
+      await _supabase
+          .from('auction_transactions')
+          .update({col: false, 'updated_at': DateTime.now().toIso8601String()})
+          .eq('id', txnId);
+
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error withdrawing skip grace period: $e');
       return false;
     }
   }
