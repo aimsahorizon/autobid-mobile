@@ -3,14 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/transaction_realtime_controller.dart';
+import '../../controllers/installment_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
 /// Progress tab - shows transaction timeline and status
 class ProgressRealtimeTab extends StatelessWidget {
   final TransactionRealtimeController controller;
   final String? userId;
+  final InstallmentController? installmentController;
 
-  const ProgressRealtimeTab({super.key, required this.controller, this.userId});
+  const ProgressRealtimeTab({
+    super.key,
+    required this.controller,
+    this.userId,
+    this.installmentController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -209,10 +216,17 @@ class ProgressRealtimeTab extends StatelessWidget {
                   ),
                 ),
 
-              // Review Section (Visible only when delivery status is completed in the tracker)
-              if (transaction.deliveryStatus == DeliveryStatus.completed) ...[
+              // Review Section — only when fully complete
+              // If installments exist, wait until they're completed too
+              if (transaction.deliveryStatus == DeliveryStatus.completed &&
+                  _isFullyComplete(transaction)) ...[
                 const SizedBox(height: 32),
                 _buildReviewSection(context, transaction, isDark),
+              ] else if (transaction.deliveryStatus ==
+                      DeliveryStatus.completed &&
+                  !_isFullyComplete(transaction)) ...[
+                const SizedBox(height: 32),
+                _buildReviewPendingInstallmentBanner(isDark),
               ],
 
               const SizedBox(height: 32),
@@ -473,6 +487,55 @@ class ProgressRealtimeTab extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// Check if the transaction is fully complete (delivery done + installments done if applicable)
+  bool _isFullyComplete(TransactionEntity transaction) {
+    if (!transaction.isInstallment) return true;
+    // If installment controller is available, check completion
+    if (installmentController != null) {
+      return installmentController!.isCompleted;
+    }
+    // No controller means no installment data loaded — assume incomplete
+    return false;
+  }
+
+  Widget _buildReviewPendingInstallmentBanner(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.hourglass_top, color: Colors.orange, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Review available after gives are completed',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Complete all gives payments to unlock the review section.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1087,24 +1150,28 @@ class ProgressRealtimeTab extends StatelessWidget {
     String buttonLabel;
     DeliveryStatus nextStatus;
     bool isEnabled = true;
+    String? existingPhotoUrl;
 
     switch (transaction.deliveryStatus) {
       case DeliveryStatus.pending:
-        buttonLabel = 'Start Preparing';
+        buttonLabel = 'Start Preparing (Photo Required)';
         nextStatus = DeliveryStatus.preparing;
         break;
       case DeliveryStatus.preparing:
-        buttonLabel = 'Mark as In Transit';
+        buttonLabel = 'Mark as In Transit (Photo Required)';
         nextStatus = DeliveryStatus.inTransit;
+        existingPhotoUrl = transaction.sellerPrepPhotoUrl;
         break;
       case DeliveryStatus.inTransit:
-        buttonLabel = 'Mark as Delivered';
+        buttonLabel = 'Mark as Delivered (Photo Required)';
         nextStatus = DeliveryStatus.delivered;
+        existingPhotoUrl = transaction.sellerTransitPhotoUrl;
         break;
       case DeliveryStatus.delivered:
         buttonLabel = 'Waiting for Buyer Confirmation';
-        nextStatus = DeliveryStatus.completed; // Placeholder, button disabled
+        nextStatus = DeliveryStatus.completed;
         isEnabled = false;
+        existingPhotoUrl = transaction.sellerDeliveryPhotoUrl;
         break;
       default:
         buttonLabel = 'Update Status';
@@ -1112,23 +1179,43 @@ class ProgressRealtimeTab extends StatelessWidget {
         isEnabled = false;
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton(
-        onPressed: isEnabled && !controller.isProcessing
-            ? () => controller.updateDeliveryStatus(nextStatus)
-            : null,
-        child: controller.isProcessing && isEnabled
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : Text(buttonLabel),
-      ),
+    return Column(
+      children: [
+        // Show previous step's uploaded photo proof
+        if (existingPhotoUrl != null) ...[
+          _buildPhotoProofTile('Your Photo Proof', existingPhotoUrl, context),
+          const SizedBox(height: 12),
+        ],
+        // Show buyer's photo if delivered
+        if (transaction.deliveryStatus == DeliveryStatus.delivered &&
+            transaction.buyerDeliveryPhotoUrl != null) ...[
+          _buildPhotoProofTile(
+            "Buyer's Photo Proof",
+            transaction.buyerDeliveryPhotoUrl!,
+            context,
+          ),
+          const SizedBox(height: 12),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: isEnabled && !controller.isProcessing
+                ? () => _showPhotoPickerForDeliveryStatus(context, nextStatus)
+                : null,
+            icon: controller.isProcessing && isEnabled
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.camera_alt, size: 18),
+            label: Text(buttonLabel),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1137,14 +1224,26 @@ class ProgressRealtimeTab extends StatelessWidget {
     TransactionEntity transaction,
   ) {
     if (transaction.deliveryStatus == DeliveryStatus.completed) {
-      return const Center(
-        child: Text(
-          'You have accepted the vehicle!',
-          style: TextStyle(
-            color: ColorConstants.success,
-            fontWeight: FontWeight.bold,
+      return Column(
+        children: [
+          const Center(
+            child: Text(
+              'You have accepted the vehicle!',
+              style: TextStyle(
+                color: ColorConstants.success,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-        ),
+          if (transaction.buyerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Your Confirmation Photo',
+              transaction.buyerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+        ],
       );
     }
 
@@ -1161,6 +1260,8 @@ class ProgressRealtimeTab extends StatelessWidget {
         );
       }
 
+      final hasUploadedPhoto = transaction.buyerDeliveryPhotoUrl != null;
+
       return Column(
         children: [
           const Text(
@@ -1169,9 +1270,43 @@ class ProgressRealtimeTab extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Please inspect the vehicle and confirm receipt.',
+            'Please inspect the vehicle, take a confirmation photo, and confirm receipt.',
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 16),
+          // Show seller's delivery photo
+          if (transaction.sellerDeliveryPhotoUrl != null) ...[
+            _buildPhotoProofTile(
+              "Seller's Delivery Photo",
+              transaction.sellerDeliveryPhotoUrl!,
+              context,
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Buyer photo upload
+          if (!hasUploadedPhoto)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: controller.isProcessing
+                    ? null
+                    : () => _pickAndUploadBuyerDeliveryPhoto(context),
+                icon: const Icon(Icons.camera_alt, size: 18),
+                label: const Text('Upload Confirmation Photo (Required)'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ColorConstants.primary,
+                  side: BorderSide(color: ColorConstants.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            )
+          else ...[
+            _buildPhotoProofTile(
+              'Your Confirmation Photo',
+              transaction.buyerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -1190,9 +1325,9 @@ class ProgressRealtimeTab extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: FilledButton(
-                  onPressed: controller.isProcessing
-                      ? null
-                      : () => controller.respondToDelivery(accepted: true),
+                  onPressed: hasUploadedPhoto && !controller.isProcessing
+                      ? () => controller.respondToDelivery(accepted: true)
+                      : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: ColorConstants.success,
                   ),
@@ -1206,17 +1341,51 @@ class ProgressRealtimeTab extends StatelessWidget {
     }
 
     String statusText = 'Waiting for seller update...';
+    IconData statusIcon = Icons.hourglass_empty;
     if (transaction.deliveryStatus == DeliveryStatus.preparing) {
       statusText = 'Seller is preparing the vehicle...';
+      statusIcon = Icons.build_circle_outlined;
     } else if (transaction.deliveryStatus == DeliveryStatus.inTransit) {
       statusText = 'Vehicle is on the way!';
+      statusIcon = Icons.local_shipping_outlined;
     }
 
-    return Center(
-      child: Text(
-        statusText,
-        style: TextStyle(color: ColorConstants.textSecondaryLight),
-      ),
+    return Column(
+      children: [
+        Icon(statusIcon, size: 48, color: ColorConstants.textSecondaryLight),
+        const SizedBox(height: 8),
+        Text(
+          statusText,
+          style: TextStyle(color: ColorConstants.textSecondaryLight),
+        ),
+        if (transaction.deliveryStatus == DeliveryStatus.preparing &&
+            transaction.sellerPrepPhotoUrl != null) ...[
+          const SizedBox(height: 16),
+          _buildPhotoProofTile(
+            'Seller Preparation Photo',
+            transaction.sellerPrepPhotoUrl!,
+            context,
+          ),
+        ],
+        if (transaction.deliveryStatus == DeliveryStatus.inTransit) ...[
+          if (transaction.sellerPrepPhotoUrl != null) ...[
+            const SizedBox(height: 16),
+            _buildPhotoProofTile(
+              'Seller Preparation Photo',
+              transaction.sellerPrepPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerTransitPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Seller Transit Photo',
+              transaction.sellerTransitPhotoUrl!,
+              context,
+            ),
+          ],
+        ],
+      ],
     );
   }
 
@@ -1337,6 +1506,238 @@ class ProgressRealtimeTab extends StatelessWidget {
                 backgroundColor: ColorConstants.error,
               ),
               child: const Text('Reject Delivery'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Show photo picker dialog for seller delivery status advancement
+  Future<void> _showPhotoPickerForDeliveryStatus(
+    BuildContext context,
+    DeliveryStatus nextStatus,
+  ) async {
+    final picker = ImagePicker();
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Photo Proof Required'),
+        content: const Text(
+          'Please provide a photo as proof for this delivery step.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            icon: const Icon(Icons.photo_library),
+            label: const Text('Gallery'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Camera'),
+          ),
+        ],
+      ),
+    );
+
+    if (source == null || !context.mounted) return;
+
+    final image = await picker.pickImage(source: source, imageQuality: 80);
+    if (image == null || !context.mounted) return;
+
+    final success = await controller.updateDeliveryStatusWithPhoto(
+      nextStatus,
+      File(image.path),
+    );
+
+    if (context.mounted) {
+      if (success) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Delivery status updated with photo proof'),
+            backgroundColor: ColorConstants.success,
+          ),
+        );
+      } else {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(
+              controller.errorMessage ?? 'Failed to update delivery status',
+            ),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Pick and upload buyer's delivery confirmation photo
+  Future<void> _pickAndUploadBuyerDeliveryPhoto(BuildContext context) async {
+    final picker = ImagePicker();
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmation Photo'),
+        content: const Text(
+          'Take or select a photo as proof of vehicle receipt.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            icon: const Icon(Icons.photo_library),
+            label: const Text('Gallery'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Camera'),
+          ),
+        ],
+      ),
+    );
+
+    if (source == null || !context.mounted) return;
+
+    final image = await picker.pickImage(source: source, imageQuality: 80);
+    if (image == null || !context.mounted) return;
+
+    final success = await controller.uploadBuyerDeliveryPhoto(File(image.path));
+
+    if (context.mounted) {
+      if (success) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Photo uploaded successfully'),
+            backgroundColor: ColorConstants.success,
+          ),
+        );
+      } else {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(controller.errorMessage ?? 'Failed to upload photo'),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Build a photo proof tile showing an uploaded image with label
+  Widget _buildPhotoProofTile(
+    String label,
+    String photoUrl,
+    BuildContext context,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: ColorConstants.success.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: ColorConstants.success.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.network(
+              photoUrl,
+              width: 56,
+              height: 56,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 56,
+                height: 56,
+                color: Colors.grey.withValues(alpha: 0.2),
+                child: const Icon(Icons.broken_image, size: 24),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: ColorConstants.success,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Uploaded',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: ColorConstants.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _showFullScreenPhoto(context, photoUrl, label),
+            icon: const Icon(Icons.fullscreen, size: 20),
+            tooltip: 'View full size',
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show full-screen photo viewer
+  void _showFullScreenPhoto(
+    BuildContext context,
+    String photoUrl,
+    String title,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              title: Text(title, style: const TextStyle(fontSize: 16)),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            Flexible(
+              child: InteractiveViewer(
+                child: Image.network(
+                  photoUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) =>
+                      const Center(child: Text('Failed to load image')),
+                ),
+              ),
             ),
           ],
         ),

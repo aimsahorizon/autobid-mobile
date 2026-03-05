@@ -6,12 +6,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../domain/entities/installment_plan_entity.dart';
 import '../../../domain/entities/installment_payment_entity.dart';
 import '../../controllers/installment_controller.dart';
+import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
 /// Installment Tracker Tab — shows payment plan progress, payment history,
 /// and action buttons for buyers (submit payment) and sellers (confirm/reject).
 class InstallmentTrackerTab extends StatefulWidget {
   final InstallmentController controller;
+  final TransactionRealtimeController? transactionController;
   final String transactionId;
   final String userId;
   final FormRole userRole;
@@ -20,6 +22,7 @@ class InstallmentTrackerTab extends StatefulWidget {
   const InstallmentTrackerTab({
     super.key,
     required this.controller,
+    this.transactionController,
     required this.transactionId,
     required this.userId,
     required this.userRole,
@@ -181,6 +184,13 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
             widget.bothConfirmed &&
             widget.controller.nextPendingPayment != null)
           _buildBuyerActionBar(isDark),
+
+        // Review section — visible when installments completed AND delivery completed
+        if (widget.controller.isCompleted &&
+            widget.transactionController != null &&
+            widget.transactionController!.transaction?.deliveryStatus ==
+                DeliveryStatus.completed)
+          _buildInstallmentReviewSection(isDark),
       ],
     );
   }
@@ -802,6 +812,186 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
       // Fallback to original URL
       return url;
     }
+  }
+
+  // =========================================================================
+  // Review Section (shown when fully complete)
+  // =========================================================================
+
+  Widget _buildInstallmentReviewSection(bool isDark) {
+    final txnController = widget.transactionController!;
+    final myReview = txnController.myReview;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ColorConstants.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ColorConstants.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.rate_review, color: ColorConstants.primary, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Rate your Experience',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'All gives completed! Please rate the other party.',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (myReview != null) ...[
+            const Text('Your submitted review:'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (int i = 1; i <= 5; i++)
+                  Icon(
+                    i <= myReview.rating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 20,
+                  ),
+              ],
+            ),
+            if (myReview.comment != null && myReview.comment!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                myReview.comment!,
+                style: const TextStyle(fontStyle: FontStyle.italic),
+              ),
+            ],
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _showReviewDialog(context),
+                icon: const Icon(Icons.star),
+                label: const Text('Submit Review'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showReviewDialog(BuildContext context) async {
+    final txnController = widget.transactionController!;
+    int rating = 5;
+    int communication = 5;
+    int reliability = 5;
+    final commentController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Submit Review'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'How was your experience?',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                _buildRatingRow(
+                  'Overall',
+                  rating,
+                  (v) => setState(() => rating = v),
+                ),
+                const SizedBox(height: 12),
+                _buildRatingRow(
+                  'Communication',
+                  communication,
+                  (v) => setState(() => communication = v),
+                ),
+                const SizedBox(height: 12),
+                _buildRatingRow(
+                  'Reliability',
+                  reliability,
+                  (v) => setState(() => reliability = v),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Add a comment (optional)...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                final success = await txnController.submitReview(
+                  rating: rating,
+                  ratingCommunication: communication,
+                  ratingReliability: reliability,
+                  comment: commentController.text.trim(),
+                );
+                if (success && context.mounted) {
+                  (ScaffoldMessenger.of(
+                    context,
+                  )..clearSnackBars()).showSnackBar(
+                    const SnackBar(
+                      content: Text('Thank you for your review!'),
+                      backgroundColor: ColorConstants.success,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRatingRow(String label, int value, ValueChanged<int> onChanged) {
+    return Row(
+      children: [
+        SizedBox(width: 100, child: Text(label)),
+        ...List.generate(5, (index) {
+          final star = index + 1;
+          return GestureDetector(
+            onTap: () => onChanged(star),
+            child: Icon(
+              star <= value ? Icons.star : Icons.star_border,
+              color: Colors.amber,
+              size: 28,
+            ),
+          );
+        }),
+      ],
+    );
   }
 
   // =========================================================================

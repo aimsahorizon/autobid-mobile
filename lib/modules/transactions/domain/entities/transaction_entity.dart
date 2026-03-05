@@ -30,6 +30,12 @@ class TransactionEntity {
   final DateTime? deliveryStartedAt;
   final DateTime? deliveryCompletedAt;
 
+  // Delivery checklist photo proofs
+  final String? sellerPrepPhotoUrl;
+  final String? sellerTransitPhotoUrl;
+  final String? sellerDeliveryPhotoUrl;
+  final String? buyerDeliveryPhotoUrl;
+
   // Buyer acceptance tracking (after delivery)
   final BuyerAcceptanceStatus buyerAcceptanceStatus;
   final DateTime? buyerAcceptedAt;
@@ -68,6 +74,10 @@ class TransactionEntity {
     this.deliveryStatus = DeliveryStatus.pending,
     this.deliveryStartedAt,
     this.deliveryCompletedAt,
+    this.sellerPrepPhotoUrl,
+    this.sellerTransitPhotoUrl,
+    this.sellerDeliveryPhotoUrl,
+    this.buyerDeliveryPhotoUrl,
     this.buyerAcceptanceStatus = BuyerAcceptanceStatus.pending,
     this.buyerAcceptedAt,
     this.buyerRejectionReason,
@@ -151,6 +161,10 @@ class TransactionEntity {
     DeliveryStatus? deliveryStatus,
     DateTime? deliveryStartedAt,
     DateTime? deliveryCompletedAt,
+    String? sellerPrepPhotoUrl,
+    String? sellerTransitPhotoUrl,
+    String? sellerDeliveryPhotoUrl,
+    String? buyerDeliveryPhotoUrl,
     BuyerAcceptanceStatus? buyerAcceptanceStatus,
     DateTime? buyerAcceptedAt,
     String? buyerRejectionReason,
@@ -184,6 +198,13 @@ class TransactionEntity {
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
       deliveryStartedAt: deliveryStartedAt ?? this.deliveryStartedAt,
       deliveryCompletedAt: deliveryCompletedAt ?? this.deliveryCompletedAt,
+      sellerPrepPhotoUrl: sellerPrepPhotoUrl ?? this.sellerPrepPhotoUrl,
+      sellerTransitPhotoUrl:
+          sellerTransitPhotoUrl ?? this.sellerTransitPhotoUrl,
+      sellerDeliveryPhotoUrl:
+          sellerDeliveryPhotoUrl ?? this.sellerDeliveryPhotoUrl,
+      buyerDeliveryPhotoUrl:
+          buyerDeliveryPhotoUrl ?? this.buyerDeliveryPhotoUrl,
       buyerAcceptanceStatus:
           buyerAcceptanceStatus ?? this.buyerAcceptanceStatus,
       buyerAcceptedAt: buyerAcceptedAt ?? this.buyerAcceptedAt,

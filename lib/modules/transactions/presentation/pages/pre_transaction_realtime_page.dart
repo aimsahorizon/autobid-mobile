@@ -358,10 +358,14 @@ class _PreTransactionRealtimePageState
                       ProgressRealtimeTab(
                         controller: widget.controller,
                         userId: widget.userId,
+                        installmentController: showInstallment
+                            ? _getInstallmentController()
+                            : null,
                       ),
                       if (showInstallment)
                         InstallmentTrackerTab(
                           controller: _getInstallmentController(),
+                          transactionController: widget.controller,
                           transactionId: transaction.id,
                           userId: widget.userId,
                           userRole: userRole,
