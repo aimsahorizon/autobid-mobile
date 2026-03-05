@@ -667,7 +667,7 @@ class TransactionRealtimeController extends ChangeNotifier {
     }
   }
 
-  /// Update delivery status (Seller)
+  /// Update delivery status (Seller) - without photo (legacy)
   Future<bool> updateDeliveryStatus(DeliveryStatus status) async {
     if (_transaction == null || _currentUserId == null) return false;
 
@@ -687,6 +687,65 @@ class TransactionRealtimeController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to update delivery status';
+      debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Update delivery status with photo proof (Seller)
+  Future<bool> updateDeliveryStatusWithPhoto(
+    DeliveryStatus status,
+    File photo,
+  ) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.updateDeliveryStatusWithPhoto(
+        _transaction!.id,
+        _currentUserId!,
+        status,
+        photo,
+      );
+
+      if (success) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to update delivery status';
+      debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Upload buyer delivery confirmation photo
+  Future<bool> uploadBuyerDeliveryPhoto(File photo) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.uploadBuyerDeliveryPhoto(
+        _transaction!.id,
+        photo,
+      );
+
+      if (success) {
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to upload photo';
       debugPrint('[TransactionRealtimeController] Error: $e');
       return false;
     } finally {
