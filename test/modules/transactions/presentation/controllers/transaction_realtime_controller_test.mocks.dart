@@ -8,6 +8,8 @@ import 'dart:io' as _i5;
 
 import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_realtime_datasource.dart'
     as _i2;
+import 'package:autobid_mobile/modules/transactions/domain/entities/agreement_field_entity.dart'
+    as _i7;
 import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart'
     as _i4;
 import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_review_entity.dart'
@@ -332,6 +334,139 @@ class MockTransactionRealtimeDataSource extends _i1.Mock
   );
 
   @override
+  void subscribeToTimeline(String? transactionId) => super.noSuchMethod(
+    Invocation.method(#subscribeToTimeline, [transactionId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i3.Future<List<_i7.AgreementFieldEntity>> getAgreementFields(
+    String? transactionId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getAgreementFields, [transactionId]),
+            returnValue: _i3.Future<List<_i7.AgreementFieldEntity>>.value(
+              <_i7.AgreementFieldEntity>[],
+            ),
+          )
+          as _i3.Future<List<_i7.AgreementFieldEntity>>);
+
+  @override
+  _i3.Future<_i7.AgreementFieldEntity?> addAgreementField({
+    required String? transactionId,
+    required String? label,
+    String? value = '',
+    String? fieldType = 'text',
+    String? category = 'general',
+    String? options,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#addAgreementField, [], {
+              #transactionId: transactionId,
+              #label: label,
+              #value: value,
+              #fieldType: fieldType,
+              #category: category,
+              #options: options,
+            }),
+            returnValue: _i3.Future<_i7.AgreementFieldEntity?>.value(),
+          )
+          as _i3.Future<_i7.AgreementFieldEntity?>);
+
+  @override
+  _i3.Future<bool> updateAgreementField(String? fieldId, String? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateAgreementField, [fieldId, value]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> deleteAgreementField(String? fieldId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteAgreementField, [fieldId]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> lockAgreement(String? transactionId, _i4.FormRole? role) =>
+      (super.noSuchMethod(
+            Invocation.method(#lockAgreement, [transactionId, role]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> unlockAgreement(String? transactionId, _i4.FormRole? role) =>
+      (super.noSuchMethod(
+            Invocation.method(#unlockAgreement, [transactionId, role]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> confirmAgreement(
+    String? transactionId,
+    _i4.FormRole? role,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#confirmAgreement, [transactionId, role]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> withdrawAgreementConfirmation(
+    String? transactionId,
+    _i4.FormRole? role,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#withdrawAgreementConfirmation, [
+              transactionId,
+              role,
+            ]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> finalizeTransaction(String? transactionId) =>
+      (super.noSuchMethod(
+            Invocation.method(#finalizeTransaction, [transactionId]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> agreeToSkipGracePeriod(
+    String? transactionId,
+    _i4.FormRole? role,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#agreeToSkipGracePeriod, [transactionId, role]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> withdrawSkipGracePeriod(
+    String? transactionId,
+    _i4.FormRole? role,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#withdrawSkipGracePeriod, [transactionId, role]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  void subscribeToAgreementFields(String? transactionId) => super.noSuchMethod(
+    Invocation.method(#subscribeToAgreementFields, [transactionId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   void unsubscribeDetailChannels() => super.noSuchMethod(
     Invocation.method(#unsubscribeDetailChannels, []),
     returnValueForMissingStub: null,
@@ -342,4 +477,13 @@ class MockTransactionRealtimeDataSource extends _i1.Mock
     Invocation.method(#dispose, []),
     returnValueForMissingStub: null,
   );
+
+  @override
+  _i3.Future<void> updatePaymentMethod(String? transactionId, String? method) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePaymentMethod, [transactionId, method]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 }
