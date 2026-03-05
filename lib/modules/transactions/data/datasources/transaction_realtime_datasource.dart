@@ -290,6 +290,10 @@ class TransactionRealtimeDataSource {
           data['seller_agreed_to_skip_grace_period'] as bool? ?? false,
       buyerAgreedToSkipGracePeriod:
           data['buyer_agreed_to_skip_grace_period'] as bool? ?? false,
+      sellerPrepPhotoUrl: data['seller_prep_photo_url'] as String?,
+      sellerTransitPhotoUrl: data['seller_transit_photo_url'] as String?,
+      sellerDeliveryPhotoUrl: data['seller_delivery_photo_url'] as String?,
+      buyerDeliveryPhotoUrl: data['buyer_delivery_photo_url'] as String?,
     );
   }
 
@@ -1776,6 +1780,134 @@ class TransactionRealtimeDataSource {
       debugPrint('[TransactionRealtimeDataSource] Error uploading photos: $e');
     }
     return urls;
+  }
+
+  /// Upload a checklist photo proof and return the public URL
+  Future<String?> uploadChecklistPhoto(
+    String transactionId,
+    File photo,
+    String stepKey,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return null;
+
+      final ext = photo.path.split('.').last;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final path = 'checklist/$txnId/${stepKey}_$timestamp.$ext';
+
+      await _supabase.storage
+          .from('auction-images')
+          .upload(path, photo, fileOptions: const FileOptions(upsert: true));
+
+      final url = _supabase.storage.from('auction-images').getPublicUrl(path);
+
+      // Update the corresponding column
+      final colMap = {
+        'seller_prep': 'seller_prep_photo_url',
+        'seller_transit': 'seller_transit_photo_url',
+        'seller_delivery': 'seller_delivery_photo_url',
+        'buyer_delivery': 'buyer_delivery_photo_url',
+      };
+
+      final col = colMap[stepKey];
+      if (col != null) {
+        await _supabase
+            .from('auction_transactions')
+            .update({col: url, 'updated_at': DateTime.now().toIso8601String()})
+            .eq('id', txnId);
+      }
+
+      return url;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error uploading checklist photo: $e');
+      return null;
+    }
+  }
+
+  /// Update delivery status with required photo proof (Seller only)
+  Future<bool> updateDeliveryStatusWithPhoto(
+    String transactionId,
+    String sellerId,
+    DeliveryStatus status,
+    File photo,
+  ) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      if (txnId == null) return false;
+
+      // Determine the step key for the photo
+      String stepKey;
+      switch (status) {
+        case DeliveryStatus.preparing:
+          stepKey = 'seller_prep';
+          break;
+        case DeliveryStatus.inTransit:
+          stepKey = 'seller_transit';
+          break;
+        case DeliveryStatus.delivered:
+          stepKey = 'seller_delivery';
+          break;
+        default:
+          return false;
+      }
+
+      // Upload the photo first
+      final photoUrl = await uploadChecklistPhoto(
+        transactionId,
+        photo,
+        stepKey,
+      );
+      if (photoUrl == null) return false;
+
+      // Then update delivery status via RPC
+      String statusStr;
+      switch (status) {
+        case DeliveryStatus.preparing:
+          statusStr = 'preparing';
+          break;
+        case DeliveryStatus.inTransit:
+          statusStr = 'in_transit';
+          break;
+        case DeliveryStatus.delivered:
+          statusStr = 'delivered';
+          break;
+        default:
+          return false;
+      }
+
+      final response = await _supabase.rpc(
+        'update_delivery_status',
+        params: {
+          'p_transaction_id': txnId,
+          'p_seller_id': sellerId,
+          'p_delivery_status': statusStr,
+        },
+      );
+
+      return response['success'] == true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error updating delivery with photo: $e');
+      return false;
+    }
+  }
+
+  /// Upload buyer delivery confirmation photo
+  Future<bool> uploadBuyerDeliveryPhoto(
+    String transactionId,
+    File photo,
+  ) async {
+    try {
+      final url = await uploadChecklistPhoto(
+        transactionId,
+        photo,
+        'buyer_delivery',
+      );
+      return url != null;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error uploading buyer delivery photo: $e');
+      return false;
+    }
   }
 
   // ============================================================================
