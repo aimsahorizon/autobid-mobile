@@ -496,34 +496,43 @@ class _SellerFormTabState extends State<SellerFormTab> {
     ValueChanged<bool?> onChanged,
     bool disabled,
   ) {
-    return CheckboxListTile(
-      value: value,
-      onChanged: disabled ? null : onChanged,
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return CheckboxListTile(
+          value: value,
+          onChanged: disabled ? null : (v) {
+            onChanged(v);
+            setState(() {
+              value = v ?? false;
+            });
+          },
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: ColorConstants.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Required',
+                  style: TextStyle(fontSize: 10, color: ColorConstants.error),
+                ),
+              ),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: ColorConstants.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              'Required',
-              style: TextStyle(fontSize: 10, color: ColorConstants.error),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      controlAffinity: ListTileControlAffinity.leading,
-      contentPadding: EdgeInsets.zero,
-      activeColor: ColorConstants.success,
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+          activeColor: ColorConstants.success,
+        );
+      }
     );
   }
 
@@ -534,14 +543,23 @@ class _SellerFormTabState extends State<SellerFormTab> {
     ValueChanged<bool?> onChanged,
     bool disabled,
   ) {
-    return CheckboxListTile(
-      value: value,
-      onChanged: disabled ? null : onChanged,
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      controlAffinity: ListTileControlAffinity.leading,
-      contentPadding: EdgeInsets.zero,
-      activeColor: ColorConstants.success,
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return CheckboxListTile(
+          value: value,
+          onChanged: disabled ? null : (v) {
+            onChanged(v);
+            setState(() {
+              value = v ?? false;
+            });
+          },
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+          activeColor: ColorConstants.success,
+        );
+      }
     );
   }
 }

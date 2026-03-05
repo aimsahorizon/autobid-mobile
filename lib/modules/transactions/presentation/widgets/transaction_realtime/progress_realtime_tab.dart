@@ -31,7 +31,7 @@ class ProgressRealtimeTab extends StatelessWidget {
         final isBuyer =
             userId != null && controller.getUserRole(userId!) == FormRole.buyer;
 
-        // Check if deal can be cancelled (not yet admin approved and not already failed/cancelled)
+        // Check if deal can be cancelled (not yet finalized and not already failed/cancelled)
         // Both buyer and seller can cancel
         final canCancelDeal =
             !transaction.adminApproved &&
@@ -62,11 +62,71 @@ class ProgressRealtimeTab extends StatelessWidget {
                       color: ColorConstants.warning.withValues(alpha: 0.3),
                     ),
                   ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.timer,
+                            color: ColorConstants.warning,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Finalizing in ${controller.secondsRemaining}s',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: ColorConstants.warning,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Both parties confirmed. Either may withdraw during this grace period.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: ColorConstants.warning.withValues(
+                                      alpha: 0.8,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Skip grace period section
+                      if (!transaction.bothAgreedToSkipGracePeriod) ...[
+                        const SizedBox(height: 12),
+                        _buildSkipGracePeriodSection(transaction),
+                      ],
+                    ],
+                  ),
+                ),
+
+              // Skip countdown (5 seconds) when both agree
+              if (controller.skipCountdownSeconds != null &&
+                  transaction.bothAgreedToSkipGracePeriod &&
+                  !transaction.adminApproved)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: ColorConstants.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: ColorConstants.success.withValues(alpha: 0.3),
+                    ),
+                  ),
                   child: Row(
                     children: [
                       Icon(
-                        Icons.timer,
-                        color: ColorConstants.warning,
+                        Icons.fast_forward,
+                        color: ColorConstants.success,
                         size: 28,
                       ),
                       const SizedBox(width: 12),
@@ -75,19 +135,19 @@ class ProgressRealtimeTab extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Finalizing in ${controller.secondsRemaining}s',
+                              'Skipping in ${controller.skipCountdownSeconds}s',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: ColorConstants.warning,
+                                color: ColorConstants.success,
                                 fontSize: 16,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Both parties confirmed. Either may withdraw during this grace period.',
+                              'Both parties agreed to skip the grace period.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: ColorConstants.warning.withValues(
+                                color: ColorConstants.success.withValues(
                                   alpha: 0.8,
                                 ),
                               ),
@@ -105,7 +165,7 @@ class ProgressRealtimeTab extends StatelessWidget {
                 const SizedBox(height: 24),
               ],
 
-              // Progress Steps
+              // Progress Steps (admin approval removed - shows finalized status)
               _buildProgressSteps(transaction, isDark),
 
               // Cancel Deal Button (for both parties)
@@ -523,6 +583,65 @@ class ProgressRealtimeTab extends StatelessWidget {
               ),
           ],
         ),
+      ],
+    );
+  }
+
+  Widget _buildSkipGracePeriodSection(TransactionEntity transaction) {
+    final myRole = userId != null
+        ? controller.getUserRole(userId!)
+        : FormRole.buyer;
+    final myAgreed = myRole == FormRole.seller
+        ? transaction.sellerAgreedToSkipGracePeriod
+        : transaction.buyerAgreedToSkipGracePeriod;
+    final otherAgreed = myRole == FormRole.seller
+        ? transaction.buyerAgreedToSkipGracePeriod
+        : transaction.sellerAgreedToSkipGracePeriod;
+
+    return Column(
+      children: [
+        const Divider(height: 1),
+        const SizedBox(height: 8),
+        if (!myAgreed)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: controller.isProcessing
+                  ? null
+                  : () => controller.agreeToSkipGracePeriod(),
+              icon: const Icon(Icons.fast_forward, size: 18),
+              label: const Text('Skip Grace Period'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColorConstants.warning,
+                side: BorderSide(color: ColorConstants.warning),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+              ),
+            ),
+          )
+        else
+          Row(
+            children: [
+              Icon(Icons.check_circle, color: ColorConstants.success, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                'You agreed to skip',
+                style: TextStyle(
+                  color: ColorConstants.success,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Spacer(),
+              if (!otherAgreed)
+                Text(
+                  'Waiting for other party...',
+                  style: TextStyle(
+                    color: ColorConstants.warning.withValues(alpha: 0.7),
+                    fontSize: 12,
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }

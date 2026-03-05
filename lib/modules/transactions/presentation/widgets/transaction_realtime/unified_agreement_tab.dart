@@ -600,10 +600,10 @@ class _AgreementFieldTileState extends State<_AgreementFieldTile> {
       style: const TextStyle(fontSize: 14),
       decoration: InputDecoration(
         labelText: widget.field.label,
-        labelStyle: const TextStyle(fontSize: 13),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-        border: widget.readOnly ? InputBorder.none : null,
+        labelStyle: const TextStyle(fontSize: 14),
+        isDense: false,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        border: widget.readOnly ? InputBorder.none : const OutlineInputBorder(),
       ),
       onChanged: widget.readOnly ? null : _onTextChanged,
       onSubmitted: widget.readOnly ? null : (v) => widget.onChanged(v),
@@ -677,10 +677,10 @@ class _AgreementFieldTileState extends State<_AgreementFieldTile> {
       initialValue: currentValue,
       decoration: InputDecoration(
         labelText: widget.field.label,
-        labelStyle: const TextStyle(fontSize: 13),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-        border: widget.readOnly ? InputBorder.none : null,
+        labelStyle: const TextStyle(fontSize: 14),
+        isDense: false,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        border: widget.readOnly ? InputBorder.none : const OutlineInputBorder(),
       ),
       items: options
           .map(
@@ -1416,10 +1416,12 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
   int _installments = 3;
   String _frequency = 'monthly';
   bool _planSaved = false;
+  late bool _localIsInstallment;
 
   @override
   void initState() {
     super.initState();
+    _localIsInstallment = widget.isInstallment;
     _totalCtrl = TextEditingController(
       text: widget.agreedPrice > 0 ? widget.agreedPrice.toStringAsFixed(0) : '',
     );
@@ -1448,6 +1450,14 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
               });
             }
           });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _InstallmentToggle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isInstallment != widget.isInstallment) {
+      _localIsInstallment = widget.isInstallment;
     }
   }
 
@@ -1519,10 +1529,13 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                 ),
               ),
               Switch.adaptive(
-                value: widget.isInstallment,
+                value: _localIsInstallment,
                 onChanged: widget.readOnly
                     ? null
-                    : (v) => widget.controller.toggleInstallment(v),
+                    : (v) {
+                        setState(() => _localIsInstallment = v);
+                        widget.controller.toggleInstallment(v);
+                      },
                 activeColor: Colors.green,
               ),
             ],
@@ -1629,7 +1642,8 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
               decoration: const InputDecoration(
                 labelText: 'Total Amount (₱)',
                 border: OutlineInputBorder(),
-                isDense: true,
+                isDense: false,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               ),
             ),
             const SizedBox(height: 8),
@@ -1642,7 +1656,8 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
               decoration: const InputDecoration(
                 labelText: 'Down Payment (₱)',
                 border: OutlineInputBorder(),
-                isDense: true,
+                isDense: false,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               ),
             ),
             const SizedBox(height: 8),
@@ -1657,7 +1672,8 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                     decoration: const InputDecoration(
                       labelText: 'Gives',
                       border: OutlineInputBorder(),
-                      isDense: true,
+                      isDense: false,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
                     items: [2, 3, 4, 6, 9, 12, 18, 24]
                         .map(
@@ -1675,7 +1691,8 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                     decoration: const InputDecoration(
                       labelText: 'Frequency',
                       border: OutlineInputBorder(),
-                      isDense: true,
+                      isDense: false,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                     ),
                     items: const [
                       DropdownMenuItem(value: 'weekly', child: Text('Weekly')),

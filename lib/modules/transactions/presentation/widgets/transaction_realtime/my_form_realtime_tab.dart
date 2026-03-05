@@ -385,13 +385,22 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
     ValueChanged<bool?> onChanged,
     bool isDisabled,
   ) {
-    return CheckboxListTile(
-      value: value,
-      onChanged: isDisabled ? null : onChanged,
-      title: Text(label),
-      controlAffinity: ListTileControlAffinity.leading,
-      contentPadding: EdgeInsets.zero,
-      dense: true,
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return CheckboxListTile(
+          value: value,
+          onChanged: isDisabled ? null : (v) {
+            onChanged(v);
+            setState(() {
+              value = v ?? false;
+            });
+          },
+          title: Text(label),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+        );
+      }
     );
   }
 }
