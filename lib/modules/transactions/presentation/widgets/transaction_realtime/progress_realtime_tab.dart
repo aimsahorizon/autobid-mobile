@@ -3,14 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/transaction_realtime_controller.dart';
+import '../../controllers/installment_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
 /// Progress tab - shows transaction timeline and status
 class ProgressRealtimeTab extends StatelessWidget {
   final TransactionRealtimeController controller;
   final String? userId;
+  final InstallmentController? installmentController;
 
-  const ProgressRealtimeTab({super.key, required this.controller, this.userId});
+  const ProgressRealtimeTab({
+    super.key,
+    required this.controller,
+    this.userId,
+    this.installmentController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -209,10 +216,17 @@ class ProgressRealtimeTab extends StatelessWidget {
                   ),
                 ),
 
-              // Review Section (Visible only when delivery status is completed in the tracker)
-              if (transaction.deliveryStatus == DeliveryStatus.completed) ...[
+              // Review Section — only when fully complete
+              // If installments exist, wait until they're completed too
+              if (transaction.deliveryStatus == DeliveryStatus.completed &&
+                  _isFullyComplete(transaction)) ...[
                 const SizedBox(height: 32),
                 _buildReviewSection(context, transaction, isDark),
+              ] else if (transaction.deliveryStatus ==
+                      DeliveryStatus.completed &&
+                  !_isFullyComplete(transaction)) ...[
+                const SizedBox(height: 32),
+                _buildReviewPendingInstallmentBanner(isDark),
               ],
 
               const SizedBox(height: 32),
@@ -473,6 +487,55 @@ class ProgressRealtimeTab extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// Check if the transaction is fully complete (delivery done + installments done if applicable)
+  bool _isFullyComplete(TransactionEntity transaction) {
+    if (!transaction.isInstallment) return true;
+    // If installment controller is available, check completion
+    if (installmentController != null) {
+      return installmentController!.isCompleted;
+    }
+    // No controller means no installment data loaded — assume incomplete
+    return false;
+  }
+
+  Widget _buildReviewPendingInstallmentBanner(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.hourglass_top, color: Colors.orange, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Review available after gives are completed',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Complete all gives payments to unlock the review section.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
