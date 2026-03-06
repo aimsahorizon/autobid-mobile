@@ -136,11 +136,15 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
 
   Widget _buildPlanView(InstallmentPlanEntity plan, bool isDark) {
     final payments = widget.controller.payments;
+    // Compute effective confirmed status: agreement confirmed AND plan confirmed
+    // Use plan.bothConfirmedPlan reactively (inside ListenableBuilder) instead of
+    // relying solely on the static widget.bothConfirmed passed from parent.
+    final effectiveConfirmed = widget.bothConfirmed || plan.bothConfirmedPlan;
 
     return Column(
       children: [
         // Agreement gate banner
-        if (!widget.bothConfirmed)
+        if (!effectiveConfirmed)
           Container(
             margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             padding: const EdgeInsets.all(12),
@@ -179,9 +183,9 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                 ),
         ),
 
-        // Buyer FAB area — blocked until agreement confirmed
+        // Buyer FAB area — blocked until both confirmed
         if (isBuyer &&
-            widget.bothConfirmed &&
+            effectiveConfirmed &&
             widget.controller.nextPendingPayment != null)
           _buildBuyerActionBar(isDark),
 

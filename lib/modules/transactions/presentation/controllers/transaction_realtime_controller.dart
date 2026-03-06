@@ -718,8 +718,10 @@ class TransactionRealtimeController extends ChangeNotifier {
       }
       return success;
     } catch (e) {
-      _errorMessage = 'Failed to update delivery status';
-      debugPrint('[TransactionRealtimeController] Error: $e');
+      _errorMessage = 'Failed to update delivery: $e';
+      debugPrint(
+        '[TransactionRealtimeController] Error updating delivery with photo: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
