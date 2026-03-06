@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/installment_plan_model.dart';
 import '../models/installment_payment_model.dart';
+import '../models/payment_attempt_model.dart';
 import '../../domain/entities/installment_plan_entity.dart';
 import '../../domain/entities/installment_payment_entity.dart';
+import '../../domain/entities/payment_attempt_entity.dart';
 
 /// Datasource for managing installment plans and payments via Supabase
 class InstallmentSupabaseDatasource {
@@ -297,11 +299,29 @@ class InstallmentSupabaseDatasource {
     try {
       String? proofUrl;
 
-      // Upload proof image if provided
+      // Upload proof image if provided (unique path per attempt)
       if (proofImagePath != null) {
         proofUrl = await _uploadProofImage(proofImagePath, paymentId);
       }
 
+      // Count existing attempts to determine attempt number
+      final existing = await _supabase
+          .from('installment_payment_attempts')
+          .select('id')
+          .eq('payment_id', paymentId);
+      final attemptNumber = (existing as List).length + 1;
+
+      // Record the attempt
+      await _supabase.from('installment_payment_attempts').insert({
+        'payment_id': paymentId,
+        'attempt_number': attemptNumber,
+        'amount': amount,
+        'proof_image_url': proofUrl,
+        'status': 'submitted',
+        'submitted_by': _supabase.auth.currentUser?.id,
+      });
+
+      // Update the main payment row — clear stale rejection_reason
       await _supabase
           .from('installment_payments')
           .update({
@@ -309,6 +329,7 @@ class InstallmentSupabaseDatasource {
             'status': 'submitted',
             'paid_date': DateTime.now().toIso8601String(),
             'proof_image_url': proofUrl,
+            'rejection_reason': null,
             'submitted_by': _supabase.auth.currentUser?.id,
             'updated_at': DateTime.now().toIso8601String(),
           })
@@ -322,11 +343,35 @@ class InstallmentSupabaseDatasource {
   /// Seller confirms a payment
   Future<void> confirmPayment(String paymentId) async {
     try {
+      final userId = _supabase.auth.currentUser?.id;
+
+      // Mark the latest attempt as confirmed
+      final attempts = await _supabase
+          .from('installment_payment_attempts')
+          .select()
+          .eq('payment_id', paymentId)
+          .eq('status', 'submitted')
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if ((attempts as List).isNotEmpty) {
+        await _supabase
+            .from('installment_payment_attempts')
+            .update({
+              'status': 'confirmed',
+              'acted_by': userId,
+              'acted_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', attempts.first['id']);
+      }
+
+      // Update the main payment row — clear rejection_reason
       await _supabase
           .from('installment_payments')
           .update({
             'status': 'confirmed',
-            'confirmed_by': _supabase.auth.currentUser?.id,
+            'rejection_reason': null,
+            'confirmed_by': userId,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', paymentId);
@@ -339,12 +384,35 @@ class InstallmentSupabaseDatasource {
   /// Seller rejects a payment
   Future<void> rejectPayment(String paymentId, String reason) async {
     try {
+      final userId = _supabase.auth.currentUser?.id;
+
+      // Mark the latest attempt as rejected
+      final attempts = await _supabase
+          .from('installment_payment_attempts')
+          .select()
+          .eq('payment_id', paymentId)
+          .eq('status', 'submitted')
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if ((attempts as List).isNotEmpty) {
+        await _supabase
+            .from('installment_payment_attempts')
+            .update({
+              'status': 'rejected',
+              'rejection_reason': reason,
+              'acted_by': userId,
+              'acted_at': DateTime.now().toIso8601String(),
+            })
+            .eq('id', attempts.first['id']);
+      }
+
       await _supabase
           .from('installment_payments')
           .update({
             'status': 'rejected',
             'rejection_reason': reason,
-            'confirmed_by': _supabase.auth.currentUser?.id,
+            'confirmed_by': userId,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', paymentId);
@@ -354,17 +422,43 @@ class InstallmentSupabaseDatasource {
     }
   }
 
+  /// Get payment attempts for a specific payment
+  Future<List<PaymentAttemptEntity>> getPaymentAttempts(
+    String paymentId,
+  ) async {
+    try {
+      final data = await _supabase
+          .from('installment_payment_attempts')
+          .select()
+          .eq('payment_id', paymentId)
+          .order('attempt_number', ascending: true);
+
+      return (data as List)
+          .map(
+            (json) => PaymentAttemptModel.fromJson(
+              json as Map<String, dynamic>,
+            ).toEntity(),
+          )
+          .toList();
+    } catch (e) {
+      debugPrint('[InstallmentDatasource] Error fetching attempts: $e');
+      return [];
+    }
+  }
+
   // =========================================================================
   // Image Upload
   // =========================================================================
 
   /// Upload proof of payment image to Supabase storage
   /// Returns a signed URL (private bucket) valid for 365 days
+  /// Uses timestamp in path to preserve previous uploads
   Future<String> _uploadProofImage(String filePath, String paymentId) async {
     final file = File(filePath);
     final ext = filePath.split('.').last;
     final userId = _supabase.auth.currentUser?.id ?? 'unknown';
-    final storagePath = '$userId/$paymentId.$ext';
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final storagePath = '$userId/${paymentId}_$timestamp.$ext';
 
     await _supabase.storage
         .from('payment-proofs')
