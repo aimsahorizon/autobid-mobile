@@ -369,7 +369,12 @@ class _PreTransactionRealtimePageState
                           transactionId: transaction.id,
                           userId: widget.userId,
                           userRole: userRole,
-                          bothConfirmed: transaction.bothConfirmed,
+                          bothConfirmed:
+                              transaction.bothConfirmed &&
+                              (_getInstallmentController()
+                                      .plan
+                                      ?.bothConfirmedPlan ??
+                                  false),
                         ),
                     ],
                   ),
