@@ -5,6 +5,7 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../domain/entities/installment_plan_entity.dart';
 import '../../../domain/entities/installment_payment_entity.dart';
+import '../../../domain/entities/payment_attempt_entity.dart';
 import '../../controllers/installment_controller.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
@@ -449,8 +450,9 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
               ],
             ),
 
-            // Rejection reason
-            if (payment.rejectionReason != null &&
+            // Rejection reason — only show when currently rejected
+            if (payment.status == InstallmentPaymentStatus.rejected &&
+                payment.rejectionReason != null &&
                 payment.rejectionReason!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
@@ -477,17 +479,61 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
             // Proof image preview
             if (payment.proofImageUrl != null) ...[
               const SizedBox(height: 8),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => _showProofImage(payment.proofImageUrl!),
+                    child: Row(
+                      children: [
+                        Icon(Icons.image, size: 16, color: Colors.blue),
+                        const SizedBox(width: 4),
+                        Text(
+                          'View proof of payment',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  // History link for non-pending payments
+                  if (payment.status != InstallmentPaymentStatus.pending)
+                    GestureDetector(
+                      onTap: () => _showAttemptHistory(payment),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.history, size: 14, color: Colors.grey),
+                          const SizedBox(width: 2),
+                          Text(
+                            'History',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ] else if (payment.status != InstallmentPaymentStatus.pending) ...[
+              const SizedBox(height: 8),
               GestureDetector(
-                onTap: () => _showProofImage(payment.proofImageUrl!),
+                onTap: () => _showAttemptHistory(payment),
                 child: Row(
                   children: [
-                    Icon(Icons.image, size: 16, color: Colors.blue),
+                    Icon(Icons.history, size: 14, color: Colors.grey),
                     const SizedBox(width: 4),
                     Text(
-                      'View proof of payment',
+                      'View submission history',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue,
+                        fontSize: 11,
+                        color: Colors.grey,
                         decoration: TextDecoration.underline,
                       ),
                     ),
@@ -729,6 +775,152 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
     if (confirmed == true) {
       widget.controller.confirmPayment(payment.id);
     }
+  }
+
+  void _showAttemptHistory(InstallmentPaymentEntity payment) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          maxChildSize: 0.85,
+          minChildSize: 0.3,
+          expand: false,
+          builder: (_, scrollController) {
+            return FutureBuilder<List<PaymentAttemptEntity>>(
+              future: widget.controller.getPaymentAttempts(payment.id),
+              builder: (context, snapshot) {
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        'Payment #${payment.paymentNumber} — History',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    if (snapshot.connectionState == ConnectionState.waiting)
+                      const Expanded(
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (snapshot.hasError ||
+                        !snapshot.hasData ||
+                        snapshot.data!.isEmpty)
+                      const Expanded(
+                        child: Center(child: Text('No submission history')),
+                      )
+                    else
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          padding: const EdgeInsets.all(12),
+                          itemCount: snapshot.data!.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (_, i) {
+                            final attempt = snapshot.data![i];
+                            return _buildAttemptTile(attempt);
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAttemptTile(PaymentAttemptEntity attempt) {
+    final statusColor = switch (attempt.status) {
+      PaymentAttemptStatus.submitted => Colors.orange,
+      PaymentAttemptStatus.confirmed => Colors.green,
+      PaymentAttemptStatus.rejected => Colors.red,
+    };
+    final statusIcon = switch (attempt.status) {
+      PaymentAttemptStatus.submitted => Icons.hourglass_top,
+      PaymentAttemptStatus.confirmed => Icons.check_circle,
+      PaymentAttemptStatus.rejected => Icons.cancel,
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(8),
+        color: statusColor.withValues(alpha: 0.04),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(statusIcon, size: 16, color: statusColor),
+              const SizedBox(width: 6),
+              Text(
+                'Attempt #${attempt.attemptNumber}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: statusColor,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                attempt.status.label,
+                style: TextStyle(fontSize: 11, color: statusColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Amount: RM ${attempt.amount.toStringAsFixed(2)}',
+            style: const TextStyle(fontSize: 12),
+          ),
+          if (attempt.createdAt != null)
+            Text(
+              'Submitted: ${_formatDateTime(attempt.createdAt!)}',
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          if (attempt.rejectionReason != null &&
+              attempt.rejectionReason!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Reason: ${attempt.rejectionReason}',
+              style: const TextStyle(fontSize: 12, color: Colors.red),
+            ),
+          ],
+          if (attempt.proofImageUrl != null) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => _showProofImage(attempt.proofImageUrl!),
+              child: const Text(
+                'View proof',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    return '${dt.day}/${dt.month}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   void _showProofImage(String url) {
