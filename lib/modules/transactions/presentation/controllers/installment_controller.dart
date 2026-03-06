@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../data/datasources/installment_supabase_datasource.dart';
 import '../../domain/entities/installment_plan_entity.dart';
 import '../../domain/entities/installment_payment_entity.dart';
+import '../../domain/entities/payment_attempt_entity.dart';
 
 /// Controller for managing installment plan state and operations
 class InstallmentController extends ChangeNotifier {
@@ -280,6 +281,18 @@ class InstallmentController extends ChangeNotifier {
     } finally {
       _isProcessing = false;
       notifyListeners();
+    }
+  }
+
+  /// Get payment attempt history for a specific payment
+  Future<List<PaymentAttemptEntity>> getPaymentAttempts(
+    String paymentId,
+  ) async {
+    try {
+      return await _datasource.getPaymentAttempts(paymentId);
+    } catch (e) {
+      debugPrint('[InstallmentController] Error fetching attempts: $e');
+      return [];
     }
   }
 
