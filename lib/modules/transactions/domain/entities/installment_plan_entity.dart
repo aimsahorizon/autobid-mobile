@@ -10,6 +10,9 @@ class InstallmentPlanEntity {
   final String frequency; // weekly, bi-weekly, monthly, no_schedule
   final DateTime startDate;
   final InstallmentPlanStatus status;
+  final bool buyerConfirmedPlan;
+  final bool sellerConfirmedPlan;
+  final String? proposedBy;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -24,9 +27,18 @@ class InstallmentPlanEntity {
     this.frequency = 'monthly',
     required this.startDate,
     this.status = InstallmentPlanStatus.active,
+    this.buyerConfirmedPlan = false,
+    this.sellerConfirmedPlan = false,
+    this.proposedBy,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// Whether both parties have confirmed this plan
+  bool get bothConfirmedPlan => buyerConfirmedPlan && sellerConfirmedPlan;
+
+  /// Whether the plan is still a draft (not yet mutually confirmed)
+  bool get isDraft => !bothConfirmedPlan;
 
   /// Progress percentage (0.0 - 1.0)
   double get progress =>
@@ -46,6 +58,9 @@ class InstallmentPlanEntity {
     String? frequency,
     DateTime? startDate,
     InstallmentPlanStatus? status,
+    bool? buyerConfirmedPlan,
+    bool? sellerConfirmedPlan,
+    String? proposedBy,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -60,6 +75,9 @@ class InstallmentPlanEntity {
       frequency: frequency ?? this.frequency,
       startDate: startDate ?? this.startDate,
       status: status ?? this.status,
+      buyerConfirmedPlan: buyerConfirmedPlan ?? this.buyerConfirmedPlan,
+      sellerConfirmedPlan: sellerConfirmedPlan ?? this.sellerConfirmedPlan,
+      proposedBy: proposedBy ?? this.proposedBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
