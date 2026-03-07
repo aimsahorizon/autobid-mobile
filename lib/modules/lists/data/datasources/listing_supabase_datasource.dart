@@ -47,6 +47,7 @@ class ListingSupabaseDataSource {
           .from('listing_drafts')
           .select()
           .eq('seller_id', sellerId)
+          .eq('is_complete', false)
           .isFilter('deleted_at', null)
           .order('last_saved', ascending: false);
 
@@ -146,6 +147,7 @@ class ListingSupabaseDataSource {
         minBidIncrement: draft.minBidIncrement,
         depositAmount: draft.depositAmount,
         enableIncrementalBidding: draft.enableIncrementalBidding,
+        autoLiveAfterApproval: draft.autoLiveAfterApproval,
       );
 
       await _supabase
@@ -228,12 +230,14 @@ class ListingSupabaseDataSource {
       // Pre-check: prevent duplicate car (by plate_number) across statuses
       final draftRow = await _supabase
           .from('listing_drafts')
-          .select('seller_id, plate_number')
+          .select('seller_id, plate_number, auto_live_after_approval')
           .eq('id', draftId)
           .single();
 
       final sellerId = draftRow['seller_id'] as String?;
       final plateNumber = draftRow['plate_number'] as String?;
+      final autoLiveAfterApproval =
+          draftRow['auto_live_after_approval'] as bool? ?? false;
 
       if (sellerId != null && plateNumber != null && plateNumber.isNotEmpty) {
         await _ensureUniquePlate(sellerId, plateNumber);
@@ -250,6 +254,17 @@ class ListingSupabaseDataSource {
       if (result['success'] == true) {
         final auctionId = result['auction_id'] as String;
         await _syncSelectedPrimaryPhoto(draftId: draftId, auctionId: auctionId);
+
+        await _supabase
+            .from('auctions')
+            .update({'auto_live_after_approval': autoLiveAfterApproval})
+            .eq('id', auctionId);
+
+        await _supabase
+            .from('listing_drafts')
+            .update({'deleted_at': DateTime.now().toIso8601String()})
+            .eq('id', draftId);
+
         return auctionId; // Returns new auction ID
       } else {
         throw Exception(result['error'] ?? 'Failed to submit listing');
@@ -285,7 +300,9 @@ class ListingSupabaseDataSource {
           .eq('auction_statuses.status_name', status)
           .order('created_at', ascending: false);
 
-      return (response as List).map((json) {
+      final hydratedRows = await _applyAccurateBidCounts(response as List);
+
+      return hydratedRows.map((json) {
         // Ensure status is correctly set based on the query filter
         if (json['auction_statuses'] == null) {
           json['auction_statuses'] = {'status_name': status};
@@ -367,7 +384,9 @@ class ListingSupabaseDataSource {
           .eq('auction_statuses.status_name', 'pending_approval')
           .order('created_at', ascending: false);
 
-      return (response as List)
+      final hydratedRows = await _applyAccurateBidCounts(response as List);
+
+      return hydratedRows
           .map((json) => _mergeAuctionWithVehicleData(json))
           .toList();
     } on PostgrestException catch (e) {
@@ -394,7 +413,9 @@ class ListingSupabaseDataSource {
           .eq('status_id', approvedStatusId)
           .order('updated_at', ascending: false);
 
-      return (response as List)
+      final hydratedRows = await _applyAccurateBidCounts(response as List);
+
+      return hydratedRows
           .map((json) => _mergeAuctionWithVehicleData(json))
           .toList();
     } on PostgrestException catch (e) {
@@ -455,11 +476,18 @@ class ListingSupabaseDataSource {
           .eq('status_id', scheduledStatusId)
           .lte('start_time', now);
 
-      final liveList = (liveResponse as List)
+      final hydratedLiveRows = await _applyAccurateBidCounts(
+        liveResponse as List,
+      );
+      final hydratedDueRows = await _applyAccurateBidCounts(
+        dueScheduledResponse as List,
+      );
+
+      final liveList = hydratedLiveRows
           .map((json) => _mergeAuctionWithVehicleData(json))
           .toList();
 
-      final dueList = (dueScheduledResponse as List)
+      final dueList = hydratedDueRows
           .map((json) => _mergeAuctionWithVehicleData(json))
           .toList();
 
@@ -521,7 +549,9 @@ class ListingSupabaseDataSource {
           .eq('status_id', scheduledStatusId)
           .order('start_time', ascending: true);
 
-      return (response as List)
+      final hydratedRows = await _applyAccurateBidCounts(response as List);
+
+      return hydratedRows
           .map((json) => _mergeAuctionWithVehicleData(json))
           .toList();
     } on PostgrestException catch (e) {
@@ -548,7 +578,9 @@ class ListingSupabaseDataSource {
           .eq('status_id', endedStatusId)
           .order('end_time', ascending: false);
 
-      return (response as List).map((json) {
+      final hydratedRows = await _applyAccurateBidCounts(response as List);
+
+      return hydratedRows.map((json) {
         // Force status to 'ended'
         if (json['auction_statuses'] == null) {
           json['auction_statuses'] = {'status_name': 'ended'};
@@ -581,7 +613,9 @@ class ListingSupabaseDataSource {
           .eq('status_id', soldStatusId)
           .order('end_time', ascending: false);
 
-      return (response as List).map((json) {
+      final hydratedRows = await _applyAccurateBidCounts(response as List);
+
+      return hydratedRows.map((json) {
         // Force status to 'sold'
         if (json['auction_statuses'] == null) {
           json['auction_statuses'] = {'status_name': 'sold'};
@@ -616,7 +650,9 @@ class ListingSupabaseDataSource {
           .eq('status_id', cancelledStatusId)
           .order('created_at', ascending: false);
 
-      return (response as List).map((json) {
+      final hydratedRows = await _applyAccurateBidCounts(response as List);
+
+      return hydratedRows.map((json) {
         // Check if there's a failed transaction associated with this cancelled listing
         final transactionsData = json['auction_transactions'];
         List<dynamic> transactions = [];
@@ -1720,6 +1756,8 @@ class ListingSupabaseDataSource {
     mergedJson['province'] = mergedJson['province'] ?? '';
     mergedJson['city_municipality'] = mergedJson['city_municipality'] ?? '';
     mergedJson['description'] = mergedJson['description'] ?? '';
+    mergedJson['auto_live_after_approval'] =
+        mergedJson['auto_live_after_approval'] ?? false;
 
     // Ensure numeric fields
     mergedJson['mileage'] = mergedJson['mileage'] ?? 0;
@@ -1727,6 +1765,50 @@ class ListingSupabaseDataSource {
     mergedJson['has_warranty'] = mergedJson['has_warranty'] ?? false;
 
     return ListingModel.fromJson(mergedJson);
+  }
+
+  Future<List<Map<String, dynamic>>> _applyAccurateBidCounts(
+    List rawRows,
+  ) async {
+    final rows = rawRows
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+    if (rows.isEmpty) return rows;
+
+    final auctionIds = rows
+        .map((row) => row['id'] as String?)
+        .whereType<String>()
+        .toList();
+    if (auctionIds.isEmpty) return rows;
+
+    try {
+      final bids = await _supabase
+          .from('bids')
+          .select('auction_id')
+          .inFilter('auction_id', auctionIds);
+
+      final counts = <String, int>{};
+      for (final row in (bids as List)) {
+        if (row is Map<String, dynamic>) {
+          final auctionId = row['auction_id'] as String?;
+          if (auctionId != null && auctionId.isNotEmpty) {
+            counts[auctionId] = (counts[auctionId] ?? 0) + 1;
+          }
+        }
+      }
+
+      for (final row in rows) {
+        final auctionId = row['id'] as String?;
+        if (auctionId != null && auctionId.isNotEmpty) {
+          row['total_bids'] = counts[auctionId] ?? 0;
+        }
+      }
+    } catch (_) {
+      // Keep server-provided total_bids when bid count hydration fails.
+    }
+
+    return rows;
   }
 
   Future<void> _syncSelectedPrimaryPhoto({
