@@ -134,11 +134,26 @@ class _Step7PhotosState extends State<Step7Photos> {
       if (currentPhotos.containsKey(categoryKey) &&
           currentPhotos[categoryKey]!.isNotEmpty) {
         final updatedPhotoUrls = Map<String, List<String>>.from(currentPhotos);
+        final removedUrls = updatedPhotoUrls[categoryKey] ?? [];
         updatedPhotoUrls.remove(categoryKey);
+
+        // Reset cover photo if it was in the removed category
+        var updatedCover = widget.controller.currentDraft!.coverPhotoUrl;
+        if (updatedCover != null && removedUrls.contains(updatedCover)) {
+          // Find another cover from remaining photos
+          updatedCover = null;
+          for (final urls in updatedPhotoUrls.values) {
+            if (urls.isNotEmpty) {
+              updatedCover = urls.first;
+              break;
+            }
+          }
+        }
 
         widget.controller.updateDraft(
           widget.controller.currentDraft!.copyWith(
             photoUrls: updatedPhotoUrls,
+            coverPhotoUrl: updatedCover,
             lastSaved: DateTime.now(),
           ),
         );

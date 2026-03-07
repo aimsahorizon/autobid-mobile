@@ -4,11 +4,13 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 class ListingSuccessScreen extends StatelessWidget {
   final VoidCallback onCreateAnother;
   final VoidCallback onViewListing;
+  final VoidCallback onGoBack;
 
   const ListingSuccessScreen({
     super.key,
     required this.onCreateAnother,
     required this.onViewListing,
+    required this.onGoBack,
   });
 
   @override
@@ -128,6 +130,20 @@ class ListingSuccessScreen extends StatelessWidget {
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: onGoBack,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                    ),
+                    child: const Text(
+                      'Go Back',
+                      style: TextStyle(fontSize: 16),
                     ),
                   ),
                 ),
