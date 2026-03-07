@@ -46,7 +46,7 @@ class ListsController extends ChangeNotifier {
   // Selection state
   final Set<String> _selectedListingIds = {};
   bool _isSelectionMode = false;
-  
+
   // View state
   bool _showAll = false;
 
@@ -72,7 +72,7 @@ class ListsController extends ChangeNotifier {
     _listingsSubscription?.cancel();
     super.dispose();
   }
-  
+
   void toggleShowAll() {
     _showAll = !_showAll;
     notifyListeners();
@@ -207,7 +207,9 @@ class ListsController extends ChangeNotifier {
           }
         },
         (listingsMap) {
-          _listings = listingsMap;
+          _listings = listingsMap.map(
+            (status, items) => MapEntry(status, _dedupeByListingId(items)),
+          );
           _errorMessage = null;
         },
       );
@@ -243,6 +245,16 @@ class ListsController extends ChangeNotifier {
   void toggleViewMode() {
     _isGridView = !_isGridView;
     notifyListeners();
+  }
+
+  List<SellerListingEntity> _dedupeByListingId(
+    List<SellerListingEntity> items,
+  ) {
+    final map = <String, SellerListingEntity>{};
+    for (final item in items) {
+      map[item.id] = item;
+    }
+    return map.values.toList();
   }
 
   // ============================================================================
