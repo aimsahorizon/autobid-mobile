@@ -85,7 +85,7 @@ class ListingDraftEntity {
   final double? minBidIncrement; // Alias for bidIncrement for clarity
   final double? depositAmount; // Required deposit to bid
   final bool? enableIncrementalBidding; // Allow price-based increments
-  final bool? autoLiveAfterApproval; // Start immediately after admin approval
+  final bool? autoLiveAfterApproval; // Auto-launch after admin approval
 
   // Snipe Guard Configuration
   final bool? snipeGuardEnabled;
@@ -439,6 +439,7 @@ class ListingDraftEntity {
         return description != null &&
             description!.length >= 50 &&
             startingPrice != null &&
+            auctionEndDate != null &&
             bidIncrement != null &&
             depositAmount != null &&
             biddingType != null;
