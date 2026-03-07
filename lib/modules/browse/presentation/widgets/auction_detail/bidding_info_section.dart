@@ -365,16 +365,11 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
   }
 
   String _formatNumber(double number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return number
-          .toStringAsFixed(0)
-          .replaceAllMapped(
-            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-            (m) => '${m[1]},',
-          );
-    }
-    return number.toStringAsFixed(0);
+    return number
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
   }
 }
