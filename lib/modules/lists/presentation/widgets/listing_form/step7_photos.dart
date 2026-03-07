@@ -20,6 +20,18 @@ class _Step7PhotosState extends State<Step7Photos> {
   // AI Detection logic moved to CreateListingPage
   bool _isUploadingDeedOfSale = false;
 
+  Future<void> _setFeaturedPhoto(BuildContext context, String photoUrl) async {
+    await widget.controller.setCoverPhoto(photoUrl);
+    if (!context.mounted) return;
+    (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+      const SnackBar(
+        content: Text('Featured photo updated'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _pickImage(BuildContext context, String category) async {
     debugPrint('DEBUG [Step7Photos]: ========================================');
     debugPrint(
@@ -80,9 +92,9 @@ class _Step7PhotosState extends State<Step7Photos> {
       if (pickedFile == null) {
         debugPrint('DEBUG [Step7Photos]: No image selected');
         if (context.mounted) {
-          (ScaffoldMessenger.of(
-            context,
-          )..clearSnackBars()).showSnackBar(const SnackBar(content: Text('No image selected')));
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(content: Text('No image selected')),
+          );
         }
         return;
       }
@@ -109,9 +121,7 @@ class _Step7PhotosState extends State<Step7Photos> {
 
       if (!context.mounted) return;
 
-      debugPrint(
-        'DEBUG [Step7Photos]: Image ready - Path: ${imageFile.path}',
-      );
+      debugPrint('DEBUG [Step7Photos]: Image ready - Path: ${imageFile.path}');
       debugPrint(
         'DEBUG [Step7Photos]: Image size: ${await imageFile.length()} bytes',
       );
@@ -192,9 +202,9 @@ class _Step7PhotosState extends State<Step7Photos> {
 
       if (pickedFile == null) {
         if (context.mounted) {
-          (ScaffoldMessenger.of(
-            context,
-          )..clearSnackBars()).showSnackBar(const SnackBar(content: Text('No file selected')));
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(content: Text('No file selected')),
+          );
         }
         return;
       }
@@ -669,6 +679,7 @@ class _Step7PhotosState extends State<Step7Photos> {
     String category,
     int index,
     bool isDark,
+    bool isFeatured,
   ) {
     // Check if the URL is valid (has http/https scheme)
     final isValidUrl =
@@ -760,6 +771,27 @@ class _Step7PhotosState extends State<Step7Photos> {
                 ),
               ),
             ),
+            Positioned(
+              top: 4,
+              left: 4,
+              child: GestureDetector(
+                onTap: () => _setFeaturedPhoto(context, photoUrl),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isFeatured
+                        ? Colors.amber.withValues(alpha: 0.95)
+                        : Colors.black.withValues(alpha: 0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isFeatured ? Icons.star : Icons.star_border,
+                    color: isFeatured ? Colors.white : Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ),
             // Photo number badge
             Positioned(
               bottom: 4,
@@ -827,6 +859,9 @@ class _Step7PhotosState extends State<Step7Photos> {
       currentDraft.photoUrls ?? {},
     );
 
+    final removingPhotoUrl = updatedPhotoUrls[categoryKey]?[index];
+    var updatedCoverPhotoUrl = currentDraft.coverPhotoUrl;
+
     if (updatedPhotoUrls[categoryKey] != null) {
       updatedPhotoUrls[categoryKey] = List<String>.from(
         updatedPhotoUrls[categoryKey]!,
@@ -837,72 +872,25 @@ class _Step7PhotosState extends State<Step7Photos> {
         updatedPhotoUrls.remove(categoryKey);
       }
 
+      final isRemovingFeatured =
+          removingPhotoUrl != null &&
+          removingPhotoUrl == currentDraft.coverPhotoUrl;
+      if (isRemovingFeatured) {
+        String? replacement;
+        for (final urls in updatedPhotoUrls.values) {
+          if (urls.isNotEmpty) {
+            replacement = urls.first;
+            break;
+          }
+        }
+        updatedCoverPhotoUrl = replacement;
+      }
+
       // Update draft with new photo URLs
-      final updatedDraft = ListingDraftEntity(
-        id: currentDraft.id,
-        sellerId: currentDraft.sellerId,
-        currentStep: currentDraft.currentStep,
+      final updatedDraft = currentDraft.copyWith(
         lastSaved: DateTime.now(),
-        isComplete: currentDraft.isComplete,
-        brand: currentDraft.brand,
-        model: currentDraft.model,
-        variant: currentDraft.variant,
-        year: currentDraft.year,
-        engineType: currentDraft.engineType,
-        engineDisplacement: currentDraft.engineDisplacement,
-        cylinderCount: currentDraft.cylinderCount,
-        horsepower: currentDraft.horsepower,
-        torque: currentDraft.torque,
-        transmission: currentDraft.transmission,
-        fuelType: currentDraft.fuelType,
-        driveType: currentDraft.driveType,
-        length: currentDraft.length,
-        width: currentDraft.width,
-        height: currentDraft.height,
-        wheelbase: currentDraft.wheelbase,
-        groundClearance: currentDraft.groundClearance,
-        seatingCapacity: currentDraft.seatingCapacity,
-        doorCount: currentDraft.doorCount,
-        fuelTankCapacity: currentDraft.fuelTankCapacity,
-        curbWeight: currentDraft.curbWeight,
-        grossWeight: currentDraft.grossWeight,
-        exteriorColor: currentDraft.exteriorColor,
-        paintType: currentDraft.paintType,
-        rimType: currentDraft.rimType,
-        rimSize: currentDraft.rimSize,
-        tireSize: currentDraft.tireSize,
-        tireBrand: currentDraft.tireBrand,
-        condition: currentDraft.condition,
-        mileage: currentDraft.mileage,
-        previousOwners: currentDraft.previousOwners,
-        hasModifications: currentDraft.hasModifications,
-        modificationsDetails: currentDraft.modificationsDetails,
-        hasWarranty: currentDraft.hasWarranty,
-        warrantyDetails: currentDraft.warrantyDetails,
-        usageType: currentDraft.usageType,
-        plateNumber: currentDraft.plateNumber,
-        orcrStatus: currentDraft.orcrStatus,
-        registrationStatus: currentDraft.registrationStatus,
-        registrationExpiry: currentDraft.registrationExpiry,
-        province: currentDraft.province,
-        cityMunicipality: currentDraft.cityMunicipality,
         photoUrls: updatedPhotoUrls,
-        description: currentDraft.description,
-        knownIssues: currentDraft.knownIssues,
-        features: currentDraft.features,
-        startingPrice: currentDraft.startingPrice,
-        reservePrice: currentDraft.reservePrice,
-        auctionEndDate: currentDraft.auctionEndDate,
-        biddingType: currentDraft.biddingType,
-        bidIncrement: currentDraft.bidIncrement,
-        minBidIncrement: currentDraft.minBidIncrement,
-        depositAmount: currentDraft.depositAmount,
-        enableIncrementalBidding: currentDraft.enableIncrementalBidding,
-        tags: currentDraft.tags,
-        deedOfSaleUrl: currentDraft.deedOfSaleUrl,
-        snipeGuardEnabled: currentDraft.snipeGuardEnabled,
-        snipeGuardThresholdSeconds: currentDraft.snipeGuardThresholdSeconds,
-        snipeGuardExtendSeconds: currentDraft.snipeGuardExtendSeconds,
+        coverPhotoUrl: updatedCoverPhotoUrl,
       );
 
       widget.controller.updateDraft(updatedDraft);
@@ -928,6 +916,8 @@ class _Step7PhotosState extends State<Step7Photos> {
       listenable: widget.controller,
       builder: (context, _) {
         final photoUrls = widget.controller.currentDraft?.photoUrls ?? {};
+        final selectedCoverPhotoUrl =
+            widget.controller.currentDraft?.coverPhotoUrl;
         final uploadedCount = photoUrls.values.fold<int>(
           0,
           (sum, urls) => sum + urls.length,
@@ -1053,7 +1043,9 @@ class _Step7PhotosState extends State<Step7Photos> {
                           ),
                         ),
                         ...groupCategories.map((categoryDisplayName) {
-                          final categoryKey = PhotoCategories.toKey(categoryDisplayName);
+                          final categoryKey = PhotoCategories.toKey(
+                            categoryDisplayName,
+                          );
                           final categoryPhotos = photoUrls[categoryKey] ?? [];
                           final hasPhoto = categoryPhotos.isNotEmpty;
 
@@ -1122,12 +1114,16 @@ class _Step7PhotosState extends State<Step7Photos> {
                                         size: 20,
                                       ),
                                       tooltip: 'View sample',
-                                      onPressed: () =>
-                                          _showSamplePhoto(context, categoryDisplayName),
+                                      onPressed: () => _showSamplePhoto(
+                                        context,
+                                        categoryDisplayName,
+                                      ),
                                     ),
                                     ElevatedButton.icon(
-                                      onPressed: () =>
-                                          _pickImage(context, categoryDisplayName),
+                                      onPressed: () => _pickImage(
+                                        context,
+                                        categoryDisplayName,
+                                      ),
                                       icon: Icon(
                                         hasPhoto
                                             ? Icons.swap_horiz
@@ -1138,10 +1134,9 @@ class _Step7PhotosState extends State<Step7Photos> {
                                         hasPhoto ? 'Replace' : 'Upload',
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            hasPhoto
-                                                ? Colors.orange
-                                                : ColorConstants.primary,
+                                        backgroundColor: hasPhoto
+                                            ? Colors.orange
+                                            : ColorConstants.primary,
                                         foregroundColor: Colors.white,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 12,
@@ -1170,9 +1165,23 @@ class _Step7PhotosState extends State<Step7Photos> {
                                             categoryDisplayName,
                                             index,
                                             isDark,
+                                            photoUrl == selectedCoverPhotoUrl,
                                           );
                                         })
                                         .toList(),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    photoUrlHintText(
+                                      categoryPhotos,
+                                      selectedCoverPhotoUrl,
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark
+                                          ? ColorConstants.textSecondaryDark
+                                          : ColorConstants.textSecondaryLight,
+                                    ),
                                   ),
                                 ],
                               ],
@@ -1203,5 +1212,18 @@ class _Step7PhotosState extends State<Step7Photos> {
 
     return allCategories.sublist(startIndex, startIndex + count);
   }
-}
 
+  String photoUrlHintText(
+    List<String> categoryPhotos,
+    String? selectedCoverPhotoUrl,
+  ) {
+    if (categoryPhotos.isEmpty) {
+      return 'Upload a photo to continue.';
+    }
+    if (selectedCoverPhotoUrl != null &&
+        categoryPhotos.contains(selectedCoverPhotoUrl)) {
+      return 'Starred photo is used as listing cover.';
+    }
+    return 'Tap a star to choose the listing cover photo.';
+  }
+}
