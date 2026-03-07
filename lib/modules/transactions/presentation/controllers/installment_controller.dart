@@ -138,6 +138,7 @@ class InstallmentController extends ChangeNotifier {
       );
 
       if (_plan != null) {
+        _payments = await _datasource.getPayments(_plan!.id);
         _subscribeToRealtime(transactionId, _plan!.id);
       }
 
@@ -152,7 +153,7 @@ class InstallmentController extends ChangeNotifier {
     }
   }
 
-  /// Update an existing draft plan (resets other party's confirmation)
+  /// Update an existing plan (regenerates schedule)
   Future<bool> updatePlan({
     required String transactionId,
     required double totalAmount,
@@ -174,39 +175,12 @@ class InstallmentController extends ChangeNotifier {
         numInstallments: numInstallments,
         frequency: frequency,
       );
-      _payments = []; // Schedule cleared during edit
+      if (_plan != null) {
+        _payments = await _datasource.getPayments(_plan!.id);
+      }
       return true;
     } catch (e) {
       _errorMessage = 'Failed to update plan: $e';
-      debugPrint('[InstallmentController] $e');
-      return false;
-    } finally {
-      _isProcessing = false;
-      notifyListeners();
-    }
-  }
-
-  /// Confirm the plan for the current user
-  Future<bool> confirmPlan({required String transactionId}) async {
-    if (_plan == null) return false;
-    _isProcessing = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      _plan = await _datasource.confirmPlan(
-        planId: _plan!.id,
-        transactionId: transactionId,
-      );
-
-      // If both confirmed, payments were generated — load them
-      if (_plan!.bothConfirmedPlan) {
-        _payments = await _datasource.getPayments(_plan!.id);
-      }
-
-      return true;
-    } catch (e) {
-      _errorMessage = 'Failed to confirm plan: $e';
       debugPrint('[InstallmentController] $e');
       return false;
     } finally {
