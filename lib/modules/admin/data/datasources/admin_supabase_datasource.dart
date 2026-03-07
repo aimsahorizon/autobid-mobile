@@ -183,7 +183,7 @@ class AdminSupabaseDataSource {
 
       final adminUserId = adminUserResponse['id'] as String;
       // Approval should keep listing in 'approved' status; seller will schedule/go live later
-      final statusId = await _getStatusId('scheduled');
+      final statusId = await _getStatusId('approved');
 
       await _supabase
           .from('auctions')
@@ -361,7 +361,8 @@ class AdminSupabaseDataSource {
         transmission: vehicle?['transmission'] as String? ?? 'Unknown',
         fuelType: vehicle?['fuel_type'] as String? ?? 'Unknown',
         engineType: vehicle?['engine_type'] as String?,
-        engineDisplacement: (vehicle?['engine_displacement'] as num?)?.toDouble(),
+        engineDisplacement: (vehicle?['engine_displacement'] as num?)
+            ?.toDouble(),
         exteriorColor: vehicle?['exterior_color'] as String? ?? 'Unknown',
         province: vehicle?['province'] as String? ?? '',
         cityMunicipality: vehicle?['city_municipality'] as String? ?? '',

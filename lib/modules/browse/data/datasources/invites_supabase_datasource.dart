@@ -9,6 +9,18 @@ class InvitesSupabaseDatasource {
     required String identifier,
     required String type,
   }) async {
+    final inviteeId = await _resolveInviteeId(
+      identifier: identifier,
+      type: type,
+    );
+    if (inviteeId == null) {
+      throw Exception(
+        type == 'email'
+            ? 'No user found with this email address'
+            : 'No user found with this username',
+      );
+    }
+
     final res = await supabase.rpc(
       'invite_user_to_auction',
       params: {
@@ -18,6 +30,22 @@ class InvitesSupabaseDatasource {
       },
     );
     return res as String;
+  }
+
+  Future<String?> _resolveInviteeId({
+    required String identifier,
+    required String type,
+  }) async {
+    final normalized = identifier.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final query = supabase.from('users').select('id');
+    final response = type == 'email'
+        ? await query.ilike('email', normalized).limit(1).maybeSingle()
+        : await query.ilike('username', normalized).limit(1).maybeSingle();
+    return response?['id'] as String?;
   }
 
   Future<void> respondInvite({
