@@ -304,9 +304,12 @@ class ListingModel {
 
   /// Convert to SellerListingEntity (for list views)
   SellerListingEntity toSellerListingEntity() {
+    final resolvedCoverPhotoUrl =
+        coverPhotoUrl ?? _resolveCoverPhotoFromPhotoUrls();
+
     return SellerListingEntity(
       id: id,
-      imageUrl: coverPhotoUrl ?? '',
+      imageUrl: resolvedCoverPhotoUrl ?? '',
       year: year,
       make: brand,
       model: model,
@@ -329,6 +332,33 @@ class ListingModel {
       visibility: visibility != 'public' ? visibility : biddingType,
       allowsInstallment: allowsInstallment,
     );
+  }
+
+  String? _resolveCoverPhotoFromPhotoUrls() {
+    if (photoUrls.isEmpty) return null;
+
+    const preferredOrder = [
+      'exterior',
+      'interior',
+      'engine',
+      'details',
+      'documents',
+    ];
+
+    for (final category in preferredOrder) {
+      final urls = photoUrls[category];
+      if (urls != null && urls.isNotEmpty) {
+        return urls.first;
+      }
+    }
+
+    for (final urls in photoUrls.values) {
+      if (urls.isNotEmpty) {
+        return urls.first;
+      }
+    }
+
+    return null;
   }
 
   /// Convert to ListingDetailEntity (for detail views)

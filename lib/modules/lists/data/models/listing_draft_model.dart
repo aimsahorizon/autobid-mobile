@@ -54,6 +54,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.cityMunicipality,
     super.barangay,
     super.photoUrls,
+    super.coverPhotoUrl,
     super.tags,
     super.deedOfSaleUrl,
     super.description,
@@ -138,6 +139,7 @@ class ListingDraftModel extends ListingDraftEntity {
       photoUrls: json['photo_urls'] != null
           ? _parsePhotoUrls(json['photo_urls'] as Map<String, dynamic>)
           : null,
+      coverPhotoUrl: json['cover_photo_url'] as String?,
       tags: json['tags'] != null
           ? List<String>.from(json['tags'] as List)
           : null,
@@ -227,6 +229,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'barangay': barangay,
       // Step 7 (JSONB & Documents)
       'photo_urls': photoUrls,
+      'cover_photo_url': coverPhotoUrl,
       'tags': tags,
       'deed_of_sale_url': deedOfSaleUrl,
       // Step 8
