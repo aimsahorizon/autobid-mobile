@@ -25,9 +25,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   late TextEditingController _depositAmountController;
 
   List<String> _features = [];
-  DateTime? _auctionEndDate;
   String _biddingType = 'public'; // 'public' or 'private'
   bool _enableIncrementalBidding = true;
+  bool _autoLiveAfterApproval = false;
   bool _allowsInstallment = false;
 
   @override
@@ -52,9 +52,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
       text: _formatDouble(draft?.depositAmount ?? 50000),
     );
     _features = draft?.features ?? [];
-    _auctionEndDate = draft?.auctionEndDate;
     _biddingType = draft?.biddingType ?? 'public';
     _enableIncrementalBidding = draft?.enableIncrementalBidding ?? true;
+    _autoLiveAfterApproval = draft?.autoLiveAfterApproval ?? false;
     _allowsInstallment = draft?.allowsInstallment ?? false;
 
     _descriptionController.addListener(_updateDraft);
@@ -109,7 +109,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           final parsed = double.tryParse(_reservePriceController.text);
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
-        auctionEndDate: _auctionEndDate,
+        auctionEndDate: draft.auctionEndDate,
         // Bidding Configuration
         biddingType: _biddingType,
         bidIncrement: () {
@@ -128,6 +128,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
         enableIncrementalBidding: _enableIncrementalBidding,
+        autoLiveAfterApproval: _autoLiveAfterApproval,
         allowsInstallment: _allowsInstallment,
       ),
     );
@@ -243,7 +244,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         // ===== PRICING SECTION =====
         const SizedBox(height: 16),
         const Text(
-          'Pricing & Auction Duration',
+          'Pricing',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
@@ -313,59 +314,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             return null;
           },
         ),
-        const SizedBox(height: 16),
-        InkWell(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate:
-                  _auctionEndDate ??
-                  DateTime.now().add(const Duration(hours: 1)),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 90)),
-            );
-            if (picked == null) return;
-            if (!mounted) return;
-            final pickedTime = await showTimePicker(
-              context: context,
-              initialTime: TimeOfDay.now(),
-            );
-            if (!mounted) return;
-
-            // Create datetime in local timezone
-            final localDateTime = DateTime(
-              picked.year,
-              picked.month,
-              picked.day,
-              pickedTime?.hour ?? 23,
-              pickedTime?.minute ?? 59,
-              59,
-            );
-            // Convert to UTC immediately to maintain the actual intended time
-            // This prevents timezone issues when storing and retrieving
-            setState(() => _auctionEndDate = localDateTime.toUtc());
-            _updateDraft();
-          },
-          child: InputDecorator(
-            decoration: InputDecoration(
-              labelText: 'Auction End Date *',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _auctionEndDate != null
-                      ? '${_auctionEndDate!.month}/${_auctionEndDate!.day}/${_auctionEndDate!.year}'
-                      : 'Select date',
-                ),
-                const Icon(Icons.calendar_today, size: 20),
-              ],
-            ),
-          ),
-        ),
         const SizedBox(height: 32),
         const Divider(),
 
@@ -379,6 +327,30 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         const Text(
           'Configure how buyers can bid on your auction',
           style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 16),
+
+        Card(
+          child: SwitchListTile(
+            title: const Text('Auto-Live After Approval'),
+            subtitle: Text(
+              _autoLiveAfterApproval
+                  ? 'Auction will be set to go live after approval using system schedule defaults'
+                  : 'After approval, seller will manually choose Go Live or Schedule',
+              style: const TextStyle(fontSize: 12),
+            ),
+            secondary: Icon(
+              _autoLiveAfterApproval ? Icons.flash_on : Icons.schedule,
+              color: _autoLiveAfterApproval ? Colors.orange : Colors.grey,
+            ),
+            value: _autoLiveAfterApproval,
+            onChanged: (value) {
+              setState(() {
+                _autoLiveAfterApproval = value;
+              });
+              _updateDraft();
+            },
+          ),
         ),
         const SizedBox(height: 16),
 

@@ -26,7 +26,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     // and doesn't own the main ListsController.
     // The dialog needs a controller instance to manage state.
     final controller = GetIt.instance<ListsController>();
-    
+
     showDialog(
       context: context,
       builder: (context) => InviteManagementDialog(
@@ -146,14 +146,16 @@ class ApprovedListingDetailPage extends StatelessWidget {
 
   void _handleError(BuildContext context, dynamic error) {
     String message = error.toString();
-    
+
     // Parse common database constraints to user-friendly messages
     if (message.contains('auction_time_range_check')) {
-      message = 'The auction end time must be later than the start time. Please adjust your selection.';
+      message =
+          'The auction end time must be later than the start time. Please adjust your selection.';
     } else if (message.contains('starting_price_check')) {
       message = 'Starting price must be greater than zero.';
     } else if (message.contains('reserve_price_check')) {
-      message = 'Reserve price must be equal to or greater than the starting price.';
+      message =
+          'Reserve price must be equal to or greater than the starting price.';
     } else if (message.contains('bid_increment_check')) {
       message = 'Bid increment must be a positive amount.';
     } else if (message.contains('Exception: ')) {
@@ -497,6 +499,18 @@ class ApprovedListingDetailPage extends StatelessWidget {
           Text(
             isScheduled ? 'Auction Scheduled' : 'Listing Approved!',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            listing.autoLiveAfterApproval
+                ? 'Auto-live preference: Enabled'
+                : 'Auto-live preference: Manual launch',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: accentColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           if (isScheduled && startTime != null) ...[
