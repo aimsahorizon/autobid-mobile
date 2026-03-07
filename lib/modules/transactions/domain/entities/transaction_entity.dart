@@ -21,10 +21,6 @@ class TransactionEntity {
   final DateTime? adminApprovedAt;
   final DateTime? bothConfirmedAt;
 
-  // Grace period skip tracking
-  final bool sellerAgreedToSkipGracePeriod;
-  final bool buyerAgreedToSkipGracePeriod;
-
   // Delivery tracking (only active after finalization)
   final DeliveryStatus deliveryStatus;
   final DateTime? deliveryStartedAt;
@@ -69,8 +65,6 @@ class TransactionEntity {
     this.adminApproved = false,
     this.adminApprovedAt,
     this.bothConfirmedAt,
-    this.sellerAgreedToSkipGracePeriod = false,
-    this.buyerAgreedToSkipGracePeriod = false,
     this.deliveryStatus = DeliveryStatus.pending,
     this.deliveryStartedAt,
     this.deliveryCompletedAt,
@@ -101,10 +95,6 @@ class TransactionEntity {
 
   /// Check if transaction is ready for admin review (legacy, kept for compat)
   bool get readyForAdminReview => bothFormsSubmitted && bothConfirmed;
-
-  /// Check if both agreed to skip grace period
-  bool get bothAgreedToSkipGracePeriod =>
-      sellerAgreedToSkipGracePeriod && buyerAgreedToSkipGracePeriod;
 
   /// Check if transaction is active (can be modified)
   bool get isActive =>
@@ -156,8 +146,6 @@ class TransactionEntity {
     bool? adminApproved,
     DateTime? adminApprovedAt,
     DateTime? bothConfirmedAt,
-    bool? sellerAgreedToSkipGracePeriod,
-    bool? buyerAgreedToSkipGracePeriod,
     DeliveryStatus? deliveryStatus,
     DateTime? deliveryStartedAt,
     DateTime? deliveryCompletedAt,
@@ -191,10 +179,6 @@ class TransactionEntity {
       adminApproved: adminApproved ?? this.adminApproved,
       adminApprovedAt: adminApprovedAt ?? this.adminApprovedAt,
       bothConfirmedAt: bothConfirmedAt ?? this.bothConfirmedAt,
-      sellerAgreedToSkipGracePeriod:
-          sellerAgreedToSkipGracePeriod ?? this.sellerAgreedToSkipGracePeriod,
-      buyerAgreedToSkipGracePeriod:
-          buyerAgreedToSkipGracePeriod ?? this.buyerAgreedToSkipGracePeriod,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
       deliveryStartedAt: deliveryStartedAt ?? this.deliveryStartedAt,
       deliveryCompletedAt: deliveryCompletedAt ?? this.deliveryCompletedAt,
