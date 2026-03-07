@@ -10,7 +10,7 @@ import '../../../domain/entities/installment_plan_entity.dart';
 
 /// Unified collaborative agreement tab that replaces separate seller/buyer forms.
 /// Both parties can add, edit, and delete fields until they lock.
-/// After both lock → review → confirm → 15s grace → auto-finalize.
+/// After both lock → review → confirm (with finality warning) → immediate finalize.
 class UnifiedAgreementTab extends StatelessWidget {
   final TransactionRealtimeController controller;
   final InstallmentController installmentController;
@@ -81,7 +81,6 @@ class UnifiedAgreementTab extends StatelessWidget {
                       myConfirmed: myConfirmed,
                       otherConfirmed: otherConfirmed,
                       finalized: finalized,
-                      secondsRemaining: controller.secondsRemaining,
                       isSeller: isSeller,
                       isDark: isDark,
                     ),
@@ -122,7 +121,6 @@ class UnifiedAgreementTab extends StatelessWidget {
               bothLocked: bothLocked,
               bothConfirmed: bothConfirmed,
               finalized: finalized,
-              secondsRemaining: controller.secondsRemaining,
               isDark: isDark,
             ),
           ],
@@ -217,7 +215,6 @@ class _StatusHeader extends StatelessWidget {
   final bool myConfirmed;
   final bool otherConfirmed;
   final bool finalized;
-  final int? secondsRemaining;
   final bool isSeller;
   final bool isDark;
 
@@ -227,7 +224,6 @@ class _StatusHeader extends StatelessWidget {
     required this.myConfirmed,
     required this.otherConfirmed,
     required this.finalized,
-    required this.secondsRemaining,
     required this.isSeller,
     required this.isDark,
   });
@@ -240,15 +236,6 @@ class _StatusHeader extends StatelessWidget {
         ColorConstants.success,
         'Agreement Finalized',
         'Transaction has been finalized. Proceed with delivery.',
-      );
-    }
-
-    if (secondsRemaining != null && myConfirmed && otherConfirmed) {
-      return _banner(
-        Icons.timer,
-        ColorConstants.warning,
-        'Grace Period: ${secondsRemaining}s',
-        'Both parties confirmed. Finalizing shortly. You may still withdraw.',
       );
     }
 
@@ -1160,7 +1147,6 @@ class _ActionBar extends StatelessWidget {
   final bool bothLocked;
   final bool bothConfirmed;
   final bool finalized;
-  final int? secondsRemaining;
   final bool isDark;
 
   const _ActionBar({
@@ -1172,7 +1158,6 @@ class _ActionBar extends StatelessWidget {
     required this.bothLocked,
     required this.bothConfirmed,
     required this.finalized,
-    required this.secondsRemaining,
     required this.isDark,
   });
 
@@ -1207,29 +1192,7 @@ class _ActionBar extends StatelessWidget {
   List<Widget> _buildButtons(BuildContext context) {
     final buttons = <Widget>[];
 
-    // Grace period countdown with withdraw
-    if (bothConfirmed && secondsRemaining != null) {
-      buttons.add(
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: controller.isProcessing
-                ? null
-                : () => _withdrawConfirmation(context),
-            icon: const Icon(Icons.undo, size: 18),
-            label: Text('Withdraw Confirmation (${secondsRemaining}s)'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: ColorConstants.warning,
-              side: const BorderSide(color: ColorConstants.warning),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-          ),
-        ),
-      );
-      return buttons;
-    }
-
-    // Confirmed, waiting for other party
+    // Confirmed, waiting for other party — can withdraw
     if (myConfirmed && !otherConfirmed) {
       buttons.add(
         SizedBox(
@@ -1246,6 +1209,17 @@ class _ActionBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
           ),
+        ),
+      );
+      buttons.add(const SizedBox(height: 4));
+      buttons.add(
+        Text(
+          'Withdrawing will reset both parties\' locks.',
+          style: TextStyle(
+            fontSize: 11,
+            color: ColorConstants.warning.withValues(alpha: 0.7),
+          ),
+          textAlign: TextAlign.center,
         ),
       );
       return buttons;
@@ -1367,6 +1341,34 @@ class _ActionBar extends StatelessWidget {
   }
 
   Future<void> _confirmAgreement(BuildContext context) async {
+    // Show finality warning dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Agreement'),
+        content: const Text(
+          'This action is final and cannot be undone.\n\n'
+          'Once both parties confirm, the transaction will be '
+          'finalized immediately and proceed to the delivery phase.\n\n'
+          'Are you sure you want to confirm?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.success,
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     final success = await controller.confirmAgreement();
     if (!success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -145,7 +145,7 @@ class OtherFormRealtimeTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'You can withdraw to request changes before admin approval.',
+                  'You can withdraw to request changes before finalization.',
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark
@@ -329,7 +329,7 @@ class OtherFormRealtimeTab extends StatelessWidget {
       bgColor = ColorConstants.primary.withValues(alpha: 0.1);
       textColor = ColorConstants.primary;
       icon = Icons.admin_panel_settings;
-      text = 'Transaction approved by admin - forms locked';
+      text = 'Transaction finalized — forms locked';
     } else if (isConfirmed) {
       bgColor = ColorConstants.success.withValues(alpha: 0.1);
       textColor = ColorConstants.success;
