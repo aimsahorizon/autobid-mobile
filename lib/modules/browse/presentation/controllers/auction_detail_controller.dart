@@ -932,8 +932,8 @@ class AuctionDetailController extends ChangeNotifier {
         .listen(
           (_) {
             debugPrint('DEBUG: Realtime bid update received');
-            // Reload bid history quietly
-            _loadBidHistory(auctionId).then((_) => notifyListeners());
+            // Reload full auction detail so top current bid stays in sync with latest bid.
+            loadAuctionDetail(auctionId, isBackground: true);
           },
           onError: (e) {
             debugPrint('ERROR: Realtime bid subscription error: $e');

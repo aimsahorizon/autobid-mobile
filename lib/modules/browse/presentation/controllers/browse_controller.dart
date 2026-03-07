@@ -102,6 +102,7 @@ class BrowseController extends ChangeNotifier {
     String? province,
     String? city,
     bool? endingSoon,
+    String? visibility,
   }) async {
     _currentFilter = _currentFilter.copyWith(
       searchQuery: searchQuery,
@@ -120,6 +121,7 @@ class BrowseController extends ChangeNotifier {
       province: province,
       city: city,
       endingSoon: endingSoon,
+      visibility: visibility,
     );
     await loadAuctions();
   }
