@@ -1500,7 +1500,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
     if (mounted) setState(() => _editing = false);
   }
 
-  /// Save edits to an existing draft plan
+  /// Save edits to an existing plan
   Future<void> _saveEdit() async {
     final total = double.tryParse(_totalCtrl.text);
     final down = double.tryParse(_downCtrl.text) ?? 0;
@@ -1514,13 +1514,6 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       frequency: _frequency,
     );
     if (mounted) setState(() => _editing = false);
-  }
-
-  /// Confirm the current plan
-  Future<void> _confirmPlan() async {
-    await widget.installmentController.confirmPlan(
-      transactionId: widget.transactionId,
-    );
   }
 
   /// Enter edit mode
@@ -1562,17 +1555,6 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
         builder: (context, _) {
           final plan = widget.installmentController.plan;
           final hasPlan = plan != null;
-          final bothConfirmed = hasPlan && plan.bothConfirmedPlan;
-          final myConfirmed =
-              hasPlan &&
-              (widget.isBuyer
-                  ? plan.buyerConfirmedPlan
-                  : plan.sellerConfirmedPlan);
-          final otherConfirmed =
-              hasPlan &&
-              (widget.isBuyer
-                  ? plan.sellerConfirmedPlan
-                  : plan.buyerConfirmedPlan);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1596,10 +1578,10 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                       ),
                     ),
                   ),
-                  // Only allow toggle if no locked plan and not readOnly
+                  // Only allow toggle if not readOnly
                   Switch.adaptive(
                     value: _localIsInstallment,
-                    onChanged: (widget.readOnly || bothConfirmed)
+                    onChanged: widget.readOnly
                         ? null
                         : (v) {
                             setState(() => _localIsInstallment = v);
@@ -1612,17 +1594,12 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
 
               if (widget.isInstallment) ...[
                 const SizedBox(height: 8),
-                if (bothConfirmed)
-                  // Locked — both confirmed
+                if (widget.readOnly && hasPlan)
+                  // Locked — agreement locked/finalized
                   _buildLockedSummary(plan!, isDark)
                 else if (hasPlan && !_editing)
-                  // Draft exists, show summary + action buttons
-                  _buildDraftSummary(
-                    plan!,
-                    isDark,
-                    myConfirmed: myConfirmed,
-                    otherConfirmed: otherConfirmed,
-                  )
+                  // Plan exists, show summary + edit button
+                  _buildPlanSummary(plan!, isDark)
                 else if (!widget.readOnly)
                   // No plan or editing — show form
                   _buildPlanForm(isDark, isUpdate: hasPlan),
@@ -1634,7 +1611,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
     );
   }
 
-  /// Locked summary — both parties confirmed
+  /// Locked summary — agreement locked/finalized
   Widget _buildLockedSummary(InstallmentPlanEntity plan, bool isDark) {
     final perPayment =
         plan.totalAmount > plan.downPayment && plan.numInstallments > 0
@@ -1669,10 +1646,10 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.check_circle, size: 14, color: Colors.green),
+              const Icon(Icons.lock, size: 14, color: Colors.green),
               const SizedBox(width: 4),
               Text(
-                'Both agreed — see Gives tab for tracking',
+                'Locked — see Gives tab for tracking',
                 style: TextStyle(fontSize: 11, color: Colors.green.shade700),
               ),
             ],
@@ -1682,60 +1659,22 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
     );
   }
 
-  /// Draft summary with confirm/edit actions
-  Widget _buildDraftSummary(
-    InstallmentPlanEntity plan,
-    bool isDark, {
-    required bool myConfirmed,
-    required bool otherConfirmed,
-  }) {
+  /// Plan summary with edit button (editable state)
+  Widget _buildPlanSummary(InstallmentPlanEntity plan, bool isDark) {
     final perPayment =
         plan.totalAmount > plan.downPayment && plan.numInstallments > 0
         ? (plan.totalAmount - plan.downPayment) / plan.numInstallments
         : 0;
-    final processing = widget.installmentController.isProcessing;
 
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.06),
+        color: Colors.green.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
-          // Status badge
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            margin: const EdgeInsets.only(bottom: 8),
-            decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.hourglass_top,
-                  size: 14,
-                  color: Colors.orange.shade700,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  myConfirmed
-                      ? 'Waiting for other party to confirm'
-                      : 'Plan proposed — review & confirm',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.orange.shade700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
           _summaryRow(
             'Total',
             '₱${plan.totalAmount.toStringAsFixed(0)}',
@@ -1753,90 +1692,15 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
             isDark,
           ),
           _summaryRow('Frequency', _frequencyLabel(plan.frequency), isDark),
-
-          // Confirmation indicators
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _confirmChip(
-                widget.isBuyer ? 'You' : 'Buyer',
-                widget.isBuyer ? myConfirmed : otherConfirmed,
-              ),
-              const SizedBox(width: 8),
-              _confirmChip(
-                widget.isBuyer ? 'Seller' : 'You',
-                widget.isBuyer ? otherConfirmed : myConfirmed,
-              ),
-            ],
-          ),
-
-          if (!widget.readOnly) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                // Edit button (always available in draft)
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: processing ? null : _startEditing,
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Edit'),
-                  ),
-                ),
-                // Confirm button (only if not yet confirmed by me)
-                if (!myConfirmed) ...[
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: processing ? null : _confirmPlan,
-                      icon: processing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.check, size: 16),
-                      label: const Text('Confirm'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.green,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _confirmChip(String label, bool confirmed) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: confirmed
-            ? Colors.green.withValues(alpha: 0.12)
-            : Colors.grey.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            confirmed ? Icons.check_circle : Icons.radio_button_unchecked,
-            size: 12,
-            color: confirmed ? Colors.green : Colors.grey,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: confirmed ? Colors.green : Colors.grey,
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: widget.installmentController.isProcessing
+                  ? null
+                  : _startEditing,
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text('Edit Plan'),
             ),
           ),
         ],

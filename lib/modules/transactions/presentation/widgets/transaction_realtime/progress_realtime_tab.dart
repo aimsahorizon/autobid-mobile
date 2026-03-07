@@ -1111,14 +1111,50 @@ class ProgressRealtimeTab extends StatelessWidget {
     TransactionEntity transaction,
   ) {
     if (transaction.deliveryStatus == DeliveryStatus.completed) {
-      return const Center(
-        child: Text(
-          'Transaction Completed',
-          style: TextStyle(
-            color: ColorConstants.success,
-            fontWeight: FontWeight.bold,
+      return Column(
+        children: [
+          const Center(
+            child: Text(
+              'Transaction Completed',
+              style: TextStyle(
+                color: ColorConstants.success,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-        ),
+          if (transaction.sellerPrepPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Preparation Photo',
+              transaction.sellerPrepPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerTransitPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Transit Photo',
+              transaction.sellerTransitPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Delivery Photo',
+              transaction.sellerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.buyerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Buyer's Confirmation Photo",
+              transaction.buyerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+        ],
       );
     }
 
@@ -1235,6 +1271,30 @@ class ProgressRealtimeTab extends StatelessWidget {
               ),
             ),
           ),
+          if (transaction.sellerPrepPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Preparation Photo",
+              transaction.sellerPrepPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerTransitPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Transit Photo",
+              transaction.sellerTransitPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Delivery Photo",
+              transaction.sellerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
           if (transaction.buyerDeliveryPhotoUrl != null) ...[
             const SizedBox(height: 12),
             _buildPhotoProofTile(
