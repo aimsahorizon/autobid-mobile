@@ -19,9 +19,7 @@ class SellerBidHistorySection extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      color: isDark
-          ? ColorConstants.surfaceDark
-          : ColorConstants.surfaceLight,
+      color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -35,10 +33,7 @@ class SellerBidHistorySection extends StatelessWidget {
                 ),
               ),
               if (bids.isNotEmpty)
-                Text(
-                  '${bids.length} Bids',
-                  style: theme.textTheme.bodySmall,
-                ),
+                Text('${bids.length} Bids', style: theme.textTheme.bodySmall),
             ],
           ),
           const SizedBox(height: 16),
@@ -57,62 +52,69 @@ class SellerBidHistorySection extends StatelessWidget {
               ),
             )
           else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: bids.length,
-              separatorBuilder: (context, index) => const Divider(),
-              itemBuilder: (context, index) {
-                final bid = bids[index];
-                final amount = (bid['bid_amount'] as num).toDouble();
-                final createdAt = DateTime.parse(bid['created_at']);
-                final profile = bid['user_profiles'] as Map<String, dynamic>?;
-                final bidderName = profile?['username'] ?? profile?['full_name'] ?? 'Unknown Bidder';
-                
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: ColorConstants.primary.withValues(alpha: 0.1),
-                    child: Text(
-                      bidderName.isNotEmpty ? bidderName[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: ColorConstants.primary,
-                        fontWeight: FontWeight.bold,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: bids.length,
+                separatorBuilder: (context, index) => const Divider(),
+                itemBuilder: (context, index) {
+                  final bid = bids[index];
+                  final amount = (bid['bid_amount'] as num).toDouble();
+                  final createdAt = DateTime.parse(bid['created_at']);
+                  final profile = bid['user_profiles'] as Map<String, dynamic>?;
+                  final bidderName =
+                      profile?['username'] ??
+                      profile?['full_name'] ??
+                      'Unknown Bidder';
+
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor: ColorConstants.primary.withValues(
+                        alpha: 0.1,
+                      ),
+                      child: Text(
+                        bidderName.isNotEmpty
+                            ? bidderName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          color: ColorConstants.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                  title: Text(
-                    '₱${NumberFormat('#,##0').format(amount)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
+                    title: Text(
+                      '₱${NumberFormat('#,##0').format(amount)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  subtitle: Text(
-                    '$bidderName • ${DateFormat('MMM d, h:mm a').format(createdAt)}',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  trailing: index == 0
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'Highest',
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
+                    subtitle: Text(
+                      '$bidderName • ${DateFormat('MMM d, h:mm a').format(createdAt)}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    trailing: index == 0
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
                             ),
-                          ),
-                        )
-                      : null,
-                );
-              },
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text(
+                              'Highest',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        : null,
+                  );
+                },
+              ),
             ),
         ],
       ),

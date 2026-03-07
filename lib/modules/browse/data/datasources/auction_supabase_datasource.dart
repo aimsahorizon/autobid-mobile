@@ -59,7 +59,7 @@ class AuctionSupabaseDataSource {
     dynamic queryBuilder = _supabase
         .from(viewName)
         .select(
-          'id, title, description, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, created_at',
+          'id, title, description, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, seller_display_name, seller_profile_image_url, visibility, bidding_type, created_at',
         );
 
     if (applyIsActiveFilter) {
@@ -132,39 +132,31 @@ class AuctionSupabaseDataSource {
       '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $viewName',
     );
 
-    final rows = (response as List).cast<Map<String, dynamic>>();
-    final sellerIds = rows
-        .map((row) => row['seller_id'] as String?)
-        .whereType<String>()
-        .toSet()
-        .toList();
+    final rows = (response as List<Map<String, dynamic>>);
 
-    final sellerById = <String, Map<String, dynamic>>{};
-    if (sellerIds.isNotEmpty) {
+    // Batch-enrich visibility from auctions table (not exposed by view)
+    final auctionIds = rows.map((row) => row['id'] as String).toList();
+    final visibilityById = <String, String>{};
+    if (auctionIds.isNotEmpty) {
       try {
-        final sellerResponse = await _supabase
-            .from('users')
-            .select('id, display_name, full_name, profile_image_url')
-            .inFilter('id', sellerIds);
-
-        for (final seller in (sellerResponse as List)) {
-          final sellerMap = seller as Map<String, dynamic>;
-          final sellerId = sellerMap['id'] as String?;
-          if (sellerId != null) {
-            sellerById[sellerId] = sellerMap;
-          }
+        final visResp = await _supabase
+            .from('auctions')
+            .select('id, visibility')
+            .inFilter('id', auctionIds);
+        for (final r in (visResp as List)) {
+          final m = r as Map<String, dynamic>;
+          visibilityById[m['id'] as String] =
+              m['visibility'] as String? ?? 'public';
         }
       } catch (e) {
-        debugPrint('[AuctionSupabaseDataSource] Seller enrichment failed: $e');
+        debugPrint(
+          '[AuctionSupabaseDataSource] Visibility enrichment failed: $e',
+        );
       }
     }
 
     // Convert to AuctionModel list
     return rows.map((json) {
-      final sellerInfo = sellerById[json['seller_id'] as String? ?? ''];
-      final displayName = (sellerInfo?['display_name'] as String?)?.trim();
-      final fullName = (sellerInfo?['full_name'] as String?)?.trim();
-
       return AuctionModel.fromJson({
         'id': json['id'],
         'car_image_url': json['primary_image_url'] ?? '',
@@ -177,10 +169,9 @@ class AuctionSupabaseDataSource {
         'bidders_count': json['total_bids'] ?? 0,
         'end_time': json['end_time'],
         'seller_id': json['seller_id'],
-        'seller_display_name': displayName != null && displayName.isNotEmpty
-            ? displayName
-            : fullName,
-        'seller_profile_image_url': sellerInfo?['profile_image_url'],
+        'seller_display_name': json['seller_display_name'],
+        'seller_profile_image_url': json['seller_profile_image_url'],
+        'visibility': visibilityById[json['id'] as String] ?? 'public',
       });
     }).toList();
   }
@@ -367,6 +358,8 @@ class AuctionSupabaseDataSource {
 
   String _normalizePhotoCategory(String? rawCategory) {
     final normalized = rawCategory?.trim().toLowerCase() ?? 'details';
+
+    // Exact top-level match
     switch (normalized) {
       case 'exterior':
       case 'interior':
@@ -374,9 +367,69 @@ class AuctionSupabaseDataSource {
       case 'details':
       case 'documents':
         return normalized;
-      default:
-        return 'details';
     }
+
+    // Map subcategory keys (snake_case from PhotoCategories.toKey) to parent categories
+    const exteriorKeys = {
+      'front_view', 'rear_view', 'left_side', 'right_side',
+      'front_left_angle',
+      'front_right_angle',
+      'rear_left_angle',
+      'rear_right_angle',
+      'roof', 'undercarriage', 'front_bumper', 'rear_bumper',
+      'left_fender', 'right_fender', 'hood', 'trunk_tailgate',
+      'fuel_door', 'side_mirrors', 'door_handles', 'exterior_lights',
+      // Wheels & Tires subcategories (exterior-related)
+      'front_left_wheel',
+      'front_right_wheel',
+      'rear_left_wheel',
+      'rear_right_wheel',
+    };
+    const interiorKeys = {
+      'dashboard',
+      'steering_wheel',
+      'center_console',
+      'front_seats',
+      'rear_seats',
+      'headliner',
+      'door_panels',
+      'carpet_floor_mats',
+      'trunk_interior',
+      'glove_box',
+      'sun_visors',
+      'instrument_cluster',
+      'infotainment_screen',
+      'climate_controls',
+      'interior_lights',
+    };
+    const engineKeys = {
+      'engine_bay_overview',
+      'engine_block',
+      'battery',
+      'fluid_reservoirs',
+      'air_filter',
+      'alternator',
+      'belts_&_hoses',
+      'suspension',
+      'brakes_front',
+      'brakes_rear',
+      'exhaust_system',
+      'transmission',
+    };
+    const documentKeys = {
+      'or_cr',
+      'registration_papers',
+      'insurance',
+      'maintenance_records',
+      'inspection_report',
+    };
+
+    if (exteriorKeys.contains(normalized)) return 'exterior';
+    if (interiorKeys.contains(normalized)) return 'interior';
+    if (engineKeys.contains(normalized)) return 'engine';
+    if (documentKeys.contains(normalized)) return 'documents';
+
+    return 'details';
   }
 
   /// Add auction to user's watchlist

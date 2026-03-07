@@ -191,12 +191,17 @@ class _BidQueueLiveSectionState extends State<BidQueueLiveSection> {
               ),
             )
           else
-            ..._cycles.asMap().entries.map(
-              (entry) => _buildCycleCard(
-                theme,
-                isDark,
-                entry.value,
-                isLatest: entry.key == 0,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _cycles.length,
+                itemBuilder: (context, index) => _buildCycleCard(
+                  theme,
+                  isDark,
+                  _cycles[index],
+                  isLatest: index == 0,
+                ),
               ),
             ),
         ],

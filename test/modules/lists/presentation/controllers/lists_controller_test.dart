@@ -192,6 +192,22 @@ void main() {
       expect(controller.isLoading, false);
     });
 
+    test('should dedupe duplicate listings by id', () async {
+      when(
+        () => mockAuthRepository.getCurrentUser(),
+      ).thenAnswer((_) async => const Right(testUser));
+      when(() => mockGetSellerListingsUseCase.call('user-123')).thenAnswer(
+        (_) async => Right({
+          ListingStatus.active: [activeListing, activeListing],
+        }),
+      );
+
+      await controller.loadListings();
+
+      expect(controller.getListingsByStatus(ListingStatus.active).length, 1);
+      expect(controller.getCountByStatus(ListingStatus.active), 1);
+    });
+
     test('should set loading state during load', () async {
       // Arrange
       when(() => mockAuthRepository.getCurrentUser()).thenAnswer((_) async {

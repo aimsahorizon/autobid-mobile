@@ -303,11 +303,21 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
             }
 
             if (widget.controller.hasError) {
+              // Check if it's an auction-ended scenario
+              final existingAuction = widget.controller.auction;
+              if (existingAuction != null && existingAuction.hasEnded) {
+                return _buildAuctionEndedState(existingAuction);
+              }
               return _buildErrorState();
             }
 
             final auction = widget.controller.auction;
             if (auction == null) return const SizedBox.shrink();
+
+            // Show graceful ended state when auction status is 'ended'
+            if (auction.status == 'ended' || auction.hasEnded) {
+              return _buildAuctionEndedState(auction);
+            }
 
             return CustomScrollView(
               slivers: [
@@ -391,6 +401,72 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuctionEndedState(dynamic auction) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    String formatPrice(double price) => price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: ColorConstants.warning.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.timer_off_outlined,
+                size: 40,
+                color: ColorConstants.warning,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Auction Has Ended',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${auction.carName}',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Final Bid: ₱${formatPrice(auction.currentBid)}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: ColorConstants.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Back to Browse'),
+            ),
+          ],
         ),
       ),
     );

@@ -21,7 +21,7 @@ class ListsPage extends StatefulWidget {
 }
 
 class _ListsPageState extends State<ListsPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
   ListingStatus? _selectedStatusFilter; // null means "All"
 
@@ -30,7 +30,12 @@ class _ListsPageState extends State<ListsPage>
     ListingStatus.pending,
     ListingStatus.approved,
     ListingStatus.scheduled,
+    ListingStatus.ended,
+    ListingStatus.inTransaction,
+    ListingStatus.sold,
     ListingStatus.draft,
+    ListingStatus.cancelled,
+    ListingStatus.dealFailed,
   ];
 
   List<ListingStatus> get _tabs => _currentTabs;
@@ -40,19 +45,28 @@ class _ListsPageState extends State<ListsPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Initialize controller listener
     _controller.addListener(_onControllerChanged);
     _lastShowAll = _controller.showAll;
-    
+
     _tabController = TabController(length: _tabs.length, vsync: this);
     _controller.loadListings();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_onControllerChanged);
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _controller.loadListings(isBackground: true);
+    }
   }
 
   void _onControllerChanged() {
@@ -97,7 +111,7 @@ class _ListsPageState extends State<ListsPage>
     ).then((result) {
       // Force reload to ensure new listing appears immediately
       _controller.loadListings();
-      
+
       // Navigate to Pending tab if submission was successful
       if (result is Map &&
           result['success'] == true &&
@@ -183,87 +197,92 @@ class _ListsPageState extends State<ListsPage>
               ]
             : [
                 // Notification bell with unread count badge
-          ListenableBuilder(
-            listenable: sl<NotificationController>(),
-            builder: (context, _) {
-              final notificationController = sl<NotificationController>();
-              final unreadCount = notificationController.unreadCount;
+                ListenableBuilder(
+                  listenable: sl<NotificationController>(),
+                  builder: (context, _) {
+                    final notificationController = sl<NotificationController>();
+                    final unreadCount = notificationController.unreadCount;
 
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationsPage(),
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const NotificationsPage(),
+                              ),
+                            );
+                          },
+                          tooltip: 'Notifications',
                         ),
-                      );
-                    },
-                    tooltip: 'Notifications',
-                  ),
-                  if (unreadCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          unreadCount > 9 ? '9+' : '$unreadCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadCount > 9 ? '9+' : '$unreadCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => _controller.loadListings(),
-            tooltip: 'Refresh',
-          ),
-          ListenableBuilder(
-            listenable: _controller,
-            builder: (context, _) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    _controller.showAll
-                        ? Icons.view_sidebar_outlined // Icon for "Back to Tabs"
-                        : Icons.filter_list, // Icon for "Unified View"
-                  ),
-                  onPressed: _controller.toggleShowAll,
-                  tooltip: _controller.showAll ? 'Tabbed View' : 'Unified View',
+                      ],
+                    );
+                  },
                 ),
                 IconButton(
-                  icon: Icon(
-                    _controller.isGridView
-                        ? Icons.view_list_rounded
-                        : Icons.grid_view_rounded,
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: () => _controller.loadListings(),
+                  tooltip: 'Refresh',
+                ),
+                ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          _controller.showAll
+                              ? Icons
+                                    .view_sidebar_outlined // Icon for "Back to Tabs"
+                              : Icons.filter_list, // Icon for "Unified View"
+                        ),
+                        onPressed: _controller.toggleShowAll,
+                        tooltip: _controller.showAll
+                            ? 'Tabbed View'
+                            : 'Unified View',
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          _controller.isGridView
+                              ? Icons.view_list_rounded
+                              : Icons.grid_view_rounded,
+                        ),
+                        onPressed: _controller.toggleViewMode,
+                        tooltip: _controller.isGridView
+                            ? 'List view'
+                            : 'Grid view',
+                      ),
+                    ],
                   ),
-                  onPressed: _controller.toggleViewMode,
-                  tooltip: _controller.isGridView ? 'List view' : 'Grid view',
                 ),
               ],
-            ),
-          ),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: ListenableBuilder(
@@ -310,12 +329,14 @@ class _ListsPageState extends State<ListsPage>
 
           return RefreshIndicator(
             onRefresh: () => _controller.loadListings(),
-            child: _controller.showAll 
-              ? _buildUnifiedView()
-              : TabBarView(
-                  controller: _tabController,
-                  children: _tabs.map((status) => _buildGridForStatus(status)).toList(),
-                ),
+            child: _controller.showAll
+                ? _buildUnifiedView()
+                : TabBarView(
+                    controller: _tabController,
+                    children: _tabs
+                        .map((status) => _buildGridForStatus(status))
+                        .toList(),
+                  ),
           );
         },
       ),
@@ -348,20 +369,24 @@ class _ListsPageState extends State<ListsPage>
               onSelected: (selected) {
                 if (selected) setState(() => _selectedStatusFilter = null);
               },
-              backgroundColor: isDark ? ColorConstants.surfaceDark : Colors.white,
+              backgroundColor: isDark
+                  ? ColorConstants.surfaceDark
+                  : Colors.white,
               selectedColor: ColorConstants.primary.withValues(alpha: 0.2),
               labelStyle: TextStyle(
-                color: _selectedStatusFilter == null 
-                    ? ColorConstants.primary 
+                color: _selectedStatusFilter == null
+                    ? ColorConstants.primary
                     : (isDark ? Colors.white : Colors.black),
-                fontWeight: _selectedStatusFilter == null ? FontWeight.bold : FontWeight.normal,
+                fontWeight: _selectedStatusFilter == null
+                    ? FontWeight.bold
+                    : FontWeight.normal,
               ),
               checkmarkColor: ColorConstants.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
-                  color: _selectedStatusFilter == null 
-                      ? ColorConstants.primary 
+                  color: _selectedStatusFilter == null
+                      ? ColorConstants.primary
                       : Colors.transparent,
                 ),
               ),
@@ -370,7 +395,8 @@ class _ListsPageState extends State<ListsPage>
           // Status Chips
           ...allStatuses.map((status) {
             final count = _controller.getCountByStatus(status);
-            if (count == 0 && status != _selectedStatusFilter) return const SizedBox.shrink(); // Hide empty if not selected
+            if (count == 0 && status != _selectedStatusFilter)
+              return const SizedBox.shrink(); // Hide empty if not selected
 
             final isSelected = _selectedStatusFilter == status;
             final color = _getStatusColor(status);
@@ -398,10 +424,14 @@ class _ListsPageState extends State<ListsPage>
                     _selectedStatusFilter = selected ? status : null;
                   });
                 },
-                backgroundColor: isDark ? ColorConstants.surfaceDark : Colors.white,
+                backgroundColor: isDark
+                    ? ColorConstants.surfaceDark
+                    : Colors.white,
                 selectedColor: color.withValues(alpha: 0.15),
                 labelStyle: TextStyle(
-                  color: isSelected ? color : (isDark ? Colors.white : Colors.black),
+                  color: isSelected
+                      ? color
+                      : (isDark ? Colors.white : Colors.black),
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
                 checkmarkColor: color,
@@ -443,8 +473,7 @@ class _ListsPageState extends State<ListsPage>
 
   Widget _buildGridForStatus(ListingStatus status) {
     final needsController =
-        status == ListingStatus.draft ||
-        status == ListingStatus.cancelled;
+        status == ListingStatus.draft || status == ListingStatus.cancelled;
     final needsSellerId = needsController;
     final userId = SupabaseConfig.client.auth.currentUser?.id;
 
@@ -456,9 +485,7 @@ class _ListsPageState extends State<ListsPage>
       emptySubtitle: _getEmptySubtitle(status),
       emptyIcon: _getEmptyIcon(status),
       enableNavigation: !_controller.isSelectionMode,
-      draftController: needsController
-          ? sl<ListingDraftController>()
-          : null,
+      draftController: needsController ? sl<ListingDraftController>() : null,
       sellerId: needsSellerId ? userId : null,
       isSelectionMode: _controller.isSelectionMode,
       selectedIds: _controller.selectedListingIds,

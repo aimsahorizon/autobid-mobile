@@ -174,13 +174,20 @@ class _BrowsePageState extends State<BrowsePage> {
                 (isDarkMode ? Colors.white : Colors.black),
           ),
           actions: [
-            // Notification bell with unread count badge
+            // Unified notification bell with combined unread + invite count
             ListenableBuilder(
-              listenable: GetIt.instance<NotificationController>(),
+              listenable: Listenable.merge([
+                GetIt.instance<NotificationController>(),
+                GetIt.instance<BuyerInvitesController>(),
+              ]),
               builder: (context, _) {
                 final notificationController =
                     GetIt.instance<NotificationController>();
-                final unreadCount = notificationController.unreadCount;
+                final invitesController =
+                    GetIt.instance<BuyerInvitesController>();
+                final totalCount =
+                    notificationController.unreadCount +
+                    invitesController.pendingCount;
 
                 return Stack(
                   children: [
@@ -196,7 +203,7 @@ class _BrowsePageState extends State<BrowsePage> {
                       },
                       tooltip: 'Notifications',
                     ),
-                    if (unreadCount > 0)
+                    if (totalCount > 0)
                       Positioned(
                         right: 8,
                         top: 8,
@@ -211,58 +218,7 @@ class _BrowsePageState extends State<BrowsePage> {
                             minHeight: 16,
                           ),
                           child: Text(
-                            unreadCount > 9 ? '9+' : '$unreadCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            // Auction invites badge
-            ListenableBuilder(
-              listenable: GetIt.instance<BuyerInvitesController>(),
-              builder: (context, _) {
-                final invitesController =
-                    GetIt.instance<BuyerInvitesController>();
-                final pendingCount = invitesController.pendingCount;
-
-                return Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.mail_outline),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const BuyerInvitesPage(),
-                          ),
-                        );
-                      },
-                      tooltip: 'Auction Invites',
-                    ),
-                    if (pendingCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.orange,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            pendingCount > 9 ? '9+' : '$pendingCount',
+                            totalCount > 9 ? '9+' : '$totalCount',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,

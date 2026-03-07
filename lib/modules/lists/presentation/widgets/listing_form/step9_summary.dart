@@ -25,12 +25,18 @@ class Step9Summary extends StatelessWidget {
     if (success) {
       onSubmitSuccess();
     } else if (controller.errorMessage != null) {
-      // Only show error if submission failed and there is an error message
-      // If success is false but no error message, it might be a silent failure or handled elsewhere
-      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-        SnackBar(
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: const Icon(Icons.error_outline, color: Colors.red, size: 48),
+          title: const Text('Submission Failed'),
           content: Text(controller.errorMessage!),
-          backgroundColor: Colors.red,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
         ),
       );
     }

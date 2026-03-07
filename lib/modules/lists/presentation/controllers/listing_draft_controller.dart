@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
+import '../../data/models/listing_draft_model.dart';
 import '../../domain/usecases/draft_management_usecases.dart';
 import '../../domain/usecases/submission_usecases.dart';
 import '../../domain/usecases/media_management_usecases.dart';
@@ -11,6 +14,8 @@ import '../../../profile/domain/usecases/get_user_profile_usecase.dart';
 /// Controller for managing listing draft creation and editing
 /// Handles 9-step form flow with auto-save and validation
 class ListingDraftController extends ChangeNotifier {
+  static const String _localDraftStoragePrefix = 'local_listing_draft_';
+
   final GetSellerDraftsUseCase _getSellerDraftsUseCase;
   final GetDraftUseCase _getDraftUseCase;
   final CreateDraftUseCase _createDraftUseCase;
@@ -209,6 +214,15 @@ class ListingDraftController extends ChangeNotifier {
     _isSubmissionSuccess = false;
     notifyListeners();
 
+    // Restore offline draft first if available.
+    final localDraft = await _loadDraftLocally(sellerId);
+    if (localDraft != null) {
+      _currentDraft = localDraft;
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
     // Create local draft with empty ID to defer DB creation
     _currentDraft = ListingDraftEntity(
       id: '',
@@ -238,6 +252,8 @@ class ListingDraftController extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+
+    await _saveDraftLocally(_currentDraft!);
   }
 
   /// Ensure draft exists in DB (Create if local)
@@ -309,10 +325,14 @@ class ListingDraftController extends ChangeNotifier {
   Future<void> _autoSave() async {
     if (_currentDraft == null || _isSaving) return;
 
+    await _saveDraftLocally(_currentDraft!);
+
     // Ensure DB record exists before saving
     if (_currentDraft!.id.isEmpty) {
       final success = await _ensureDraftExists();
-      if (!success) return;
+      if (!success) {
+        return;
+      }
     }
 
     _isSaving = true;
@@ -326,10 +346,17 @@ class ListingDraftController extends ChangeNotifier {
   Future<bool> saveDraft() async {
     if (_currentDraft == null) return false;
 
+    await _saveDraftLocally(_currentDraft!);
+
     // Ensure DB record exists before saving
     if (_currentDraft!.id.isEmpty) {
       final success = await _ensureDraftExists();
-      if (!success) return false;
+      if (!success) {
+        _errorMessage =
+            'Saved locally. Connect to internet to sync this draft.';
+        notifyListeners();
+        return true;
+      }
     }
 
     _isSaving = true;
@@ -339,7 +366,11 @@ class ListingDraftController extends ChangeNotifier {
     final result = await _saveDraftUseCase.call(_currentDraft!);
     _isSaving = false;
     notifyListeners();
-    return result.isRight();
+    return result.fold((failure) {
+      _errorMessage = 'Saved locally. Connect to internet to sync this draft.';
+      notifyListeners();
+      return true;
+    }, (_) => true);
   }
 
   /// Upload photo for a category
@@ -367,10 +398,14 @@ class ListingDraftController extends ChangeNotifier {
       );
       currentPhotos[categoryKey] = [...(currentPhotos[categoryKey] ?? []), url];
 
+      // Check if existing cover photo is still valid (exists in any category)
       final existingCover = _currentDraft!.coverPhotoUrl;
-      final nextCover = (existingCover == null || existingCover.isEmpty)
-          ? url
-          : existingCover;
+      final allUrls = currentPhotos.values.expand((urls) => urls).toSet();
+      final isCoverValid =
+          existingCover != null &&
+          existingCover.isNotEmpty &&
+          allUrls.contains(existingCover);
+      final nextCover = isCoverValid ? existingCover : url;
 
       _currentDraft = _currentDraft!.copyWith(
         lastSaved: DateTime.now(),
@@ -492,6 +527,23 @@ class ListingDraftController extends ChangeNotifier {
   Future<bool> submitListing(String userId) async {
     if (_currentDraft == null || !canSubmit) return false;
 
+    // Unsynced drafts cannot be submitted while offline.
+    if (_currentDraft!.id.isEmpty) {
+      _errorMessage =
+          'Draft is saved locally. Connect to internet first to submit listing.';
+      notifyListeners();
+      return false;
+    }
+
+    // End date is chosen in Approved tab; keep submission unblocked by applying a safe default.
+    if (_currentDraft!.auctionEndDate == null) {
+      _currentDraft = _currentDraft!.copyWith(
+        auctionEndDate: DateTime.now().toUtc().add(const Duration(days: 7)),
+        lastSaved: DateTime.now(),
+      );
+      await _saveDraftLocally(_currentDraft!);
+    }
+
     // Validate bidding config before submission
     if (!_validateBiddingConfig()) {
       notifyListeners();
@@ -507,7 +559,8 @@ class ListingDraftController extends ChangeNotifier {
       final saveResult = await _saveDraftUseCase.call(_currentDraft!);
 
       final saveSuccess = saveResult.fold((failure) {
-        _errorMessage = 'Failed to save draft: ${failure.message}';
+        _errorMessage =
+            'Unable to save your listing. Please check your connection and try again.';
         return false;
       }, (_) => true);
 
@@ -523,7 +576,7 @@ class ListingDraftController extends ChangeNotifier {
       );
 
       final completeSuccess = markCompleteResult.fold((failure) {
-        _errorMessage = 'Failed to mark draft as complete: ${failure.message}';
+        _errorMessage = 'Unable to finalize your listing. Please try again.';
         return false;
       }, (_) => true);
 
@@ -539,12 +592,13 @@ class ListingDraftController extends ChangeNotifier {
       _isSubmitting = false;
       return result.fold(
         (failure) {
-          _errorMessage = failure.message;
+          _errorMessage = _sanitizeErrorMessage(failure.message);
           notifyListeners();
           return false;
         },
         (_) {
           _isSubmissionSuccess = true;
+          _clearLocalDraft(_currentDraft!.sellerId);
           _currentDraft = null;
           notifyListeners();
           return true;
@@ -552,7 +606,7 @@ class ListingDraftController extends ChangeNotifier {
       );
     } catch (e) {
       _isSubmitting = false;
-      _errorMessage = 'Error submitting listing: $e';
+      _errorMessage = 'Something went wrong. Please try again later.';
       notifyListeners();
       return false;
     }
@@ -573,5 +627,148 @@ class ListingDraftController extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Sanitize technical error messages into user-friendly ones
+  String _sanitizeErrorMessage(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('token') || lower.contains('insufficient')) {
+      return 'You don\'t have enough listing tokens. Please purchase more to submit.';
+    }
+    if (lower.contains('network') ||
+        lower.contains('socket') ||
+        lower.contains('connection')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    if (lower.contains('permission') ||
+        lower.contains('unauthorized') ||
+        lower.contains('forbidden')) {
+      return 'You don\'t have permission to perform this action.';
+    }
+    if (lower.contains('duplicate')) {
+      return 'This listing appears to be a duplicate. Please check your existing listings.';
+    }
+    if (lower.contains('timeout')) {
+      return 'The request timed out. Please try again.';
+    }
+    // If message looks like a user-friendly message already (no stack traces or exceptions), return it
+    if (!lower.contains('exception') &&
+        !lower.contains('error:') &&
+        message.length < 200) {
+      return message;
+    }
+    return 'Something went wrong while submitting your listing. Please try again.';
+  }
+
+  String _localDraftKey(String sellerId) =>
+      '$_localDraftStoragePrefix$sellerId';
+
+  Future<void> _saveDraftLocally(ListingDraftEntity draft) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final model = ListingDraftModel(
+        id: draft.id,
+        sellerId: draft.sellerId,
+        currentStep: draft.currentStep,
+        lastSaved: draft.lastSaved,
+        isComplete: draft.isComplete,
+        brand: draft.brand,
+        model: draft.model,
+        variant: draft.variant,
+        bodyType: draft.bodyType,
+        year: draft.year,
+        engineType: draft.engineType,
+        engineDisplacement: draft.engineDisplacement,
+        cylinderCount: draft.cylinderCount,
+        horsepower: draft.horsepower,
+        torque: draft.torque,
+        transmission: draft.transmission,
+        fuelType: draft.fuelType,
+        driveType: draft.driveType,
+        length: draft.length,
+        width: draft.width,
+        height: draft.height,
+        wheelbase: draft.wheelbase,
+        groundClearance: draft.groundClearance,
+        seatingCapacity: draft.seatingCapacity,
+        doorCount: draft.doorCount,
+        fuelTankCapacity: draft.fuelTankCapacity,
+        curbWeight: draft.curbWeight,
+        grossWeight: draft.grossWeight,
+        exteriorColor: draft.exteriorColor,
+        paintType: draft.paintType,
+        rimType: draft.rimType,
+        rimSize: draft.rimSize,
+        tireSize: draft.tireSize,
+        tireBrand: draft.tireBrand,
+        condition: draft.condition,
+        mileage: draft.mileage,
+        previousOwners: draft.previousOwners,
+        hasModifications: draft.hasModifications,
+        modificationsDetails: draft.modificationsDetails,
+        hasWarranty: draft.hasWarranty,
+        warrantyDetails: draft.warrantyDetails,
+        usageType: draft.usageType,
+        plateNumber: draft.plateNumber,
+        orcrStatus: draft.orcrStatus,
+        registrationStatus: draft.registrationStatus,
+        registrationExpiry: draft.registrationExpiry,
+        province: draft.province,
+        cityMunicipality: draft.cityMunicipality,
+        barangay: draft.barangay,
+        photoUrls: draft.photoUrls,
+        coverPhotoUrl: draft.coverPhotoUrl,
+        tags: draft.tags,
+        deedOfSaleUrl: draft.deedOfSaleUrl,
+        description: draft.description,
+        knownIssues: draft.knownIssues,
+        features: draft.features,
+        startingPrice: draft.startingPrice,
+        reservePrice: draft.reservePrice,
+        auctionEndDate: draft.auctionEndDate,
+        biddingType: draft.biddingType,
+        bidIncrement: draft.bidIncrement,
+        minBidIncrement: draft.minBidIncrement,
+        depositAmount: draft.depositAmount,
+        enableIncrementalBidding: draft.enableIncrementalBidding,
+        autoLiveAfterApproval: draft.autoLiveAfterApproval,
+        snipeGuardEnabled: draft.snipeGuardEnabled,
+        snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
+        snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,
+        allowsInstallment: draft.allowsInstallment,
+        isPlateValid: draft.isPlateValid,
+      );
+
+      await prefs.setString(
+        _localDraftKey(draft.sellerId),
+        jsonEncode(model.toJson()),
+      );
+    } catch (_) {
+      // Best-effort local persistence.
+    }
+  }
+
+  Future<ListingDraftEntity?> _loadDraftLocally(String sellerId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_localDraftKey(sellerId));
+      if (raw == null || raw.isEmpty) return null;
+
+      final json = jsonDecode(raw);
+      if (json is! Map<String, dynamic>) return null;
+
+      return ListingDraftModel.fromJson(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _clearLocalDraft(String sellerId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_localDraftKey(sellerId));
+    } catch (_) {
+      // Ignore local cleanup failures.
+    }
   }
 }

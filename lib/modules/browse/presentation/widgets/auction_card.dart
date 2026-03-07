@@ -77,24 +77,62 @@ class AuctionCard extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    return AspectRatio(
-      aspectRatio: 16 / 9,
-      child: CachedNetworkImage(
-        imageUrl: auction.carImageUrl,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => Container(
-          color: ColorConstants.backgroundSecondaryLight,
-          child: const Center(child: CircularProgressIndicator()),
-        ),
-        errorWidget: (context, url, error) => Container(
-          color: ColorConstants.backgroundSecondaryLight,
-          child: const Icon(
-            Icons.directions_car,
-            size: 48,
-            color: ColorConstants.textSecondaryLight,
+    final isPrivate = auction.visibility == 'private';
+
+    return Stack(
+      children: [
+        AspectRatio(
+          aspectRatio: 16 / 9,
+          child: CachedNetworkImage(
+            imageUrl: auction.carImageUrl,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: ColorConstants.backgroundSecondaryLight,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: ColorConstants.backgroundSecondaryLight,
+              child: const Icon(
+                Icons.directions_car,
+                size: 48,
+                color: ColorConstants.textSecondaryLight,
+              ),
+            ),
           ),
         ),
-      ),
+        Positioned(
+          top: 8,
+          left: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isPrivate
+                  ? ColorConstants.warning.withValues(alpha: 0.9)
+                  : ColorConstants.success.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isPrivate ? Icons.lock_outline : Icons.public,
+                  size: 12,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  isPrivate ? 'Private' : 'Public',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -102,8 +140,6 @@ class AuctionCard extends StatelessWidget {
     return Text(
       auction.carName,
       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
     );
   }
 

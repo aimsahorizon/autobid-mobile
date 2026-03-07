@@ -115,6 +115,13 @@ class TransactionSupabaseDataSource {
         '[TransactionSupabaseDataSource] Found ${transactions.length} transactions for status: $status',
       );
 
+      final accurateBidCounts = await _getAccurateBidCounts(
+        transactions
+            .map((txn) => txn['auction_id'] as String?)
+            .whereType<String>()
+            .toList(),
+      );
+
       // Map transaction -> auction data to ListingModel
       return transactions.map((txn) {
         // Clone auction data and normalize status/current_price fields
@@ -131,6 +138,9 @@ class TransactionSupabaseDataSource {
         );
         auctionData['id'] = transactionId; // Use transaction ID for navigation
         auctionData['transaction_id'] = transactionId;
+        if (auctionId != null && auctionId.isNotEmpty) {
+          auctionData['total_bids'] = accurateBidCounts[auctionId] ?? 0;
+        }
 
         // Determine cancellation reason
         String? cancellationReason;
@@ -230,6 +240,13 @@ class TransactionSupabaseDataSource {
       final transactions = (response as List);
       if (transactions.isEmpty) return [];
 
+      final accurateBidCounts = await _getAccurateBidCounts(
+        transactions
+            .map((txn) => txn['auction_id'] as String?)
+            .whereType<String>()
+            .toList(),
+      );
+
       return transactions.map((txn) {
         final auctionData = Map<String, dynamic>.from(
           txn['auctions'] as Map<String, dynamic>,
@@ -239,6 +256,10 @@ class TransactionSupabaseDataSource {
         final transactionId = txn['id'] as String;
         auctionData['id'] = transactionId;
         auctionData['transaction_id'] = transactionId;
+        final auctionId = txn['auction_id'] as String?;
+        if (auctionId != null && auctionId.isNotEmpty) {
+          auctionData['total_bids'] = accurateBidCounts[auctionId] ?? 0;
+        }
 
         // Determine cancellation reason
         String? cancellationReason;
@@ -391,6 +412,35 @@ class TransactionSupabaseDataSource {
       return ListingModel.fromJson(mergedJson);
     } catch (e) {
       throw Exception('Failed to merge transaction data: $e');
+    }
+  }
+
+  Future<Map<String, int>> _getAccurateBidCounts(
+    List<String> auctionIds,
+  ) async {
+    final uniqueAuctionIds = auctionIds.toSet().toList();
+    if (uniqueAuctionIds.isEmpty) {
+      return {};
+    }
+
+    try {
+      final bids = await _supabase
+          .from('bids')
+          .select('auction_id')
+          .inFilter('auction_id', uniqueAuctionIds);
+
+      final counts = <String, int>{};
+      for (final row in (bids as List)) {
+        if (row is Map<String, dynamic>) {
+          final auctionId = row['auction_id'] as String?;
+          if (auctionId != null && auctionId.isNotEmpty) {
+            counts[auctionId] = (counts[auctionId] ?? 0) + 1;
+          }
+        }
+      }
+      return counts;
+    } catch (_) {
+      return {};
     }
   }
 }

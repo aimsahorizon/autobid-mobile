@@ -5,6 +5,7 @@ import '../../domain/entities/listing_detail_entity.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/seller_bid_history_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
+import 'package:intl/intl.dart';
 
 /// Detail page for ended auctions awaiting seller decision
 /// Seller can choose to proceed to transaction or cancel the auction
@@ -424,7 +425,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
           ),
         ),
         Text(
-          '₱${price.toStringAsFixed(2)}',
+          '₱${NumberFormat('#,##0.00').format(price)}',
           style: TextStyle(
             fontSize: isHighlight ? 18 : 16,
             fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,

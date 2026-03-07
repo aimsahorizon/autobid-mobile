@@ -18,7 +18,8 @@ class Step6Documentation extends StatefulWidget {
 }
 
 class _Step6DocumentationState extends State<Step6Documentation> {
-  late TextEditingController _plateController;
+  late TextEditingController _plateLetterController;
+  late TextEditingController _plateNumberController;
   final _validatePlateUseCase = GetIt.I<ValidatePlateNumberUseCase>();
 
   String? _province;
@@ -38,7 +39,16 @@ class _Step6DocumentationState extends State<Step6Documentation> {
   void initState() {
     super.initState();
     final draft = widget.controller.currentDraft!;
-    _plateController = TextEditingController(text: draft.plateNumber);
+
+    // Parse existing plate number into letter and number parts
+    final existingPlate = draft.plateNumber ?? '';
+    final parts = existingPlate.split(' ');
+    _plateLetterController = TextEditingController(
+      text: parts.isNotEmpty ? parts[0] : '',
+    );
+    _plateNumberController = TextEditingController(
+      text: parts.length > 1 ? parts[1] : '',
+    );
 
     _province = draft.province;
     _city = draft.cityMunicipality;
@@ -52,45 +62,56 @@ class _Step6DocumentationState extends State<Step6Documentation> {
       if (mounted) _updateDraft();
     });
 
-    _plateController.addListener(_onPlateChanged);
+    _plateLetterController.addListener(_onPlateChanged);
+    _plateNumberController.addListener(_onPlateChanged);
 
     // Initial validation if existing value
-    if (_plateController.text.isNotEmpty) {
-      _validatePlate(_plateController.text);
+    if (_combinedPlate.isNotEmpty) {
+      _validatePlate(_combinedPlate);
     }
+  }
+
+  String get _combinedPlate {
+    final letters = _plateLetterController.text.trim().toUpperCase();
+    final numbers = _plateNumberController.text.trim();
+    if (letters.isEmpty && numbers.isEmpty) return '';
+    return '$letters $numbers';
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
-    _plateController.removeListener(_onPlateChanged);
-    _plateController.dispose();
+    _plateLetterController.removeListener(_onPlateChanged);
+    _plateNumberController.removeListener(_onPlateChanged);
+    _plateLetterController.dispose();
+    _plateNumberController.dispose();
     super.dispose();
   }
 
   void _onPlateChanged() {
+    // Force uppercase for letters
+    final letterText = _plateLetterController.text.toUpperCase();
+    if (letterText != _plateLetterController.text) {
+      _plateLetterController.value = _plateLetterController.value.copyWith(
+        text: letterText,
+        selection: TextSelection.collapsed(offset: letterText.length),
+      );
+      return;
+    }
+
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
-    String text = _plateController.text.toUpperCase();
-
-    // Auto-format: Insert space after exactly 3 letters if missing
-    // Matches if we have exactly 3 letters followed immediately by a digit
-    final compactRegex = RegExp(r'^([A-Z]{3})([0-9]+.*)$');
-    if (compactRegex.hasMatch(text)) {
-      text = text.replaceAllMapped(compactRegex, (m) => '${m[1]} ${m[2]}');
-    }
-
-    // Update controller if text changed (uppercase or space insertion)
-    if (text != _plateController.text) {
-      _plateController.value = _plateController.value.copyWith(
-        text: text,
-        selection: TextSelection.collapsed(offset: text.length),
-      );
-      return; // Listener will trigger again with new text
-    }
-
     _debounce = Timer(const Duration(milliseconds: 600), () {
-      _validatePlate(text);
+      final combined = _combinedPlate;
+      if (combined.trim().isNotEmpty) {
+        _validatePlate(combined);
+      } else {
+        setState(() {
+          _plateError = null;
+          _isPlateValid = false;
+          _isValidatingPlate = false;
+        });
+      }
     });
 
     // Update draft immediately for simple text change
@@ -132,69 +153,16 @@ class _Step6DocumentationState extends State<Step6Documentation> {
   void _updateDraft() {
     final draft = widget.controller.currentDraft!;
     widget.controller.updateDraft(
-      ListingDraftEntity(
-        id: draft.id,
-        sellerId: draft.sellerId,
-        currentStep: draft.currentStep,
+      draft.copyWith(
         lastSaved: DateTime.now(),
-        brand: draft.brand,
-        model: draft.model,
-        variant: draft.variant,
-        year: draft.year,
-        engineType: draft.engineType,
-        engineDisplacement: draft.engineDisplacement,
-        cylinderCount: draft.cylinderCount,
-        horsepower: draft.horsepower,
-        torque: draft.torque,
-        transmission: draft.transmission,
-        fuelType: draft.fuelType,
-        driveType: draft.driveType,
-        length: draft.length,
-        width: draft.width,
-        height: draft.height,
-        wheelbase: draft.wheelbase,
-        groundClearance: draft.groundClearance,
-        seatingCapacity: draft.seatingCapacity,
-        doorCount: draft.doorCount,
-        fuelTankCapacity: draft.fuelTankCapacity,
-        curbWeight: draft.curbWeight,
-        grossWeight: draft.grossWeight,
-        exteriorColor: draft.exteriorColor,
-        paintType: draft.paintType,
-        rimType: draft.rimType,
-        rimSize: draft.rimSize,
-        tireSize: draft.tireSize,
-        tireBrand: draft.tireBrand,
-        condition: draft.condition,
-        mileage: draft.mileage,
-        previousOwners: draft.previousOwners,
-        hasModifications: draft.hasModifications,
-        modificationsDetails: draft.modificationsDetails,
-        hasWarranty: draft.hasWarranty,
-        warrantyDetails: draft.warrantyDetails,
-        usageType: draft.usageType,
-        plateNumber: _plateController.text.isEmpty
-            ? null
-            : _plateController.text,
+        plateNumber: _combinedPlate.isEmpty ? null : _combinedPlate,
         orcrStatus: _orcrStatus,
         registrationStatus: _registrationStatus,
         registrationExpiry: _registrationExpiry,
         province: _province,
         cityMunicipality: _city,
         barangay: _barangay,
-        photoUrls: draft.photoUrls,
-        description: draft.description,
-        knownIssues: draft.knownIssues,
-        features: draft.features,
-        startingPrice: draft.startingPrice,
-        reservePrice: draft.reservePrice,
-        auctionEndDate: draft.auctionEndDate,
-        snipeGuardEnabled: draft.snipeGuardEnabled,
-        snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
-        snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,
-        // Set plate validation state
         isPlateValid: _isPlateValid,
-        // Only valid if no error
         isComplete: draft.isComplete && _isPlateValid,
       ),
     );
@@ -211,9 +179,24 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         ),
         const SizedBox(height: 24),
         FormFieldWidget(
-          controller: _plateController,
+          controller: _plateLetterController,
+          label: 'Plate Letters *',
+          hint: 'e.g., ABC',
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
+            LengthLimitingTextInputFormatter(3),
+          ],
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            if (v!.length != 3) return 'Must be exactly 3 letters';
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        FormFieldWidget(
+          controller: _plateNumberController,
           label: 'Plate Number *',
-          hint: 'e.g., ABC 1234',
+          hint: 'e.g., 1234',
           errorText: _plateError,
           suffix: _isValidatingPlate
               ? const SizedBox(
@@ -224,15 +207,16 @@ class _Step6DocumentationState extends State<Step6Documentation> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 )
-              : (_isPlateValid && _plateController.text.isNotEmpty)
+              : (_isPlateValid && _plateNumberController.text.isNotEmpty)
               ? const Icon(Icons.check_circle, color: Colors.green)
               : null,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')),
-            LengthLimitingTextInputFormatter(8), // Standard max length roughly
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(4),
           ],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
+            if (v!.length != 4) return 'Must be exactly 4 digits';
             return _plateError;
           },
         ),
@@ -294,19 +278,19 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         // Location Picker
         LocationPicker(
           province: _province,
           city: _city,
           barangay: _barangay,
           onChanged: (province, city, barangay) {
-             setState(() {
-               _province = province;
-               _city = city;
-               _barangay = barangay;
-             });
-             _updateDraft();
+            setState(() {
+              _province = province;
+              _city = city;
+              _barangay = barangay;
+            });
+            _updateDraft();
           },
           provinceValidator: (v) => v == null ? 'Required' : null,
           cityValidator: (v) => v == null ? 'Required' : null,

@@ -25,11 +25,12 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
   @override
   void initState() {
     super.initState();
-    widget.controller.loadAuctionInvites(widget.auctionId);
+    widget.controller.startAuctionInvitesStream(widget.auctionId);
   }
 
   @override
   void dispose() {
+    widget.controller.stopAuctionInvitesStream(widget.auctionId);
     _identifierController.dispose();
     super.dispose();
   }
@@ -55,7 +56,9 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
       if (mounted) {
         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
-            content: Text(widget.controller.errorMessage ?? 'Failed to send invite'),
+            content: Text(
+              widget.controller.errorMessage ?? 'Failed to send invite',
+            ),
             backgroundColor: ColorConstants.error,
           ),
         );
@@ -72,7 +75,7 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(20),
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+        constraints: const BoxConstraints(maxWidth: 760, maxHeight: 760),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +89,10 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
                     children: [
                       const Text(
                         'Manage Invites',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         widget.carName,
@@ -107,7 +113,7 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
               ],
             ),
             const Divider(height: 32),
-            
+
             // Invite Form
             const Text(
               'Invite New User',
@@ -120,17 +126,30 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
                   child: TextField(
                     controller: _identifierController,
                     decoration: InputDecoration(
-                      hintText: _identifierType == 'username' ? 'Username' : 'Email Address',
-                      prefixIcon: Icon(_identifierType == 'username' ? Icons.person : Icons.email),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      hintText: _identifierType == 'username'
+                          ? 'Username'
+                          : 'Email Address',
+                      prefixIcon: Icon(
+                        _identifierType == 'username'
+                            ? Icons.person
+                            : Icons.email,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: isDark ? ColorConstants.surfaceDark : Colors.grey[200],
+                    color: isDark
+                        ? ColorConstants.surfaceDark
+                        : Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButton<String>(
@@ -152,17 +171,26 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
               builder: (context, _) => SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: widget.controller.isInvitesLoading ? null : _sendInvite,
+                  onPressed: widget.controller.isInvitesLoading
+                      ? null
+                      : _sendInvite,
                   icon: widget.controller.isInvitesLoading
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Icon(Icons.send),
                   label: const Text('Send Invite'),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Invites List
             const Text(
               'Invited Users',
@@ -173,36 +201,53 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
               child: ListenableBuilder(
                 listenable: widget.controller,
                 builder: (context, _) {
-                  if (widget.controller.isInvitesLoading && widget.controller.currentAuctionInvites.isEmpty) {
+                  if (widget.controller.isInvitesLoading &&
+                      widget.controller.currentAuctionInvites.isEmpty) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  
+
                   if (widget.controller.currentAuctionInvites.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.people_outline, size: 48, color: Colors.grey[400]),
+                          Icon(
+                            Icons.people_outline,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
                           const SizedBox(height: 8),
-                          Text('No one invited yet', style: TextStyle(color: Colors.grey[500])),
+                          Text(
+                            'No one invited yet',
+                            style: TextStyle(color: Colors.grey[500]),
+                          ),
                         ],
                       ),
                     );
                   }
-                  
+
                   return ListView.separated(
                     itemCount: widget.controller.currentAuctionInvites.length,
                     separatorBuilder: (_, __) => const Divider(),
                     itemBuilder: (context, index) {
-                      final invite = widget.controller.currentAuctionInvites[index];
-                      final identifier = invite['invitee_username'] ?? invite['invitee_email'] ?? 'Unknown';
+                      final invite =
+                          widget.controller.currentAuctionInvites[index];
+                      final identifier =
+                          invite['invitee_username'] ??
+                          invite['invitee_email'] ??
+                          'Unknown';
                       final status = invite['status'] as String? ?? 'pending';
-                      
+
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
-                          backgroundColor: ColorConstants.primary.withValues(alpha: 0.1),
-                          child: Text(identifier[0].toUpperCase(), style: TextStyle(color: ColorConstants.primary)),
+                          backgroundColor: ColorConstants.primary.withValues(
+                            alpha: 0.1,
+                          ),
+                          child: Text(
+                            identifier[0].toUpperCase(),
+                            style: TextStyle(color: ColorConstants.primary),
+                          ),
                         ),
                         title: Text(identifier),
                         subtitle: Text(
@@ -214,8 +259,12 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
                           ),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.person_remove_outlined, color: Colors.red),
-                          onPressed: () => _confirmDeleteInvite(invite['id'] as String),
+                          icon: const Icon(
+                            Icons.person_remove_outlined,
+                            color: Colors.red,
+                          ),
+                          onPressed: () =>
+                              _confirmDeleteInvite(invite['id'] as String),
                         ),
                       );
                     },
@@ -231,9 +280,12 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'accepted': return ColorConstants.success;
-      case 'rejected': return ColorConstants.error;
-      default: return ColorConstants.warning;
+      case 'accepted':
+        return ColorConstants.success;
+      case 'rejected':
+        return ColorConstants.error;
+      default:
+        return ColorConstants.warning;
     }
   }
 
@@ -242,9 +294,14 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Revoke Invite?'),
-        content: const Text('This user will no longer be able to see or participate in this private auction.'),
+        content: const Text(
+          'This user will no longer be able to see or participate in this private auction.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),

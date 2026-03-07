@@ -11,6 +11,7 @@ class BrowseController extends ChangeNotifier {
 
   BrowseController(this._repository, this._streamActiveAuctionsUseCase) {
     _subscribeToUpdates();
+    _startRefreshTimer();
   }
 
   List<AuctionEntity> _auctions = [];
@@ -18,6 +19,7 @@ class BrowseController extends ChangeNotifier {
   String? _errorMessage;
   AuctionFilter _currentFilter = const AuctionFilter();
   StreamSubscription? _updatesSubscription;
+  Timer? _refreshTimer;
 
   List<AuctionEntity> get auctions => _auctions;
   bool get isLoading => _isLoading;
@@ -46,9 +48,19 @@ class BrowseController extends ChangeNotifier {
         );
   }
 
+  void _startRefreshTimer() {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      // Trigger UI rebuild to update time remaining on cards
+      if (_auctions.isNotEmpty) {
+        notifyListeners();
+      }
+    });
+  }
+
   @override
   void dispose() {
     _updatesSubscription?.cancel();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 

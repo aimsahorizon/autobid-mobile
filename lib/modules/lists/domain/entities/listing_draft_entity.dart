@@ -85,6 +85,7 @@ class ListingDraftEntity {
   final double? minBidIncrement; // Alias for bidIncrement for clarity
   final double? depositAmount; // Required deposit to bid
   final bool? enableIncrementalBidding; // Allow price-based increments
+  final bool? autoLiveAfterApproval; // Auto-launch after admin approval
 
   // Snipe Guard Configuration
   final bool? snipeGuardEnabled;
@@ -163,6 +164,7 @@ class ListingDraftEntity {
     this.minBidIncrement,
     this.depositAmount,
     this.enableIncrementalBidding,
+    this.autoLiveAfterApproval,
     this.snipeGuardEnabled,
     this.snipeGuardThresholdSeconds,
     this.snipeGuardExtendSeconds,
@@ -236,6 +238,7 @@ class ListingDraftEntity {
     double? minBidIncrement,
     double? depositAmount,
     bool? enableIncrementalBidding,
+    bool? autoLiveAfterApproval,
     bool? snipeGuardEnabled,
     int? snipeGuardThresholdSeconds,
     int? snipeGuardExtendSeconds,
@@ -308,6 +311,8 @@ class ListingDraftEntity {
       depositAmount: depositAmount ?? this.depositAmount,
       enableIncrementalBidding:
           enableIncrementalBidding ?? this.enableIncrementalBidding,
+      autoLiveAfterApproval:
+          autoLiveAfterApproval ?? this.autoLiveAfterApproval,
       snipeGuardEnabled: snipeGuardEnabled ?? this.snipeGuardEnabled,
       snipeGuardThresholdSeconds:
           snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
@@ -380,6 +385,7 @@ class ListingDraftEntity {
       minBidIncrement: minBidIncrement ?? 100,
       depositAmount: depositAmount ?? 0,
       enableIncrementalBidding: enableIncrementalBidding ?? true,
+      autoLiveAfterApproval: autoLiveAfterApproval ?? false,
       deedOfSaleUrl: deedOfSaleUrl,
       allowsInstallment: allowsInstallment ?? false,
     );

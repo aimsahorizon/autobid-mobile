@@ -2282,6 +2282,7 @@ class TransactionRealtimeDataSource {
             category: e['category'] as String? ?? 'general',
             options: e['options'] as String?,
             addedBy: e['added_by'] as String?,
+            lastEditedBy: e['last_edited_by'] as String?,
             displayOrder: e['display_order'] as int? ?? 0,
           ),
         )
@@ -2338,19 +2339,28 @@ class TransactionRealtimeDataSource {
       category: response['category'] as String? ?? 'general',
       options: response['options'] as String?,
       addedBy: response['added_by'] as String?,
+      lastEditedBy: response['last_edited_by'] as String?,
       displayOrder: response['display_order'] as int? ?? 0,
     );
   }
 
   /// Update a single agreement field value
-  Future<bool> updateAgreementField(String fieldId, String value) async {
+  Future<bool> updateAgreementField(
+    String fieldId,
+    String value, {
+    String? editedBy,
+  }) async {
     try {
+      final updateData = <String, dynamic>{
+        'value': value,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+      if (editedBy != null) {
+        updateData['last_edited_by'] = editedBy;
+      }
       await _supabase
           .from('transaction_agreement_fields')
-          .update({
-            'value': value,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
+          .update(updateData)
           .eq('id', fieldId);
       return true;
     } catch (e) {

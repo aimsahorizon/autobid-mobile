@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:intl/intl.dart';
 import '../../../domain/entities/listing_detail_entity.dart';
 
 class AuctionStatsSection extends StatelessWidget {
@@ -42,64 +43,72 @@ class AuctionStatsSection extends StatelessWidget {
       child: Column(
         children: [
           // Current Bid / Starting Price
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    listing.currentBid != null ? 'Current Bid' : 'Starting Price',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark
-                          ? ColorConstants.textSecondaryDark
-                          : ColorConstants.textSecondaryLight,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '₱${(listing.currentBid ?? listing.startingPrice).toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: ColorConstants.primary,
-                    ),
-                  ),
-                ],
-              ),
-              // Reserve Met Indicator
-              if (listing.reservePrice != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: listing.isReserveMet
-                        ? Colors.green.withValues(alpha: 0.2)
-                        : Colors.orange.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        listing.isReserveMet ? Icons.check_circle : Icons.info,
-                        size: 16,
-                        color: listing.isReserveMet ? Colors.green : Colors.orange,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        listing.isReserveMet ? 'Reserve Met' : 'Reserve Not Met',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: listing.isReserveMet ? Colors.green : Colors.orange,
-                        ),
-                      ),
-                    ],
-                  ),
+              Text(
+                listing.currentBid != null ? 'Current Bid' : 'Starting Price',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
                 ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '₱${NumberFormat('#,##0').format(listing.currentBid ?? listing.startingPrice)}',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: ColorConstants.primary,
+                ),
+              ),
             ],
           ),
+          // Reserve Met Indicator - full width below price
+          if (listing.reservePrice != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: listing.isReserveMet
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : Colors.orange.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      listing.isReserveMet ? Icons.check_circle : Icons.info,
+                      size: 16,
+                      color: listing.isReserveMet
+                          ? Colors.green
+                          : Colors.orange,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      listing.isReserveMet ? 'Reserve Met' : 'Reserve Not Met',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: listing.isReserveMet
+                            ? Colors.green
+                            : Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           // Stats Grid
           Row(
@@ -108,7 +117,9 @@ class AuctionStatsSection extends StatelessWidget {
                 child: _StatItem(
                   icon: Icons.timer_outlined,
                   label: 'Time Left',
-                  value: isEnded ? 'Ended' : _formatTimeRemaining(timeRemaining),
+                  value: isEnded
+                      ? 'Ended'
+                      : _formatTimeRemaining(timeRemaining),
                   valueColor: isEnded ? Colors.red : ColorConstants.primary,
                   isDark: isDark,
                 ),
@@ -116,7 +127,9 @@ class AuctionStatsSection extends StatelessWidget {
               Container(
                 height: 50,
                 width: 1,
-                color: isDark ? ColorConstants.surfaceLight : Colors.grey.shade300,
+                color: isDark
+                    ? ColorConstants.surfaceLight
+                    : Colors.grey.shade300,
               ),
               Expanded(
                 child: _StatItem(
@@ -142,7 +155,9 @@ class AuctionStatsSection extends StatelessWidget {
               Container(
                 height: 50,
                 width: 1,
-                color: isDark ? ColorConstants.surfaceLight : Colors.grey.shade300,
+                color: isDark
+                    ? ColorConstants.surfaceLight
+                    : Colors.grey.shade300,
               ),
               Expanded(
                 child: _StatItem(
@@ -202,8 +217,11 @@ class _StatItem extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: valueColor ??
-                (isDark ? ColorConstants.textPrimaryDark : ColorConstants.textPrimaryLight),
+            color:
+                valueColor ??
+                (isDark
+                    ? ColorConstants.textPrimaryDark
+                    : ColorConstants.textPrimaryLight),
           ),
         ),
       ],

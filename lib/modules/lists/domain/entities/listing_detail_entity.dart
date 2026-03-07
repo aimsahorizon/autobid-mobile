@@ -100,6 +100,9 @@ class ListingDetailEntity {
   // Visibility
   final String visibility;
 
+  // Listing activation preference
+  final bool autoLiveAfterApproval;
+
   // Installment
   final bool allowsInstallment;
 
@@ -176,6 +179,7 @@ class ListingDetailEntity {
     this.snipeGuardExtendSeconds = 300,
     this.deedOfSaleUrl,
     this.visibility = 'public',
+    this.autoLiveAfterApproval = false,
     this.allowsInstallment = false,
   });
 

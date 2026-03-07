@@ -135,6 +135,7 @@ class MockBrowseController extends _i1.Mock implements _i3.BrowseController {
     String? province,
     String? city,
     bool? endingSoon,
+    String? visibility,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#updateFilter, [], {
@@ -154,6 +155,7 @@ class MockBrowseController extends _i1.Mock implements _i3.BrowseController {
               #province: province,
               #city: city,
               #endingSoon: endingSoon,
+              #visibility: visibility,
             }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),

@@ -35,10 +35,10 @@ void main() {
     test('carName should handle missing variant', () {
       // copyWith might send null, but copyWith implementation usually does "variant ?? this.variant"
       // Wait, copyWith signature is nullable, but default behavior preserves.
-      // We need to explicitly pass null if we want to clear it? 
+      // We need to explicitly pass null if we want to clear it?
       // The generated copyWith usually ignores nulls passed as arguments if it uses ?? this.field.
       // Let's create a new instance to be sure.
-      
+
       final cleanDraft = ListingDraftEntity(
         id: 'draft_2',
         sellerId: 'user_1',
@@ -48,7 +48,7 @@ void main() {
         model: 'Civic',
         year: 2018,
       );
-      
+
       expect(cleanDraft.carName, '2018 Honda Civic');
     });
 
@@ -87,11 +87,27 @@ void main() {
 
       expect(incompleteDraft.isStepComplete(7), false);
 
-      final completeDraft = incompleteDraft.copyWith(
-        barangay: 'Tumaga',
-      );
+      final completeDraft = incompleteDraft.copyWith(barangay: 'Tumaga');
 
       expect(completeDraft.isStepComplete(7), true);
+    });
+
+    test('isStepComplete for Step 8 should not require auction end date', () {
+      final step8Draft = ListingDraftEntity(
+        id: 'draft_8',
+        sellerId: 'user_1',
+        currentStep: 8,
+        lastSaved: DateTime.now(),
+        description:
+            'This is a sufficiently long vehicle description for validation.',
+        startingPrice: 500000,
+        bidIncrement: 1000,
+        depositAmount: 5000,
+        biddingType: 'public',
+        auctionEndDate: null,
+      );
+
+      expect(step8Draft.isStepComplete(8), true);
     });
   });
 }

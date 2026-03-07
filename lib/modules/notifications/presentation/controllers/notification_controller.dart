@@ -102,6 +102,8 @@ class NotificationController extends ChangeNotifier {
           },
           onError: (e) {
             debugPrint('ERROR: Realtime notification subscription error: $e');
+            // Reset subscription state so it re-subscribes on next load
+            _subscribedUserId = null;
           },
         );
   }

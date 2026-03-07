@@ -88,6 +88,7 @@ class ListingModel {
   final double minBidIncrement;
   final double depositAmount;
   final bool enableIncrementalBidding;
+  final bool autoLiveAfterApproval;
 
   // Snipe Guard
   final bool snipeGuardEnabled;
@@ -180,6 +181,7 @@ class ListingModel {
     this.minBidIncrement = 100,
     this.depositAmount = 0,
     this.enableIncrementalBidding = true,
+    this.autoLiveAfterApproval = false,
     this.snipeGuardEnabled = true,
     this.snipeGuardThresholdSeconds = 300,
     this.snipeGuardExtendSeconds = 300,
@@ -288,6 +290,7 @@ class ListingModel {
       depositAmount: _toDouble(json['deposit_amount']) ?? 0,
       enableIncrementalBidding:
           json['enable_incremental_bidding'] as bool? ?? true,
+      autoLiveAfterApproval: json['auto_live_after_approval'] as bool? ?? false,
       snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
       snipeGuardThresholdSeconds:
           json['snipe_guard_threshold_seconds'] as int? ?? 300,
@@ -434,6 +437,7 @@ class ListingModel {
       snipeGuardExtendSeconds: snipeGuardExtendSeconds,
       deedOfSaleUrl: deedOfSaleUrl,
       visibility: visibility,
+      autoLiveAfterApproval: autoLiveAfterApproval,
       allowsInstallment: allowsInstallment,
     );
   }
