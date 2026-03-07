@@ -12,6 +12,7 @@ class InstallmentPlanModel {
   final String frequency;
   final DateTime startDate;
   final String status;
+  final String? proposedBy;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -26,6 +27,7 @@ class InstallmentPlanModel {
     this.frequency = 'monthly',
     required this.startDate,
     this.status = 'active',
+    this.proposedBy,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -44,6 +46,7 @@ class InstallmentPlanModel {
           ? DateTime.parse(json['start_date'] as String)
           : DateTime.now(),
       status: json['status'] as String? ?? 'active',
+      proposedBy: json['proposed_by'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
@@ -64,6 +67,7 @@ class InstallmentPlanModel {
       'frequency': frequency,
       'start_date': startDate.toIso8601String().split('T').first,
       'status': status,
+      'proposed_by': proposedBy,
     };
   }
 
@@ -79,6 +83,7 @@ class InstallmentPlanModel {
       frequency: frequency,
       startDate: startDate,
       status: InstallmentPlanStatusExt.fromString(status),
+      proposedBy: proposedBy,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

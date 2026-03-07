@@ -7,11 +7,7 @@ class AuctionCard extends StatelessWidget {
   final AuctionEntity auction;
   final VoidCallback? onTap;
 
-  const AuctionCard({
-    super.key,
-    required this.auction,
-    this.onTap,
-  });
+  const AuctionCard({super.key, required this.auction, this.onTap});
 
   String _formatTimeRemaining() {
     final minutes = auction.timeRemainingMinutes;
@@ -29,10 +25,12 @@ class AuctionCard extends StatelessWidget {
   }
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 
   @override
@@ -46,7 +44,9 @@ class AuctionCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: InkWell(
@@ -61,6 +61,8 @@ class AuctionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildCarName(theme),
+                  const SizedBox(height: 4),
+                  _buildSellerInfo(theme, isDark),
                   const SizedBox(height: 8),
                   _buildCurrentBid(theme),
                   const SizedBox(height: 12),
@@ -82,9 +84,7 @@ class AuctionCard extends StatelessWidget {
         fit: BoxFit.cover,
         placeholder: (context, url) => Container(
           color: ColorConstants.backgroundSecondaryLight,
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
+          child: const Center(child: CircularProgressIndicator()),
         ),
         errorWidget: (context, url, error) => Container(
           color: ColorConstants.backgroundSecondaryLight,
@@ -101,11 +101,59 @@ class AuctionCard extends StatelessWidget {
   Widget _buildCarName(ThemeData theme) {
     return Text(
       auction.carName,
-      style: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w600,
-      ),
+      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Widget _buildSellerInfo(ThemeData theme, bool isDark) {
+    final sellerName = (auction.sellerDisplayName ?? '').trim();
+    if (sellerName.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      children: [
+        if ((auction.sellerProfileImageUrl ?? '').isNotEmpty)
+          ClipOval(
+            child: CachedNetworkImage(
+              imageUrl: auction.sellerProfileImageUrl!,
+              width: 18,
+              height: 18,
+              fit: BoxFit.cover,
+              errorWidget: (context, url, error) => Icon(
+                Icons.person,
+                size: 16,
+                color: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+              ),
+            ),
+          )
+        else
+          Icon(
+            Icons.person,
+            size: 16,
+            color: isDark
+                ? ColorConstants.textSecondaryDark
+                : ColorConstants.textSecondaryLight,
+          ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            sellerName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

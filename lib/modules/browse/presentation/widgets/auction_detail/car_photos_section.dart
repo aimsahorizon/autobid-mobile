@@ -7,10 +7,7 @@ import '../../../domain/entities/auction_detail_entity.dart';
 class CarPhotosSection extends StatefulWidget {
   final CarPhotosEntity photos;
 
-  const CarPhotosSection({
-    super.key,
-    required this.photos,
-  });
+  const CarPhotosSection({super.key, required this.photos});
 
   @override
   State<CarPhotosSection> createState() => _CarPhotosSectionState();
@@ -29,6 +26,29 @@ class _CarPhotosSectionState extends State<CarPhotosSection> {
 
   List<String> get _currentPhotos {
     return widget.photos.getByCategory(_selectedCategory);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategory = _resolveInitialCategory();
+  }
+
+  @override
+  void didUpdateWidget(covariant CarPhotosSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.photos != widget.photos) {
+      _selectedCategory = _resolveInitialCategory();
+    }
+  }
+
+  String _resolveInitialCategory() {
+    for (final category in _categories) {
+      if (widget.photos.getByCategory(category).isNotEmpty) {
+        return category;
+      }
+    }
+    return _categories.first;
   }
 
   @override
@@ -80,16 +100,16 @@ class _CarPhotosSectionState extends State<CarPhotosSection> {
                 color: isSelected
                     ? ColorConstants.primary
                     : (isDark
-                        ? ColorConstants.textSecondaryDark
-                        : ColorConstants.textSecondaryLight),
+                          ? ColorConstants.textSecondaryDark
+                          : ColorConstants.textSecondaryLight),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               side: BorderSide(
                 color: isSelected
                     ? ColorConstants.primary
                     : (isDark
-                        ? ColorConstants.borderDark
-                        : ColorConstants.borderLight),
+                          ? ColorConstants.borderDark
+                          : ColorConstants.borderLight),
               ),
             ),
           );
@@ -165,10 +185,7 @@ class _FullScreenGallery extends StatelessWidget {
   final List<String> photos;
   final int initialIndex;
 
-  const _FullScreenGallery({
-    required this.photos,
-    required this.initialIndex,
-  });
+  const _FullScreenGallery({required this.photos, required this.initialIndex});
 
   @override
   Widget build(BuildContext context) {

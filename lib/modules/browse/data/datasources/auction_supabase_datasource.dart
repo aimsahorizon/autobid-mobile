@@ -18,44 +18,53 @@ class AuctionSupabaseDataSource {
   }
 
   /// Get all live auctions with comprehensive filtering
-  /// Tries full browse view first, falls back to simple view, then direct auctions table
+  /// Tries full browse view first, then authorized_auctions (both enforce invite visibility)
   Future<List<AuctionModel>> getActiveAuctions({AuctionFilter? filter}) async {
     try {
       debugPrint(
         '[AuctionSupabaseDataSource] Loading auctions with filter: $filter',
       );
 
-      // Try the full auction_browse_listings view first
-      return await _fetchFromView('auction_browse_listings', filter);
+      return await _fetchFromView(
+        viewName: 'auction_browse_listings',
+        filter: filter,
+        applyIsActiveFilter: true,
+      );
     } catch (e) {
       debugPrint(
-        '[AuctionSupabaseDataSource] Full view failed: $e. Trying fallback view...',
+        '[AuctionSupabaseDataSource] Full view failed: $e. Trying authorized_auctions fallback...',
       );
       try {
-        // Fallback to simpler view if full view fails
-        return await _fetchFromView('auction_browse_simple', filter);
+        return await _fetchFromView(
+          viewName: 'authorized_auctions',
+          filter: filter,
+          applyIsActiveFilter: false,
+        );
       } catch (e2) {
         debugPrint(
-          '[AuctionSupabaseDataSource] Fallback view also failed: $e2. Trying direct auctions table...',
+          '[AuctionSupabaseDataSource] Authorized fallback failed: $e2. Returning empty list to avoid privacy leaks.',
         );
-        // Final fallback: query auctions table directly
-        return await _fetchFromAuctionsTable(filter);
+        return const <AuctionModel>[];
       }
     }
   }
 
   /// Helper method to fetch from a specific view
-  Future<List<AuctionModel>> _fetchFromView(
-    String viewName,
-    AuctionFilter? filter,
-  ) async {
-    // Query the view directly — auction_browse_listings already handles visibility
-    var queryBuilder = _supabase
+  Future<List<AuctionModel>> _fetchFromView({
+    required String viewName,
+    required AuctionFilter? filter,
+    required bool applyIsActiveFilter,
+  }) async {
+    // Query the view directly — DB views enforce visibility rules.
+    dynamic queryBuilder = _supabase
         .from(viewName)
         .select(
-          'id, title, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, created_at',
-        )
-        .eq('is_active', true); // Filter by active status
+          'id, title, description, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, created_at',
+        );
+
+    if (applyIsActiveFilter) {
+      queryBuilder = queryBuilder.eq('is_active', true);
+    }
 
     // Apply search filter on title and description
     if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
@@ -88,6 +97,11 @@ class AuctionSupabaseDataSource {
       queryBuilder = queryBuilder.lte('vehicle_year', filter!.yearTo!);
     }
 
+    // Public/private filter
+    if (filter?.visibility != null && filter!.visibility!.isNotEmpty) {
+      queryBuilder = queryBuilder.eq('visibility', filter.visibility!);
+    }
+
     // Transmission & Fuel (Attempting to filter if columns exist in view)
     if (filter?.transmission != null && filter!.transmission!.isNotEmpty) {
       // Using generic 'transmission' or 'vehicle_transmission' depending on view definition
@@ -118,8 +132,39 @@ class AuctionSupabaseDataSource {
       '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $viewName',
     );
 
+    final rows = (response as List).cast<Map<String, dynamic>>();
+    final sellerIds = rows
+        .map((row) => row['seller_id'] as String?)
+        .whereType<String>()
+        .toSet()
+        .toList();
+
+    final sellerById = <String, Map<String, dynamic>>{};
+    if (sellerIds.isNotEmpty) {
+      try {
+        final sellerResponse = await _supabase
+            .from('users')
+            .select('id, display_name, full_name, profile_image_url')
+            .inFilter('id', sellerIds);
+
+        for (final seller in (sellerResponse as List)) {
+          final sellerMap = seller as Map<String, dynamic>;
+          final sellerId = sellerMap['id'] as String?;
+          if (sellerId != null) {
+            sellerById[sellerId] = sellerMap;
+          }
+        }
+      } catch (e) {
+        debugPrint('[AuctionSupabaseDataSource] Seller enrichment failed: $e');
+      }
+    }
+
     // Convert to AuctionModel list
-    return (response as List).map((json) {
+    return rows.map((json) {
+      final sellerInfo = sellerById[json['seller_id'] as String? ?? ''];
+      final displayName = (sellerInfo?['display_name'] as String?)?.trim();
+      final fullName = (sellerInfo?['full_name'] as String?)?.trim();
+
       return AuctionModel.fromJson({
         'id': json['id'],
         'car_image_url': json['primary_image_url'] ?? '',
@@ -132,75 +177,10 @@ class AuctionSupabaseDataSource {
         'bidders_count': json['total_bids'] ?? 0,
         'end_time': json['end_time'],
         'seller_id': json['seller_id'],
-      });
-    }).toList();
-  }
-
-  /// Fallback: fetch directly from auctions table
-  Future<List<AuctionModel>> _fetchFromAuctionsTable(
-    AuctionFilter? filter,
-  ) async {
-    // Get live status ID
-    final statusResponse = await _supabase
-        .from('auction_statuses')
-        .select('id')
-        .eq('status_name', 'live')
-        .single();
-    final liveStatusId = statusResponse['id'] as String;
-
-    var queryBuilder = _supabase
-        .from('auctions')
-        .select(
-          'id, title, description, starting_price, current_price, reserve_price, end_time, total_bids, view_count, seller_id, created_at',
-        )
-        .eq('status_id', liveStatusId)
-        .eq('is_active', true)
-        .gt('end_time', DateTime.now().toIso8601String());
-
-    // Apply search filter
-    if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
-      final query = filter.searchQuery!.toLowerCase();
-      queryBuilder = queryBuilder.or(
-        'title.ilike.%$query%,'
-        'description.ilike.%$query%',
-      );
-    }
-
-    // Price filtering
-    if (filter?.priceMin != null) {
-      queryBuilder = queryBuilder.gte('current_price', filter!.priceMin!);
-    }
-    if (filter?.priceMax != null) {
-      queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
-    }
-
-    // Vehicle filters (Best effort on title)
-    if (filter?.make != null && filter!.make!.isNotEmpty) {
-      queryBuilder = queryBuilder.ilike('title', '%${filter.make}%');
-    }
-    if (filter?.model != null && filter!.model!.isNotEmpty) {
-      queryBuilder = queryBuilder.ilike('title', '%${filter.model}%');
-    }
-
-    final response = await queryBuilder.order('end_time', ascending: true);
-    debugPrint(
-      '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from auctions table (fallback)',
-    );
-
-    return (response as List).map((json) {
-      return AuctionModel.fromJson({
-        'id': json['id'],
-        'car_image_url': '',
-        'year': 0,
-        // Fall back to title so cards show a meaningful name if vehicle metadata is missing
-        'make': (json['title'] as String?) ?? '',
-        'model': '',
-        'title': json['title'] ?? '',
-        'current_bid': json['current_price'] ?? json['starting_price'],
-        'watchers_count': 0,
-        'bidders_count': json['total_bids'] ?? 0,
-        'end_time': json['end_time'],
-        'seller_id': json['seller_id'],
+        'seller_display_name': displayName != null && displayName.isNotEmpty
+            ? displayName
+            : fullName,
+        'seller_profile_image_url': sellerInfo?['profile_image_url'],
       });
     }).toList();
   }
@@ -273,7 +253,9 @@ class AuctionSupabaseDataSource {
         final photoList = (photosResponse as List);
         for (final photo in photoList) {
           final url = photo['photo_url'] as String;
-          final category = photo['category'] as String? ?? 'other';
+          final category = _normalizePhotoCategory(
+            photo['category'] as String?,
+          );
           photos.putIfAbsent(category, () => []).add(url);
         }
         // Also provide 'all' list for backward compatibility
@@ -380,6 +362,20 @@ class AuctionSupabaseDataSource {
       throw Exception('Failed to get auction details: ${e.message}');
     } catch (e) {
       throw Exception('Failed to get auction details: $e');
+    }
+  }
+
+  String _normalizePhotoCategory(String? rawCategory) {
+    final normalized = rawCategory?.trim().toLowerCase() ?? 'details';
+    switch (normalized) {
+      case 'exterior':
+      case 'interior':
+      case 'engine':
+      case 'details':
+      case 'documents':
+        return normalized;
+      default:
+        return 'details';
     }
   }
 

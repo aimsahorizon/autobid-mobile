@@ -85,69 +85,57 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSpecGroup(
-          'Bidding Settings',
-          [
-            _SpecRow(
-              'Bidding Type',
-              widget.listing.biddingType == 'public' ? 'Public' : 'Private',
-            ),
-            _SpecRow(
-              'Increment Type',
-              widget.listing.enableIncrementalBidding ? 'Dynamic' : 'Fixed',
-            ),
-            _SpecRow(
-              'Bid Increment',
-              '₱${widget.listing.bidIncrement.toStringAsFixed(0)}',
-            ),
-            _SpecRow(
-              'Min Increment',
-              '₱${widget.listing.minBidIncrement.toStringAsFixed(0)}',
-            ),
-            _SpecRow(
-              'Buyer Deposit',
-              '₱${widget.listing.depositAmount.toStringAsFixed(0)}',
-            ),
-          ],
-          isDark,
-        ),
+        _buildSpecGroup('Bidding Settings', [
+          _SpecRow(
+            'Bidding Type',
+            widget.listing.biddingType == 'public' ? 'Public' : 'Private',
+          ),
+          _SpecRow(
+            'Increment Type',
+            widget.listing.enableIncrementalBidding ? 'Dynamic' : 'Fixed',
+          ),
+          _SpecRow(
+            'Bid Increment',
+            '₱${widget.listing.bidIncrement.toStringAsFixed(0)}',
+          ),
+          _SpecRow(
+            'Min Increment',
+            '₱${widget.listing.minBidIncrement.toStringAsFixed(0)}',
+          ),
+          _SpecRow(
+            'Buyer Deposit',
+            '₱${widget.listing.depositAmount.toStringAsFixed(0)}',
+          ),
+        ], isDark),
         const SizedBox(height: 16),
-        _buildSpecGroup(
-          'Snipe Guard',
-          [
+        _buildSpecGroup('Snipe Guard', [
+          _SpecRow(
+            'Status',
+            widget.listing.snipeGuardEnabled ? 'Enabled' : 'Disabled',
+          ),
+          if (widget.listing.snipeGuardEnabled) ...[
             _SpecRow(
-              'Status',
-              widget.listing.snipeGuardEnabled ? 'Enabled' : 'Disabled',
+              'Threshold',
+              '${widget.listing.snipeGuardThresholdSeconds}s',
             ),
-            if (widget.listing.snipeGuardEnabled) ...[
-              _SpecRow(
-                'Threshold',
-                '${widget.listing.snipeGuardThresholdSeconds}s',
-              ),
-              _SpecRow(
-                'Extension',
-                '+${widget.listing.snipeGuardExtendSeconds}s',
-              ),
-            ],
+            _SpecRow(
+              'Extension',
+              '+${widget.listing.snipeGuardExtendSeconds}s',
+            ),
           ],
-          isDark,
-        ),
+        ], isDark),
         const SizedBox(height: 16),
-        _buildSpecGroup(
-          'Pricing',
-          [
+        _buildSpecGroup('Pricing', [
+          _SpecRow(
+            'Starting Price',
+            '₱${widget.listing.startingPrice.toStringAsFixed(0)}',
+          ),
+          if (widget.listing.reservePrice != null)
             _SpecRow(
-              'Starting Price',
-              '₱${widget.listing.startingPrice.toStringAsFixed(0)}',
+              'Reserve Price',
+              '₱${widget.listing.reservePrice!.toStringAsFixed(0)}',
             ),
-            if (widget.listing.reservePrice != null)
-              _SpecRow(
-                'Reserve Price',
-                '₱${widget.listing.reservePrice!.toStringAsFixed(0)}',
-              ),
-          ],
-          isDark,
-        ),
+        ], isDark),
       ],
     );
   }
@@ -173,7 +161,8 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
           ),
           const SizedBox(height: 20),
         ],
-        if (widget.listing.features != null && widget.listing.features!.isNotEmpty) ...[
+        if (widget.listing.features != null &&
+            widget.listing.features!.isNotEmpty) ...[
           Text(
             'Features',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -184,7 +173,10 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
             runSpacing: 8,
             children: widget.listing.features!.map((feature) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: ColorConstants.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -238,68 +230,59 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSpecGroup(
-          'Engine & Performance',
-          [
-            if (widget.listing.engineType != null)
-              _SpecRow('Engine Type', widget.listing.engineType!),
-            if (widget.listing.engineDisplacement != null)
-              _SpecRow('Displacement', '${widget.listing.engineDisplacement}L'),
-            if (widget.listing.cylinderCount != null)
-              _SpecRow('Cylinders', '${widget.listing.cylinderCount}'),
-            if (widget.listing.horsepower != null)
-              _SpecRow('Horsepower', '${widget.listing.horsepower} hp'),
-            if (widget.listing.torque != null)
-              _SpecRow('Torque', '${widget.listing.torque} Nm'),
-            if (widget.listing.transmission != null)
-              _SpecRow('Transmission', widget.listing.transmission!),
-            if (widget.listing.fuelType != null)
-              _SpecRow('Fuel Type', widget.listing.fuelType!),
-            if (widget.listing.driveType != null)
-              _SpecRow('Drive Type', widget.listing.driveType!),
-          ],
-          isDark,
-        ),
+        _buildSpecGroup('Engine & Performance', [
+          if (widget.listing.engineType != null)
+            _SpecRow('Engine Type', widget.listing.engineType!),
+          if (widget.listing.engineDisplacement != null)
+            _SpecRow('Displacement', '${widget.listing.engineDisplacement}L'),
+          if (widget.listing.cylinderCount != null)
+            _SpecRow('Cylinders', '${widget.listing.cylinderCount}'),
+          if (widget.listing.horsepower != null)
+            _SpecRow('Horsepower', '${widget.listing.horsepower} hp'),
+          if (widget.listing.torque != null)
+            _SpecRow('Torque', '${widget.listing.torque} Nm'),
+          if (widget.listing.transmission != null)
+            _SpecRow('Transmission', widget.listing.transmission!),
+          if (widget.listing.fuelType != null)
+            _SpecRow('Fuel Type', widget.listing.fuelType!),
+          if (widget.listing.driveType != null)
+            _SpecRow('Drive Type', widget.listing.driveType!),
+        ], isDark),
         const SizedBox(height: 16),
-        _buildSpecGroup(
-          'Dimensions',
-          [
-            if (widget.listing.length != null)
-              _SpecRow('Length', '${widget.listing.length} mm'),
-            if (widget.listing.width != null)
-              _SpecRow('Width', '${widget.listing.width} mm'),
-            if (widget.listing.height != null)
-              _SpecRow('Height', '${widget.listing.height} mm'),
-            if (widget.listing.wheelbase != null)
-              _SpecRow('Wheelbase', '${widget.listing.wheelbase} mm'),
-            if (widget.listing.groundClearance != null)
-              _SpecRow('Ground Clearance', '${widget.listing.groundClearance} mm'),
-            if (widget.listing.seatingCapacity != null)
-              _SpecRow('Seating', '${widget.listing.seatingCapacity} seats'),
-            if (widget.listing.doorCount != null)
-              _SpecRow('Doors', '${widget.listing.doorCount}'),
-          ],
-          isDark,
-        ),
+        _buildSpecGroup('Dimensions', [
+          if (widget.listing.length != null)
+            _SpecRow('Length', '${widget.listing.length} mm'),
+          if (widget.listing.width != null)
+            _SpecRow('Width', '${widget.listing.width} mm'),
+          if (widget.listing.height != null)
+            _SpecRow('Height', '${widget.listing.height} mm'),
+          if (widget.listing.wheelbase != null)
+            _SpecRow('Wheelbase', '${widget.listing.wheelbase} mm'),
+          if (widget.listing.groundClearance != null)
+            _SpecRow(
+              'Ground Clearance',
+              '${widget.listing.groundClearance} mm',
+            ),
+          if (widget.listing.seatingCapacity != null)
+            _SpecRow('Seating', '${widget.listing.seatingCapacity} seats'),
+          if (widget.listing.doorCount != null)
+            _SpecRow('Doors', '${widget.listing.doorCount}'),
+        ], isDark),
         const SizedBox(height: 16),
-        _buildSpecGroup(
-          'Exterior',
-          [
-            if (widget.listing.exteriorColor != null)
-              _SpecRow('Color', widget.listing.exteriorColor!),
-            if (widget.listing.paintType != null)
-              _SpecRow('Paint Type', widget.listing.paintType!),
-            if (widget.listing.rimType != null)
-              _SpecRow('Rim Type', widget.listing.rimType!),
-            if (widget.listing.rimSize != null)
-              _SpecRow('Rim Size', widget.listing.rimSize!),
-            if (widget.listing.tireSize != null)
-              _SpecRow('Tire Size', widget.listing.tireSize!),
-            if (widget.listing.tireBrand != null)
-              _SpecRow('Tire Brand', widget.listing.tireBrand!),
-          ],
-          isDark,
-        ),
+        _buildSpecGroup('Exterior', [
+          if (widget.listing.exteriorColor != null)
+            _SpecRow('Color', widget.listing.exteriorColor!),
+          if (widget.listing.paintType != null)
+            _SpecRow('Paint Type', widget.listing.paintType!),
+          if (widget.listing.rimType != null)
+            _SpecRow('Rim Type', widget.listing.rimType!),
+          if (widget.listing.rimSize != null)
+            _SpecRow('Rim Size', widget.listing.rimSize!),
+          if (widget.listing.tireSize != null)
+            _SpecRow('Tire Size', widget.listing.tireSize!),
+          if (widget.listing.tireBrand != null)
+            _SpecRow('Tire Brand', widget.listing.tireBrand!),
+        ], isDark),
       ],
     );
   }
@@ -460,11 +443,13 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
       return const Center(child: Text('No photos available'));
     }
 
+    final orderedCategories = _orderedPhotoCategories(photoUrls);
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: photoUrls.keys.length,
+      itemCount: orderedCategories.length,
       itemBuilder: (context, index) {
-        final category = photoUrls.keys.elementAt(index);
+        final category = orderedCategories[index];
         final urls = photoUrls[category]!;
 
         return Column(
@@ -473,7 +458,7 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                category,
+                _formatPhotoCategoryLabel(category),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -490,7 +475,9 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
                     width: 160,
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: isDark ? ColorConstants.surfaceLight : Colors.grey[200],
+                      color: isDark
+                          ? ColorConstants.surfaceLight
+                          : Colors.grey[200],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: ClipRRect(
@@ -514,6 +501,52 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
         );
       },
     );
+  }
+
+  List<String> _orderedPhotoCategories(Map<String, List<String>> photoUrls) {
+    const preferredOrder = [
+      'exterior',
+      'interior',
+      'engine',
+      'details',
+      'documents',
+    ];
+
+    final keys = photoUrls.keys.toList();
+    keys.sort((a, b) {
+      final aIndex = preferredOrder.indexOf(a.toLowerCase());
+      final bIndex = preferredOrder.indexOf(b.toLowerCase());
+      final normalizedA = aIndex == -1 ? 999 : aIndex;
+      final normalizedB = bIndex == -1 ? 999 : bIndex;
+      if (normalizedA != normalizedB) {
+        return normalizedA.compareTo(normalizedB);
+      }
+      return a.compareTo(b);
+    });
+    return keys;
+  }
+
+  String _formatPhotoCategoryLabel(String category) {
+    final normalized = category.trim().toLowerCase();
+    switch (normalized) {
+      case 'exterior':
+        return 'Exterior';
+      case 'interior':
+        return 'Interior';
+      case 'engine':
+        return 'Engine';
+      case 'details':
+        return 'Details';
+      case 'documents':
+        return 'Documents';
+      default:
+        return category
+            .replaceAll('_', ' ')
+            .split(' ')
+            .where((w) => w.isNotEmpty)
+            .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+            .join(' ');
+    }
   }
 
   Widget _buildSpecGroup(String title, List<Widget> specs, bool isDark) {
@@ -577,10 +610,7 @@ class _SpecRow extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ],
       ),

@@ -10,6 +10,7 @@ class InstallmentPlanEntity {
   final String frequency; // weekly, bi-weekly, monthly, no_schedule
   final DateTime startDate;
   final InstallmentPlanStatus status;
+  final String? proposedBy;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -24,6 +25,7 @@ class InstallmentPlanEntity {
     this.frequency = 'monthly',
     required this.startDate,
     this.status = InstallmentPlanStatus.active,
+    this.proposedBy,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -46,6 +48,7 @@ class InstallmentPlanEntity {
     String? frequency,
     DateTime? startDate,
     InstallmentPlanStatus? status,
+    String? proposedBy,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -60,6 +63,7 @@ class InstallmentPlanEntity {
       frequency: frequency ?? this.frequency,
       startDate: startDate ?? this.startDate,
       status: status ?? this.status,
+      proposedBy: proposedBy ?? this.proposedBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

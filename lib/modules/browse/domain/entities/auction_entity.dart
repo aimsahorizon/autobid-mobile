@@ -10,6 +10,8 @@ class AuctionEntity {
   final int biddersCount;
   final DateTime endTime;
   final String sellerId;
+  final String? sellerDisplayName;
+  final String? sellerProfileImageUrl;
 
   const AuctionEntity({
     required this.id,
@@ -22,6 +24,8 @@ class AuctionEntity {
     required this.biddersCount,
     required this.endTime,
     required this.sellerId,
+    this.sellerDisplayName,
+    this.sellerProfileImageUrl,
   });
 
   /// Calculate time remaining in minutes

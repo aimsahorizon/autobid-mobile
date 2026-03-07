@@ -55,117 +55,6 @@ class ProgressRealtimeTab extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Grace period countdown
-              if (controller.secondsRemaining != null &&
-                  transaction.bothConfirmed &&
-                  !transaction.adminApproved)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 24),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: ColorConstants.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: ColorConstants.warning.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.timer,
-                            color: ColorConstants.warning,
-                            size: 28,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Finalizing in ${controller.secondsRemaining}s',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: ColorConstants.warning,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Both parties confirmed. Either may withdraw during this grace period.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: ColorConstants.warning.withValues(
-                                      alpha: 0.8,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Skip grace period section
-                      if (!transaction.bothAgreedToSkipGracePeriod) ...[
-                        const SizedBox(height: 12),
-                        _buildSkipGracePeriodSection(transaction),
-                      ],
-                    ],
-                  ),
-                ),
-
-              // Skip countdown (5 seconds) when both agree
-              if (controller.skipCountdownSeconds != null &&
-                  transaction.bothAgreedToSkipGracePeriod &&
-                  !transaction.adminApproved)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 24),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: ColorConstants.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: ColorConstants.success.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.fast_forward,
-                        color: ColorConstants.success,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Skipping in ${controller.skipCountdownSeconds}s',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: ColorConstants.success,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Both parties agreed to skip the grace period.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: ColorConstants.success.withValues(
-                                  alpha: 0.8,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
               // Delivery Progress (Visible after Finalization)
               if (transaction.adminApproved) ...[
                 _buildDeliveryProgress(context, transaction, isBuyer, isDark),
@@ -650,65 +539,6 @@ class ProgressRealtimeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildSkipGracePeriodSection(TransactionEntity transaction) {
-    final myRole = userId != null
-        ? controller.getUserRole(userId!)
-        : FormRole.buyer;
-    final myAgreed = myRole == FormRole.seller
-        ? transaction.sellerAgreedToSkipGracePeriod
-        : transaction.buyerAgreedToSkipGracePeriod;
-    final otherAgreed = myRole == FormRole.seller
-        ? transaction.buyerAgreedToSkipGracePeriod
-        : transaction.sellerAgreedToSkipGracePeriod;
-
-    return Column(
-      children: [
-        const Divider(height: 1),
-        const SizedBox(height: 8),
-        if (!myAgreed)
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: controller.isProcessing
-                  ? null
-                  : () => controller.agreeToSkipGracePeriod(),
-              icon: const Icon(Icons.fast_forward, size: 18),
-              label: const Text('Skip Grace Period'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: ColorConstants.warning,
-                side: BorderSide(color: ColorConstants.warning),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-              ),
-            ),
-          )
-        else
-          Row(
-            children: [
-              Icon(Icons.check_circle, color: ColorConstants.success, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                'You agreed to skip',
-                style: TextStyle(
-                  color: ColorConstants.success,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              if (!otherAgreed)
-                Text(
-                  'Waiting for other party...',
-                  style: TextStyle(
-                    color: ColorConstants.warning.withValues(alpha: 0.7),
-                    fontSize: 12,
-                  ),
-                ),
-            ],
-          ),
-      ],
-    );
-  }
-
   Widget _buildSummaryCard(TransactionEntity transaction, bool isDark) {
     return Container(
       width: double.infinity,
@@ -1111,14 +941,50 @@ class ProgressRealtimeTab extends StatelessWidget {
     TransactionEntity transaction,
   ) {
     if (transaction.deliveryStatus == DeliveryStatus.completed) {
-      return const Center(
-        child: Text(
-          'Transaction Completed',
-          style: TextStyle(
-            color: ColorConstants.success,
-            fontWeight: FontWeight.bold,
+      return Column(
+        children: [
+          const Center(
+            child: Text(
+              'Transaction Completed',
+              style: TextStyle(
+                color: ColorConstants.success,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-        ),
+          if (transaction.sellerPrepPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Preparation Photo',
+              transaction.sellerPrepPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerTransitPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Transit Photo',
+              transaction.sellerTransitPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Delivery Photo',
+              transaction.sellerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.buyerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Buyer's Confirmation Photo",
+              transaction.buyerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+        ],
       );
     }
 
@@ -1235,6 +1101,30 @@ class ProgressRealtimeTab extends StatelessWidget {
               ),
             ),
           ),
+          if (transaction.sellerPrepPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Preparation Photo",
+              transaction.sellerPrepPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerTransitPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Transit Photo",
+              transaction.sellerTransitPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Delivery Photo",
+              transaction.sellerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
           if (transaction.buyerDeliveryPhotoUrl != null) ...[
             const SizedBox(height: 12),
             _buildPhotoProofTile(

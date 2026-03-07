@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../data/datasources/installment_supabase_datasource.dart';
 import '../../domain/entities/installment_plan_entity.dart';
 import '../../domain/entities/installment_payment_entity.dart';
+import '../../domain/entities/payment_attempt_entity.dart';
 
 /// Controller for managing installment plan state and operations
 class InstallmentController extends ChangeNotifier {
@@ -143,7 +144,43 @@ class InstallmentController extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      _errorMessage = 'Failed to create installment plan: $e';
+      _errorMessage = 'Failed to create plan: $e';
+      debugPrint('[InstallmentController] $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Update an existing plan (regenerates schedule)
+  Future<bool> updatePlan({
+    required String transactionId,
+    required double totalAmount,
+    required double downPayment,
+    required int numInstallments,
+    required String frequency,
+  }) async {
+    if (_plan == null) return false;
+    _isProcessing = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _plan = await _datasource.updateInstallmentPlan(
+        planId: _plan!.id,
+        transactionId: transactionId,
+        totalAmount: totalAmount,
+        downPayment: downPayment,
+        numInstallments: numInstallments,
+        frequency: frequency,
+      );
+      if (_plan != null) {
+        _payments = await _datasource.getPayments(_plan!.id);
+      }
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to update plan: $e';
       debugPrint('[InstallmentController] $e');
       return false;
     } finally {
@@ -218,6 +255,18 @@ class InstallmentController extends ChangeNotifier {
     } finally {
       _isProcessing = false;
       notifyListeners();
+    }
+  }
+
+  /// Get payment attempt history for a specific payment
+  Future<List<PaymentAttemptEntity>> getPaymentAttempts(
+    String paymentId,
+  ) async {
+    try {
+      return await _datasource.getPaymentAttempts(paymentId);
+    } catch (e) {
+      debugPrint('[InstallmentController] Error fetching attempts: $e');
+      return [];
     }
   }
 

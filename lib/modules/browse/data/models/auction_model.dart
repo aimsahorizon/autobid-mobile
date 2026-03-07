@@ -14,6 +14,8 @@ class AuctionModel extends AuctionEntity {
     required super.biddersCount,
     required super.endTime,
     required super.sellerId,
+    super.sellerDisplayName,
+    super.sellerProfileImageUrl,
   });
 
   /// Create model from JSON (Supabase response)
@@ -43,6 +45,8 @@ class AuctionModel extends AuctionEntity {
       biddersCount: json['bidders_count'] as int? ?? 0,
       endTime: DateTime.parse(json['end_time'] as String),
       sellerId: json['seller_id'] as String,
+      sellerDisplayName: json['seller_display_name'] as String?,
+      sellerProfileImageUrl: json['seller_profile_image_url'] as String?,
     );
   }
 
@@ -59,6 +63,8 @@ class AuctionModel extends AuctionEntity {
       'bidders_count': biddersCount,
       'end_time': endTime.toIso8601String(),
       'seller_id': sellerId,
+      'seller_display_name': sellerDisplayName,
+      'seller_profile_image_url': sellerProfileImageUrl,
     };
   }
 
@@ -75,6 +81,8 @@ class AuctionModel extends AuctionEntity {
       biddersCount: entity.biddersCount,
       endTime: entity.endTime,
       sellerId: entity.sellerId,
+      sellerDisplayName: entity.sellerDisplayName,
+      sellerProfileImageUrl: entity.sellerProfileImageUrl,
     );
   }
 }

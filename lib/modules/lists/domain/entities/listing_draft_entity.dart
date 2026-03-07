@@ -68,6 +68,7 @@ class ListingDraftEntity {
 
   // Step 7: Photos (56 categories) & Documents
   final Map<String, List<String>>? photoUrls; // category -> list of URLs
+  final String? coverPhotoUrl; // Selected featured photo URL
   final List<String>? tags; // AI-generated tags for search/filter
   final String? deedOfSaleUrl; // Deed of sale document URL (PDF/image)
 
@@ -148,6 +149,7 @@ class ListingDraftEntity {
     this.cityMunicipality,
     this.barangay,
     this.photoUrls,
+    this.coverPhotoUrl,
     this.tags,
     this.deedOfSaleUrl,
     this.description,
@@ -220,6 +222,7 @@ class ListingDraftEntity {
     String? cityMunicipality,
     String? barangay,
     Map<String, List<String>>? photoUrls,
+    String? coverPhotoUrl,
     List<String>? tags,
     String? deedOfSaleUrl,
     String? description,
@@ -290,6 +293,7 @@ class ListingDraftEntity {
       cityMunicipality: cityMunicipality ?? this.cityMunicipality,
       barangay: barangay ?? this.barangay,
       photoUrls: photoUrls ?? this.photoUrls,
+      coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
       tags: tags ?? this.tags,
       deedOfSaleUrl: deedOfSaleUrl ?? this.deedOfSaleUrl,
       description: description ?? this.description,

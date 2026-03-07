@@ -33,6 +33,9 @@ class AuctionFilter {
   // Auction timing
   final bool? endingSoon; // Within 24 hours
 
+  // Auction type / privacy
+  final String? visibility; // public | private
+
   const AuctionFilter({
     this.searchQuery,
     this.make,
@@ -50,26 +53,28 @@ class AuctionFilter {
     this.province,
     this.city,
     this.endingSoon,
+    this.visibility,
   });
 
   /// Create empty filter (no filtering)
   const AuctionFilter.empty()
-      : searchQuery = null,
-        make = null,
-        model = null,
-        yearFrom = null,
-        yearTo = null,
-        priceMin = null,
-        priceMax = null,
-        transmission = null,
-        fuelType = null,
-        driveType = null,
-        condition = null,
-        maxMileage = null,
-        exteriorColor = null,
-        province = null,
-        city = null,
-        endingSoon = null;
+    : searchQuery = null,
+      make = null,
+      model = null,
+      yearFrom = null,
+      yearTo = null,
+      priceMin = null,
+      priceMax = null,
+      transmission = null,
+      fuelType = null,
+      driveType = null,
+      condition = null,
+      maxMileage = null,
+      exteriorColor = null,
+      province = null,
+      city = null,
+      endingSoon = null,
+      visibility = null;
 
   /// Copy with updated values
   AuctionFilter copyWith({
@@ -89,6 +94,7 @@ class AuctionFilter {
     String? province,
     String? city,
     bool? endingSoon,
+    String? visibility,
   }) {
     return AuctionFilter(
       searchQuery: searchQuery ?? this.searchQuery,
@@ -107,6 +113,7 @@ class AuctionFilter {
       province: province ?? this.province,
       city: city ?? this.city,
       endingSoon: endingSoon ?? this.endingSoon,
+      visibility: visibility ?? this.visibility,
     );
   }
 
@@ -152,7 +159,10 @@ class AuctionFilter {
           province: province,
           city: city,
           endingSoon: endingSoon,
+          visibility: visibility,
         );
+      case 'visibility':
+        return copyWith(visibility: '');
       default:
         return this;
     }
@@ -175,7 +185,8 @@ class AuctionFilter {
         exteriorColor != null ||
         province != null ||
         city != null ||
-        endingSoon != null;
+        endingSoon != null ||
+        (visibility != null && visibility!.isNotEmpty);
   }
 
   /// Count active filters
@@ -195,6 +206,7 @@ class AuctionFilter {
     if (province != null) count++;
     if (city != null) count++;
     if (endingSoon == true) count++;
+    if (visibility != null && visibility!.isNotEmpty) count++;
     return count;
   }
 }

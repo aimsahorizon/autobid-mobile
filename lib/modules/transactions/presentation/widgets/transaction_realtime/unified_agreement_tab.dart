@@ -6,10 +6,11 @@ import '../../controllers/transaction_realtime_controller.dart';
 import '../../controllers/installment_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 import '../../../domain/entities/agreement_field_entity.dart';
+import '../../../domain/entities/installment_plan_entity.dart';
 
 /// Unified collaborative agreement tab that replaces separate seller/buyer forms.
 /// Both parties can add, edit, and delete fields until they lock.
-/// After both lock → review → confirm → 15s grace → auto-finalize.
+/// After both lock → review → confirm (with finality warning) → immediate finalize.
 class UnifiedAgreementTab extends StatelessWidget {
   final TransactionRealtimeController controller;
   final InstallmentController installmentController;
@@ -60,6 +61,8 @@ class UnifiedAgreementTab extends StatelessWidget {
               controller: controller,
               installmentController: installmentController,
               transactionId: transactionId,
+              userId: userId,
+              isBuyer: !isSeller,
               agreedPrice: txn.agreedPrice,
               isInstallment: txn.isInstallment,
               readOnly: myLocked || finalized,
@@ -78,7 +81,6 @@ class UnifiedAgreementTab extends StatelessWidget {
                       myConfirmed: myConfirmed,
                       otherConfirmed: otherConfirmed,
                       finalized: finalized,
-                      secondsRemaining: controller.secondsRemaining,
                       isSeller: isSeller,
                       isDark: isDark,
                     ),
@@ -119,7 +121,6 @@ class UnifiedAgreementTab extends StatelessWidget {
               bothLocked: bothLocked,
               bothConfirmed: bothConfirmed,
               finalized: finalized,
-              secondsRemaining: controller.secondsRemaining,
               isDark: isDark,
             ),
           ],
@@ -214,7 +215,6 @@ class _StatusHeader extends StatelessWidget {
   final bool myConfirmed;
   final bool otherConfirmed;
   final bool finalized;
-  final int? secondsRemaining;
   final bool isSeller;
   final bool isDark;
 
@@ -224,7 +224,6 @@ class _StatusHeader extends StatelessWidget {
     required this.myConfirmed,
     required this.otherConfirmed,
     required this.finalized,
-    required this.secondsRemaining,
     required this.isSeller,
     required this.isDark,
   });
@@ -237,15 +236,6 @@ class _StatusHeader extends StatelessWidget {
         ColorConstants.success,
         'Agreement Finalized',
         'Transaction has been finalized. Proceed with delivery.',
-      );
-    }
-
-    if (secondsRemaining != null && myConfirmed && otherConfirmed) {
-      return _banner(
-        Icons.timer,
-        ColorConstants.warning,
-        'Grace Period: ${secondsRemaining}s',
-        'Both parties confirmed. Finalizing shortly. You may still withdraw.',
       );
     }
 
@@ -602,7 +592,10 @@ class _AgreementFieldTileState extends State<_AgreementFieldTile> {
         labelText: widget.field.label,
         labelStyle: const TextStyle(fontSize: 14),
         isDense: false,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 16,
+        ),
         border: widget.readOnly ? InputBorder.none : const OutlineInputBorder(),
       ),
       onChanged: widget.readOnly ? null : _onTextChanged,
@@ -679,7 +672,10 @@ class _AgreementFieldTileState extends State<_AgreementFieldTile> {
         labelText: widget.field.label,
         labelStyle: const TextStyle(fontSize: 14),
         isDense: false,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 16,
+        ),
         border: widget.readOnly ? InputBorder.none : const OutlineInputBorder(),
       ),
       items: options
@@ -1151,7 +1147,6 @@ class _ActionBar extends StatelessWidget {
   final bool bothLocked;
   final bool bothConfirmed;
   final bool finalized;
-  final int? secondsRemaining;
   final bool isDark;
 
   const _ActionBar({
@@ -1163,7 +1158,6 @@ class _ActionBar extends StatelessWidget {
     required this.bothLocked,
     required this.bothConfirmed,
     required this.finalized,
-    required this.secondsRemaining,
     required this.isDark,
   });
 
@@ -1198,29 +1192,7 @@ class _ActionBar extends StatelessWidget {
   List<Widget> _buildButtons(BuildContext context) {
     final buttons = <Widget>[];
 
-    // Grace period countdown with withdraw
-    if (bothConfirmed && secondsRemaining != null) {
-      buttons.add(
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: controller.isProcessing
-                ? null
-                : () => _withdrawConfirmation(context),
-            icon: const Icon(Icons.undo, size: 18),
-            label: Text('Withdraw Confirmation (${secondsRemaining}s)'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: ColorConstants.warning,
-              side: const BorderSide(color: ColorConstants.warning),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-          ),
-        ),
-      );
-      return buttons;
-    }
-
-    // Confirmed, waiting for other party
+    // Confirmed, waiting for other party — can withdraw
     if (myConfirmed && !otherConfirmed) {
       buttons.add(
         SizedBox(
@@ -1237,6 +1209,17 @@ class _ActionBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
             ),
           ),
+        ),
+      );
+      buttons.add(const SizedBox(height: 4));
+      buttons.add(
+        Text(
+          'Withdrawing will reset both parties\' locks.',
+          style: TextStyle(
+            fontSize: 11,
+            color: ColorConstants.warning.withValues(alpha: 0.7),
+          ),
+          textAlign: TextAlign.center,
         ),
       );
       return buttons;
@@ -1358,6 +1341,34 @@ class _ActionBar extends StatelessWidget {
   }
 
   Future<void> _confirmAgreement(BuildContext context) async {
+    // Show finality warning dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Agreement'),
+        content: const Text(
+          'This action is final and cannot be undone.\n\n'
+          'Once both parties confirm, the transaction will be '
+          'finalized immediately and proceed to the delivery phase.\n\n'
+          'Are you sure you want to confirm?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.success,
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     final success = await controller.confirmAgreement();
     if (!success && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1387,10 +1398,13 @@ class _ActionBar extends StatelessWidget {
 }
 
 /// Toggle switch for installment + inline plan configuration fields
+/// Supports two-way consent: plan is draft until both parties confirm.
 class _InstallmentToggle extends StatefulWidget {
   final TransactionRealtimeController controller;
   final InstallmentController installmentController;
   final String transactionId;
+  final String userId;
+  final bool isBuyer;
   final double agreedPrice;
   final bool isInstallment;
   final bool readOnly;
@@ -1400,6 +1414,8 @@ class _InstallmentToggle extends StatefulWidget {
     required this.controller,
     required this.installmentController,
     required this.transactionId,
+    required this.userId,
+    required this.isBuyer,
     required this.agreedPrice,
     required this.isInstallment,
     required this.readOnly,
@@ -1415,7 +1431,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
   late TextEditingController _downCtrl;
   int _installments = 3;
   String _frequency = 'monthly';
-  bool _planSaved = false;
+  bool _editing = false; // true when user is editing an existing draft
   late bool _localIsInstallment;
 
   @override
@@ -1426,23 +1442,24 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       text: widget.agreedPrice > 0 ? widget.agreedPrice.toStringAsFixed(0) : '',
     );
     _downCtrl = TextEditingController(text: '0');
-    // Check if plan already exists
+    _syncFromPlan();
+  }
+
+  void _syncFromPlan() {
     if (widget.installmentController.hasPlan) {
-      _planSaved = true;
       final plan = widget.installmentController.plan!;
       _totalCtrl.text = plan.totalAmount.toStringAsFixed(0);
       _downCtrl.text = plan.downPayment.toStringAsFixed(0);
       _installments = plan.numInstallments;
       _frequency = plan.frequency;
+      _editing = false;
     } else if (widget.isInstallment) {
-      // Load plan if installment is on but controller hasn't loaded yet
       widget.installmentController
           .loadInstallmentPlan(widget.transactionId)
           .then((_) {
             if (mounted && widget.installmentController.hasPlan) {
               final plan = widget.installmentController.plan!;
               setState(() {
-                _planSaved = true;
                 _totalCtrl.text = plan.totalAmount.toStringAsFixed(0);
                 _downCtrl.text = plan.downPayment.toStringAsFixed(0);
                 _installments = plan.numInstallments;
@@ -1468,12 +1485,13 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
     super.dispose();
   }
 
-  Future<void> _savePlan() async {
+  /// Propose a new plan (creates draft in DB)
+  Future<void> _proposePlan() async {
     final total = double.tryParse(_totalCtrl.text);
     final down = double.tryParse(_downCtrl.text) ?? 0;
     if (total == null || total <= 0 || down >= total) return;
 
-    final ok = await widget.installmentController.createPlan(
+    await widget.installmentController.createPlan(
       transactionId: widget.transactionId,
       totalAmount: total,
       downPayment: down,
@@ -1481,7 +1499,35 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       frequency: _frequency,
       startDate: DateTime.now(),
     );
-    if (ok && mounted) setState(() => _planSaved = true);
+    if (mounted) setState(() => _editing = false);
+  }
+
+  /// Save edits to an existing plan
+  Future<void> _saveEdit() async {
+    final total = double.tryParse(_totalCtrl.text);
+    final down = double.tryParse(_downCtrl.text) ?? 0;
+    if (total == null || total <= 0 || down >= total) return;
+
+    await widget.installmentController.updatePlan(
+      transactionId: widget.transactionId,
+      totalAmount: total,
+      downPayment: down,
+      numInstallments: _installments,
+      frequency: _frequency,
+    );
+    if (mounted) setState(() => _editing = false);
+  }
+
+  /// Enter edit mode
+  void _startEditing() {
+    final plan = widget.installmentController.plan;
+    if (plan != null) {
+      _totalCtrl.text = plan.totalAmount.toStringAsFixed(0);
+      _downCtrl.text = plan.downPayment.toStringAsFixed(0);
+      _installments = plan.numInstallments;
+      _frequency = plan.frequency;
+    }
+    setState(() => _editing = true);
   }
 
   @override
@@ -1506,61 +1552,73 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
               : Colors.grey.shade300,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Toggle row
-          Row(
-            children: [
-              Icon(
-                widget.isInstallment ? Icons.calendar_month : Icons.payment,
-                size: 20,
-                color: widget.isInstallment ? Colors.green : Colors.grey,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Gives Payment',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: widget.isInstallment ? Colors.green : null,
-                  ),
-                ),
-              ),
-              Switch.adaptive(
-                value: _localIsInstallment,
-                onChanged: widget.readOnly
-                    ? null
-                    : (v) {
-                        setState(() => _localIsInstallment = v);
-                        widget.controller.toggleInstallment(v);
-                      },
-                activeColor: Colors.green,
-              ),
-            ],
-          ),
+      child: ListenableBuilder(
+        listenable: widget.installmentController,
+        builder: (context, _) {
+          final plan = widget.installmentController.plan;
+          final hasPlan = plan != null;
 
-          // Inline plan fields when installment is enabled
-          if (widget.isInstallment) ...[
-            const SizedBox(height: 8),
-            if (_planSaved)
-              _buildPlanSummary(isDark)
-            else if (!widget.readOnly)
-              _buildPlanForm(isDark),
-          ],
-        ],
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Toggle row
+              Row(
+                children: [
+                  Icon(
+                    widget.isInstallment ? Icons.calendar_month : Icons.payment,
+                    size: 20,
+                    color: widget.isInstallment ? Colors.green : Colors.grey,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Gives Payment',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: widget.isInstallment ? Colors.green : null,
+                      ),
+                    ),
+                  ),
+                  // Only allow toggle if not readOnly
+                  Switch.adaptive(
+                    value: _localIsInstallment,
+                    onChanged: widget.readOnly
+                        ? null
+                        : (v) {
+                            setState(() => _localIsInstallment = v);
+                            widget.controller.toggleInstallment(v);
+                          },
+                    activeColor: Colors.green,
+                  ),
+                ],
+              ),
+
+              if (widget.isInstallment) ...[
+                const SizedBox(height: 8),
+                if (widget.readOnly && hasPlan)
+                  // Locked — agreement locked/finalized
+                  _buildLockedSummary(plan!, isDark)
+                else if (hasPlan && !_editing)
+                  // Plan exists, show summary + edit button
+                  _buildPlanSummary(plan!, isDark)
+                else if (!widget.readOnly)
+                  // No plan or editing — show form
+                  _buildPlanForm(isDark, isUpdate: hasPlan),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildPlanSummary(bool isDark) {
-    final plan = widget.installmentController.plan;
-    final total = plan?.totalAmount ?? double.tryParse(_totalCtrl.text) ?? 0;
-    final down = plan?.downPayment ?? double.tryParse(_downCtrl.text) ?? 0;
-    final n = plan?.numInstallments ?? _installments;
-    final freq = plan?.frequency ?? _frequency;
-    final perPayment = total > down && n > 0 ? (total - down) / n : 0;
+  /// Locked summary — agreement locked/finalized
+  Widget _buildLockedSummary(InstallmentPlanEntity plan, bool isDark) {
+    final perPayment =
+        plan.totalAmount > plan.downPayment && plan.numInstallments > 0
+        ? (plan.totalAmount - plan.downPayment) / plan.numInstallments
+        : 0;
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -1570,34 +1628,209 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       ),
       child: Column(
         children: [
-          _summaryRow('Total', '₱${total.toStringAsFixed(0)}', isDark),
-          if (down > 0)
-            _summaryRow('Down Payment', '₱${down.toStringAsFixed(0)}', isDark),
+          _summaryRow(
+            'Total',
+            '₱${plan.totalAmount.toStringAsFixed(0)}',
+            isDark,
+          ),
+          if (plan.downPayment > 0)
+            _summaryRow(
+              'Down Payment',
+              '₱${plan.downPayment.toStringAsFixed(0)}',
+              isDark,
+            ),
           _summaryRow(
             'Gives',
-            '$n × ₱${perPayment.toStringAsFixed(0)}',
+            '${plan.numInstallments} × ₱${perPayment.toStringAsFixed(0)}',
             isDark,
           ),
-          _summaryRow(
-            'Frequency',
-            freq == 'no_schedule'
-                ? "Buyer's discretion"
-                : freq[0].toUpperCase() + freq.substring(1),
-            isDark,
-          ),
+          _summaryRow('Frequency', _frequencyLabel(plan.frequency), isDark),
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.check_circle, size: 14, color: Colors.green),
+              const Icon(Icons.lock, size: 14, color: Colors.green),
               const SizedBox(width: 4),
               Text(
-                'Plan saved — see Gives tab for tracking',
+                'Locked — see Gives tab for tracking',
                 style: TextStyle(fontSize: 11, color: Colors.green.shade700),
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  /// Plan summary with edit button (editable state)
+  Widget _buildPlanSummary(InstallmentPlanEntity plan, bool isDark) {
+    final perPayment =
+        plan.totalAmount > plan.downPayment && plan.numInstallments > 0
+        ? (plan.totalAmount - plan.downPayment) / plan.numInstallments
+        : 0;
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        children: [
+          _summaryRow(
+            'Total',
+            '₱${plan.totalAmount.toStringAsFixed(0)}',
+            isDark,
+          ),
+          if (plan.downPayment > 0)
+            _summaryRow(
+              'Down Payment',
+              '₱${plan.downPayment.toStringAsFixed(0)}',
+              isDark,
+            ),
+          _summaryRow(
+            'Gives',
+            '${plan.numInstallments} × ₱${perPayment.toStringAsFixed(0)}',
+            isDark,
+          ),
+          _summaryRow('Frequency', _frequencyLabel(plan.frequency), isDark),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: widget.installmentController.isProcessing
+                  ? null
+                  : _startEditing,
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text('Edit Plan'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlanForm(bool isDark, {bool isUpdate = false}) {
+    final processing = widget.installmentController.isProcessing;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _totalCtrl,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            labelText: 'Total Amount (₱)',
+            border: OutlineInputBorder(),
+            isDense: false,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _downCtrl,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(
+            labelText: 'Down Payment (₱)',
+            border: OutlineInputBorder(),
+            isDense: false,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<int>(
+                value: _installments,
+                isDense: true,
+                decoration: const InputDecoration(
+                  labelText: 'Gives',
+                  border: OutlineInputBorder(),
+                  isDense: false,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                ),
+                items: [2, 3, 4, 6, 9, 12, 18, 24]
+                    .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
+                    .toList(),
+                onChanged: (v) => setState(() => _installments = v ?? 3),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _frequency,
+                isDense: true,
+                decoration: const InputDecoration(
+                  labelText: 'Frequency',
+                  border: OutlineInputBorder(),
+                  isDense: false,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
+                  DropdownMenuItem(
+                    value: 'bi-weekly',
+                    child: Text('Bi-Weekly'),
+                  ),
+                  DropdownMenuItem(value: 'monthly', child: Text('Monthly')),
+                  DropdownMenuItem(
+                    value: 'no_schedule',
+                    child: Text("Buyer's discretion"),
+                  ),
+                ],
+                onChanged: (v) => setState(() => _frequency = v ?? 'monthly'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            if (isUpdate) ...[
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => setState(() => _editing = false),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: processing
+                    ? null
+                    : (isUpdate ? _saveEdit : _proposePlan),
+                icon: processing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check, size: 18),
+                label: Text(
+                  isUpdate ? 'Save & Re-propose' : 'Propose Gives Plan',
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  minimumSize: const Size(0, 40),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1625,120 +1858,12 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
     );
   }
 
-  Widget _buildPlanForm(bool isDark) {
-    return ListenableBuilder(
-      listenable: widget.installmentController,
-      builder: (context, _) {
-        final processing = widget.installmentController.isProcessing;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Total amount
-            TextField(
-              controller: _totalCtrl,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Total Amount (₱)',
-                border: OutlineInputBorder(),
-                isDense: false,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Down payment
-            TextField(
-              controller: _downCtrl,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration: const InputDecoration(
-                labelText: 'Down Payment (₱)',
-                border: OutlineInputBorder(),
-                isDense: false,
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Gives + Frequency row
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _installments,
-                    isDense: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Gives',
-                      border: OutlineInputBorder(),
-                      isDense: false,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    ),
-                    items: [2, 3, 4, 6, 9, 12, 18, 24]
-                        .map(
-                          (n) => DropdownMenuItem(value: n, child: Text('$n')),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(() => _installments = v ?? 3),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _frequency,
-                    isDense: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Frequency',
-                      border: OutlineInputBorder(),
-                      isDense: false,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'weekly', child: Text('Weekly')),
-                      DropdownMenuItem(
-                        value: 'bi-weekly',
-                        child: Text('Bi-Weekly'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'monthly',
-                        child: Text('Monthly'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'no_schedule',
-                        child: Text("Buyer's discretion"),
-                      ),
-                    ],
-                    onChanged: (v) =>
-                        setState(() => _frequency = v ?? 'monthly'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-
-            // Save button
-            FilledButton.icon(
-              onPressed: processing ? null : _savePlan,
-              icon: processing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.check, size: 18),
-              label: const Text('Save Gives Plan'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.green,
-                minimumSize: const Size(double.infinity, 40),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+  String _frequencyLabel(String freq) {
+    switch (freq) {
+      case 'no_schedule':
+        return "Buyer's discretion";
+      default:
+        return freq[0].toUpperCase() + freq.substring(1);
+    }
   }
 }

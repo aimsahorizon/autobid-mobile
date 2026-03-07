@@ -33,11 +33,6 @@ class TransactionRealtimeController extends ChangeNotifier {
   String? _errorMessage;
   String? _currentUserId;
   List<AgreementFieldEntity> _agreementFields = [];
-  Timer? _graceTimer;
-  Timer? _countdownTimer;
-  int? _secondsRemaining;
-  Timer? _skipCountdownTimer;
-  int? _skipCountdownSeconds;
 
   // Getters
   TransactionEntity? get transaction => _transaction;
@@ -52,8 +47,6 @@ class TransactionRealtimeController extends ChangeNotifier {
   bool get hasError => _errorMessage != null;
   String? get currentUserId => _currentUserId;
   List<AgreementFieldEntity> get agreementFields => _agreementFields;
-  int? get secondsRemaining => _secondsRemaining;
-  int? get skipCountdownSeconds => _skipCountdownSeconds;
 
   // Determine user's role (seller or buyer)
   FormRole getUserRole(String userId) {
@@ -123,8 +116,7 @@ class TransactionRealtimeController extends ChangeNotifier {
           _loadAgreementFieldsSafe(_transaction!.id),
         ]);
 
-        // Check if grace period timer needs to start
-        _checkGracePeriod();
+        // Finalization now happens immediately when both confirm (no grace period)
 
         // Subscribe to real-time updates only once per transaction
         if (_subscribedTransactionId != _transaction!.id) {
@@ -226,7 +218,6 @@ class TransactionRealtimeController extends ChangeNotifier {
         ]);
       }
 
-      _checkGracePeriod();
       notifyListeners();
     } catch (e) {
       debugPrint('[TransactionRealtimeController] Error reloading data: $e');
@@ -718,8 +709,10 @@ class TransactionRealtimeController extends ChangeNotifier {
       }
       return success;
     } catch (e) {
-      _errorMessage = 'Failed to update delivery status';
-      debugPrint('[TransactionRealtimeController] Error: $e');
+      _errorMessage = 'Failed to update delivery: $e';
+      debugPrint(
+        '[TransactionRealtimeController] Error updating delivery with photo: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
@@ -902,9 +895,6 @@ class TransactionRealtimeController extends ChangeNotifier {
       final role = getUserRole(_currentUserId!);
       final success = await _dataSource.unlockAgreement(_transaction!.id, role);
       if (success) {
-        _graceTimer?.cancel();
-        _countdownTimer?.cancel();
-        _secondsRemaining = null;
         await _reloadTransactionData(_transaction!.id, _currentUserId!);
       }
       return success;
@@ -951,9 +941,6 @@ class TransactionRealtimeController extends ChangeNotifier {
         role,
       );
       if (success) {
-        _graceTimer?.cancel();
-        _countdownTimer?.cancel();
-        _secondsRemaining = null;
         await _reloadTransactionData(_transaction!.id, _currentUserId!);
       }
       return success;
@@ -963,161 +950,6 @@ class TransactionRealtimeController extends ChangeNotifier {
     } finally {
       _isProcessing = false;
       notifyListeners();
-    }
-  }
-
-  // ============================================================================
-  // GRACE PERIOD & AUTO-FINALIZATION
-  // ============================================================================
-
-  /// Agree to skip the grace period (current user)
-  Future<bool> agreeToSkipGracePeriod() async {
-    if (_transaction == null || _currentUserId == null) return false;
-    _isProcessing = true;
-    notifyListeners();
-    try {
-      final role = getUserRole(_currentUserId!);
-      final success = await _dataSource.agreeToSkipGracePeriod(
-        _transaction!.id,
-        role,
-      );
-      if (success) {
-        await _reloadTransactionData(_transaction!.id, _currentUserId!);
-      }
-      return success;
-    } catch (e) {
-      _errorMessage = 'Failed to agree to skip grace period';
-      return false;
-    } finally {
-      _isProcessing = false;
-      notifyListeners();
-    }
-  }
-
-  /// Withdraw agreement to skip the grace period
-  Future<bool> withdrawSkipGracePeriod() async {
-    if (_transaction == null || _currentUserId == null) return false;
-    _isProcessing = true;
-    notifyListeners();
-    try {
-      final role = getUserRole(_currentUserId!);
-      final success = await _dataSource.withdrawSkipGracePeriod(
-        _transaction!.id,
-        role,
-      );
-      if (success) {
-        _skipCountdownTimer?.cancel();
-        _skipCountdownSeconds = null;
-        await _reloadTransactionData(_transaction!.id, _currentUserId!);
-      }
-      return success;
-    } catch (e) {
-      _errorMessage = 'Failed to withdraw skip grace period';
-      return false;
-    } finally {
-      _isProcessing = false;
-      notifyListeners();
-    }
-  }
-
-  void _checkGracePeriod() {
-    final txn = _transaction;
-    if (txn == null) return;
-
-    // Cancel existing timers
-    _graceTimer?.cancel();
-    _countdownTimer?.cancel();
-
-    // Skip if not both confirmed or already finalized
-    if (!txn.sellerConfirmed || !txn.buyerConfirmed) {
-      _secondsRemaining = null;
-      _skipCountdownTimer?.cancel();
-      _skipCountdownSeconds = null;
-      return;
-    }
-    if (txn.adminApproved) {
-      _secondsRemaining = null;
-      _skipCountdownTimer?.cancel();
-      _skipCountdownSeconds = null;
-      return;
-    }
-    if (txn.bothConfirmedAt == null) {
-      _secondsRemaining = null;
-      _skipCountdownTimer?.cancel();
-      _skipCountdownSeconds = null;
-      return;
-    }
-
-    // Check if both agreed to skip grace period → start 5-second countdown
-    if (txn.bothAgreedToSkipGracePeriod && _skipCountdownSeconds == null) {
-      _startSkipCountdown();
-      return;
-    }
-
-    final elapsed = DateTime.now().difference(txn.bothConfirmedAt!);
-    final remaining = const Duration(seconds: 15) - elapsed;
-
-    if (remaining.isNegative || remaining == Duration.zero) {
-      // Grace period already passed - finalize now
-      _secondsRemaining = 0;
-      _finalizeTransaction();
-      return;
-    }
-
-    // Start countdown
-    _secondsRemaining = remaining.inSeconds + 1;
-    notifyListeners();
-
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final now = DateTime.now();
-      final rem =
-          const Duration(seconds: 15) - now.difference(txn.bothConfirmedAt!);
-      if (rem.isNegative || rem == Duration.zero) {
-        timer.cancel();
-        _secondsRemaining = 0;
-        notifyListeners();
-        _finalizeTransaction();
-      } else {
-        _secondsRemaining = rem.inSeconds + 1;
-        notifyListeners();
-      }
-    });
-  }
-
-  /// Start a synchronized 5-second countdown when both parties agree to skip
-  void _startSkipCountdown() {
-    _skipCountdownTimer?.cancel();
-    _skipCountdownSeconds = 5;
-    // Also nullify the normal grace countdown
-    _graceTimer?.cancel();
-    _countdownTimer?.cancel();
-    _secondsRemaining = null;
-    notifyListeners();
-
-    _skipCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _skipCountdownSeconds = (_skipCountdownSeconds ?? 1) - 1;
-      notifyListeners();
-      if (_skipCountdownSeconds != null && _skipCountdownSeconds! <= 0) {
-        timer.cancel();
-        _skipCountdownSeconds = 0;
-        notifyListeners();
-        _finalizeTransaction();
-      }
-    });
-  }
-
-  Future<void> _finalizeTransaction() async {
-    if (_transaction == null) return;
-    debugPrint('[TransactionRealtimeController] ⏰ Auto-finalizing transaction');
-    try {
-      final success = await _dataSource.finalizeTransaction(_transaction!.id);
-      if (success && _currentUserId != null) {
-        _secondsRemaining = null;
-        _skipCountdownSeconds = null;
-        await _reloadTransactionData(_transaction!.id, _currentUserId!);
-      }
-    } catch (e) {
-      debugPrint('[TransactionRealtimeController] Error finalizing: $e');
     }
   }
 
@@ -1138,9 +970,6 @@ class TransactionRealtimeController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _graceTimer?.cancel();
-    _countdownTimer?.cancel();
-    _skipCountdownTimer?.cancel();
     _chatSubscription?.cancel();
     _transactionSubscription?.cancel();
     _subscribedTransactionId = null;
