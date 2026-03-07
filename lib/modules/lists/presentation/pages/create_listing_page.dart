@@ -110,6 +110,10 @@ class _CreateListingPageState extends State<CreateListingPage> {
                 'navigateTo': 'pending',
               });
             },
+            onGoBack: () {
+              // Simply pop back
+              Navigator.pop(context, {'action': 'go_back'});
+            },
           ),
         ),
       );
@@ -123,6 +127,9 @@ class _CreateListingPageState extends State<CreateListingPage> {
         } else if (result['action'] == 'create_another') {
           // Reset for new draft
           widget.controller.createNewDraft(widget.sellerId);
+        } else if (result['action'] == 'go_back') {
+          // Simply go back to listings
+          Navigator.pop(context);
         }
       }
     });
@@ -203,7 +210,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
         engineDisplacement: (specs['engineDisplacement'] as num?)?.toDouble(),
         doorCount: specs['doorCount'] as int?,
         driveType: specs['driveType'] as String?,
-        features: (specs['features'] as List<dynamic>?)?.cast<String>(), // Auto-fill features
+        features: (specs['features'] as List<dynamic>?)
+            ?.cast<String>(), // Auto-fill features
         tags:
             (detectedData['tags'] as List<dynamic>?)?.cast<String>() ??
             currentDraft.tags,
@@ -233,7 +241,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
         hasWarranty: currentDraft.hasWarranty,
         warrantyDetails: currentDraft.warrantyDetails,
         usageType: currentDraft.usageType,
-        plateNumber: detectedData['plateNumber'] as String? ?? currentDraft.plateNumber,
+        plateNumber:
+            detectedData['plateNumber'] as String? ?? currentDraft.plateNumber,
         orcrStatus: currentDraft.orcrStatus,
         registrationStatus: currentDraft.registrationStatus,
         registrationExpiry: currentDraft.registrationExpiry,
@@ -261,9 +270,9 @@ class _CreateListingPageState extends State<CreateListingPage> {
         (messenger..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(
-              isRealAi 
-                ? '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})'
-                : '⚠️ AI Model missing. Using DEMO data for: ${detectedData['brand']} ${detectedData['model']}',
+              isRealAi
+                  ? '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})'
+                  : '⚠️ AI Model missing. Using DEMO data for: ${detectedData['brand']} ${detectedData['model']}',
             ),
             backgroundColor: isRealAi ? Colors.green : Colors.orange,
             duration: const Duration(seconds: 3),
@@ -511,7 +520,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
             }
 
             final draft = widget.controller.currentDraft;
-            
+
             // If submission was successful, show loading while waiting for navigation/modal
             if (widget.controller.isSubmissionSuccess) {
               return const Center(child: CircularProgressIndicator());
@@ -519,25 +528,37 @@ class _CreateListingPageState extends State<CreateListingPage> {
 
             if (draft == null) {
               return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    SizedBox(height: 16),
-                    Text(
-                      widget.controller.errorMessage ??
-                          'Failed to initialize listing',
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        await _initializeDraft();
-                      },
-                      icon: Icon(Icons.refresh),
-                      label: Text('Retry'),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      SizedBox(height: 16),
+                      Text(
+                        'Unable to start listing',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        widget.controller.errorMessage ??
+                            'Please check your connection and try again.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await _initializeDraft();
+                        },
+                        icon: Icon(Icons.refresh),
+                        label: Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
