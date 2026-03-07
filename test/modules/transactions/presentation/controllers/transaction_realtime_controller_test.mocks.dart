@@ -439,28 +439,6 @@ class MockTransactionRealtimeDataSource extends _i1.Mock
           as _i3.Future<bool>);
 
   @override
-  _i3.Future<bool> agreeToSkipGracePeriod(
-    String? transactionId,
-    _i4.FormRole? role,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#agreeToSkipGracePeriod, [transactionId, role]),
-            returnValue: _i3.Future<bool>.value(false),
-          )
-          as _i3.Future<bool>);
-
-  @override
-  _i3.Future<bool> withdrawSkipGracePeriod(
-    String? transactionId,
-    _i4.FormRole? role,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#withdrawSkipGracePeriod, [transactionId, role]),
-            returnValue: _i3.Future<bool>.value(false),
-          )
-          as _i3.Future<bool>);
-
-  @override
   void subscribeToAgreementFields(String? transactionId) => super.noSuchMethod(
     Invocation.method(#subscribeToAgreementFields, [transactionId]),
     returnValueForMissingStub: null,
