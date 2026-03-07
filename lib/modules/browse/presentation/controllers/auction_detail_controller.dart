@@ -233,7 +233,15 @@ class AuctionDetailController extends ChangeNotifier {
         _subscribeToRealtimeUpdates(id);
       }
     } catch (e) {
-      _errorMessage = 'Failed to load auction details';
+      // If background reload fails and auction already ended, mark as ended gracefully
+      if (isBackground &&
+          _auction != null &&
+          _auction!.endTime.isBefore(DateTime.now())) {
+        _auction = AuctionDetailEntity.copyWithStatus(_auction!, 'ended');
+        _errorMessage = null;
+      } else {
+        _errorMessage = 'Failed to load auction details';
+      }
     } finally {
       if (!isBackground) {
         _isLoading = false;
