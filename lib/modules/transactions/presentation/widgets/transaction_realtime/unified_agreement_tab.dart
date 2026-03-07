@@ -56,24 +56,25 @@ class UnifiedAgreementTab extends StatelessWidget {
 
         return Column(
           children: [
-            // Installment toggle + inline plan fields
-            _InstallmentToggle(
-              controller: controller,
-              installmentController: installmentController,
-              transactionId: transactionId,
-              userId: userId,
-              isBuyer: !isSeller,
-              agreedPrice: txn.agreedPrice,
-              isInstallment: txn.isInstallment,
-              readOnly: myLocked || finalized,
-              isDark: isDark,
-            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Installment toggle + inline plan fields
+                    _InstallmentToggle(
+                      controller: controller,
+                      installmentController: installmentController,
+                      transactionId: transactionId,
+                      userId: userId,
+                      isBuyer: !isSeller,
+                      agreedPrice: txn.agreedPrice,
+                      isInstallment: txn.isInstallment,
+                      readOnly: myLocked || finalized,
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 12),
                     // Status header
                     _StatusHeader(
                       myLocked: myLocked,
@@ -97,6 +98,7 @@ class UnifiedAgreementTab extends StatelessWidget {
                       readOnly,
                       finalized,
                       isDark,
+                      txn.sellerId,
                     ),
 
                     // Add field section (only when editing)
@@ -180,6 +182,7 @@ class UnifiedAgreementTab extends StatelessWidget {
     bool readOnly,
     bool finalized,
     bool isDark,
+    String sellerId,
   ) {
     if (fields.isEmpty) return [];
 
@@ -199,6 +202,7 @@ class UnifiedAgreementTab extends StatelessWidget {
           finalized: finalized,
           isDark: isDark,
           controller: controller,
+          sellerId: sellerId,
         ),
       );
     }
@@ -401,6 +405,7 @@ class _CategorySection extends StatelessWidget {
   final bool finalized;
   final bool isDark;
   final TransactionRealtimeController controller;
+  final String sellerId;
 
   const _CategorySection({
     required this.category,
@@ -409,6 +414,7 @@ class _CategorySection extends StatelessWidget {
     required this.finalized,
     required this.isDark,
     required this.controller,
+    required this.sellerId,
   });
 
   IconData _categoryIcon() {
@@ -474,6 +480,7 @@ class _CategorySection extends StatelessWidget {
                 field: field,
                 readOnly: readOnly,
                 isDark: isDark,
+                sellerId: sellerId,
                 onChanged: (value) =>
                     controller.updateAgreementField(field.id, value),
                 onDelete: readOnly || finalized
@@ -495,6 +502,7 @@ class _AgreementFieldTile extends StatefulWidget {
   final AgreementFieldEntity field;
   final bool readOnly;
   final bool isDark;
+  final String sellerId;
   final ValueChanged<String> onChanged;
   final VoidCallback? onDelete;
 
@@ -502,6 +510,7 @@ class _AgreementFieldTile extends StatefulWidget {
     required this.field,
     required this.readOnly,
     required this.isDark,
+    required this.sellerId,
     required this.onChanged,
     this.onDelete,
   });
@@ -544,10 +553,34 @@ class _AgreementFieldTileState extends State<_AgreementFieldTile> {
     });
   }
 
+  Color? _editHighlightColor() {
+    final editor = widget.field.lastEditedBy;
+    if (editor == null) return null;
+    final isSeller = editor == widget.sellerId;
+    return isSeller
+        ? Colors.blue.withValues(alpha: 0.06)
+        : Colors.orange.withValues(alpha: 0.06);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    final highlight = _editHighlightColor();
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: highlight != null
+          ? BoxDecoration(
+              color: highlight,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: widget.field.lastEditedBy == widget.sellerId
+                    ? Colors.blue.withValues(alpha: 0.18)
+                    : Colors.orange.withValues(alpha: 0.18),
+              ),
+            )
+          : null,
+      padding: highlight != null
+          ? const EdgeInsets.symmetric(horizontal: 4, vertical: 2)
+          : EdgeInsets.zero,
       child: Row(
         children: [
           Expanded(child: _buildFieldInput()),
@@ -1535,17 +1568,17 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
     final isDark = widget.isDark;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: widget.isInstallment
+        color: _localIsInstallment
             ? Colors.green.withValues(alpha: 0.06)
             : isDark
             ? ColorConstants.surfaceDark
             : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: widget.isInstallment
+          color: _localIsInstallment
               ? Colors.green.withValues(alpha: 0.3)
               : isDark
               ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
@@ -1565,9 +1598,9 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
               Row(
                 children: [
                   Icon(
-                    widget.isInstallment ? Icons.calendar_month : Icons.payment,
+                    _localIsInstallment ? Icons.calendar_month : Icons.payment,
                     size: 20,
-                    color: widget.isInstallment ? Colors.green : Colors.grey,
+                    color: _localIsInstallment ? Colors.green : Colors.grey,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1576,7 +1609,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: widget.isInstallment ? Colors.green : null,
+                        color: _localIsInstallment ? Colors.green : null,
                       ),
                     ),
                   ),
@@ -1594,7 +1627,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                 ],
               ),
 
-              if (widget.isInstallment) ...[
+              if (_localIsInstallment) ...[
                 const SizedBox(height: 8),
                 if (widget.readOnly && hasPlan)
                   // Locked — agreement locked/finalized
