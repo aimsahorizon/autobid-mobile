@@ -367,14 +367,31 @@ class ListingDraftController extends ChangeNotifier {
       );
       currentPhotos[categoryKey] = [...(currentPhotos[categoryKey] ?? []), url];
 
+      final existingCover = _currentDraft!.coverPhotoUrl;
+      final nextCover = (existingCover == null || existingCover.isEmpty)
+          ? url
+          : existingCover;
+
       _currentDraft = _currentDraft!.copyWith(
         lastSaved: DateTime.now(),
         photoUrls: currentPhotos,
+        coverPhotoUrl: nextCover,
       );
       notifyListeners();
       _autoSave();
       return true;
     });
+  }
+
+  /// Set selected featured photo for the draft.
+  Future<void> setCoverPhoto(String coverPhotoUrl) async {
+    if (_currentDraft == null) return;
+    _currentDraft = _currentDraft!.copyWith(
+      coverPhotoUrl: coverPhotoUrl,
+      lastSaved: DateTime.now(),
+    );
+    notifyListeners();
+    _autoSave();
   }
 
   /// Upload deed of sale document
