@@ -4,6 +4,7 @@ import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../widgets/detail_sections/seller_bid_history_section.dart';
+import '../widgets/detail_sections/listing_info_section.dart';
 
 /// Detail page for ended auctions awaiting seller decision
 /// Seller can choose to proceed to transaction or cancel the auction
@@ -284,14 +285,13 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Listing Image
-                  if (widget.listing.photoUrls != null &&
-                      widget.listing.photoUrls!.isNotEmpty)
+                  if (widget.listing.coverPhotoUrl != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Image.network(
-                          widget.listing.photoUrls!.values.first.first,
+                          widget.listing.coverPhotoUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
@@ -333,6 +333,10 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
 
                   // Decision Guidance
                   _buildGuidanceCard(isReserveMet),
+                  const SizedBox(height: 24),
+
+                  // Full listing info including categorized photos
+                  ListingInfoSection(listing: widget.listing),
                   const SizedBox(height: 24),
 
                   // Bid History (Added)
