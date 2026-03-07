@@ -9,6 +9,7 @@ class AgreementFieldEntity {
   final String category;
   final String? options; // Comma-separated for select type
   final String? addedBy;
+  final String? lastEditedBy;
   final int displayOrder;
 
   const AgreementFieldEntity({
@@ -20,6 +21,7 @@ class AgreementFieldEntity {
     this.category = 'general',
     this.options,
     this.addedBy,
+    this.lastEditedBy,
     this.displayOrder = 0,
   });
 
@@ -32,6 +34,7 @@ class AgreementFieldEntity {
     String? category,
     String? options,
     String? addedBy,
+    String? lastEditedBy,
     int? displayOrder,
   }) {
     return AgreementFieldEntity(
@@ -43,6 +46,7 @@ class AgreementFieldEntity {
       category: category ?? this.category,
       options: options ?? this.options,
       addedBy: addedBy ?? this.addedBy,
+      lastEditedBy: lastEditedBy ?? this.lastEditedBy,
       displayOrder: displayOrder ?? this.displayOrder,
     );
   }
