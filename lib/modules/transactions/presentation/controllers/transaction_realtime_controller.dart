@@ -834,11 +834,18 @@ class TransactionRealtimeController extends ChangeNotifier {
 
   Future<bool> updateAgreementField(String fieldId, String value) async {
     try {
-      final success = await _dataSource.updateAgreementField(fieldId, value);
+      final success = await _dataSource.updateAgreementField(
+        fieldId,
+        value,
+        editedBy: _currentUserId,
+      );
       if (success) {
         final idx = _agreementFields.indexWhere((f) => f.id == fieldId);
         if (idx != -1) {
-          _agreementFields[idx] = _agreementFields[idx].copyWith(value: value);
+          _agreementFields[idx] = _agreementFields[idx].copyWith(
+            value: value,
+            lastEditedBy: _currentUserId,
+          );
           notifyListeners();
         }
       }
@@ -959,8 +966,10 @@ class TransactionRealtimeController extends ChangeNotifier {
     final method = enabled ? 'installment' : 'full_payment';
     try {
       await _dataSource.updatePaymentMethod(_transaction!.id, method);
+      // Optimistic local update without notifyListeners —
+      // the realtime subscription will push the authoritative update
+      // and call notifyListeners once, preventing a double-rebuild loop.
       _transaction = _transaction!.copyWith(paymentMethod: method);
-      notifyListeners();
     } catch (e) {
       debugPrint(
         '[TransactionRealtimeController] Error toggling installment: $e',
