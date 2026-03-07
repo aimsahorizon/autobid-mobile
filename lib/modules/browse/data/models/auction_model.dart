@@ -16,6 +16,7 @@ class AuctionModel extends AuctionEntity {
     required super.sellerId,
     super.sellerDisplayName,
     super.sellerProfileImageUrl,
+    super.visibility,
   });
 
   /// Create model from JSON (Supabase response)
@@ -47,6 +48,7 @@ class AuctionModel extends AuctionEntity {
       sellerId: json['seller_id'] as String,
       sellerDisplayName: json['seller_display_name'] as String?,
       sellerProfileImageUrl: json['seller_profile_image_url'] as String?,
+      visibility: json['visibility'] as String? ?? 'public',
     );
   }
 
@@ -65,6 +67,7 @@ class AuctionModel extends AuctionEntity {
       'seller_id': sellerId,
       'seller_display_name': sellerDisplayName,
       'seller_profile_image_url': sellerProfileImageUrl,
+      'visibility': visibility,
     };
   }
 
@@ -83,6 +86,7 @@ class AuctionModel extends AuctionEntity {
       sellerId: entity.sellerId,
       sellerDisplayName: entity.sellerDisplayName,
       sellerProfileImageUrl: entity.sellerProfileImageUrl,
+      visibility: entity.visibility,
     );
   }
 }
