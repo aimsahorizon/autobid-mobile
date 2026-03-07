@@ -131,6 +131,7 @@ class ListingSupabaseDataSource {
         province: draft.province,
         cityMunicipality: draft.cityMunicipality,
         photoUrls: draft.photoUrls,
+        coverPhotoUrl: draft.coverPhotoUrl,
         tags: draft.tags,
         deedOfSaleUrl: draft.deedOfSaleUrl,
         description: draft.description,
@@ -247,7 +248,9 @@ class ListingSupabaseDataSource {
       final result = response as Map<String, dynamic>;
 
       if (result['success'] == true) {
-        return result['auction_id'] as String; // Returns new auction ID
+        final auctionId = result['auction_id'] as String;
+        await _syncSelectedPrimaryPhoto(draftId: draftId, auctionId: auctionId);
+        return auctionId; // Returns new auction ID
       } else {
         throw Exception(result['error'] ?? 'Failed to submit listing');
       }
@@ -462,13 +465,15 @@ class ListingSupabaseDataSource {
 
       // 3. Transition any due scheduled listings to live
       if (dueList.isNotEmpty) {
-        debugPrint('[ListingSupabaseDataSource] Found ${dueList.length} scheduled listings due for go-live. Auto-transitioning...');
-        
+        debugPrint(
+          '[ListingSupabaseDataSource] Found ${dueList.length} scheduled listings due for go-live. Auto-transitioning...',
+        );
+
         for (final listing in dueList) {
           try {
             // Update status in DB
             await updateListingStatusByName(listing.id, 'live');
-            
+
             // Update local model status to 'live' so it shows correctly immediately
             // We can't modify the immutable ListingModel, so we rely on the DB update
             // and the fact that we're adding it to the liveList implies it's treated as active
@@ -476,10 +481,10 @@ class ListingSupabaseDataSource {
             // Since we can't easily clone-update, we'll just add it to the list.
             // The UI will show it in the Active tab, effectively "fixing" the view.
           } catch (e) {
-             debugPrint('Failed to auto-transition listing ${listing.id}: $e');
+            debugPrint('Failed to auto-transition listing ${listing.id}: $e');
           }
         }
-        
+
         // Add them to the main list
         liveList.addAll(dueList);
       }
@@ -1120,15 +1125,23 @@ class ListingSupabaseDataSource {
       // Extract photos
       final photosData = auctionResponse['auction_photos'] as List? ?? [];
       final photoUrls = <String, List<String>>{};
+      String? coverPhotoUrl;
       for (final photo in photosData) {
         if (photo is Map<String, dynamic>) {
-          final category = photo['category'] as String? ?? 'other';
+          final category = _normalizePhotoCategory(
+            photo['category'] as String?,
+          );
           final url = photo['photo_url'] as String?;
-          if (url != null) {
+          if (url != null && url.isNotEmpty) {
             photoUrls.putIfAbsent(category, () => []).add(url);
+            if (photo['is_primary'] == true) {
+              coverPhotoUrl = url;
+            }
           }
         }
       }
+
+      coverPhotoUrl ??= _resolveCoverFromPhotoUrls(photoUrls);
 
       // Create new draft with copied data
       final draftResponse = await _supabase
@@ -1191,6 +1204,7 @@ class ListingSupabaseDataSource {
             'reserve_price': auctionResponse['reserve_price'],
             // Note: bid_increment and deposit_amount are auction-specific, not draft fields
             'photo_urls': photoUrls,
+            'cover_photo_url': coverPhotoUrl,
           })
           .select()
           .single();
@@ -1316,6 +1330,7 @@ class ListingSupabaseDataSource {
               'photo_url': photo['photo_url'],
               'category': photo['category'],
               'display_order': photo['display_order'],
+              'is_primary': photo['is_primary'] ?? false,
             });
           }
         }
@@ -1607,30 +1622,39 @@ class ListingSupabaseDataSource {
     }
 
     if (photosList != null && photosList.isNotEmpty) {
+      final sortedPhotos =
+          List<Map<String, dynamic>>.from(
+            photosList.whereType<Map<String, dynamic>>(),
+          )..sort((a, b) {
+            final aPrimary = a['is_primary'] == true ? 1 : 0;
+            final bPrimary = b['is_primary'] == true ? 1 : 0;
+            if (aPrimary != bPrimary) {
+              return bPrimary.compareTo(aPrimary);
+            }
+            final aOrder = (a['display_order'] as num?)?.toInt() ?? 99999;
+            final bOrder = (b['display_order'] as num?)?.toInt() ?? 99999;
+            return aOrder.compareTo(bOrder);
+          });
+
       // Find primary photo for cover
       try {
-        final primaryPhoto =
-            photosList.firstWhere(
-                  (photo) => photo['is_primary'] == true,
-                  orElse: () => photosList!.first,
-                )
-                as Map<String, dynamic>;
+        final primaryPhoto = sortedPhotos.firstWhere(
+          (photo) => photo['is_primary'] == true,
+          orElse: () => sortedPhotos.first,
+        );
         mergedJson['cover_photo_url'] = primaryPhoto['photo_url'];
       } catch (e) {
         // Fallback to first photo if any error
-        mergedJson['cover_photo_url'] =
-            (photosList.first as Map<String, dynamic>)['photo_url'];
+        mergedJson['cover_photo_url'] = sortedPhotos.first['photo_url'];
       }
 
       // Build photo_urls map grouped by category
       final Map<String, List<String>> photoUrlsMap = {};
-      for (final photo in photosList) {
-        if (photo is Map<String, dynamic>) {
-          final category = photo['category'] as String? ?? 'other';
-          final url = photo['photo_url'] as String?;
-          if (url != null) {
-            photoUrlsMap.putIfAbsent(category, () => []).add(url);
-          }
+      for (final photo in sortedPhotos) {
+        final category = _normalizePhotoCategory(photo['category'] as String?);
+        final url = photo['photo_url'] as String?;
+        if (url != null && url.isNotEmpty) {
+          photoUrlsMap.putIfAbsent(category, () => []).add(url);
         }
       }
       mergedJson['photo_urls'] = photoUrlsMap;
@@ -1703,6 +1727,97 @@ class ListingSupabaseDataSource {
     mergedJson['has_warranty'] = mergedJson['has_warranty'] ?? false;
 
     return ListingModel.fromJson(mergedJson);
+  }
+
+  Future<void> _syncSelectedPrimaryPhoto({
+    required String draftId,
+    required String auctionId,
+  }) async {
+    try {
+      final draft = await _supabase
+          .from('listing_drafts')
+          .select('cover_photo_url')
+          .eq('id', draftId)
+          .maybeSingle();
+
+      final selectedCoverUrl = draft?['cover_photo_url'] as String?;
+      if (selectedCoverUrl == null || selectedCoverUrl.isEmpty) {
+        return;
+      }
+
+      await _supabase
+          .from('auction_photos')
+          .update({'is_primary': false})
+          .eq('auction_id', auctionId);
+
+      final updatedRows = await _supabase
+          .from('auction_photos')
+          .update({'is_primary': true})
+          .eq('auction_id', auctionId)
+          .eq('photo_url', selectedCoverUrl)
+          .select('id');
+
+      if ((updatedRows as List).isEmpty) {
+        final firstPhoto = await _supabase
+            .from('auction_photos')
+            .select('id')
+            .eq('auction_id', auctionId)
+            .order('display_order', ascending: true)
+            .limit(1)
+            .maybeSingle();
+
+        final firstPhotoId = firstPhoto?['id'] as String?;
+        if (firstPhotoId == null) {
+          return;
+        }
+
+        await _supabase
+            .from('auction_photos')
+            .update({'is_primary': true})
+            .eq('id', firstPhotoId);
+      }
+    } catch (_) {
+      // Do not fail submission if post-submit primary sync fails.
+    }
+  }
+
+  String _normalizePhotoCategory(String? rawCategory) {
+    final normalized = rawCategory?.trim().toLowerCase() ?? 'details';
+    switch (normalized) {
+      case 'exterior':
+      case 'interior':
+      case 'engine':
+      case 'details':
+      case 'documents':
+        return normalized;
+      default:
+        return 'details';
+    }
+  }
+
+  String? _resolveCoverFromPhotoUrls(Map<String, List<String>> photoUrls) {
+    const preferredOrder = [
+      'exterior',
+      'interior',
+      'engine',
+      'details',
+      'documents',
+    ];
+
+    for (final category in preferredOrder) {
+      final urls = photoUrls[category];
+      if (urls != null && urls.isNotEmpty) {
+        return urls.first;
+      }
+    }
+
+    for (final urls in photoUrls.values) {
+      if (urls.isNotEmpty) {
+        return urls.first;
+      }
+    }
+
+    return null;
   }
 
   /// Check if a plate number is unique for a seller (Public for validation)
