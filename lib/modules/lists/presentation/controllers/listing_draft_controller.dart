@@ -398,10 +398,14 @@ class ListingDraftController extends ChangeNotifier {
       );
       currentPhotos[categoryKey] = [...(currentPhotos[categoryKey] ?? []), url];
 
+      // Check if existing cover photo is still valid (exists in any category)
       final existingCover = _currentDraft!.coverPhotoUrl;
-      final nextCover = (existingCover == null || existingCover.isEmpty)
-          ? url
-          : existingCover;
+      final allUrls = currentPhotos.values.expand((urls) => urls).toSet();
+      final isCoverValid =
+          existingCover != null &&
+          existingCover.isNotEmpty &&
+          allUrls.contains(existingCover);
+      final nextCover = isCoverValid ? existingCover : url;
 
       _currentDraft = _currentDraft!.copyWith(
         lastSaved: DateTime.now(),
@@ -555,7 +559,8 @@ class ListingDraftController extends ChangeNotifier {
       final saveResult = await _saveDraftUseCase.call(_currentDraft!);
 
       final saveSuccess = saveResult.fold((failure) {
-        _errorMessage = 'Failed to save draft: ${failure.message}';
+        _errorMessage =
+            'Unable to save your listing. Please check your connection and try again.';
         return false;
       }, (_) => true);
 
@@ -571,7 +576,7 @@ class ListingDraftController extends ChangeNotifier {
       );
 
       final completeSuccess = markCompleteResult.fold((failure) {
-        _errorMessage = 'Failed to mark draft as complete: ${failure.message}';
+        _errorMessage = 'Unable to finalize your listing. Please try again.';
         return false;
       }, (_) => true);
 
@@ -587,7 +592,7 @@ class ListingDraftController extends ChangeNotifier {
       _isSubmitting = false;
       return result.fold(
         (failure) {
-          _errorMessage = failure.message;
+          _errorMessage = _sanitizeErrorMessage(failure.message);
           notifyListeners();
           return false;
         },
@@ -601,7 +606,7 @@ class ListingDraftController extends ChangeNotifier {
       );
     } catch (e) {
       _isSubmitting = false;
-      _errorMessage = 'Error submitting listing: $e';
+      _errorMessage = 'Something went wrong. Please try again later.';
       notifyListeners();
       return false;
     }
@@ -622,6 +627,37 @@ class ListingDraftController extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Sanitize technical error messages into user-friendly ones
+  String _sanitizeErrorMessage(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('token') || lower.contains('insufficient')) {
+      return 'You don\'t have enough listing tokens. Please purchase more to submit.';
+    }
+    if (lower.contains('network') ||
+        lower.contains('socket') ||
+        lower.contains('connection')) {
+      return 'Network error. Please check your connection and try again.';
+    }
+    if (lower.contains('permission') ||
+        lower.contains('unauthorized') ||
+        lower.contains('forbidden')) {
+      return 'You don\'t have permission to perform this action.';
+    }
+    if (lower.contains('duplicate')) {
+      return 'This listing appears to be a duplicate. Please check your existing listings.';
+    }
+    if (lower.contains('timeout')) {
+      return 'The request timed out. Please try again.';
+    }
+    // If message looks like a user-friendly message already (no stack traces or exceptions), return it
+    if (!lower.contains('exception') &&
+        !lower.contains('error:') &&
+        message.length < 200) {
+      return message;
+    }
+    return 'Something went wrong while submitting your listing. Please try again.';
   }
 
   String _localDraftKey(String sellerId) =>

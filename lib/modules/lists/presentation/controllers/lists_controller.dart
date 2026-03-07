@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../../domain/usecases/get_seller_listings_usecase.dart';
 import '../../domain/usecases/stream_seller_listings_usecase.dart';
@@ -8,6 +9,7 @@ import '../../domain/usecases/submission_usecases.dart';
 import '../../domain/usecases/delete_listing_usecase.dart';
 import '../../domain/usecases/manage_invites_usecases.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
+import '../../../browse/data/datasources/invites_supabase_datasource.dart';
 
 /// Controller for managing seller listings across all tabs
 class ListsController extends ChangeNotifier {
@@ -42,6 +44,7 @@ class ListsController extends ChangeNotifier {
   bool _isGridView = true;
   String? _errorMessage;
   StreamSubscription? _listingsSubscription;
+  Timer? _autoRefreshTimer;
 
   // Selection state
   final Set<String> _selectedListingIds = {};
@@ -53,6 +56,8 @@ class ListsController extends ChangeNotifier {
   // Invite state
   List<Map<String, dynamic>> _currentAuctionInvites = [];
   bool _isInvitesLoading = false;
+  StreamSubscription<List<Map<String, dynamic>>>? _invitesSubscription;
+  String? _streamingAuctionId;
 
   Map<ListingStatus, List<SellerListingEntity>> get listings => _listings;
   bool get isLoading => _isLoading;
@@ -70,6 +75,8 @@ class ListsController extends ChangeNotifier {
   @override
   void dispose() {
     _listingsSubscription?.cancel();
+    _autoRefreshTimer?.cancel();
+    _invitesSubscription?.cancel();
     super.dispose();
   }
 
@@ -196,6 +203,7 @@ class ListsController extends ChangeNotifier {
       if (_listingsSubscription == null) {
         _subscribeToUpdates(userId);
       }
+      _ensureAutoRefresh();
 
       // Fetch all listings using UseCase
       final result = await _getSellerListingsUseCase.call(userId);
@@ -238,6 +246,18 @@ class ListsController extends ChangeNotifier {
     );
   }
 
+  void _ensureAutoRefresh() {
+    if (_autoRefreshTimer != null) {
+      return;
+    }
+
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (!_isLoading) {
+        loadListings(isBackground: true);
+      }
+    });
+  }
+
   Future<void> _reloadListingsQuietly(String userId) async {
     await loadListings(isBackground: true);
   }
@@ -275,6 +295,44 @@ class ListsController extends ChangeNotifier {
 
     _isInvitesLoading = false;
     notifyListeners();
+  }
+
+  void startAuctionInvitesStream(String auctionId) {
+    if (_streamingAuctionId == auctionId && _invitesSubscription != null) {
+      return;
+    }
+
+    _invitesSubscription?.cancel();
+    _streamingAuctionId = auctionId;
+    _isInvitesLoading = true;
+    notifyListeners();
+
+    final invitesDatasource = GetIt.instance<InvitesSupabaseDatasource>();
+    _invitesSubscription = invitesDatasource
+        .streamAuctionInvites(auctionId)
+        .listen(
+          (invites) {
+            _currentAuctionInvites = List<Map<String, dynamic>>.from(invites);
+            _isInvitesLoading = false;
+            _errorMessage = null;
+            notifyListeners();
+          },
+          onError: (error) {
+            _isInvitesLoading = false;
+            _errorMessage = 'Failed to stream invites: $error';
+            notifyListeners();
+          },
+        );
+  }
+
+  void stopAuctionInvitesStream(String auctionId) {
+    if (_streamingAuctionId != auctionId) {
+      return;
+    }
+
+    _invitesSubscription?.cancel();
+    _invitesSubscription = null;
+    _streamingAuctionId = null;
   }
 
   Future<bool> inviteUser({
