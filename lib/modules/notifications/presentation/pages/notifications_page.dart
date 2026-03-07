@@ -368,6 +368,34 @@ class _NotificationsPageState extends State<NotificationsPage> {
           if (!notification.isRead) {
             _controller.markAsRead(notification.id, userId);
           }
+          // If accepted, prompt user to view the listing
+          if (decision == 'accepted' && mounted) {
+            final auctionId = notification.metadata?['auction_id'] as String?;
+            if (auctionId != null) {
+              final shouldView = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Invite Accepted'),
+                  content: const Text(
+                    'Would you like to view the auction listing now?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Later'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('View Listing'),
+                    ),
+                  ],
+                ),
+              );
+              if (shouldView == true && mounted) {
+                NotificationActionHandler(context).navigateToAuction(auctionId);
+              }
+            }
+          }
         }
       }
     } else {

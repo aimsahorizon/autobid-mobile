@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import '../../../browse/presentation/controllers/auction_detail_controller.dart';
+import '../../../browse/presentation/pages/auction_detail_page.dart';
+import '../../../transactions/presentation/controllers/transaction_realtime_controller.dart';
+import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
 import '../../domain/entities/notification_entity.dart';
 
 /// Handles notification tap actions by navigating to the relevant screen
@@ -38,6 +44,14 @@ class NotificationActionHandler {
 
       // ---- Invite Notifications → Auction Detail ----
       case NotificationSubType.auctionInvite:
+        // If already accepted, go directly to auction
+        final inviteStatus = metadata['invite_status'] as String?;
+        if (inviteStatus == 'accepted') {
+          _navigateToAuction(metadata['auction_id'] as String?);
+        }
+        // If pending (no status), tapping does nothing extra — buttons handle it
+        // If rejected, no navigation
+        break;
       case NotificationSubType.auctionInviteAccepted:
       case NotificationSubType.auctionInviteRejected:
         _navigateToAuction(metadata['auction_id'] as String?);
@@ -96,28 +110,46 @@ class NotificationActionHandler {
     }
   }
 
-  void _navigateToAuction(String? auctionId, {String? tab}) {
+  void navigateToAuction(String? auctionId, {String? tab}) {
     if (auctionId == null) return;
-    // Navigate to auction detail page
-    // The route name should match the app's routing configuration
-    Navigator.of(context).pushNamed(
-      '/auction/detail',
-      arguments: {'auctionId': auctionId, if (tab != null) 'initialTab': tab},
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AuctionDetailPage(
+          auctionId: auctionId,
+          controller: GetIt.instance<AuctionDetailController>(),
+        ),
+      ),
     );
+  }
+
+  void _navigateToAuction(String? auctionId, {String? tab}) {
+    navigateToAuction(auctionId, tab: tab);
   }
 
   void _navigateToTransaction(String? transactionId, {String? tab}) {
     if (transactionId == null) return;
-    Navigator.of(context).pushNamed(
-      '/transaction/detail',
-      arguments: {
-        'transactionId': transactionId,
-        if (tab != null) 'initialTab': tab,
-      },
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+    final userName =
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name']
+            as String? ??
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name']
+            as String? ??
+        'User';
+    final controller = GetIt.instance<TransactionRealtimeController>();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PreTransactionRealtimePage(
+          controller: controller,
+          transactionId: transactionId,
+          userId: userId,
+          userName: userName,
+        ),
+      ),
     );
   }
 
   void _navigateToProfile() {
-    Navigator.of(context).pushNamed('/profile');
+    // Navigate to home and switch to profile tab (index 4)
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 }
