@@ -374,9 +374,17 @@ class MockTransactionRealtimeDataSource extends _i1.Mock
           as _i3.Future<_i7.AgreementFieldEntity?>);
 
   @override
-  _i3.Future<bool> updateAgreementField(String? fieldId, String? value) =>
+  _i3.Future<bool> updateAgreementField(
+    String? fieldId,
+    String? value, {
+    String? editedBy,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#updateAgreementField, [fieldId, value]),
+            Invocation.method(
+              #updateAgreementField,
+              [fieldId, value],
+              {#editedBy: editedBy},
+            ),
             returnValue: _i3.Future<bool>.value(false),
           )
           as _i3.Future<bool>);
