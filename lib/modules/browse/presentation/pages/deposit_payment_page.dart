@@ -88,7 +88,7 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final currentUser = SupabaseConfig.client.auth.currentUser;
       final fallbackEmail = currentUser?.email ?? '';
       final fallbackPhone = currentUser?.phone ?? '';
-      
+
       // Try to get name from metadata if available
       final metadata = currentUser?.userMetadata;
       final metaFirstName = metadata?['first_name'] as String? ?? '';
@@ -111,15 +111,17 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
           if (response != null) {
             firstName = response['first_name'] as String? ?? metaFirstName;
             lastName = response['last_name'] as String? ?? metaLastName;
-            
+
             // Use profile email if available, otherwise fallback
-            if (response['email'] != null && (response['email'] as String).isNotEmpty) {
+            if (response['email'] != null &&
+                (response['email'] as String).isNotEmpty) {
               email = response['email'] as String;
             }
-            
+
             // Check both phone_number (schema) and contact_number (legacy/view)
-            final profilePhone = response['phone_number'] as String? ?? 
-                               response['contact_number'] as String?;
+            final profilePhone =
+                response['phone_number'] as String? ??
+                response['contact_number'] as String?;
             if (profilePhone != null && profilePhone.isNotEmpty) {
               phone = profilePhone;
             }
@@ -127,7 +129,19 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
 
           if (_nameController.text.isEmpty) {
             final profileName = '$firstName $lastName'.trim();
-            _nameController.text = profileName.isNotEmpty ? profileName : metaName;
+            // Fallback chain: first+last → display_name → full_name → auth metadata
+            final displayName = (response?['display_name'] as String? ?? '')
+                .trim();
+            final fullName = (response?['full_name'] as String? ?? '').trim();
+            if (profileName.isNotEmpty) {
+              _nameController.text = profileName;
+            } else if (displayName.isNotEmpty) {
+              _nameController.text = displayName;
+            } else if (fullName.isNotEmpty) {
+              _nameController.text = fullName;
+            } else {
+              _nameController.text = metaName;
+            }
           }
           if (_emailController.text.isEmpty && email.isNotEmpty) {
             _emailController.text = email;
@@ -136,6 +150,26 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
             _phoneController.text = phone;
           }
         });
+
+        // If name is still empty, try the users table as final fallback
+        if (_nameController.text.isEmpty) {
+          try {
+            final userResp = await SupabaseConfig.client
+                .from('users')
+                .select('display_name, full_name')
+                .eq('id', widget.userId)
+                .maybeSingle();
+            if (mounted && userResp != null && _nameController.text.isEmpty) {
+              final dn = (userResp['display_name'] as String? ?? '').trim();
+              final fn = (userResp['full_name'] as String? ?? '').trim();
+              if (dn.isNotEmpty || fn.isNotEmpty) {
+                setState(() {
+                  _nameController.text = dn.isNotEmpty ? dn : fn;
+                });
+              }
+            }
+          } catch (_) {}
+        }
       }
     } catch (e) {
       debugPrint('[DepositPaymentPage] Error loading user profile: $e');
@@ -143,14 +177,14 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       if (mounted) {
         final currentUser = SupabaseConfig.client.auth.currentUser;
         if (currentUser != null) {
-             setState(() {
-                if (_emailController.text.isEmpty && currentUser.email != null) {
-                  _emailController.text = currentUser.email!;
-                }
-                if (_phoneController.text.isEmpty && currentUser.phone != null) {
-                  _phoneController.text = currentUser.phone!;
-                }
-             });
+          setState(() {
+            if (_emailController.text.isEmpty && currentUser.email != null) {
+              _emailController.text = currentUser.email!;
+            }
+            if (_phoneController.text.isEmpty && currentUser.phone != null) {
+              _phoneController.text = currentUser.phone!;
+            }
+          });
         }
       }
     }
