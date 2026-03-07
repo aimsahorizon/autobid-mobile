@@ -38,7 +38,7 @@ class InstallmentSupabaseDatasource {
     }
   }
 
-  /// Create a new installment plan (draft — no payment schedule until both confirm)
+  /// Create a new installment plan and generate payment schedule immediately
   Future<InstallmentPlanEntity> createInstallmentPlan({
     required String transactionId,
     required double totalAmount,
@@ -51,14 +51,6 @@ class InstallmentSupabaseDatasource {
       final userId = _supabase.auth.currentUser?.id;
       final remaining = totalAmount - downPayment;
 
-      // Determine role to auto-confirm for proposer
-      final txn = await _supabase
-          .from('auction_transactions')
-          .select('buyer_id, seller_id')
-          .eq('id', transactionId)
-          .single();
-      final isBuyer = txn['buyer_id'] == userId;
-
       final data = {
         'transaction_id': transactionId,
         'total_amount': totalAmount,
@@ -69,8 +61,6 @@ class InstallmentSupabaseDatasource {
         'frequency': frequency,
         'start_date': startDate.toIso8601String().split('T').first,
         'proposed_by': userId,
-        'buyer_confirmed_plan': isBuyer,
-        'seller_confirmed_plan': !isBuyer,
       };
 
       final response = await _supabase
@@ -80,6 +70,16 @@ class InstallmentSupabaseDatasource {
           .single();
 
       final plan = InstallmentPlanModel.fromJson(response).toEntity();
+
+      // Generate payment schedule immediately
+      await _generatePaymentSchedule(
+        planId: plan.id,
+        downPayment: plan.downPayment,
+        remaining: plan.remainingAmount,
+        numInstallments: plan.numInstallments,
+        frequency: plan.frequency,
+        startDate: DateTime.now(),
+      );
 
       // Update transaction payment_method
       await _supabase
@@ -94,7 +94,7 @@ class InstallmentSupabaseDatasource {
     }
   }
 
-  /// Update an existing draft plan (resets the other party's confirmation)
+  /// Update an existing plan and regenerate payment schedule
   Future<InstallmentPlanEntity> updateInstallmentPlan({
     required String planId,
     required String transactionId,
@@ -107,14 +107,7 @@ class InstallmentSupabaseDatasource {
       final userId = _supabase.auth.currentUser?.id;
       final remaining = totalAmount - downPayment;
 
-      final txn = await _supabase
-          .from('auction_transactions')
-          .select('buyer_id, seller_id')
-          .eq('id', transactionId)
-          .single();
-      final isBuyer = txn['buyer_id'] == userId;
-
-      // Delete old payment schedule if any
+      // Delete old payment schedule
       await _supabase
           .from('installment_payments')
           .delete()
@@ -128,8 +121,6 @@ class InstallmentSupabaseDatasource {
         'num_installments': numInstallments,
         'frequency': frequency,
         'proposed_by': userId,
-        'buyer_confirmed_plan': isBuyer,
-        'seller_confirmed_plan': !isBuyer,
         'updated_at': DateTime.now().toIso8601String(),
       };
 
@@ -140,62 +131,21 @@ class InstallmentSupabaseDatasource {
           .select()
           .single();
 
-      return InstallmentPlanModel.fromJson(response).toEntity();
-    } catch (e) {
-      debugPrint('[InstallmentDatasource] Error updating plan: $e');
-      rethrow;
-    }
-  }
-
-  /// Confirm the plan for the current user.
-  /// If both confirmed after this, generate the payment schedule.
-  Future<InstallmentPlanEntity> confirmPlan({
-    required String planId,
-    required String transactionId,
-  }) async {
-    try {
-      final userId = _supabase.auth.currentUser?.id;
-
-      final txn = await _supabase
-          .from('auction_transactions')
-          .select('buyer_id, seller_id')
-          .eq('id', transactionId)
-          .single();
-      final isBuyer = txn['buyer_id'] == userId;
-
-      final updateData = <String, dynamic>{
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-      if (isBuyer) {
-        updateData['buyer_confirmed_plan'] = true;
-      } else {
-        updateData['seller_confirmed_plan'] = true;
-      }
-
-      final response = await _supabase
-          .from('installment_plans')
-          .update(updateData)
-          .eq('id', planId)
-          .select()
-          .single();
-
       final plan = InstallmentPlanModel.fromJson(response).toEntity();
 
-      // If both now confirmed, generate the payment schedule
-      if (plan.bothConfirmedPlan) {
-        await _generatePaymentSchedule(
-          planId: plan.id,
-          downPayment: plan.downPayment,
-          remaining: plan.remainingAmount,
-          numInstallments: plan.numInstallments,
-          frequency: plan.frequency,
-          startDate: DateTime.now(), // Schedule starts from confirmation time
-        );
-      }
+      // Regenerate payment schedule
+      await _generatePaymentSchedule(
+        planId: plan.id,
+        downPayment: plan.downPayment,
+        remaining: plan.remainingAmount,
+        numInstallments: plan.numInstallments,
+        frequency: plan.frequency,
+        startDate: DateTime.now(),
+      );
 
       return plan;
     } catch (e) {
-      debugPrint('[InstallmentDatasource] Error confirming plan: $e');
+      debugPrint('[InstallmentDatasource] Error updating plan: $e');
       rethrow;
     }
   }

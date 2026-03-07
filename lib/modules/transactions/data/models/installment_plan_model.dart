@@ -12,8 +12,6 @@ class InstallmentPlanModel {
   final String frequency;
   final DateTime startDate;
   final String status;
-  final bool buyerConfirmedPlan;
-  final bool sellerConfirmedPlan;
   final String? proposedBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -29,8 +27,6 @@ class InstallmentPlanModel {
     this.frequency = 'monthly',
     required this.startDate,
     this.status = 'active',
-    this.buyerConfirmedPlan = false,
-    this.sellerConfirmedPlan = false,
     this.proposedBy,
     required this.createdAt,
     required this.updatedAt,
@@ -50,8 +46,6 @@ class InstallmentPlanModel {
           ? DateTime.parse(json['start_date'] as String)
           : DateTime.now(),
       status: json['status'] as String? ?? 'active',
-      buyerConfirmedPlan: json['buyer_confirmed_plan'] as bool? ?? false,
-      sellerConfirmedPlan: json['seller_confirmed_plan'] as bool? ?? false,
       proposedBy: json['proposed_by'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
@@ -73,8 +67,6 @@ class InstallmentPlanModel {
       'frequency': frequency,
       'start_date': startDate.toIso8601String().split('T').first,
       'status': status,
-      'buyer_confirmed_plan': buyerConfirmedPlan,
-      'seller_confirmed_plan': sellerConfirmedPlan,
       'proposed_by': proposedBy,
     };
   }
@@ -91,8 +83,6 @@ class InstallmentPlanModel {
       frequency: frequency,
       startDate: startDate,
       status: InstallmentPlanStatusExt.fromString(status),
-      buyerConfirmedPlan: buyerConfirmedPlan,
-      sellerConfirmedPlan: sellerConfirmedPlan,
       proposedBy: proposedBy,
       createdAt: createdAt,
       updatedAt: updatedAt,
