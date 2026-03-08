@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/transaction_status_entity.dart';
@@ -27,12 +28,15 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
   late TabController _mainTabController; // Buyer/Seller tabs
   late TabController _statusTabController; // Status tabs
   bool _initialized = false;
+  bool _isGridView = false;
 
   static const _statusTabs = [
     TransactionStatus.inTransaction,
     TransactionStatus.sold,
     TransactionStatus.dealFailed,
   ];
+
+  static const _prefKey = 'transactions_main_tab_index';
 
   @override
   void initState() {
@@ -43,12 +47,33 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       vsync: this,
     );
 
+    _mainTabController.addListener(_onMainTabChanged);
+
+    _restoreTabIndex();
     widget.controller.loadTransactions();
     _initialized = true;
   }
 
+  Future<void> _restoreTabIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedIndex = prefs.getInt(_prefKey) ?? 0;
+    if (mounted && savedIndex >= 0 && savedIndex < 2) {
+      _mainTabController.index = savedIndex;
+    }
+  }
+
+  void _onMainTabChanged() {
+    if (!_mainTabController.indexIsChanging) {
+      _statusTabController.index = 0;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setInt(_prefKey, _mainTabController.index);
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _mainTabController.removeListener(_onMainTabChanged);
     _mainTabController.dispose();
     _statusTabController.dispose();
     widget.controller.dispose();
@@ -67,12 +92,28 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         title: const Text('Transactions'),
         actions: [
           const NotificationBellWidget(),
+          ListenableBuilder(
+            listenable: widget.controller,
+            builder: (context, _) => IconButton(
+              icon: widget.controller.isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              onPressed: widget.controller.isLoading
+                  ? null
+                  : () => widget.controller.loadTransactions(),
+              tooltip: 'Refresh transactions',
+            ),
+          ),
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: widget.controller.isLoading
-                ? null
-                : widget.controller.refresh,
-            tooltip: 'Refresh transactions',
+            icon: Icon(
+              _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+            ),
+            onPressed: () => setState(() => _isGridView = !_isGridView),
+            tooltip: _isGridView ? 'List view' : 'Grid view',
           ),
         ],
         bottom: TabBar(
@@ -81,9 +122,6 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
             Tab(text: 'As a Buyer'),
             Tab(text: 'As a Seller'),
           ],
-          onTap: (_) {
-            _statusTabController.index = 0;
-          },
         ),
       ),
       body: ListenableBuilder(
@@ -208,7 +246,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                 onRefresh: widget.controller.refresh,
                 child: ListingsGrid(
                   listings: transactions,
-                  isGridView: false,
+                  isGridView: _isGridView,
                   isLoading: false,
                   emptyTitle: _getEmptyBuyerTitle(status),
                   emptySubtitle: _getEmptyBuyerSubtitle(status),
@@ -290,7 +328,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                 onRefresh: widget.controller.refresh,
                 child: ListingsGrid(
                   listings: transactions,
-                  isGridView: false,
+                  isGridView: _isGridView,
                   isLoading: false,
                   emptyTitle: _getEmptySellerTitle(status),
                   emptySubtitle: _getEmptySellerSubtitle(status),
