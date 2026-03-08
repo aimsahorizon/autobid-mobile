@@ -190,21 +190,6 @@ class ListingDetailEntity {
   String? get coverPhotoUrl {
     if (photoUrls == null || photoUrls!.isEmpty) return null;
 
-    const preferredOrder = [
-      'exterior',
-      'interior',
-      'engine',
-      'details',
-      'documents',
-    ];
-
-    for (final category in preferredOrder) {
-      final urls = photoUrls![category];
-      if (urls != null && urls.isNotEmpty) {
-        return urls.first;
-      }
-    }
-
     for (final urls in photoUrls!.values) {
       if (urls.isNotEmpty) return urls.first;
     }
