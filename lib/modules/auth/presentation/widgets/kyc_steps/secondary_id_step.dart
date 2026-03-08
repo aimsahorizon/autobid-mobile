@@ -414,7 +414,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       case 'Passport':
         return [
           FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-          LengthLimitingTextInputFormatter(9),
+          LengthLimitingTextInputFormatter(10),
           TextInputFormatter.withFunction((oldValue, newValue) {
             return TextEditingValue(
               text: newValue.text.toUpperCase(),
@@ -453,7 +453,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       case 'Driver\'s License':
         return 'N00-00-000000';
       case 'Passport':
-        return 'XX0000000';
+        return 'XX0000000 or P0000000A';
       case 'SSS ID':
         return '00-0000000-0';
       case 'UMID':
@@ -472,7 +472,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       case 'Driver\'s License':
         return 'Format: N00-00-000000';
       case 'Passport':
-        return 'Format: 2 letters + 7 digits';
+        return 'Format: 2 letters + 6-7 digits or P + 7 digits + letter';
       case 'SSS ID':
         return 'Format: 00-0000000-0';
       case 'UMID':
@@ -494,11 +494,12 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
         }
         break;
       case 'Passport':
-        if (value.length != 9) {
-          return 'Passport must be 9 characters';
+        if (value.length < 8 || value.length > 9) {
+          return 'Passport must be 8-9 characters';
         }
-        if (!RegExp(r'^[A-Z]{2}[0-9]{7}$').hasMatch(value)) {
-          return 'Invalid passport format (XX0000000)';
+        if (!RegExp(r'^[A-Z]{2}[0-9]{6,7}$').hasMatch(value) &&
+            !RegExp(r'^[A-Z][0-9]{7}[A-Z]$').hasMatch(value)) {
+          return 'Invalid passport format';
         }
         break;
       case 'SSS ID':
