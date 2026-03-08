@@ -309,11 +309,8 @@ class _BidAmountRow extends StatelessWidget {
     );
   }
 
-  /// Formats amount with K/M suffix or comma separators
+  /// Formats amount with comma separators (full display)
   String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(2)}M';
-    }
     return amount
         .toStringAsFixed(0)
         .replaceAllMapped(
