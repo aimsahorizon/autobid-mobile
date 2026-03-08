@@ -443,4 +443,21 @@ class TransactionSupabaseDataSource {
       return {};
     }
   }
+
+  /// Submit a report for a transaction
+  Future<void> submitReport({
+    required String transactionId,
+    required String reporterId,
+    required String reportedUserId,
+    required String reason,
+    required String description,
+  }) async {
+    await _supabase.from('transaction_reports').insert({
+      'transaction_id': transactionId,
+      'reporter_id': reporterId,
+      'reported_user_id': reportedUserId,
+      'reason': reason,
+      'description': description,
+    });
+  }
 }
