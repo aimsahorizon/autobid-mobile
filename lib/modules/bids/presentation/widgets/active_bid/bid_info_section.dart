@@ -6,10 +6,7 @@ import 'dart:async';
 class BidInfoSection extends StatefulWidget {
   final BidDetailEntity bidDetail;
 
-  const BidInfoSection({
-    super.key,
-    required this.bidDetail,
-  });
+  const BidInfoSection({super.key, required this.bidDetail});
 
   @override
   State<BidInfoSection> createState() => _BidInfoSectionState();
@@ -55,6 +52,15 @@ class _BidInfoSectionState extends State<BidInfoSection> {
     return '${hours}h ${minutes}m ${seconds}s';
   }
 
+  String _formatAmount(double amount) {
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -81,7 +87,9 @@ class _BidInfoSectionState extends State<BidInfoSection> {
                 child: _InfoItem(
                   icon: Icons.access_time,
                   label: 'Time Left',
-                  value: _remaining != null ? _formatDuration(_remaining!) : 'N/A',
+                  value: _remaining != null
+                      ? _formatDuration(_remaining!)
+                      : 'N/A',
                   valueColor: _remaining != null && _remaining!.inHours < 2
                       ? ColorConstants.error
                       : null,
@@ -132,7 +140,7 @@ class _BidInfoSectionState extends State<BidInfoSection> {
                       const SizedBox(height: 2),
                       Text(
                         widget.bidDetail.hasDeposited
-                            ? 'Paid ₱${widget.bidDetail.depositAmount.toStringAsFixed(0)}'
+                            ? 'Paid ₱${_formatAmount(widget.bidDetail.depositAmount)}'
                             : 'Not Paid',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
@@ -179,11 +187,7 @@ class _InfoItem extends StatelessWidget {
 
     return Column(
       children: [
-        Icon(
-          icon,
-          color: ColorConstants.primary,
-          size: 24,
-        ),
+        Icon(icon, color: ColorConstants.primary, size: 24),
         const SizedBox(height: 4),
         Text(
           label,
