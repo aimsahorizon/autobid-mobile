@@ -73,7 +73,7 @@ class AuctionDetailCompositeSupabaseDataSource
         amount: (bidData['bid_amount'] as num).toDouble(),
         bidderName: bidderName,
         username: username,
-        timestamp: DateTime.parse(bidData['created_at'] as String),
+        timestamp: DateTime.parse(bidData['created_at'] as String).toLocal(),
         isCurrentUser: false, // Will be set by repository/usecase if needed
         isWinning: false, // Will be set based on current auction state
       );

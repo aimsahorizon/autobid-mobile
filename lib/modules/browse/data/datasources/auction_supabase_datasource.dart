@@ -85,7 +85,7 @@ class AuctionSupabaseDataSource {
 
     // Vehicle filters
     if (filter?.make != null && filter!.make!.isNotEmpty) {
-      queryBuilder = queryBuilder.ilike('vehicle_make', '%${filter.make}%');
+      queryBuilder = queryBuilder.ilike('vehicle_make', filter.make!);
     }
     if (filter?.model != null && filter!.model!.isNotEmpty) {
       queryBuilder = queryBuilder.ilike('vehicle_model', '%${filter.model}%');
