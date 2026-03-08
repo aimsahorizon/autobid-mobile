@@ -86,7 +86,7 @@ class _ListingCardState extends State<ListingCard> {
                       : null,
                 ),
                 child: Align(
-                  alignment: Alignment.topRight,
+                  alignment: Alignment.bottomRight,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Icon(

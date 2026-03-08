@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
-import '../../../notifications/presentation/controllers/notification_controller.dart';
-import '../../../notifications/presentation/pages/notifications_page.dart';
+import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 import '../controllers/lists_controller.dart';
 import '../controllers/listing_draft_controller.dart';
@@ -30,12 +29,7 @@ class _ListsPageState extends State<ListsPage>
     ListingStatus.pending,
     ListingStatus.approved,
     ListingStatus.scheduled,
-    ListingStatus.ended,
-    ListingStatus.inTransaction,
-    ListingStatus.sold,
     ListingStatus.draft,
-    ListingStatus.cancelled,
-    ListingStatus.dealFailed,
   ];
 
   List<ListingStatus> get _tabs => _currentTabs;
@@ -196,56 +190,7 @@ class _ListsPageState extends State<ListsPage>
                 ),
               ]
             : [
-                // Notification bell with unread count badge
-                ListenableBuilder(
-                  listenable: sl<NotificationController>(),
-                  builder: (context, _) {
-                    final notificationController = sl<NotificationController>();
-                    final unreadCount = notificationController.unreadCount;
-
-                    return Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const NotificationsPage(),
-                              ),
-                            );
-                          },
-                          tooltip: 'Notifications',
-                        ),
-                        if (unreadCount > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                unreadCount > 9 ? '9+' : '$unreadCount',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
+                const NotificationBellWidget(),
                 IconButton(
                   icon: const Icon(Icons.refresh_rounded),
                   onPressed: () => _controller.loadListings(),
@@ -351,8 +296,8 @@ class _ListsPageState extends State<ListsPage>
   }
 
   Widget _buildFilterChips(bool isDark) {
-    // All possible statuses for filter
-    final allStatuses = ListingStatus.values;
+    // Only statuses relevant to listings (exclude transaction-module statuses)
+    final allStatuses = _currentTabs;
 
     return Container(
       height: 48,
