@@ -66,6 +66,7 @@ class KYCRegistrationController extends ChangeNotifier {
   KYCStep _currentStep = KYCStep.accountInfo;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _editingFromReview = false;
 
   // Step 1: National ID
   String? _nationalIdNumber;
@@ -118,6 +119,7 @@ class KYCRegistrationController extends ChangeNotifier {
   KYCStep get currentStep => _currentStep;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get editingFromReview => _editingFromReview;
   int get currentStepIndex => _currentStep.index;
   int get totalSteps => KYCStep.values.length;
 
@@ -551,7 +553,15 @@ class KYCRegistrationController extends ChangeNotifier {
   }
 
   void goToStep(KYCStep step) {
+    _editingFromReview = _currentStep == KYCStep.review;
     _currentStep = step;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void returnToReview() {
+    _editingFromReview = false;
+    _currentStep = KYCStep.review;
     _errorMessage = null;
     notifyListeners();
   }
@@ -1255,6 +1265,9 @@ class KYCRegistrationController extends ChangeNotifier {
         // Mock implementation - just delay
         await Future.delayed(const Duration(seconds: 2));
       }
+
+      // Clear saved draft after successful submission
+      _sharedPreferences?.remove('kyc_registration_draft');
 
       _isLoading = false;
       notifyListeners();
