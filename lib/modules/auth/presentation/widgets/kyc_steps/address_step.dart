@@ -129,29 +129,44 @@ class _AddressStepState extends State<AddressStep> {
           if (state is RegionsLoaded) {
             setState(() {
               _regions = state.regions;
-              // If previously selected (e.g. going back step), try to restore?
-              // For now, simpler to just load.
-
-              // Auto-select if only one option (Legacy Zamboanga behavior support)
-              if (_regions.length == 1 && widget.controller.region == null) {
-                _onRegionChanged(_regions.first);
-              }
             });
+            // Restore previously selected region or auto-select single option
+            final savedRegion = widget.controller.region;
+            if (savedRegion != null) {
+              final match = _regions.where((r) => r.name == savedRegion);
+              if (match.isNotEmpty) {
+                // Load provinces without clearing controller values
+                _locationBloc.add(LoadProvinces(match.first.id));
+              }
+            } else if (_regions.length == 1) {
+              _onRegionChanged(_regions.first);
+            }
           } else if (state is ProvincesLoaded) {
             setState(() {
               _provinces = state.provinces;
-              if (_provinces.length == 1 &&
-                  widget.controller.province == null) {
-                _onProvinceChanged(_provinces.first);
-              }
             });
+            final savedProvince = widget.controller.province;
+            if (savedProvince != null) {
+              final match = _provinces.where((p) => p.name == savedProvince);
+              if (match.isNotEmpty) {
+                _locationBloc.add(LoadCities(match.first.id));
+              }
+            } else if (_provinces.length == 1) {
+              _onProvinceChanged(_provinces.first);
+            }
           } else if (state is CitiesLoaded) {
             setState(() {
               _cities = state.cities;
-              if (_cities.length == 1 && widget.controller.city == null) {
-                _onCityChanged(_cities.first);
-              }
             });
+            final savedCity = widget.controller.city;
+            if (savedCity != null) {
+              final match = _cities.where((c) => c.name == savedCity);
+              if (match.isNotEmpty) {
+                _locationBloc.add(LoadBarangays(match.first.id));
+              }
+            } else if (_cities.length == 1) {
+              _onCityChanged(_cities.first);
+            }
           } else if (state is BarangaysLoaded) {
             setState(() {
               _barangays = state.barangays;
