@@ -34,6 +34,14 @@ class TransactionRealtimeController extends ChangeNotifier {
   String? _currentUserId;
   List<AgreementFieldEntity> _agreementFields = [];
 
+  // Red-dot tab update tracking
+  // Counts that increment on each realtime update; the UI saves the
+  // "last seen" value when the user views the tab and compares.
+  int _chatUpdateCount = 0;
+  int _agreementUpdateCount = 0;
+  int _progressUpdateCount = 0;
+  int _givesUpdateCount = 0;
+
   // Getters
   TransactionEntity? get transaction => _transaction;
   List<ChatMessageEntity> get chatMessages => _chatMessages;
@@ -47,6 +55,15 @@ class TransactionRealtimeController extends ChangeNotifier {
   bool get hasError => _errorMessage != null;
   String? get currentUserId => _currentUserId;
   List<AgreementFieldEntity> get agreementFields => _agreementFields;
+  int get chatUpdateCount => _chatUpdateCount;
+  int get agreementUpdateCount => _agreementUpdateCount;
+  int get progressUpdateCount => _progressUpdateCount;
+  int get givesUpdateCount => _givesUpdateCount;
+
+  void clearChatUpdateCount() => _chatUpdateCount = 0;
+  void clearAgreementUpdateCount() => _agreementUpdateCount = 0;
+  void clearProgressUpdateCount() => _progressUpdateCount = 0;
+  void clearGivesUpdateCount() => _givesUpdateCount = 0;
 
   // Determine user's role (seller or buyer)
   FormRole getUserRole(String userId) {
@@ -162,6 +179,10 @@ class TransactionRealtimeController extends ChangeNotifier {
       // Only add if not already in list (avoid duplicates)
       if (!_chatMessages.any((m) => m.id == message.id)) {
         _chatMessages.add(message);
+        // Increment chat update counter for messages from the other party
+        if (message.senderId != _currentUserId) {
+          _chatUpdateCount++;
+        }
         notifyListeners();
         debugPrint(
           '[TransactionRealtimeController] 📨 New message received: ${message.message}',
@@ -198,6 +219,10 @@ class TransactionRealtimeController extends ChangeNotifier {
     String userId,
   ) async {
     try {
+      final oldAgreementFields = List<AgreementFieldEntity>.from(_agreementFields);
+      final oldTimeline = List<TransactionTimelineEntity>.from(_timeline);
+      final oldTransaction = _transaction;
+
       _transaction = await _dataSource.getTransaction(transactionId);
 
       if (_transaction == null) return;
@@ -216,6 +241,35 @@ class TransactionRealtimeController extends ChangeNotifier {
           _loadReviewSafe(_transaction!.id, userId),
           _loadAgreementFieldsSafe(_transaction!.id),
         ]);
+      }
+
+      // Bump red-dot counters based on what changed
+      if (_agreementFields.length != oldAgreementFields.length ||
+          _agreementFields.any((f) {
+            final old = oldAgreementFields.where((o) => o.id == f.id);
+            return old.isEmpty || old.first.value != f.value;
+          })) {
+        _agreementUpdateCount++;
+      }
+      if (oldTransaction != null) {
+        // Check agreement status changes
+        if (_transaction!.sellerFormSubmitted != oldTransaction.sellerFormSubmitted ||
+            _transaction!.buyerFormSubmitted != oldTransaction.buyerFormSubmitted ||
+            _transaction!.sellerConfirmed != oldTransaction.sellerConfirmed ||
+            _transaction!.buyerConfirmed != oldTransaction.buyerConfirmed) {
+          _agreementUpdateCount++;
+        }
+        // Check delivery status change
+        if (_transaction!.deliveryStatus != oldTransaction.deliveryStatus) {
+          _progressUpdateCount++;
+        }
+        // Check payment method change
+        if (_transaction!.paymentMethod != oldTransaction.paymentMethod) {
+          _agreementUpdateCount++;
+        }
+      }
+      if (_timeline.length != oldTimeline.length) {
+        _progressUpdateCount++;
       }
 
       notifyListeners();
