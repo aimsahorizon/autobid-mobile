@@ -3,8 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/presentation/pages/auction_detail_page.dart';
 import '../../../browse/presentation/controllers/auction_detail_controller.dart';
-import '../../../notifications/presentation/controllers/notification_controller.dart';
-import '../../../notifications/presentation/pages/notifications_page.dart';
+import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 import '../controllers/bids_controller.dart';
 import '../widgets/user_bids_list.dart';
 import '../../domain/entities/user_bid_entity.dart';
@@ -112,57 +111,7 @@ class _BidsPageState extends State<BidsPage>
         title: const Text('My Bids'),
         centerTitle: true,
         actions: [
-          // Notification bell with unread count badge
-          ListenableBuilder(
-            listenable: GetIt.instance<NotificationController>(),
-            builder: (context, _) {
-              final notificationController =
-                  GetIt.instance<NotificationController>();
-              final unreadCount = notificationController.unreadCount;
-
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NotificationsPage(),
-                        ),
-                      );
-                    },
-                    tooltip: 'Notifications',
-                  ),
-                  if (unreadCount > 0)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 16,
-                          minHeight: 16,
-                        ),
-                        child: Text(
-                          unreadCount > 9 ? '9+' : '$unreadCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
+          const NotificationBellWidget(),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => widget.controller.loadUserBids(),
@@ -179,7 +128,8 @@ class _BidsPageState extends State<BidsPage>
         listenable: widget.controller,
         builder: (context, _) {
           // Show error state with retry button
-          if (widget.controller.hasError && widget.controller.totalBidsCount == 0) {
+          if (widget.controller.hasError &&
+              widget.controller.totalBidsCount == 0) {
             return _buildErrorState();
           }
 
@@ -370,8 +320,6 @@ class _BidsPageState extends State<BidsPage>
     );
   }
 }
-
-
 
 /// Tab widget with badge showing count
 /// Badge only appears when count > 0
