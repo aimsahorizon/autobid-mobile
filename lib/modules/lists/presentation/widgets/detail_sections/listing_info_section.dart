@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/listing_detail_entity.dart';
+import '../../../domain/entities/listing_draft_entity.dart';
 
 class ListingInfoSection extends StatefulWidget {
   final ListingDetailEntity listing;
@@ -504,20 +505,16 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
   }
 
   List<String> _orderedPhotoCategories(Map<String, List<String>> photoUrls) {
-    const preferredOrder = [
-      'exterior',
-      'interior',
-      'engine',
-      'details',
-      'documents',
-    ];
-
+    // Order by the canonical PhotoCategories order
+    final allCategoryKeys = PhotoCategories.all
+        .map((c) => PhotoCategories.toKey(c))
+        .toList();
     final keys = photoUrls.keys.toList();
     keys.sort((a, b) {
-      final aIndex = preferredOrder.indexOf(a.toLowerCase());
-      final bIndex = preferredOrder.indexOf(b.toLowerCase());
-      final normalizedA = aIndex == -1 ? 999 : aIndex;
-      final normalizedB = bIndex == -1 ? 999 : bIndex;
+      final aIndex = allCategoryKeys.indexOf(a);
+      final bIndex = allCategoryKeys.indexOf(b);
+      final normalizedA = aIndex == -1 ? 9999 : aIndex;
+      final normalizedB = bIndex == -1 ? 9999 : bIndex;
       if (normalizedA != normalizedB) {
         return normalizedA.compareTo(normalizedB);
       }
@@ -527,26 +524,19 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
   }
 
   String _formatPhotoCategoryLabel(String category) {
-    final normalized = category.trim().toLowerCase();
-    switch (normalized) {
-      case 'exterior':
-        return 'Exterior';
-      case 'interior':
-        return 'Interior';
-      case 'engine':
-        return 'Engine';
-      case 'details':
-        return 'Details';
-      case 'documents':
-        return 'Documents';
-      default:
-        return category
-            .replaceAll('_', ' ')
-            .split(' ')
-            .where((w) => w.isNotEmpty)
-            .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
-            .join(' ');
+    // Look up the display name from PhotoCategories
+    for (final displayName in PhotoCategories.all) {
+      if (PhotoCategories.toKey(displayName) == category) {
+        return displayName;
+      }
     }
+    // Fallback: convert snake_case to Title Case
+    return category
+        .replaceAll('_', ' ')
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
   }
 
   Widget _buildSpecGroup(String title, List<Widget> specs, bool isDark) {
