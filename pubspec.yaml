@@ -112,6 +112,9 @@ flutter:
     - .env
     - assets/ai/
     - assets/ai/pricing_metadata.json
+    - assets/autofill_cars/car1/
+    - assets/autofill_cars/car2/
+    - assets/autofill_cars/car3/
     - assets/images/2017 Honda Civic Type R/center console and infotainment/
     - assets/images/2017 Honda Civic Type R/closeup of all wheels and tires/
     - assets/images/2017 Honda Civic Type R/driver seat and dashboard/

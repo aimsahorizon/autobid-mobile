@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart'; // Add for kDebugMode
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/car_detection_service.dart';
 import '../controllers/listing_draft_controller.dart';
@@ -298,13 +299,66 @@ class _CreateListingPageState extends State<CreateListingPage> {
   void _demoFillListing() {
     if (widget.controller.currentDraft == null) return;
 
+    final carFolders = ['car1', 'car2', 'car3'];
+
+    showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Select Demo Car'),
+        children: carFolders
+            .map((folder) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, folder),
+                  child: Text(folder),
+                ))
+            .toList(),
+      ),
+    ).then((selected) {
+      if (selected != null && mounted) {
+        _applyDemoFill(selected);
+      }
+    });
+  }
+
+  Future<String?> _probeAsset(String basePath, String key) async {
+    for (final ext in ['png', 'jpeg', 'jpg']) {
+      try {
+        await rootBundle.load('$basePath/$key.$ext');
+        return '$basePath/$key.$ext';
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<void> _applyDemoFill(String carFolder) async {
+    if (widget.controller.currentDraft == null) return;
+
     final currentDraft = widget.controller.currentDraft!;
+    final basePath = 'assets/autofill_cars/$carFolder';
+
+    // Build photo URLs by probing assets
+    final photoUrls = <String, List<String>>{};
+    String? coverPhotoUrl;
+
+    for (final category in PhotoCategories.all) {
+      final key = PhotoCategories.toKey(category);
+      final assetPath = await _probeAsset(basePath, key);
+      photoUrls[key] = [assetPath ?? category]; // category display name as placeholder
+    }
+
+    // Cover photo: use front_view asset if available
+    final frontAsset = await _probeAsset(basePath, 'front_view');
+    coverPhotoUrl = frontAsset ?? 'Front View';
+
+    // Deed of sale
+    final deedAsset = await _probeAsset(basePath, 'deed_of_sale');
+
+    if (!mounted) return;
 
     // Sample data for a 2020 Toyota GR Yaris
     final demoDraft = ListingDraftEntity(
       id: currentDraft.id,
       sellerId: currentDraft.sellerId,
-      currentStep: 9, // Jump to summary
+      currentStep: 9,
       lastSaved: DateTime.now(),
       isComplete: false,
 
@@ -362,73 +416,11 @@ class _CreateListingPageState extends State<CreateListingPage> {
       registrationExpiry: DateTime.now().add(const Duration(days: 180)),
       province: 'Metro Manila',
       cityMunicipality: 'Quezon City',
-      deedOfSaleUrl: 'https://picsum.photos/seed/deed/600/800',
+      deedOfSaleUrl: deedAsset,
 
-      // Step 1: Photos (Complete mock data using all categories)
-      photoUrls: {
-        // Exterior
-        'front_view': ['https://picsum.photos/seed/front/800/600'],
-        'rear_view': ['https://picsum.photos/seed/rear/800/600'],
-        'left_side': ['https://picsum.photos/seed/left/800/600'],
-        'right_side': ['https://picsum.photos/seed/right/800/600'],
-        'front_left_angle': ['https://picsum.photos/seed/fla/800/600'],
-        'front_right_angle': ['https://picsum.photos/seed/fra/800/600'],
-        'rear_left_angle': ['https://picsum.photos/seed/rla/800/600'],
-        'rear_right_angle': ['https://picsum.photos/seed/rra/800/600'],
-        'roof': ['https://picsum.photos/seed/roof/800/600'],
-        'undercarriage': ['https://picsum.photos/seed/under/800/600'],
-        'front_bumper': ['https://picsum.photos/seed/fbump/800/600'],
-        'rear_bumper': ['https://picsum.photos/seed/rbump/800/600'],
-        'left_fender': ['https://picsum.photos/seed/lfend/800/600'],
-        'right_fender': ['https://picsum.photos/seed/rfend/800/600'],
-        'hood': ['https://picsum.photos/seed/hood/800/600'],
-        'trunk_tailgate': ['https://picsum.photos/seed/trunk/800/600'],
-        'fuel_door': ['https://picsum.photos/seed/fuel/800/600'],
-        'side_mirrors': ['https://picsum.photos/seed/mirrors/800/600'],
-        'door_handles': ['https://picsum.photos/seed/handles/800/600'],
-        'exterior_lights': ['https://picsum.photos/seed/lights/800/600'],
-        // Interior
-        'dashboard': ['https://picsum.photos/seed/dash/800/600'],
-        'steering_wheel': ['https://picsum.photos/seed/steer/800/600'],
-        'center_console': ['https://picsum.photos/seed/console/800/600'],
-        'front_seats': ['https://picsum.photos/seed/fseats/800/600'],
-        'rear_seats': ['https://picsum.photos/seed/rseats/800/600'],
-        'headliner': ['https://picsum.photos/seed/headliner/800/600'],
-        'door_panels': ['https://picsum.photos/seed/panels/800/600'],
-        'carpet_floor_mats': ['https://picsum.photos/seed/carpet/800/600'],
-        'trunk_interior': ['https://picsum.photos/seed/trunkint/800/600'],
-        'glove_box': ['https://picsum.photos/seed/glovebox/800/600'],
-        'sun_visors': ['https://picsum.photos/seed/visors/800/600'],
-        'instrument_cluster': ['https://picsum.photos/seed/cluster/800/600'],
-        'infotainment_screen': ['https://picsum.photos/seed/infotain/800/600'],
-        'climate_controls': ['https://picsum.photos/seed/climate/800/600'],
-        'interior_lights': ['https://picsum.photos/seed/intlights/800/600'],
-        // Engine & Mechanical
-        'engine_bay_overview': ['https://picsum.photos/seed/engbay/800/600'],
-        'engine_block': ['https://picsum.photos/seed/engblk/800/600'],
-        'battery': ['https://picsum.photos/seed/battery/800/600'],
-        'fluid_reservoirs': ['https://picsum.photos/seed/fluids/800/600'],
-        'air_filter': ['https://picsum.photos/seed/airfilt/800/600'],
-        'alternator': ['https://picsum.photos/seed/alt/800/600'],
-        'belts_&_hoses': ['https://picsum.photos/seed/belts/800/600'],
-        'suspension': ['https://picsum.photos/seed/suspn/800/600'],
-        'brakes_front': ['https://picsum.photos/seed/brkf/800/600'],
-        'brakes_rear': ['https://picsum.photos/seed/brkr/800/600'],
-        'exhaust_system': ['https://picsum.photos/seed/exhaust/800/600'],
-        'transmission': ['https://picsum.photos/seed/trans/800/600'],
-        // Wheels & Tires
-        'front_left_wheel': ['https://picsum.photos/seed/flwheel/800/600'],
-        'front_right_wheel': ['https://picsum.photos/seed/frwheel/800/600'],
-        'rear_left_wheel': ['https://picsum.photos/seed/rlwheel/800/600'],
-        'rear_right_wheel': ['https://picsum.photos/seed/rrwheel/800/600'],
-        // Documents
-        'or_cr': ['https://picsum.photos/seed/orcr/800/600'],
-        'registration_papers': ['https://picsum.photos/seed/regpap/800/600'],
-        'insurance': ['https://picsum.photos/seed/insure/800/600'],
-        'maintenance_records': ['https://picsum.photos/seed/maint/800/600'],
-        'inspection_report': ['https://picsum.photos/seed/inspect/800/600'],
-      },
-      coverPhotoUrl: 'https://picsum.photos/seed/front/800/600',
+      // Step 1: Photos
+      photoUrls: photoUrls,
+      coverPhotoUrl: coverPhotoUrl,
 
       // Step 8: Final Details
       description:

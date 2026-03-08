@@ -644,6 +644,10 @@ class _Step7PhotosState extends State<Step7Photos> {
   void _showFullImage(BuildContext context, String imageUrl) {
     if (!context.mounted) return;
 
+    final isUrl = imageUrl.startsWith('http');
+    final isAsset = imageUrl.startsWith('assets/');
+    final isFile = !isUrl && !isAsset && imageUrl.contains('/');
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -656,7 +660,7 @@ class _Step7PhotosState extends State<Step7Photos> {
             InteractiveViewer(
               minScale: 0.5,
               maxScale: 4.0,
-              child: imageUrl.startsWith('http')
+              child: isUrl
                   ? Image.network(
                       imageUrl,
                       fit: BoxFit.contain,
@@ -667,7 +671,19 @@ class _Step7PhotosState extends State<Step7Photos> {
                         );
                       },
                     )
-                  : Image.file(File(imageUrl), fit: BoxFit.contain),
+                  : isAsset
+                  ? Image.asset(imageUrl, fit: BoxFit.contain)
+                  : isFile
+                  ? Image.file(File(imageUrl), fit: BoxFit.contain)
+                  : Center(
+                      child: Text(
+                        imageUrl,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                        ),
+                      ),
+                    ),
             ),
             // Close button
             Positioned(
@@ -699,6 +715,8 @@ class _Step7PhotosState extends State<Step7Photos> {
     // Check if the URL is valid (has http/https scheme)
     final isValidUrl =
         photoUrl.startsWith('http://') || photoUrl.startsWith('https://');
+    final isAsset = photoUrl.startsWith('assets/');
+    final isFilePath = !isValidUrl && !isAsset && photoUrl.contains('/');
 
     return GestureDetector(
       onTap: () => _showFullImage(context, photoUrl),
@@ -751,22 +769,65 @@ class _Step7PhotosState extends State<Step7Photos> {
                         );
                       },
                     )
+                  : isAsset
+                  ? Image.asset(
+                      photoUrl,
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    )
+                  : isFilePath
+                  ? Image.file(
+                      File(photoUrl),
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 100,
+                          height: 100,
+                          color: isDark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    )
                   : Container(
                       width: 100,
                       height: 100,
                       color: isDark
                           ? Colors.grey.shade800
                           : Colors.grey.shade200,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.photo, color: Colors.grey, size: 32),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Mock',
-                            style: TextStyle(color: Colors.grey, fontSize: 10),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Text(
+                            photoUrl,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
             ),
