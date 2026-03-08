@@ -479,55 +479,60 @@ class KYCRegistrationController extends ChangeNotifier {
   Future<void> nextStep() async {
     // Perform async checks before proceeding
     if (_currentStep == KYCStep.nationalId) {
-       final nationalId = _nationalIdNumber;
-       if (nationalId != null && _checkNationalIdExistsUseCase != null) {
-          _isLoading = true;
-          notifyListeners();
-          
-          try {
-            final result = await _checkNationalIdExistsUseCase.call(nationalId);
-            final exists = result.fold((l) => false, (r) => r);
-            
-            if (exists) {
-              setError('National ID Number is already registered.');
-              _isLoading = false;
-              notifyListeners();
-              return;
-            }
-          } catch (e) {
-             // Handle error or proceed? Better to fail safe.
-             // But if network fails, user can't register?
-             // For now, log and maybe warn or proceed if critical.
-          } finally {
+      final nationalId = _nationalIdNumber;
+      if (nationalId != null && _checkNationalIdExistsUseCase != null) {
+        _isLoading = true;
+        notifyListeners();
+
+        try {
+          final result = await _checkNationalIdExistsUseCase.call(nationalId);
+          final exists = result.fold((l) => false, (r) => r);
+
+          if (exists) {
+            setError('National ID Number is already registered.');
             _isLoading = false;
             notifyListeners();
+            return;
           }
-       }
-    }
-    
-    if (_currentStep == KYCStep.secondaryId) {
-       final secondaryId = _secondaryIdNumber;
-       if (secondaryId != null && _secondaryIdType != null && _checkSecondaryIdExistsUseCase != null) {
-          _isLoading = true;
+        } catch (e) {
+          // Handle error or proceed? Better to fail safe.
+          // But if network fails, user can't register?
+          // For now, log and maybe warn or proceed if critical.
+        } finally {
+          _isLoading = false;
           notifyListeners();
-          
-          try {
-            final result = await _checkSecondaryIdExistsUseCase.call(secondaryId, _secondaryIdType!);
-            final exists = result.fold((l) => false, (r) => r);
-            
-            if (exists) {
-              setError('Secondary ID Number is already registered.');
-              _isLoading = false;
-              notifyListeners();
-              return;
-            }
-          } catch (e) {
-             // Handle error
-          } finally {
-             _isLoading = false;
-             notifyListeners();
+        }
+      }
+    }
+
+    if (_currentStep == KYCStep.secondaryId) {
+      final secondaryId = _secondaryIdNumber;
+      if (secondaryId != null &&
+          _secondaryIdType != null &&
+          _checkSecondaryIdExistsUseCase != null) {
+        _isLoading = true;
+        notifyListeners();
+
+        try {
+          final result = await _checkSecondaryIdExistsUseCase.call(
+            secondaryId,
+            _secondaryIdType!,
+          );
+          final exists = result.fold((l) => false, (r) => r);
+
+          if (exists) {
+            setError('Secondary ID Number is already registered.');
+            _isLoading = false;
+            notifyListeners();
+            return;
           }
-       }
+        } catch (e) {
+          // Handle error
+        } finally {
+          _isLoading = false;
+          notifyListeners();
+        }
+      }
     }
 
     if (_currentStep.index < KYCStep.values.length - 1) {
@@ -601,7 +606,7 @@ class KYCRegistrationController extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Failed to extract ID data: ${e.toString()}';
       // Return empty data on failure so flow can continue manually
-      return const ExtractedIdData(); 
+      return const ExtractedIdData();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -614,10 +619,11 @@ class KYCRegistrationController extends ChangeNotifier {
       if (reportError) setError('Please enter your National ID number');
       return false;
     }
-    
+
     // Strict Format Check
     if (!PhilippineIdValidator.validateNationalId(_nationalIdNumber!)) {
-      if (reportError) setError('Invalid National ID format. Must be 12 digits.');
+      if (reportError)
+        setError('Invalid National ID format. Must be 12 digits.');
       return false;
     }
 
@@ -651,7 +657,10 @@ class KYCRegistrationController extends ChangeNotifier {
     }
 
     // Strict Format Check based on Type
-    if (!PhilippineIdValidator.validateSecondaryId(_secondaryIdNumber!, _secondaryIdType!)) {
+    if (!PhilippineIdValidator.validateSecondaryId(
+      _secondaryIdNumber!,
+      _secondaryIdType!,
+    )) {
       if (reportError) setError('Invalid format for $_secondaryIdType number');
       return false;
     }
@@ -1021,6 +1030,19 @@ class KYCRegistrationController extends ChangeNotifier {
       _privacyAccepted = data['privacyAccepted'] ?? false;
       _emailOtpVerified = data['emailOtpVerified'] ?? false;
       _phoneOtpVerified = data['phoneOtpVerified'] ?? false;
+
+      // If OTP was previously verified but there's no active Supabase session,
+      // the OTP has expired. Reset verification so user must re-verify.
+      if (_emailOtpVerified) {
+        final currentUser = Supabase.instance.client.auth.currentUser;
+        if (currentUser == null) {
+          _emailOtpVerified = false;
+          _phoneOtpVerified = false;
+          debugPrint(
+            '[KYCRegistrationController] OTP session expired, requiring re-verification',
+          );
+        }
+      }
       _aiAutoFillAccepted = data['aiAutoFillAccepted'] ?? false;
       _isUsernameAvailable = data['isUsernameAvailable'];
       _isEmailAvailable = data['isEmailAvailable'];

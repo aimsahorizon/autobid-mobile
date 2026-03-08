@@ -28,6 +28,7 @@ class LoginController extends ChangeNotifier {
   bool _devModeBypassOtp = false; // Dev mode to bypass OTP
   String? _errorMessage;
   LoginStep _currentStep = LoginStep.credentials;
+  bool _isPendingVerification = false;
 
   String? _userEmail;
   String? _userPhoneNumber;
@@ -43,6 +44,7 @@ class LoginController extends ChangeNotifier {
   String? get userPhoneNumber => _userPhoneNumber;
   bool get rememberMe => _rememberMe;
   String? get cachedUsername => _cachedUsername;
+  bool get isPendingVerification => _isPendingVerification;
 
   void togglePasswordVisibility() {
     _obscurePassword = !_obscurePassword;
@@ -95,6 +97,12 @@ class LoginController extends ChangeNotifier {
 
     return result.fold(
       (failure) {
+        if (failure.message == 'PENDING_VERIFICATION') {
+          _isPendingVerification = true;
+          _isLoading = false;
+          notifyListeners();
+          return false;
+        }
         _setError(failure);
         return false;
       },
@@ -205,5 +213,9 @@ class LoginController extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  void clearPendingVerification() {
+    _isPendingVerification = false;
   }
 }
