@@ -299,17 +299,23 @@ class _CreateListingPageState extends State<CreateListingPage> {
   void _demoFillListing() {
     if (widget.controller.currentDraft == null) return;
 
-    final carFolders = ['car1', 'car2', 'car3'];
+    final carOptions = {
+      'car1': 'Toyota Vios',
+      'car2': 'Mitsubishi Xpander',
+      'car3': 'Honda CR-V',
+    };
 
     showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
         title: const Text('Select Demo Car'),
-        children: carFolders
-            .map((folder) => SimpleDialogOption(
-                  onPressed: () => Navigator.pop(ctx, folder),
-                  child: Text(folder),
-                ))
+        children: carOptions.entries
+            .map(
+              (e) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, e.key),
+                child: Text('${e.key} — ${e.value}'),
+              ),
+            )
             .toList(),
       ),
     ).then((selected) {
@@ -329,32 +335,262 @@ class _CreateListingPageState extends State<CreateListingPage> {
     return null;
   }
 
+  Map<String, dynamic> _getCarDetails(String carFolder) {
+    switch (carFolder) {
+      case 'car1':
+        return {
+          'brand': 'Toyota',
+          'model': 'Vios',
+          'year': 2022,
+          'variant': '1.5 G CVT',
+          'bodyType': 'Sedan',
+          'transmission': 'CVT',
+          'mileage': 28000,
+          'engineType': 'In-line 4-cylinder DOHC',
+          'engineDisplacement': 1.5,
+          'cylinderCount': 4,
+          'horsepower': 106,
+          'torque': 140,
+          'fuelType': 'Gasoline',
+          'driveType': 'FWD',
+          'length': 4425.0,
+          'width': 1730.0,
+          'height': 1475.0,
+          'wheelbase': 2550.0,
+          'groundClearance': 133.0,
+          'seatingCapacity': 5,
+          'doorCount': 4,
+          'fuelTankCapacity': 42.0,
+          'curbWeight': 1080.0,
+          'grossWeight': 1530.0,
+          'exteriorColor': 'Freedom White',
+          'paintType': 'Solid',
+          'rimType': 'Alloy',
+          'rimSize': '15',
+          'tireSize': '185/60R15',
+          'tireBrand': 'Bridgestone Ecopia',
+          'condition': 'Used',
+          'previousOwners': 1,
+          'hasModifications': false,
+          'modificationsDetails': '',
+          'hasWarranty': true,
+          'warrantyDetails': 'Toyota extended warranty until Dec 2026',
+          'usageType': 'Personal',
+          'knownIssues': 'Minor scratch on rear bumper.',
+          'plateNumber': 'ABC 1234',
+          'orcrStatus': 'Available',
+          'registrationStatus': 'Current',
+          'registrationExpiry': DateTime.now().add(const Duration(days: 240)),
+          'province': 'Metro Manila',
+          'cityMunicipality': 'Makati',
+          'barangay': 'Poblacion',
+          'description':
+              'Well-maintained 2022 Toyota Vios 1.5 G CVT with low mileage. Single owner, always serviced at Toyota dealership. Casa-maintained with complete service records. Perfect daily driver with excellent fuel efficiency. Features include push-start, 7-inch touchscreen, and reverse camera.',
+          'features': [
+            'Push Start',
+            'Reverse Camera',
+            '7-inch Touchscreen',
+            'LED Headlamps',
+            'Cruise Control',
+            'Keyless Entry',
+            'Dual Airbags',
+            'ABS with EBD',
+          ],
+          'startingPrice': 680000.0,
+          'reservePrice': 750000.0,
+          'bidIncrement': 5000.0,
+          'minBidIncrement': 2000.0,
+          'depositAmount': 20000.0,
+          'biddingType': 'public',
+          'enableIncrementalBidding': true,
+          'autoLiveAfterApproval': true,
+          'snipeGuardEnabled': true,
+          'snipeGuardThresholdSeconds': 300,
+          'snipeGuardExtendSeconds': 180,
+          'allowsInstallment': true,
+          'auctionEndDate': DateTime.now().add(const Duration(days: 7)),
+          'tags': ['Sedan', 'Fuel Efficient', 'Low Mileage', 'Casa Maintained'],
+        };
+      case 'car2':
+        return {
+          'brand': 'Mitsubishi',
+          'model': 'Xpander',
+          'year': 2023,
+          'variant': '1.5 GLS Sport AT',
+          'bodyType': 'MPV',
+          'transmission': 'Automatic',
+          'mileage': 12000,
+          'engineType': 'In-line 4-cylinder DOHC MIVEC',
+          'engineDisplacement': 1.5,
+          'cylinderCount': 4,
+          'horsepower': 103,
+          'torque': 141,
+          'fuelType': 'Gasoline',
+          'driveType': 'FWD',
+          'length': 4595.0,
+          'width': 1750.0,
+          'height': 1700.0,
+          'wheelbase': 2775.0,
+          'groundClearance': 205.0,
+          'seatingCapacity': 7,
+          'doorCount': 4,
+          'fuelTankCapacity': 45.0,
+          'curbWeight': 1190.0,
+          'grossWeight': 1750.0,
+          'exteriorColor': 'Jet Black Mica',
+          'paintType': 'Mica',
+          'rimType': 'Alloy',
+          'rimSize': '17',
+          'tireSize': '205/55R17',
+          'tireBrand': 'Yokohama BluEarth',
+          'condition': 'Used',
+          'previousOwners': 0,
+          'hasModifications': true,
+          'modificationsDetails':
+              'Tinted windows (3M Crystalline) and dashcam installed',
+          'hasWarranty': true,
+          'warrantyDetails': 'Mitsubishi 5-year/100,000km warranty until 2028',
+          'usageType': 'Personal',
+          'knownIssues': 'None. Vehicle is in excellent condition.',
+          'plateNumber': 'DEF 5678',
+          'orcrStatus': 'Available',
+          'registrationStatus': 'Current',
+          'registrationExpiry': DateTime.now().add(const Duration(days: 365)),
+          'province': 'Cebu',
+          'cityMunicipality': 'Cebu City',
+          'barangay': 'Lahug',
+          'description':
+              'Almost brand new 2023 Mitsubishi Xpander GLS Sport AT with only 12,000 km. First owner, always dealer-serviced at Mitsubishi Motors Cebu. This MPV offers spacious 7-seater comfort with SUV-like ground clearance. Features the Dynamic Shield front design, 8-inch display audio, and comprehensive safety suite.',
+          'features': [
+            'Dynamic Shield Design',
+            '8-inch Display Audio',
+            'Apple CarPlay',
+            'Android Auto',
+            'Rear AC Vents',
+            'Hill Start Assist',
+            'Stability Control',
+            'ISOFIX Child Seat Anchors',
+            '360° Camera',
+          ],
+          'startingPrice': 990000.0,
+          'reservePrice': 1100000.0,
+          'bidIncrement': 10000.0,
+          'minBidIncrement': 5000.0,
+          'depositAmount': 30000.0,
+          'biddingType': 'private',
+          'enableIncrementalBidding': false,
+          'autoLiveAfterApproval': false,
+          'snipeGuardEnabled': true,
+          'snipeGuardThresholdSeconds': 600,
+          'snipeGuardExtendSeconds': 300,
+          'allowsInstallment': true,
+          'auctionEndDate': DateTime.now().add(const Duration(days: 10)),
+          'tags': ['MPV', '7-Seater', 'Family Car', 'Low Mileage'],
+        };
+      case 'car3':
+      default:
+        return {
+          'brand': 'Honda',
+          'model': 'CR-V',
+          'year': 2021,
+          'variant': '2.0 S CVT',
+          'bodyType': 'SUV',
+          'transmission': 'CVT',
+          'mileage': 42000,
+          'engineType': 'In-line 4-cylinder i-VTEC',
+          'engineDisplacement': 2.0,
+          'cylinderCount': 4,
+          'horsepower': 152,
+          'torque': 189,
+          'fuelType': 'Gasoline',
+          'driveType': 'FWD',
+          'length': 4623.0,
+          'width': 1855.0,
+          'height': 1689.0,
+          'wheelbase': 2660.0,
+          'groundClearance': 198.0,
+          'seatingCapacity': 5,
+          'doorCount': 4,
+          'fuelTankCapacity': 57.0,
+          'curbWeight': 1467.0,
+          'grossWeight': 2010.0,
+          'exteriorColor': 'Modern Steel Metallic',
+          'paintType': 'Metallic',
+          'rimType': 'Alloy',
+          'rimSize': '18',
+          'tireSize': '235/60R18',
+          'tireBrand': 'Continental ContiCross',
+          'condition': 'Used',
+          'previousOwners': 2,
+          'hasModifications': true,
+          'modificationsDetails':
+              'Aftermarket roof rack and all-weather floor mats installed',
+          'hasWarranty': false,
+          'warrantyDetails': '',
+          'usageType': 'Personal',
+          'knownIssues': 'Stone chips on hood. AC re-gas done Jan 2026.',
+          'plateNumber': 'GHI 9012',
+          'orcrStatus': 'Available',
+          'registrationStatus': 'Current',
+          'registrationExpiry': DateTime.now().add(const Duration(days: 90)),
+          'province': 'Davao del Sur',
+          'cityMunicipality': 'Davao City',
+          'barangay': 'Buhangin',
+          'description':
+              '2021 Honda CR-V 2.0 S CVT in excellent running condition. Two previous owners, complete service history at Honda Cars Davao. Spacious cabin, reliable Honda engineering, and outstanding ride comfort. Power tailgate, Honda Sensing suite, and premium interior. AC recently serviced. Ready for long drives.',
+          'features': [
+            'Honda Sensing',
+            'Lane Keep Assist',
+            'Collision Mitigation',
+            'Adaptive Cruise Control',
+            'Power Tailgate',
+            'Dual Zone Auto AC',
+            'Electric Parking Brake',
+            'Walk-Away Auto Lock',
+          ],
+          'startingPrice': 1150000.0,
+          'reservePrice': 1300000.0,
+          'bidIncrement': 10000.0,
+          'minBidIncrement': 5000.0,
+          'depositAmount': 50000.0,
+          'biddingType': 'public',
+          'enableIncrementalBidding': true,
+          'autoLiveAfterApproval': true,
+          'snipeGuardEnabled': false,
+          'snipeGuardThresholdSeconds': 300,
+          'snipeGuardExtendSeconds': 300,
+          'allowsInstallment': false,
+          'auctionEndDate': DateTime.now().add(const Duration(days: 5)),
+          'tags': ['SUV', 'Honda Sensing', 'Spacious', 'Reliable'],
+        };
+    }
+  }
+
   Future<void> _applyDemoFill(String carFolder) async {
     if (widget.controller.currentDraft == null) return;
 
     final currentDraft = widget.controller.currentDraft!;
     final basePath = 'assets/autofill_cars/$carFolder';
+    final car = _getCarDetails(carFolder);
 
     // Build photo URLs by probing assets
     final photoUrls = <String, List<String>>{};
-    String? coverPhotoUrl;
 
     for (final category in PhotoCategories.all) {
       final key = PhotoCategories.toKey(category);
       final assetPath = await _probeAsset(basePath, key);
-      photoUrls[key] = [assetPath ?? category]; // category display name as placeholder
+      photoUrls[key] = [assetPath ?? category];
     }
 
     // Cover photo: use front_view asset if available
     final frontAsset = await _probeAsset(basePath, 'front_view');
-    coverPhotoUrl = frontAsset ?? 'Front View';
+    final coverPhotoUrl = frontAsset ?? 'Front View';
 
     // Deed of sale
     final deedAsset = await _probeAsset(basePath, 'deed_of_sale');
 
     if (!mounted) return;
 
-    // Sample data for a 2020 Toyota GR Yaris
     final demoDraft = ListingDraftEntity(
       id: currentDraft.id,
       sellerId: currentDraft.sellerId,
@@ -363,86 +599,86 @@ class _CreateListingPageState extends State<CreateListingPage> {
       isComplete: false,
 
       // Step 2: Basic Info
-      brand: 'Toyota',
-      model: 'GR Yaris',
-      year: 2020,
-      variant: '1.6 Circuit Pack',
-      transmission: 'Manual',
-      mileage: 15000,
+      brand: car['brand'] as String,
+      model: car['model'] as String,
+      year: car['year'] as int,
+      variant: car['variant'] as String,
+      bodyType: car['bodyType'] as String,
+      transmission: car['transmission'] as String,
+      mileage: car['mileage'] as int,
 
       // Step 3: Mechanical
-      engineType: 'In-line 3-cylinder Turbo',
-      engineDisplacement: 1.6,
-      cylinderCount: 3,
-      horsepower: 261,
-      torque: 360,
-      fuelType: 'Gasoline',
-      driveType: 'AWD',
+      engineType: car['engineType'] as String,
+      engineDisplacement: car['engineDisplacement'] as double,
+      cylinderCount: car['cylinderCount'] as int,
+      horsepower: car['horsepower'] as int,
+      torque: car['torque'] as int,
+      fuelType: car['fuelType'] as String,
+      driveType: car['driveType'] as String,
 
       // Step 4: Dimensions
-      length: 3995,
-      width: 1805,
-      height: 1455,
-      wheelbase: 2560,
-      groundClearance: 124,
-      seatingCapacity: 4,
-      doorCount: 3,
-      fuelTankCapacity: 50,
-      curbWeight: 1280,
-      grossWeight: 1600,
+      length: car['length'] as double,
+      width: car['width'] as double,
+      height: car['height'] as double,
+      wheelbase: car['wheelbase'] as double,
+      groundClearance: car['groundClearance'] as double,
+      seatingCapacity: car['seatingCapacity'] as int,
+      doorCount: car['doorCount'] as int,
+      fuelTankCapacity: car['fuelTankCapacity'] as double,
+      curbWeight: car['curbWeight'] as double,
+      grossWeight: car['grossWeight'] as double,
 
       // Step 5: Exterior
-      exteriorColor: 'Platinum White Pearl',
-      paintType: 'Pearl',
-      rimType: 'Forged Alloy',
-      rimSize: '18',
-      tireSize: '225/40R18',
-      tireBrand: 'Michelin Pilot Sport 4S',
+      exteriorColor: car['exteriorColor'] as String,
+      paintType: car['paintType'] as String,
+      rimType: car['rimType'] as String,
+      rimSize: car['rimSize'] as String,
+      tireSize: car['tireSize'] as String,
+      tireBrand: car['tireBrand'] as String,
 
       // Step 6: Condition
-      condition: 'Used',
-      previousOwners: 1,
-      hasModifications: false,
-      modificationsDetails: '',
-      hasWarranty: true,
-      warrantyDetails: 'Factory warranty until 2025',
-      usageType: 'Personal',
-      knownIssues: 'None. Pristine condition.',
+      condition: car['condition'] as String,
+      previousOwners: car['previousOwners'] as int,
+      hasModifications: car['hasModifications'] as bool,
+      modificationsDetails: car['modificationsDetails'] as String,
+      hasWarranty: car['hasWarranty'] as bool,
+      warrantyDetails: car['warrantyDetails'] as String,
+      usageType: car['usageType'] as String,
+      knownIssues: car['knownIssues'] as String,
 
       // Step 7: Documentation
-      plateNumber: 'NGA 1234',
-      orcrStatus: 'Available',
-      registrationStatus: 'Current',
-      registrationExpiry: DateTime.now().add(const Duration(days: 180)),
-      province: 'Metro Manila',
-      cityMunicipality: 'Quezon City',
+      plateNumber: car['plateNumber'] as String,
+      isPlateValid: true,
+      orcrStatus: car['orcrStatus'] as String,
+      registrationStatus: car['registrationStatus'] as String,
+      registrationExpiry: car['registrationExpiry'] as DateTime,
+      province: car['province'] as String,
+      cityMunicipality: car['cityMunicipality'] as String,
+      barangay: car['barangay'] as String,
       deedOfSaleUrl: deedAsset,
 
       // Step 1: Photos
       photoUrls: photoUrls,
       coverPhotoUrl: coverPhotoUrl,
 
-      // Step 8: Final Details
-      description:
-          'The Toyota GR Yaris is a pure performance car, born from WRC. This unit is the Circuit Pack version with Torsen LSDs and tuned suspension. Mint condition, low mileage, always garage kept. Full service history available at Toyota dealer.',
-      features: [
-        'Apple CarPlay',
-        'Android Auto',
-        'Adaptive Cruise Control',
-        'Lane Keep Assist',
-        'JBL Sound System',
-        'Carbon Fiber Roof',
-      ],
-      startingPrice: 3500000,
-      reservePrice: 3800000,
-      auctionEndDate: DateTime.now().add(const Duration(days: 7)),
-      biddingType: 'public',
-      bidIncrement: 10000,
-      minBidIncrement: 5000,
-      depositAmount: 50000,
-      enableIncrementalBidding: true,
+      // Step 8: Final Details & Bidding
+      description: car['description'] as String,
+      features: List<String>.from(car['features'] as List),
+      startingPrice: car['startingPrice'] as double,
+      reservePrice: car['reservePrice'] as double,
+      auctionEndDate: car['auctionEndDate'] as DateTime,
+      biddingType: car['biddingType'] as String,
+      bidIncrement: car['bidIncrement'] as double,
+      minBidIncrement: car['minBidIncrement'] as double,
+      depositAmount: car['depositAmount'] as double,
+      enableIncrementalBidding: car['enableIncrementalBidding'] as bool,
+      autoLiveAfterApproval: car['autoLiveAfterApproval'] as bool,
+      snipeGuardEnabled: car['snipeGuardEnabled'] as bool,
+      snipeGuardThresholdSeconds: car['snipeGuardThresholdSeconds'] as int,
+      snipeGuardExtendSeconds: car['snipeGuardExtendSeconds'] as int,
+      allowsInstallment: car['allowsInstallment'] as bool,
 
-      tags: ['Sports Car', 'JDM', 'Low Mileage', 'Turbo'],
+      tags: List<String>.from(car['tags'] as List),
     );
 
     widget.controller.updateDraft(demoDraft);
