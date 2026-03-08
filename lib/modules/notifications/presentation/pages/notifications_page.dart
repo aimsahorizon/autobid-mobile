@@ -715,6 +715,16 @@ class _NotificationCard extends StatelessWidget {
       case NotificationSubType.activityLog:
         return (Icons.timeline, ColorConstants.info);
 
+      // Transaction sub-tab updates
+      case NotificationSubType.agreementUpdate:
+        return (Icons.description, ColorConstants.primary);
+      case NotificationSubType.installmentUpdate:
+        return (Icons.calendar_month, Colors.green);
+      case NotificationSubType.deliveryUpdate:
+        return (Icons.local_shipping, ColorConstants.warning);
+      case NotificationSubType.paymentMethodUpdate:
+        return (Icons.payment, ColorConstants.info);
+
       // Chat
       case NotificationSubType.chatMessage:
         return (Icons.chat_bubble_outline, ColorConstants.primary);
