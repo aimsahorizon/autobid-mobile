@@ -247,9 +247,6 @@ class _BidAmountRow extends StatelessWidget {
   }
 
   String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(2)}M';
-    }
     return amount
         .toStringAsFixed(0)
         .replaceAllMapped(

@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/auction_detail_entity.dart';
 
+String _formatNumber(double number) {
+  return number
+      .toStringAsFixed(0)
+      .replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (m) => '${m[1]},',
+      );
+}
+
 class CarInfoTab extends StatelessWidget {
   final AuctionDetailEntity auction;
 
@@ -63,11 +72,11 @@ class _AuctionConfigSection extends StatelessWidget {
           if (!auction.enableIncrementalBidding)
             _InfoRow(
               label: 'Min Increment',
-              value: '₱${auction.minBidIncrement.toStringAsFixed(0)}',
+              value: '₱${_formatNumber(auction.minBidIncrement)}',
             ),
           _InfoRow(
             label: 'Buyer Deposit',
-            value: '₱${auction.depositAmount.toStringAsFixed(0)}',
+            value: '₱${_formatNumber(auction.depositAmount)}',
           ),
           _InfoRow(
             label: 'Snipe Guard',
@@ -101,7 +110,10 @@ class _OverviewSection extends StatelessWidget {
             _InfoRow(label: 'Variant', value: auction.variant!),
           _InfoRow(label: 'Year', value: auction.year.toString()),
           if (auction.mileage != null)
-            _InfoRow(label: 'Mileage', value: '${auction.mileage!.toStringAsFixed(0)} km'),
+            _InfoRow(
+              label: 'Mileage',
+              value: '${auction.mileage!.toStringAsFixed(0)} km',
+            ),
           if (auction.transmission != null)
             _InfoRow(label: 'Transmission', value: auction.transmission!),
           if (auction.fuelType != null)
@@ -111,7 +123,10 @@ class _OverviewSection extends StatelessWidget {
           if (auction.condition != null)
             _InfoRow(label: 'Condition', value: auction.condition!),
           if (auction.previousOwners != null)
-            _InfoRow(label: 'Previous Owners', value: auction.previousOwners!.toString()),
+            _InfoRow(
+              label: 'Previous Owners',
+              value: auction.previousOwners!.toString(),
+            ),
         ],
       ),
     );
@@ -180,28 +195,52 @@ class _DimensionsSection extends StatelessWidget {
       child: Column(
         children: [
           if (auction.length != null)
-            _InfoRow(label: 'Length', value: '${auction.length!.toStringAsFixed(0)} mm'),
+            _InfoRow(
+              label: 'Length',
+              value: '${auction.length!.toStringAsFixed(0)} mm',
+            ),
           if (auction.width != null)
-            _InfoRow(label: 'Width', value: '${auction.width!.toStringAsFixed(0)} mm'),
+            _InfoRow(
+              label: 'Width',
+              value: '${auction.width!.toStringAsFixed(0)} mm',
+            ),
           if (auction.height != null)
-            _InfoRow(label: 'Height', value: '${auction.height!.toStringAsFixed(0)} mm'),
+            _InfoRow(
+              label: 'Height',
+              value: '${auction.height!.toStringAsFixed(0)} mm',
+            ),
           if (auction.wheelbase != null)
-            _InfoRow(label: 'Wheelbase', value: '${auction.wheelbase!.toStringAsFixed(0)} mm'),
+            _InfoRow(
+              label: 'Wheelbase',
+              value: '${auction.wheelbase!.toStringAsFixed(0)} mm',
+            ),
           if (auction.groundClearance != null)
             _InfoRow(
               label: 'Ground Clearance',
               value: '${auction.groundClearance!.toStringAsFixed(0)} mm',
             ),
           if (auction.seatingCapacity != null)
-            _InfoRow(label: 'Seating', value: '${auction.seatingCapacity} seats'),
+            _InfoRow(
+              label: 'Seating',
+              value: '${auction.seatingCapacity} seats',
+            ),
           if (auction.doorCount != null)
             _InfoRow(label: 'Doors', value: '${auction.doorCount}'),
           if (auction.fuelTankCapacity != null)
-            _InfoRow(label: 'Fuel Tank', value: '${auction.fuelTankCapacity!.toStringAsFixed(0)}L'),
+            _InfoRow(
+              label: 'Fuel Tank',
+              value: '${auction.fuelTankCapacity!.toStringAsFixed(0)}L',
+            ),
           if (auction.curbWeight != null)
-            _InfoRow(label: 'Curb Weight', value: '${auction.curbWeight!.toStringAsFixed(0)} kg'),
+            _InfoRow(
+              label: 'Curb Weight',
+              value: '${auction.curbWeight!.toStringAsFixed(0)} kg',
+            ),
           if (auction.grossWeight != null)
-            _InfoRow(label: 'Gross Weight', value: '${auction.grossWeight!.toStringAsFixed(0)} kg'),
+            _InfoRow(
+              label: 'Gross Weight',
+              value: '${auction.grossWeight!.toStringAsFixed(0)} kg',
+            ),
         ],
       ),
     );
@@ -258,24 +297,30 @@ class _ConditionHistorySection extends StatelessWidget {
           if (auction.condition != null)
             _InfoRow(label: 'Overall Condition', value: auction.condition!),
           if (auction.mileage != null)
-            _InfoRow(label: 'Mileage', value: '${auction.mileage!.toStringAsFixed(0)} km'),
+            _InfoRow(
+              label: 'Mileage',
+              value: '${auction.mileage!.toStringAsFixed(0)} km',
+            ),
           if (auction.previousOwners != null)
-            _InfoRow(label: 'Previous Owners', value: '${auction.previousOwners}'),
+            _InfoRow(
+              label: 'Previous Owners',
+              value: '${auction.previousOwners}',
+            ),
           if (auction.usageType != null)
             _InfoRow(label: 'Usage Type', value: auction.usageType!),
           if (auction.hasModifications != null)
             _InfoRow(
               label: 'Modifications',
               value: auction.hasModifications!
-                ? (auction.modificationsDetails ?? 'Yes')
-                : 'None',
+                  ? (auction.modificationsDetails ?? 'Yes')
+                  : 'None',
             ),
           if (auction.hasWarranty != null)
             _InfoRow(
               label: 'Warranty',
               value: auction.hasWarranty!
-                ? (auction.warrantyDetails ?? 'Yes')
-                : 'No warranty',
+                  ? (auction.warrantyDetails ?? 'Yes')
+                  : 'No warranty',
             ),
         ],
       ),
@@ -328,7 +373,8 @@ class _DocumentationSection extends StatelessWidget {
           if (auction.registrationExpiry != null)
             _InfoRow(
               label: 'Registration Expiry',
-              value: '${auction.registrationExpiry!.month}/${auction.registrationExpiry!.day}/${auction.registrationExpiry!.year}',
+              value:
+                  '${auction.registrationExpiry!.month}/${auction.registrationExpiry!.day}/${auction.registrationExpiry!.year}',
             ),
           if (auction.province != null || auction.cityMunicipality != null)
             _InfoRow(
@@ -388,10 +434,7 @@ class _DescriptionSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              auction.description!,
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(auction.description!, style: theme.textTheme.bodyMedium),
             if (auction.knownIssues != null) const SizedBox(height: 16),
           ],
           if (auction.knownIssues != null) ...[
@@ -413,7 +456,11 @@ class _DescriptionSection extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                  const Icon(
+                    Icons.warning_amber,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -435,10 +482,7 @@ class _InfoCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _InfoCard({
-    required this.title,
-    required this.child,
-  });
+  const _InfoCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -449,10 +493,14 @@ class _InfoCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Column(
@@ -476,10 +524,7 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoRow({
-    required this.label,
-    required this.value,
-  });
+  const _InfoRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
