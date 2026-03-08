@@ -408,6 +408,7 @@ class ListingModel {
       cityMunicipality: cityMunicipality,
       barangay: barangay,
       photoUrls: photoUrls,
+      storedCoverPhotoUrl: coverPhotoUrl,
       description: description,
       knownIssues: knownIssues,
       features: features,
