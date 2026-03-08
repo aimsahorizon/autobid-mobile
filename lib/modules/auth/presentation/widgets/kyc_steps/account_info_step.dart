@@ -24,6 +24,7 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
   bool _obscureConfirmPassword = true;
   bool _isCheckingUsername = false;
   Timer? _emailDebounce;
+  Timer? _usernameDebounce;
 
   @override
   void initState() {
@@ -66,22 +67,34 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _emailDebounce?.cancel();
+    _usernameDebounce?.cancel();
     super.dispose();
   }
 
-  // Check username availability in database
-  void _checkUsernameAvailability() async {
+  // Check username availability in database with debounce
+  void _checkUsernameAvailability() {
+    _usernameDebounce?.cancel();
+
     final username = _usernameController.text.trim();
 
     // Only check if username has at least 3 characters
     if (username.length < 3) {
-      // Clear status in controller logic is handled by setting text
       return;
     }
 
     setState(() => _isCheckingUsername = true);
-    await widget.controller.checkUsernameAvailability(username);
-    if (mounted) setState(() => _isCheckingUsername = false);
+
+    _usernameDebounce = Timer(const Duration(milliseconds: 600), () async {
+      // Verify the username hasn't changed during the debounce period
+      final currentUsername = _usernameController.text.trim();
+      if (currentUsername != username) return;
+
+      await widget.controller.checkUsernameAvailability(username);
+      // Verify it still matches after the async call completes
+      if (mounted && _usernameController.text.trim() == username) {
+        setState(() => _isCheckingUsername = false);
+      }
+    });
   }
 
   // Check email availability in database

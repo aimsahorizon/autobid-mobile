@@ -20,7 +20,9 @@ class PaymentMethodSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -32,7 +34,9 @@ class PaymentMethodSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+                color: isDark
+                    ? ColorConstants.borderDark
+                    : ColorConstants.borderLight,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -40,7 +44,9 @@ class PaymentMethodSheet extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             'Select Payment Method',
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Container(
@@ -52,10 +58,14 @@ class PaymentMethodSheet extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.receipt_long, size: 18, color: ColorConstants.primary),
+                const Icon(
+                  Icons.receipt_long,
+                  size: 18,
+                  color: ColorConstants.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  'Deposit: ₱${amount.toStringAsFixed(0)}',
+                  'Deposit: ₱${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: ColorConstants.primary,
                     fontWeight: FontWeight.w600,
@@ -92,7 +102,11 @@ class PaymentMethodSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 14, color: ColorConstants.textSecondaryLight),
+              Icon(
+                Icons.lock_outline,
+                size: 14,
+                color: ColorConstants.textSecondaryLight,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Secured by PayMongo',
@@ -144,7 +158,9 @@ class _PaymentMethodTile extends StatelessWidget {
                 : ColorConstants.backgroundSecondaryLight,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+              color: isDark
+                  ? ColorConstants.borderDark
+                  : ColorConstants.borderLight,
             ),
           ),
           child: Row(
@@ -165,7 +181,9 @@ class _PaymentMethodTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(

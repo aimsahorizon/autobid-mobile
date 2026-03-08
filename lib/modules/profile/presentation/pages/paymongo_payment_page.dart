@@ -63,10 +63,12 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
   }
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
   }
 
   Future<void> _processPayment() async {
@@ -75,7 +77,9 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     setState(() => _isProcessing = true);
 
     // Use Mock service if in demo mode
-    final IPayMongoService service = _useDemoMode ? PayMongoMockService() : _payMongoService;
+    final IPayMongoService service = _useDemoMode
+        ? PayMongoMockService()
+        : _payMongoService;
 
     try {
       if (_selectedPaymentMethod == PaymentMethodType.card) {
@@ -131,7 +135,9 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
       cvc: _cvcController.text,
       billingName: _nameController.text,
       billingEmail: _emailController.text,
-      billingPhone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
+      billingPhone: _phoneController.text.isNotEmpty
+          ? _phoneController.text
+          : null,
     );
 
     final paymentMethodId = paymentMethod['id'] as String;
@@ -145,7 +151,9 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
     // Check payment status
     final status = result['attributes']['status'] as String;
 
-    if (status == 'succeeded' || status == 'awaiting_payment_method' || status == 'awaiting_next_action') {
+    if (status == 'succeeded' ||
+        status == 'awaiting_payment_method' ||
+        status == 'awaiting_next_action') {
       // Step 4: Credit tokens to user account
       await _creditTokens();
     } else {
@@ -184,8 +192,12 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
       },
     );
 
+    // Source response may be wrapped in 'data' key (real API & mock)
+    final sourceData = source.containsKey('data')
+        ? source['data'] as Map<String, dynamic>
+        : source;
     final checkoutUrl =
-        source['attributes']['redirect']['checkout_url'] as String;
+        sourceData['attributes']['redirect']['checkout_url'] as String;
 
     // Step 3: Open GCash checkout in browser (for now, show message)
     // TODO: Implement webview or external browser launch
@@ -253,15 +265,25 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
               // Demo mode toggle
               Container(
                 margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                  color: _useDemoMode ? Colors.orange.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+                  color: _useDemoMode
+                      ? Colors.orange.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _useDemoMode ? Colors.orange : Colors.grey.shade300),
+                  border: Border.all(
+                    color: _useDemoMode ? Colors.orange : Colors.grey.shade300,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.bug_report_outlined, color: _useDemoMode ? Colors.orange : Colors.grey),
+                    Icon(
+                      Icons.bug_report_outlined,
+                      color: _useDemoMode ? Colors.orange : Colors.grey,
+                    ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
@@ -271,7 +293,8 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
                     ),
                     Switch(
                       value: _useDemoMode,
-                      onChanged: (value) => setState(() => _useDemoMode = value),
+                      onChanged: (value) =>
+                          setState(() => _useDemoMode = value),
                       activeThumbColor: Colors.orange,
                     ),
                   ],
@@ -512,9 +535,17 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _buildTestCardRow('✅ Visa:', '4111 1111 1111 1111', theme),
+                      _buildTestCardRow(
+                        '✅ Visa:',
+                        '4111 1111 1111 1111',
+                        theme,
+                      ),
                       const SizedBox(height: 4),
-                      _buildTestCardRow('✅ Mastercard:', '5555 5555 5555 4444', theme),
+                      _buildTestCardRow(
+                        '✅ Mastercard:',
+                        '5555 5555 5555 4444',
+                        theme,
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         'Any future expiry, any 3-digit CVC',
@@ -611,9 +642,7 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
           flex: 3,
           child: Text(
             number,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontFamily: 'monospace',
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
           ),
         ),
       ],

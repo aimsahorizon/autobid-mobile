@@ -74,6 +74,7 @@ class ListsController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _listingsSubscription?.cancel();
     _autoRefreshTimer?.cancel();
     _invitesSubscription?.cancel();
@@ -235,6 +236,7 @@ class ListsController extends ChangeNotifier {
 
   void _subscribeToUpdates(String userId) {
     _listingsSubscription?.cancel();
+    _listingsSubscription = null;
     _listingsSubscription = _streamSellerListingsUseCase(userId).listen(
       (_) {
         // Reload listings quietly on update
@@ -242,9 +244,22 @@ class ListsController extends ChangeNotifier {
       },
       onError: (e) {
         debugPrint('Realtime listing subscription error: $e');
+        // Re-subscribe after error
+        _listingsSubscription?.cancel();
+        _listingsSubscription = null;
+        Future.delayed(const Duration(seconds: 3), () {
+          if (!_isDisposed) _subscribeToUpdates(userId);
+        });
+      },
+      onDone: () {
+        debugPrint('Realtime listing subscription completed, re-subscribing');
+        _listingsSubscription = null;
+        if (!_isDisposed) _subscribeToUpdates(userId);
       },
     );
   }
+
+  bool _isDisposed = false;
 
   void _ensureAutoRefresh() {
     if (_autoRefreshTimer != null) {

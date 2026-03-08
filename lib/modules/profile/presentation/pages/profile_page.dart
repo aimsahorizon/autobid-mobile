@@ -26,7 +26,7 @@ import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
 import 'user_reviews_page.dart';
-import '../../../notifications/presentation/pages/notifications_page.dart';
+import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 
 class ProfilePage extends StatefulWidget {
   final ProfileController controller;
@@ -313,13 +313,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _navigateToNotifications() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const NotificationsPage()),
-    );
-  }
-
   void _navigateToReviews() {
     Navigator.push(
       context,
@@ -365,124 +358,118 @@ class _ProfilePageState extends State<ProfilePage> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
-          .copyWith(
-            statusBarColor: Colors.transparent,
-          ),
+      value:
+          (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+              .copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
         appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: _navigateToNotifications,
-            tooltip: 'Notifications',
-          ),
-        ],
-      ),
-      extendBodyBehindAppBar: true,
-      body: ListenableBuilder(
-        listenable: widget.controller,
-        builder: (context, _) {
-          if (widget.controller.isLoading &&
-              widget.controller.profile == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          actions: [const NotificationBellWidget()],
+        ),
+        extendBodyBehindAppBar: true,
+        body: ListenableBuilder(
+          listenable: widget.controller,
+          builder: (context, _) {
+            if (widget.controller.isLoading &&
+                widget.controller.profile == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          if (widget.controller.hasError && widget.controller.profile == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.controller.errorMessage ?? 'Error loading profile',
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed: widget.controller.loadProfile,
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Retry'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton.icon(
-                    onPressed: _handleSignOut,
-                    icon: const Icon(Icons.logout_rounded),
-                    label: const Text('Sign Out'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: ColorConstants.error,
+            if (widget.controller.hasError &&
+                widget.controller.profile == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.controller.errorMessage ?? 'Error loading profile',
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: widget.controller.loadProfile,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry'),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: _handleSignOut,
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Sign Out'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: ColorConstants.error,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final profile = widget.controller.profile;
+            if (profile == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return RefreshIndicator(
+              onRefresh: widget.controller.loadProfile,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    ProfileHeader(
+                      coverPhotoUrl: profile.coverPhotoUrl,
+                      profilePhotoUrl: profile.profilePhotoUrl,
+                      onCoverPhotoTap: _handleCoverPhotoTap,
+                      onProfilePhotoTap: _handleProfilePhotoTap,
+                    ),
+                    const SizedBox(height: 60),
+                    ProfileInfoSection(
+                      fullName: profile.fullName,
+                      username: profile.username,
+                      email: profile.email,
+                    ),
+                    const SizedBox(height: 16),
+                    ReviewsSummarySection(
+                      reviewController: widget.reviewController,
+                      onViewAll: _navigateToReviews,
+                    ),
+                    const SizedBox(height: 16),
+                    PricingSection(
+                      pricingController: widget.pricingController,
+                      onManageTokens: _navigateToTokenPurchase,
+                      onManageSubscription: _navigateToSubscription,
+                    ),
+                    const SizedBox(height: 16),
+                    AccountSettingsSection(
+                      email: profile.email,
+                      onUpdateEmail: _navigateToUpdateEmail,
+                      onChangePassword: _navigateToChangePassword,
+                    ),
+                    const SizedBox(height: 16),
+                    SupportSection(
+                      onCustomerSupport: _navigateToCustomerSupport,
+                      onFAQ: _navigateToFAQ,
+                      onTermsConditions: _navigateToTerms,
+                      onPrivacyPolicy: _navigateToPrivacy,
+                    ),
+                    const SizedBox(height: 16),
+                    // DEV ONLY: Admin Quick Access
+                    _buildAdminQuickAccess(),
+                    const SizedBox(height: 16),
+                    SettingsSection(
+                      themeController: widget.themeController,
+                      onSignOut: _handleSignOut,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             );
-          }
-
-          final profile = widget.controller.profile;
-          if (profile == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return RefreshIndicator(
-            onRefresh: widget.controller.loadProfile,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  ProfileHeader(
-                    coverPhotoUrl: profile.coverPhotoUrl,
-                    profilePhotoUrl: profile.profilePhotoUrl,
-                    onCoverPhotoTap: _handleCoverPhotoTap,
-                    onProfilePhotoTap: _handleProfilePhotoTap,
-                  ),
-                  const SizedBox(height: 60),
-                  ProfileInfoSection(
-                    fullName: profile.fullName,
-                    username: profile.username,
-                    email: profile.email,
-                  ),
-                  const SizedBox(height: 16),
-                  ReviewsSummarySection(
-                    reviewController: widget.reviewController,
-                    onViewAll: _navigateToReviews,
-                  ),
-                  const SizedBox(height: 16),
-                  PricingSection(
-                    pricingController: widget.pricingController,
-                    onManageTokens: _navigateToTokenPurchase,
-                    onManageSubscription: _navigateToSubscription,
-                  ),
-                  const SizedBox(height: 16),
-                  AccountSettingsSection(
-                    email: profile.email,
-                    onUpdateEmail: _navigateToUpdateEmail,
-                    onChangePassword: _navigateToChangePassword,
-                  ),
-                  const SizedBox(height: 16),
-                  SupportSection(
-                    onCustomerSupport: _navigateToCustomerSupport,
-                    onFAQ: _navigateToFAQ,
-                    onTermsConditions: _navigateToTerms,
-                    onPrivacyPolicy: _navigateToPrivacy,
-                  ),
-                  const SizedBox(height: 16),
-                  // DEV ONLY: Admin Quick Access
-                  _buildAdminQuickAccess(),
-                  const SizedBox(height: 16),
-                  SettingsSection(
-                    themeController: widget.themeController,
-                    onSignOut: _handleSignOut,
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          );
-        },
+          },
+        ),
       ),
-    ),
     );
   }
 

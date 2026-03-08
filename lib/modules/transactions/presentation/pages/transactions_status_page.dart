@@ -8,6 +8,7 @@ import '../pages/pre_transaction_realtime_page.dart';
 import '../../../lists/presentation/widgets/listings_grid.dart';
 import '../../../lists/domain/entities/seller_listing_entity.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
+import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 
 /// Page for status-based transactions with buyer/seller perspective
 /// Displays in the Transactions bottom nav tab
@@ -65,6 +66,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         automaticallyImplyLeading: false,
         title: const Text('Transactions'),
         actions: [
+          const NotificationBellWidget(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: widget.controller.isLoading

@@ -13,7 +13,7 @@ class CustomerSupportPage extends StatefulWidget {
 
 class _CustomerSupportPageState extends State<CustomerSupportPage> {
   late SupportController _controller;
-  
+
   @override
   void initState() {
     super.initState();
@@ -24,9 +24,9 @@ class _CustomerSupportPageState extends State<CustomerSupportPage> {
   Future<void> _loadTickets() async {
     // Assuming the user is logged in, we'd normally get the userId from auth
     // For now, we'll let the controller handle fetching or pass a placeholder if needed
-    // The controller likely needs a userId to fetch tickets. 
+    // The controller likely needs a userId to fetch tickets.
     // Checking SupportController implementation...
-    await _controller.loadUserTickets(); 
+    await _controller.loadUserTickets();
     if (mounted) setState(() {});
   }
 
@@ -54,7 +54,7 @@ class _CustomerSupportPageState extends State<CustomerSupportPage> {
           if (_controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (_controller.userTickets.isEmpty) {
             return _EmptyState(onCreateTicket: _createNewTicket);
           }
@@ -89,11 +89,17 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.support_agent, size: 80, color: ColorConstants.primary),
+            const Icon(
+              Icons.support_agent,
+              size: 80,
+              color: ColorConstants.primary,
+            ),
             const SizedBox(height: 24),
             Text(
               'No Support Tickets',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -118,10 +124,7 @@ class _TicketsList extends StatelessWidget {
   final List<SupportTicketEntity> tickets;
   final Function(SupportTicketEntity) onTicketTap;
 
-  const _TicketsList({
-    required this.tickets,
-    required this.onTicketTap,
-  });
+  const _TicketsList({required this.tickets, required this.onTicketTap});
 
   @override
   Widget build(BuildContext context) {
@@ -153,12 +156,16 @@ class _TicketCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+          color: isDark
+              ? ColorConstants.surfaceDark
+              : ColorConstants.surfaceLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: ticket.isOpen
                 ? ColorConstants.primary.withValues(alpha: 0.3)
-                : (isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+                : (isDark
+                      ? ColorConstants.borderDark
+                      : ColorConstants.borderLight),
           ),
         ),
         child: Column(
@@ -169,7 +176,9 @@ class _TicketCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ticket.subject,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -180,25 +189,38 @@ class _TicketCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.category_outlined, size: 14, color: ColorConstants.textSecondaryLight),
+                Icon(
+                  Icons.category_outlined,
+                  size: 14,
+                  color: ColorConstants.textSecondaryLight,
+                ),
                 const SizedBox(width: 4),
                 Text(ticket.categoryName, style: theme.textTheme.bodySmall),
                 const SizedBox(width: 16),
-                Icon(Icons.access_time, size: 14, color: ColorConstants.textSecondaryLight),
+                Icon(
+                  Icons.access_time,
+                  size: 14,
+                  color: ColorConstants.textSecondaryLight,
+                ),
                 const SizedBox(width: 4),
-                Text(_formatTime(ticket.updatedAt), style: theme.textTheme.bodySmall),
+                Text(
+                  _formatTime(ticket.updatedAt),
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
             ),
             const SizedBox(height: 8),
             if (ticket.messages.isNotEmpty)
-            Text(
-              ticket.messages.last.message,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight,
+              Text(
+                ticket.messages.last.message,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
           ],
         ),
       ),
@@ -228,7 +250,11 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         status.label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _getColor()),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: _getColor(),
+        ),
       ),
     );
   }
@@ -290,17 +316,23 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
       description: _messageController.text,
       priority: TicketPriority.medium,
     );
-    
+
     setState(() => _isSubmitting = false);
 
     if (mounted) {
       if (_controller.errorMessage != null) {
-         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-          SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(_controller.errorMessage!),
+            backgroundColor: ColorConstants.error,
+          ),
         );
       } else {
         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-          const SnackBar(content: Text('Ticket created successfully'), backgroundColor: ColorConstants.success),
+          const SnackBar(
+            content: Text('Ticket created successfully'),
+            backgroundColor: ColorConstants.success,
+          ),
         );
         Navigator.pop(context);
       }
@@ -321,16 +353,48 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: SupportCategory.values.map((cat) => ChoiceChip(
-                label: Text(cat.label),
-                selected: _selectedCategory == cat,
-                onSelected: (_) => setState(() => _selectedCategory = cat),
-              )).toList(),
+              children: SupportCategory.values.map((cat) {
+                final isSelected = _selectedCategory == cat;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return ChoiceChip(
+                  label: Text(cat.label),
+                  selected: isSelected,
+                  onSelected: (_) => setState(() => _selectedCategory = cat),
+                  selectedColor: ColorConstants.primary.withValues(alpha: 0.15),
+                  backgroundColor: isDark
+                      ? ColorConstants.surfaceDark
+                      : ColorConstants.surfaceLight,
+                  labelStyle: TextStyle(
+                    color: isSelected
+                        ? ColorConstants.primary
+                        : isDark
+                        ? ColorConstants.textPrimaryDark
+                        : ColorConstants.textPrimaryLight,
+                    fontWeight: isSelected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                  ),
+                  checkmarkColor: ColorConstants.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: isSelected
+                          ? ColorConstants.primary
+                          : isDark
+                          ? ColorConstants.borderDark
+                          : ColorConstants.borderLight,
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 24),
             TextField(
               controller: _subjectController,
-              decoration: const InputDecoration(labelText: 'Subject', hintText: 'Brief description of your issue'),
+              decoration: const InputDecoration(
+                labelText: 'Subject',
+                hintText: 'Brief description of your issue',
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -348,7 +412,14 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
               child: FilledButton(
                 onPressed: _isSubmitting ? null : _submitTicket,
                 child: _isSubmitting
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('Submit Ticket'),
               ),
             ),
@@ -397,9 +468,12 @@ class _TicketDetailPageState extends State<_TicketDetailPage> {
     setState(() => _isSending = false);
 
     if (mounted) {
-       if (_controller.errorMessage != null) {
-         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-          SnackBar(content: Text(_controller.errorMessage!), backgroundColor: ColorConstants.error),
+      if (_controller.errorMessage != null) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(_controller.errorMessage!),
+            backgroundColor: ColorConstants.error,
+          ),
         );
       } else {
         (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
@@ -430,28 +504,44 @@ class _TicketDetailPageState extends State<_TicketDetailPage> {
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: widget.ticket.messages.length,
-              itemBuilder: (context, index) => _MessageBubble(message: widget.ticket.messages[index]),
+              itemBuilder: (context, index) =>
+                  _MessageBubble(message: widget.ticket.messages[index]),
             ),
           ),
           if (widget.ticket.isOpen)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
-                border: Border(top: BorderSide(color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight)),
+                color: isDark
+                    ? ColorConstants.surfaceDark
+                    : ColorConstants.surfaceLight,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? ColorConstants.borderDark
+                        : ColorConstants.borderLight,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _messageController,
-                      decoration: const InputDecoration(hintText: 'Type your message...', border: InputBorder.none),
+                      decoration: const InputDecoration(
+                        hintText: 'Type your message...',
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
                   IconButton(
                     onPressed: _isSending ? null : _sendMessage,
                     icon: _isSending
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.send, color: ColorConstants.primary),
                   ),
                 ],
@@ -479,10 +569,14 @@ class _MessageBubble extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: isSupport
-              ? (isDark ? ColorConstants.surfaceDark : ColorConstants.backgroundSecondaryLight)
+              ? (isDark
+                    ? ColorConstants.surfaceDark
+                    : ColorConstants.backgroundSecondaryLight)
               : ColorConstants.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
         ),

@@ -21,7 +21,9 @@ class PaymentSuccessSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -43,7 +45,9 @@ class PaymentSuccessSheet extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             'Payment Successful!',
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -66,11 +70,22 @@ class PaymentSuccessSheet extends StatelessWidget {
             ),
             child: Column(
               children: [
-                _buildDetailRow('Amount', '₱${amount.toStringAsFixed(2)}', theme, isDark),
+                _buildDetailRow(
+                  'Amount',
+                  '₱${amount.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                  theme,
+                  isDark,
+                ),
                 const SizedBox(height: 8),
                 _buildDetailRow('Method', paymentMethod, theme, isDark),
                 const SizedBox(height: 8),
-                _buildDetailRow('Status', 'Confirmed', theme, isDark, isSuccess: true),
+                _buildDetailRow(
+                  'Status',
+                  'Confirmed',
+                  theme,
+                  isDark,
+                  isSuccess: true,
+                ),
               ],
             ),
           ),
@@ -81,7 +96,9 @@ class PaymentSuccessSheet extends StatelessWidget {
               onPressed: onContinue,
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text('Start Bidding'),
             ),
@@ -90,11 +107,17 @@ class PaymentSuccessSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.info_outline, size: 14, color: ColorConstants.info),
+              const Icon(
+                Icons.info_outline,
+                size: 14,
+                color: ColorConstants.info,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Deposit is refundable if you don\'t win',
-                style: theme.textTheme.bodySmall?.copyWith(color: ColorConstants.info),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: ColorConstants.info,
+                ),
               ),
             ],
           ),

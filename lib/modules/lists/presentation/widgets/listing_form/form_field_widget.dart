@@ -12,6 +12,7 @@ class FormFieldWidget extends StatelessWidget {
   final Widget? suffix;
   final bool enabled;
   final String? errorText;
+  final FocusNode? focusNode;
 
   const FormFieldWidget({
     super.key,
@@ -25,6 +26,7 @@ class FormFieldWidget extends StatelessWidget {
     this.suffix,
     this.enabled = true,
     this.errorText,
+    this.focusNode,
   });
 
   @override
@@ -32,6 +34,7 @@ class FormFieldWidget extends StatelessWidget {
     return TextFormField(
       controller: controller,
       enabled: enabled,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,

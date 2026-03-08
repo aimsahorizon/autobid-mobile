@@ -1864,35 +1864,15 @@ class ListingSupabaseDataSource {
   }
 
   String _normalizePhotoCategory(String? rawCategory) {
-    final normalized = rawCategory?.trim().toLowerCase() ?? 'details';
-    switch (normalized) {
-      case 'exterior':
-      case 'interior':
-      case 'engine':
-      case 'details':
-      case 'documents':
-        return normalized;
-      default:
-        return 'details';
-    }
+    if (rawCategory == null || rawCategory.trim().isEmpty) return 'details';
+    return rawCategory
+        .trim()
+        .toLowerCase()
+        .replaceAll(' ', '_')
+        .replaceAll('/', '_');
   }
 
   String? _resolveCoverFromPhotoUrls(Map<String, List<String>> photoUrls) {
-    const preferredOrder = [
-      'exterior',
-      'interior',
-      'engine',
-      'details',
-      'documents',
-    ];
-
-    for (final category in preferredOrder) {
-      final urls = photoUrls[category];
-      if (urls != null && urls.isNotEmpty) {
-        return urls.first;
-      }
-    }
-
     for (final urls in photoUrls.values) {
       if (urls.isNotEmpty) {
         return urls.first;

@@ -95,12 +95,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final emailToUse = userRecord['email'] as String;
       final displayName = userRecord['display_name'] as String?;
       final isActive = userRecord['is_active'] as bool? ?? true;
+      final isVerified = userRecord['is_verified'] as bool? ?? false;
 
       // Check if account is active (not suspended/banned)
       if (!isActive) {
         throw const AuthException(
           'Your account has been suspended or deactivated. Please contact support.',
         );
+      }
+
+      // Check if KYC verification is still pending
+      if (!isVerified) {
+        throw const AuthException('PENDING_VERIFICATION');
       }
 
       // Step 2: Authenticate with Supabase Auth using email and password
@@ -571,9 +577,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       return response == null;
     } on supabase.PostgrestException catch (e) {
-      throw ServerException(
-        'Failed to check email availability: ${e.message}',
-      );
+      throw ServerException('Failed to check email availability: ${e.message}');
     } catch (e) {
       throw ServerException('Failed to check email availability: $e');
     }

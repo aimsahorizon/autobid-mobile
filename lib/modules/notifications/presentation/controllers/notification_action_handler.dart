@@ -75,6 +75,31 @@ class NotificationActionHandler {
         );
         break;
 
+      // ---- Agreement Updates → Transaction Agreement Tab ----
+      case NotificationSubType.agreementUpdate:
+      case NotificationSubType.paymentMethodUpdate:
+        _navigateToTransaction(
+          entityId ?? metadata['transaction_id'] as String?,
+          tab: 'agreement',
+        );
+        break;
+
+      // ---- Delivery Updates → Transaction Progress Tab ----
+      case NotificationSubType.deliveryUpdate:
+        _navigateToTransaction(
+          entityId ?? metadata['transaction_id'] as String?,
+          tab: 'progress',
+        );
+        break;
+
+      // ---- Installment Updates → Transaction Gives Tab ----
+      case NotificationSubType.installmentUpdate:
+        _navigateToTransaction(
+          entityId ?? metadata['transaction_id'] as String?,
+          tab: 'gives',
+        );
+        break;
+
       // ---- Chat Message → Transaction Chat ----
       case NotificationSubType.chatMessage:
         _navigateToTransaction(
@@ -136,6 +161,10 @@ class NotificationActionHandler {
             as String? ??
         'User';
     final controller = GetIt.instance<TransactionRealtimeController>();
+    int tabIndex = 0;
+    if (tab == 'agreement') tabIndex = 1;
+    if (tab == 'progress') tabIndex = 2;
+    if (tab == 'gives') tabIndex = 3;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => PreTransactionRealtimePage(
@@ -143,6 +172,7 @@ class NotificationActionHandler {
           transactionId: transactionId,
           userId: userId,
           userName: userName,
+          initialTabIndex: tabIndex,
         ),
       ),
     );

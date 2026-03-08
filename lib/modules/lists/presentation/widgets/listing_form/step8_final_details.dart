@@ -30,6 +30,10 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   bool _autoLiveAfterApproval = false;
   bool _allowsInstallment = false;
 
+  // Auction End Time
+  DateTime? _auctionEndDate;
+  String _endTimeMode = 'duration'; // 'duration' or 'custom'
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +56,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
       text: _formatDouble(draft?.depositAmount ?? 50000),
     );
     _features = draft?.features ?? [];
+    _auctionEndDate = draft?.auctionEndDate;
     _biddingType = draft?.biddingType ?? 'public';
     _enableIncrementalBidding = draft?.enableIncrementalBidding ?? true;
     _autoLiveAfterApproval = draft?.autoLiveAfterApproval ?? false;
@@ -109,7 +114,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           final parsed = double.tryParse(_reservePriceController.text);
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
-        auctionEndDate: draft.auctionEndDate,
+        auctionEndDate: _auctionEndDate,
         // Bidding Configuration
         biddingType: _biddingType,
         bidIncrement: () {
@@ -317,6 +322,77 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         const SizedBox(height: 32),
         const Divider(),
 
+        // ===== AUCTION END TIME SECTION =====
+        const SizedBox(height: 16),
+        const Text(
+          'Auction End Time',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Set when the auction will end. If left empty, defaults to 7 days after going live.',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'duration', label: Text('By Duration')),
+                  ButtonSegment(value: 'custom', label: Text('Pick Date')),
+                ],
+                selected: {_endTimeMode},
+                onSelectionChanged: (v) =>
+                    setState(() => _endTimeMode = v.first),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (_endTimeMode == 'duration') _buildDurationPicker(),
+        if (_endTimeMode == 'custom') _buildDateTimePicker(),
+        if (_auctionEndDate != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.event_available,
+                  color: Colors.green,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Ends: ${_formatEndDate(_auctionEndDate!)}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.green,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  onPressed: () {
+                    setState(() => _auctionEndDate = null);
+                    _updateDraft();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 32),
+        const Divider(),
+
         // ===== BIDDING CONFIGURATION SECTION =====
         const SizedBox(height: 16),
         const Text(
@@ -515,59 +591,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         _buildIncrementSuggestions(startingPrice),
         const SizedBox(height: 24),
 
-        // Enable Incremental Bidding
-        const Text(
-          'Incremental Bidding',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _enableIncrementalBidding,
-                      onChanged: (value) {
-                        setState(() {
-                          _enableIncrementalBidding = value ?? true;
-                        });
-                        _updateDraft();
-                      },
-                    ),
-                    Expanded(
-                      child: Text(
-                        _enableIncrementalBidding
-                            ? 'Enable dynamic increments based on price'
-                            : 'Use fixed increment for all bids',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    _enableIncrementalBidding
-                        ? 'Example: ₱0-500k: ₱1k, ₱500k-1M: ₱5k, ₱1M+: ₱10k increments'
-                        : 'All bids will require a ${_bidIncrementController.text.isNotEmpty ? '₱${_bidIncrementController.text}' : 'fixed'} increment',
-                    style: const TextStyle(fontSize: 11, color: Colors.orange),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
         // Deposit Amount
         const Text(
           'Buyer Deposit Amount (₱) *',
@@ -654,6 +677,104 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     );
   }
 
+  Widget _buildDurationPicker() {
+    final durations = <(String, Duration)>[
+      ('1 min', Duration(minutes: 1)),
+      ('30 min', Duration(minutes: 30)),
+      ('1 hour', Duration(hours: 1)),
+      ('6 hours', Duration(hours: 6)),
+      ('12 hours', Duration(hours: 12)),
+      ('1 day', Duration(days: 1)),
+      ('3 days', Duration(days: 3)),
+      ('7 days', Duration(days: 7)),
+      ('14 days', Duration(days: 14)),
+      ('30 days', Duration(days: 30)),
+    ];
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: durations.map((d) {
+        final endDate = DateTime.now().add(d.$2);
+        final isSelected =
+            _auctionEndDate != null &&
+            (_auctionEndDate!.difference(endDate).inMinutes).abs() < 2;
+        return ChoiceChip(
+          label: Text(d.$1),
+          selected: isSelected,
+          onSelected: (_) {
+            setState(() => _auctionEndDate = DateTime.now().add(d.$2));
+            _updateDraft();
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDateTimePicker() {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        final now = DateTime.now();
+        final date = await showDatePicker(
+          context: context,
+          initialDate: _auctionEndDate ?? now.add(const Duration(days: 1)),
+          firstDate: now,
+          lastDate: now.add(const Duration(days: 90)),
+        );
+        if (date == null || !mounted) return;
+
+        final time = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.fromDateTime(
+            _auctionEndDate ?? now.add(const Duration(hours: 1)),
+          ),
+        );
+        if (time == null || !mounted) return;
+
+        setState(() {
+          _auctionEndDate = DateTime(
+            date.year,
+            date.month,
+            date.day,
+            time.hour,
+            time.minute,
+          );
+        });
+        _updateDraft();
+      },
+      icon: const Icon(Icons.calendar_month),
+      label: Text(
+        _auctionEndDate != null
+            ? _formatEndDate(_auctionEndDate!)
+            : 'Select Date & Time',
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      ),
+    );
+  }
+
+  String _formatEndDate(DateTime dt) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+    final min = dt.minute.toString().padLeft(2, '0');
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} at $h:$min $ampm';
+  }
+
   Widget _buildIncrementSuggestions(double startingPrice) {
     final suggestions = <(String, String)>[
       ('₱100', 'Fine'),
@@ -719,13 +840,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         _summaryRow(
           'Minimum Increment',
           '₱${_bidIncrementController.text.isNotEmpty ? _bidIncrementController.text : '0'}',
-        ),
-        const Divider(),
-        _summaryRow(
-          'Bidding Mode',
-          _enableIncrementalBidding
-              ? '📊 Dynamic Increments'
-              : '📝 Fixed Increment',
         ),
         const Divider(),
         _summaryRow(

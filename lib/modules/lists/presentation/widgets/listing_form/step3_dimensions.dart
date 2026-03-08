@@ -32,18 +32,37 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
     _lengthController = TextEditingController(text: draft.length?.toString());
     _widthController = TextEditingController(text: draft.width?.toString());
     _heightController = TextEditingController(text: draft.height?.toString());
-    _wheelbaseController = TextEditingController(text: draft.wheelbase?.toString());
-    _clearanceController = TextEditingController(text: draft.groundClearance?.toString());
-    _seatingController = TextEditingController(text: draft.seatingCapacity?.toString());
+    _wheelbaseController = TextEditingController(
+      text: draft.wheelbase?.toString(),
+    );
+    _clearanceController = TextEditingController(
+      text: draft.groundClearance?.toString(),
+    );
+    _seatingController = TextEditingController(
+      text: draft.seatingCapacity?.toString(),
+    );
     _doorController = TextEditingController(text: draft.doorCount?.toString());
-    _fuelTankController = TextEditingController(text: draft.fuelTankCapacity?.toString());
-    _curbWeightController = TextEditingController(text: draft.curbWeight?.toString());
-    _grossWeightController = TextEditingController(text: draft.grossWeight?.toString());
+    _fuelTankController = TextEditingController(
+      text: draft.fuelTankCapacity?.toString(),
+    );
+    _curbWeightController = TextEditingController(
+      text: draft.curbWeight?.toString(),
+    );
+    _grossWeightController = TextEditingController(
+      text: draft.grossWeight?.toString(),
+    );
 
     for (var controller in [
-      _lengthController, _widthController, _heightController, _wheelbaseController,
-      _clearanceController, _seatingController, _doorController, _fuelTankController,
-      _curbWeightController, _grossWeightController
+      _lengthController,
+      _widthController,
+      _heightController,
+      _wheelbaseController,
+      _clearanceController,
+      _seatingController,
+      _doorController,
+      _fuelTankController,
+      _curbWeightController,
+      _grossWeightController,
     ]) {
       controller.addListener(_updateDraft);
     }
@@ -84,16 +103,36 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
         transmission: draft.transmission,
         fuelType: draft.fuelType,
         driveType: draft.driveType,
-        length: _lengthController.text.isEmpty ? null : double.tryParse(_lengthController.text),
-        width: _widthController.text.isEmpty ? null : double.tryParse(_widthController.text),
-        height: _heightController.text.isEmpty ? null : double.tryParse(_heightController.text),
-        wheelbase: _wheelbaseController.text.isEmpty ? null : double.tryParse(_wheelbaseController.text),
-        groundClearance: _clearanceController.text.isEmpty ? null : double.tryParse(_clearanceController.text),
-        seatingCapacity: _seatingController.text.isEmpty ? null : int.tryParse(_seatingController.text),
-        doorCount: _doorController.text.isEmpty ? null : int.tryParse(_doorController.text),
-        fuelTankCapacity: _fuelTankController.text.isEmpty ? null : double.tryParse(_fuelTankController.text),
-        curbWeight: _curbWeightController.text.isEmpty ? null : double.tryParse(_curbWeightController.text),
-        grossWeight: _grossWeightController.text.isEmpty ? null : double.tryParse(_grossWeightController.text),
+        length: _lengthController.text.isEmpty
+            ? null
+            : double.tryParse(_lengthController.text),
+        width: _widthController.text.isEmpty
+            ? null
+            : double.tryParse(_widthController.text),
+        height: _heightController.text.isEmpty
+            ? null
+            : double.tryParse(_heightController.text),
+        wheelbase: _wheelbaseController.text.isEmpty
+            ? null
+            : double.tryParse(_wheelbaseController.text),
+        groundClearance: _clearanceController.text.isEmpty
+            ? null
+            : double.tryParse(_clearanceController.text),
+        seatingCapacity: _seatingController.text.isEmpty
+            ? null
+            : int.tryParse(_seatingController.text),
+        doorCount: _doorController.text.isEmpty
+            ? null
+            : int.tryParse(_doorController.text),
+        fuelTankCapacity: _fuelTankController.text.isEmpty
+            ? null
+            : double.tryParse(_fuelTankController.text),
+        curbWeight: _curbWeightController.text.isEmpty
+            ? null
+            : double.tryParse(_curbWeightController.text),
+        grossWeight: _grossWeightController.text.isEmpty
+            ? null
+            : double.tryParse(_grossWeightController.text),
         exteriorColor: draft.exteriorColor,
         paintType: draft.paintType,
         rimType: draft.rimType,
@@ -131,7 +170,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 3: Dimensions & Capacity',
+          'Step 4: Dimensions & Capacity',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),
@@ -139,7 +178,9 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           controller: _lengthController,
           label: 'Length (mm) *',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
           validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
         const SizedBox(height: 16),
@@ -147,7 +188,9 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           controller: _widthController,
           label: 'Width (mm) *',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
           validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
         const SizedBox(height: 16),
@@ -155,7 +198,9 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           controller: _heightController,
           label: 'Height (mm) *',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
           validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
         const SizedBox(height: 16),
@@ -163,14 +208,18 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           controller: _wheelbaseController,
           label: 'Wheelbase (mm)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _clearanceController,
           label: 'Ground Clearance (mm)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -191,21 +240,27 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           controller: _fuelTankController,
           label: 'Fuel Tank Capacity (L)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _curbWeightController,
           label: 'Curb Weight (kg)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _grossWeightController,
           label: 'Gross Weight (kg)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
         ),
       ],
     );

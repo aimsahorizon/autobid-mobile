@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/transaction_realtime_controller.dart';
 import '../controllers/installment_controller.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../data/datasources/installment_supabase_datasource.dart';
+import '../../data/datasources/transaction_supabase_datasource.dart';
 import '../widgets/transaction_realtime/chat_realtime_tab.dart';
 import '../widgets/transaction_realtime/progress_realtime_tab.dart';
 import '../widgets/transaction_realtime/unified_agreement_tab.dart';
@@ -16,6 +18,7 @@ class PreTransactionRealtimePage extends StatefulWidget {
   final String transactionId; // Can be transaction ID or auction ID
   final String userId;
   final String userName;
+  final int initialTabIndex;
 
   const PreTransactionRealtimePage({
     super.key,
@@ -23,6 +26,7 @@ class PreTransactionRealtimePage extends StatefulWidget {
     required this.transactionId,
     required this.userId,
     required this.userName,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -145,6 +149,12 @@ class _PreTransactionRealtimePageState
           },
         ),
         actions: [
+          // Report button
+          IconButton(
+            onPressed: () => _showReportDialog(context),
+            icon: const Icon(Icons.flag_outlined),
+            tooltip: 'Report',
+          ),
           // Refresh button
           ListenableBuilder(
             listenable: widget.controller,
@@ -290,6 +300,7 @@ class _PreTransactionRealtimePageState
           return DefaultTabController(
             key: ValueKey('tabs_$tabCount'),
             length: tabCount,
+            initialIndex: widget.initialTabIndex.clamp(0, tabCount - 1),
             child: Column(
               children: [
                 // Transaction status banner
@@ -308,6 +319,18 @@ class _PreTransactionRealtimePageState
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TabBar(
+                    onTap: (index) {
+                      switch (index) {
+                        case 0:
+                          widget.controller.clearChatUpdateCount();
+                        case 1:
+                          widget.controller.clearAgreementUpdateCount();
+                        case 2:
+                          widget.controller.clearProgressUpdateCount();
+                        case 3:
+                          widget.controller.clearGivesUpdateCount();
+                      }
+                    },
                     padding: const EdgeInsets.all(4),
                     indicator: BoxDecoration(
                       color: isDark
@@ -332,10 +355,11 @@ class _PreTransactionRealtimePageState
                       fontSize: 12,
                     ),
                     tabs: [
-                      const Tab(text: 'Chat'),
-                      const Tab(text: 'Agreement'),
-                      const Tab(text: 'Progress'),
-                      if (showInstallment) const Tab(text: 'Gives'),
+                      _buildTabWithBadge('Chat', widget.controller.chatUpdateCount),
+                      _buildTabWithBadge('Agreement', widget.controller.agreementUpdateCount),
+                      _buildTabWithBadge('Progress', widget.controller.progressUpdateCount),
+                      if (showInstallment)
+                        _buildTabWithBadge('Gives', widget.controller.givesUpdateCount),
                     ],
                   ),
                 ),
@@ -987,6 +1011,152 @@ class _PreTransactionRealtimePageState
         }
       }
     }
+  }
+
+  Widget _buildTabWithBadge(String label, int updateCount) {
+    return Tab(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          if (updateCount > 0) ...[
+            const SizedBox(width: 4),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showReportDialog(BuildContext context) {
+    final transaction = widget.controller.transaction;
+    if (transaction == null) return;
+
+    final reasonController = TextEditingController();
+    final descriptionController = TextEditingController();
+    String selectedReason = 'Fraud';
+    final reasons = [
+      'Fraud',
+      'Harassment',
+      'Misrepresentation',
+      'Non-payment',
+      'Non-delivery',
+      'Other',
+    ];
+
+    // Determine reported user
+    final isSeller = transaction.sellerId == widget.userId;
+    final reportedUserId = isSeller ? transaction.buyerId : transaction.sellerId;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Report Transaction'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Select a reason:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: selectedReason,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                  items: reasons
+                      .map(
+                        (r) => DropdownMenuItem(value: r, child: Text(r)),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setDialogState(() => selectedReason = v);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Description:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 4,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Describe the issue...',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (descriptionController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please provide a description'),
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                try {
+                  final datasource = TransactionSupabaseDataSource(
+                    Supabase.instance.client,
+                  );
+                  await datasource.submitReport(
+                    transactionId: transaction.id,
+                    reporterId: widget.userId,
+                    reportedUserId: reportedUserId,
+                    reason: selectedReason,
+                    description: descriptionController.text.trim(),
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Report submitted successfully'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to submit report: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Submit Report'),
+            ),
+          ],
+        ),
+      ),
+    );
+    reasonController.dispose();
   }
 
   Widget _buildStatusBanner(TransactionEntity transaction, bool isDark) {

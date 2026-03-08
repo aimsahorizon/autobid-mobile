@@ -76,7 +76,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Step 1: Basic Information',
+            'Step 2: Basic Information',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -85,9 +85,15 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
             style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 24),
-          if (widget.controller.isLoadingVehicleData && widget.controller.brands.isEmpty)
-             const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator())),
-          
+          if (widget.controller.isLoadingVehicleData &&
+              widget.controller.brands.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+
           ComboBoxWidget(
             label: 'Brand *',
             value: _brand,
@@ -139,7 +145,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
               'Crossover',
               'Coupe',
               'Convertible',
-              'Wagon'
+              'Wagon',
             ],
             hint: 'Select Body Type',
             onChanged: (v) {

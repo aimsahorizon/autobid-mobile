@@ -24,6 +24,7 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   late final KYCRegistrationController _controller;
   final GlobalKey<SecondaryIdStepState> _secondaryIdKey = GlobalKey();
+  int _rebuildKey = 0;
 
   @override
   void initState() {
@@ -76,7 +77,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
       if (mounted) {
         Navigator.pop(context); // Remove loading
-        setState(() {}); // Refresh UI
+        setState(() {
+          _rebuildKey++; // Force step widgets to rebuild with loaded data
+        });
       }
     } else {
       _controller.clearAllData(); // Clear draft if starting fresh
@@ -354,13 +357,25 @@ class _RegistrationPageState extends State<RegistrationPage> {
   Widget _buildCurrentStep() {
     switch (_controller.currentStep) {
       case KYCStep.accountInfo:
-        return AccountInfoStep(controller: _controller);
+        return AccountInfoStep(
+          key: ValueKey('account_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.otpVerification:
-        return OtpVerificationStep(controller: _controller);
+        return OtpVerificationStep(
+          key: ValueKey('otp_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.nationalId:
-        return NationalIdStep(controller: _controller);
+        return NationalIdStep(
+          key: ValueKey('natid_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.selfieWithId:
-        return SelfieWithIdStep(controller: _controller);
+        return SelfieWithIdStep(
+          key: ValueKey('selfie_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.secondaryId:
         return SecondaryIdStep(
           key: _secondaryIdKey,
@@ -368,13 +383,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
           onRequestAiExtraction: _proceedToNextStep,
         );
       case KYCStep.personalInfo:
-        return PersonalInfoStep(controller: _controller);
+        return PersonalInfoStep(
+          key: ValueKey('personal_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.address:
-        return AddressStep(controller: _controller);
+        return AddressStep(
+          key: ValueKey('address_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.proofOfAddress:
-        return ProofOfAddressStep(controller: _controller);
+        return ProofOfAddressStep(
+          key: ValueKey('proof_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.review:
         return ReviewStep(
+          key: ValueKey('review_$_rebuildKey'),
           controller: _controller,
           onEditStep: (step) {
             _controller.goToStep(step);
