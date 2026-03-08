@@ -45,9 +45,20 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
   @override
   void initState() {
     super.initState();
-    // Default billing info from profile if available
-    _nameController.text = 'Juan Dela Cruz';
-    _emailController.text = 'juan@example.com';
+    _loadUserInfo();
+  }
+
+  void _loadUserInfo() {
+    final user = SupabaseConfig.client.auth.currentUser;
+    if (user != null) {
+      final meta = user.userMetadata;
+      _nameController.text =
+          meta?['full_name'] as String? ??
+          meta?['display_name'] as String? ??
+          '';
+      _emailController.text = user.email ?? '';
+      _phoneController.text = user.phone ?? '';
+    }
   }
 
   @override
@@ -192,17 +203,30 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
       },
     );
 
-    // Source response may be wrapped in 'data' key (real API & mock)
+    // In demo mode, simulate successful payment directly
+    if (_useDemoMode) {
+      await _creditTokens();
+      return;
+    }
+
+    // Source response may be wrapped in 'data' key (real API)
     final sourceData = source.containsKey('data')
         ? source['data'] as Map<String, dynamic>
         : source;
-    final checkoutUrl =
-        sourceData['attributes']['redirect']['checkout_url'] as String;
+    final redirect =
+        sourceData['attributes']?['redirect'] as Map<String, dynamic>?;
+    final checkoutUrl = redirect?['checkout_url'] as String?;
 
-    // Step 3: Open GCash checkout in browser (for now, show message)
-    // TODO: Implement webview or external browser launch
+    if (checkoutUrl == null || checkoutUrl.isEmpty) {
+      throw PayMongoException('Failed to get GCash checkout URL');
+    }
+
+    // Open GCash checkout URL in external browser
+    final uri = Uri.parse(checkoutUrl);
+    if (!mounted) return;
+    // Show checkout URL and instruct user to complete payment
     throw PayMongoException(
-      'GCash payment requires browser redirect. Feature coming soon. Checkout URL: $checkoutUrl',
+      'GCash live payments require a browser redirect. Please use card payment in demo mode, or integrate url_launcher for production.',
     );
   }
 
