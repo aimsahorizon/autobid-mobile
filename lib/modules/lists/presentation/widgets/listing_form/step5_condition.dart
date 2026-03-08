@@ -152,7 +152,12 @@ class _Step5ConditionState extends State<Step5Condition> {
           label: 'Mileage (km) *',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            final val = int.tryParse(v!);
+            if (val == null || val < 0) return 'Must be a non-negative number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -160,7 +165,12 @@ class _Step5ConditionState extends State<Step5Condition> {
           label: 'Previous Owners *',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            final val = int.tryParse(v!);
+            if (val == null || val < 0) return 'Must be a non-negative number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         SwitchListTile(

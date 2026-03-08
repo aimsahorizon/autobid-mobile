@@ -67,6 +67,9 @@ class _ComboBoxWidgetState extends State<ComboBoxWidget> {
       controller: _controller,
       enabled: widget.enabled,
       validator: widget.validator,
+      autovalidateMode: widget.validator != null
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       onChanged: (value) {
         _filterItems(value);
         widget.onChanged(value.isEmpty ? null : value);

@@ -164,6 +164,12 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
           ],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null;
+            final val = double.tryParse(v);
+            if (val == null || val <= 0) return 'Must be a positive number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -171,6 +177,12 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           label: 'Cylinder Count',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null;
+            final val = int.tryParse(v);
+            if (val == null || val <= 0) return 'Must be a positive number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -178,6 +190,12 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           label: 'Horsepower (HP)',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null;
+            final val = int.tryParse(v);
+            if (val == null || val <= 0) return 'Must be a positive number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -185,6 +203,12 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           label: 'Torque (Nm)',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null;
+            final val = int.tryParse(v);
+            if (val == null || val <= 0) return 'Must be a positive number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         ComboBoxWidget(
