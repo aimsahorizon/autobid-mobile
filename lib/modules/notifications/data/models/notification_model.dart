@@ -119,6 +119,14 @@ class NotificationModel extends NotificationEntity {
         return NotificationSubType.reviewReceived;
       case 'activity_log':
         return NotificationSubType.activityLog;
+      case 'agreement_update':
+        return NotificationSubType.agreementUpdate;
+      case 'installment_update':
+        return NotificationSubType.installmentUpdate;
+      case 'delivery_update':
+        return NotificationSubType.deliveryUpdate;
+      case 'payment_method_update':
+        return NotificationSubType.paymentMethodUpdate;
       // System
       case 'payment_received':
         return NotificationSubType.paymentReceived;
@@ -187,6 +195,14 @@ class NotificationModel extends NotificationEntity {
         return 'review_received';
       case NotificationSubType.activityLog:
         return 'activity_log';
+      case NotificationSubType.agreementUpdate:
+        return 'agreement_update';
+      case NotificationSubType.installmentUpdate:
+        return 'installment_update';
+      case NotificationSubType.deliveryUpdate:
+        return 'delivery_update';
+      case NotificationSubType.paymentMethodUpdate:
+        return 'payment_method_update';
       case NotificationSubType.paymentReceived:
         return 'payment_received';
       case NotificationSubType.kycApproved:
@@ -240,6 +256,10 @@ class NotificationModel extends NotificationEntity {
       case NotificationSubType.transactionStarted:
       case NotificationSubType.formsConfirmed:
       case NotificationSubType.activityLog:
+      case NotificationSubType.agreementUpdate:
+      case NotificationSubType.installmentUpdate:
+      case NotificationSubType.deliveryUpdate:
+      case NotificationSubType.paymentMethodUpdate:
         return NotificationType.transaction;
       // Review
       case NotificationSubType.reviewReceived:
