@@ -285,6 +285,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
             icon: const Icon(Icons.arrow_back_rounded),
             onPressed: _handleExit,
           ),
+          actions: [
+            if (_controller.editingFromReview &&
+                _controller.currentStep != KYCStep.review)
+              TextButton.icon(
+                onPressed: () {
+                  _controller.returnToReview();
+                  setState(() {});
+                },
+                icon: const Icon(Icons.rate_review_rounded, size: 18),
+                label: const Text('Review'),
+              ),
+          ],
         ),
         body: ListenableBuilder(
           listenable: _controller,
