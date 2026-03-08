@@ -70,8 +70,8 @@ class _ListsPageState extends State<ListsPage>
       if (_controller.showAll) {
         _selectedStatusFilter = null;
       }
-      if (mounted) setState(() {});
     }
+    if (mounted) setState(() {});
   }
 
   ListsController get _controller => widget.controller ?? sl<ListsController>();
@@ -229,37 +229,56 @@ class _ListsPageState extends State<ListsPage>
                 ),
               ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
+          preferredSize: const Size.fromHeight(56),
           child: ListenableBuilder(
             listenable: _controller,
             builder: (context, _) {
               if (_controller.showAll) {
                 return _buildFilterChips(isDark);
               }
-              return TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                indicatorSize: TabBarIndicatorSize.label,
-                dividerColor: Colors.transparent,
-                labelColor: ColorConstants.primary,
-                unselectedLabelColor: isDark
-                    ? ColorConstants.textSecondaryDark
-                    : ColorConstants.textSecondaryLight,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+              return Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? ColorConstants.backgroundDark
+                      : ColorConstants.backgroundSecondaryLight,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                tabs: _tabs
-                    .map(
-                      (status) => _TabWithBadge(
-                        label: status.tabLabel,
-                        count: _controller.getCountByStatus(status),
-                        color: _getStatusColor(status),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  padding: const EdgeInsets.all(4),
+                  indicator: BoxDecoration(
+                    color: isDark ? ColorConstants.surfaceDark : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
                       ),
-                    )
-                    .toList(),
+                    ],
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelColor: ColorConstants.primary,
+                  unselectedLabelColor: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  tabs: _tabs
+                      .map(
+                        (status) => _TabWithBadge(
+                          label: status.tabLabel,
+                          count: _controller.getCountByStatus(status),
+                          color: _getStatusColor(status),
+                        ),
+                      )
+                      .toList(),
+                ),
               );
             },
           ),

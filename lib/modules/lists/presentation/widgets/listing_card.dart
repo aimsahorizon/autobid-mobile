@@ -67,7 +67,7 @@ class _ListingCardState extends State<ListingCard> {
     final card = widget.isGridView
         ? _buildGridCard(context)
         : _buildListCard(context);
-    
+
     if (widget.isSelectionMode) {
       return Stack(
         children: [
@@ -105,7 +105,7 @@ class _ListingCardState extends State<ListingCard> {
         ],
       );
     }
-    
+
     return GestureDetector(
       onLongPress: widget.onLongPress,
       onTap: widget.onTap,
@@ -166,7 +166,10 @@ class _ListingCardState extends State<ListingCard> {
                     child: OutlinedButton.icon(
                       onPressed: widget.onInviteTap,
                       icon: const Icon(Icons.people_outline, size: 14),
-                      label: const Text('Invites', style: TextStyle(fontSize: 11)),
+                      label: const Text(
+                        'Invites',
+                        style: TextStyle(fontSize: 11),
+                      ),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         visualDensity: VisualDensity.compact,
@@ -241,8 +244,11 @@ class _ListingCardState extends State<ListingCard> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Expanded(child: _StatsRow(listing: widget.listing, compact: true)),
-                    if (widget.listing.visibility == 'private' && widget.onInviteTap != null)
+                    Expanded(
+                      child: _StatsRow(listing: widget.listing, compact: true),
+                    ),
+                    if (widget.listing.visibility == 'private' &&
+                        widget.onInviteTap != null)
                       IconButton(
                         icon: const Icon(Icons.people_outline, size: 18),
                         onPressed: widget.onInviteTap,
@@ -372,12 +378,14 @@ class _PriceInfo extends StatelessWidget {
             fontSize: compact ? 11 : 12,
           ),
         ),
-        Text(
-          '₱${_formatAmount(displayPrice)}',
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: ColorConstants.primary,
-            fontSize: compact ? 13 : 14,
+        Flexible(
+          child: Text(
+            '₱${_formatAmount(displayPrice)}',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: ColorConstants.primary,
+              fontSize: compact ? 13 : 14,
+            ),
           ),
         ),
         if (listing.isReserveMet) ...[
@@ -403,9 +411,6 @@ class _PriceInfo extends StatelessWidget {
   }
 
   String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(2)}M';
-    }
     return amount
         .toStringAsFixed(0)
         .replaceAllMapped(
