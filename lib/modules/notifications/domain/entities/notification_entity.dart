@@ -36,6 +36,11 @@ enum NotificationSubType {
   chatMessage,
   reviewReceived,
   activityLog,
+  // Transaction sub-tab updates
+  agreementUpdate,
+  installmentUpdate,
+  deliveryUpdate,
+  paymentMethodUpdate,
   // System
   paymentReceived,
   kycApproved,
