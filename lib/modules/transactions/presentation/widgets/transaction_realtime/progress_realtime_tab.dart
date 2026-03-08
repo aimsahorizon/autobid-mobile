@@ -7,7 +7,7 @@ import '../../controllers/installment_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
 /// Progress tab - shows transaction timeline and status
-class ProgressRealtimeTab extends StatelessWidget {
+class ProgressRealtimeTab extends StatefulWidget {
   final TransactionRealtimeController controller;
   final String? userId;
   final InstallmentController? installmentController;
@@ -18,6 +18,19 @@ class ProgressRealtimeTab extends StatelessWidget {
     this.userId,
     this.installmentController,
   });
+
+  @override
+  State<ProgressRealtimeTab> createState() => _ProgressRealtimeTabState();
+}
+
+class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
+  static const int _pageSize = 20;
+  int _visibleCount = _pageSize;
+
+  TransactionRealtimeController get controller => widget.controller;
+  String? get userId => widget.userId;
+  InstallmentController? get installmentController =>
+      widget.installmentController;
 
   @override
   Widget build(BuildContext context) {
@@ -79,10 +92,7 @@ class ProgressRealtimeTab extends StatelessWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                ...timeline
-                    .where((e) => e.type != TimelineEventType.messageSent)
-                    .take(50)
-                    .map((event) => _buildTimelineItem(event, isDark)),
+                ..._buildPaginatedTimeline(timeline, isDark),
               ] else
                 Center(
                   child: Column(
@@ -124,6 +134,35 @@ class ProgressRealtimeTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  List<Widget> _buildPaginatedTimeline(
+    List<TransactionTimelineEntity> timeline,
+    bool isDark,
+  ) {
+    final filtered =
+        timeline.where((e) => e.type != TimelineEventType.messageSent).toList();
+    final visible = filtered.take(_visibleCount).toList();
+    final hasMore = filtered.length > _visibleCount;
+
+    return [
+      ...visible.map((event) => _buildTimelineItem(event, isDark)),
+      if (hasMore)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Center(
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() => _visibleCount += _pageSize);
+              },
+              icon: const Icon(Icons.expand_more),
+              label: Text(
+                'Show more (${filtered.length - _visibleCount} remaining)',
+              ),
+            ),
+          ),
+        ),
+    ];
   }
 
   Widget _buildCancelDealSection(BuildContext context, bool isDark) {
