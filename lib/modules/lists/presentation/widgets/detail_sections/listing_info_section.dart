@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/listing_detail_entity.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
@@ -83,6 +84,7 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
   }
 
   Widget _buildConfigTab(bool isDark) {
+    final fmt = NumberFormat('#,##0');
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -97,15 +99,15 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
           ),
           _SpecRow(
             'Bid Increment',
-            '₱${widget.listing.bidIncrement.toStringAsFixed(0)}',
+            '₱${fmt.format(widget.listing.bidIncrement)}',
           ),
           _SpecRow(
             'Min Increment',
-            '₱${widget.listing.minBidIncrement.toStringAsFixed(0)}',
+            '₱${fmt.format(widget.listing.minBidIncrement)}',
           ),
           _SpecRow(
             'Buyer Deposit',
-            '₱${widget.listing.depositAmount.toStringAsFixed(0)}',
+            '₱${fmt.format(widget.listing.depositAmount)}',
           ),
         ], isDark),
         const SizedBox(height: 16),
@@ -129,12 +131,12 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
         _buildSpecGroup('Pricing', [
           _SpecRow(
             'Starting Price',
-            '₱${widget.listing.startingPrice.toStringAsFixed(0)}',
+            '₱${fmt.format(widget.listing.startingPrice)}',
           ),
           if (widget.listing.reservePrice != null)
             _SpecRow(
               'Reserve Price',
-              '₱${widget.listing.reservePrice!.toStringAsFixed(0)}',
+              '₱${fmt.format(widget.listing.reservePrice!)}',
             ),
         ], isDark),
       ],
@@ -430,8 +432,11 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
           _InfoCard(
             icon: Icons.location_on,
             title: 'Location',
-            value:
-                '${widget.listing.cityMunicipality ?? ''}, ${widget.listing.province}',
+            value: [
+              widget.listing.barangay,
+              widget.listing.cityMunicipality,
+              widget.listing.province,
+            ].where((s) => s != null && s.isNotEmpty).join(', '),
             isDark: isDark,
           ),
       ],
