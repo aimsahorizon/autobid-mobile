@@ -72,6 +72,14 @@ class _LoginPageState extends State<LoginPage> {
           ).pushNamedAndRemoveUntil('/home', (route) => false);
         }
       }
+
+      // Handle pending verification - redirect to guest mode account status
+      if (mounted && widget.controller.isPendingVerification) {
+        widget.controller.clearPendingVerification();
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(GuestRoutes.main, (route) => false);
+      }
     }
   }
 
