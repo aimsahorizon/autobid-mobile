@@ -77,6 +77,7 @@ class ListingDetailEntity {
 
   // Step 7: Photos
   final Map<String, List<String>>? photoUrls;
+  final String? _storedCoverPhotoUrl;
 
   // Step 8: Final Details
   final String? description;
@@ -165,6 +166,7 @@ class ListingDetailEntity {
     this.cityMunicipality,
     this.barangay,
     this.photoUrls,
+    String? storedCoverPhotoUrl,
     this.description,
     this.knownIssues,
     this.features,
@@ -181,15 +183,17 @@ class ListingDetailEntity {
     this.visibility = 'public',
     this.autoLiveAfterApproval = false,
     this.allowsInstallment = false,
-  });
+  }) : _storedCoverPhotoUrl = storedCoverPhotoUrl;
 
   /// Get formatted car name
   String get carName => '$year $brand $model ${variant ?? ''}'.trim();
 
-  /// Get cover photo URL (first photo from any category)
+  /// Get cover photo URL (stored selection, or first photo as fallback)
   String? get coverPhotoUrl {
+    if (_storedCoverPhotoUrl != null && _storedCoverPhotoUrl!.isNotEmpty) {
+      return _storedCoverPhotoUrl;
+    }
     if (photoUrls == null || photoUrls!.isEmpty) return null;
-
     for (final urls in photoUrls!.values) {
       if (urls.isNotEmpty) return urls.first;
     }
