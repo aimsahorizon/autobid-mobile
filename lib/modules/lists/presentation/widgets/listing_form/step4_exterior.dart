@@ -78,12 +78,20 @@ class _Step4ExteriorState extends State<Step4Exterior> {
         fuelTankCapacity: draft.fuelTankCapacity,
         curbWeight: draft.curbWeight,
         grossWeight: draft.grossWeight,
-        exteriorColor: _colorController.text.isEmpty ? null : _colorController.text,
+        exteriorColor: _colorController.text.isEmpty
+            ? null
+            : _colorController.text,
         paintType: _paintType,
         rimType: _rimType,
-        rimSize: _rimSizeController.text.isEmpty ? null : _rimSizeController.text,
-        tireSize: _tireSizeController.text.isEmpty ? null : _tireSizeController.text,
-        tireBrand: _tireBrandController.text.isEmpty ? null : _tireBrandController.text,
+        rimSize: _rimSizeController.text.isEmpty
+            ? null
+            : _rimSizeController.text,
+        tireSize: _tireSizeController.text.isEmpty
+            ? null
+            : _tireSizeController.text,
+        tireBrand: _tireBrandController.text.isEmpty
+            ? null
+            : _tireBrandController.text,
         condition: draft.condition,
         mileage: draft.mileage,
         previousOwners: draft.previousOwners,
@@ -115,7 +123,7 @@ class _Step4ExteriorState extends State<Step4Exterior> {
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 4: Exterior Details',
+          'Step 5: Exterior Details',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),

@@ -20,6 +20,8 @@ class Step6Documentation extends StatefulWidget {
 class _Step6DocumentationState extends State<Step6Documentation> {
   late TextEditingController _plateLetterController;
   late TextEditingController _plateNumberController;
+  final _plateLetterFocus = FocusNode();
+  final _plateNumberFocus = FocusNode();
   final _validatePlateUseCase = GetIt.I<ValidatePlateNumberUseCase>();
 
   String? _province;
@@ -85,6 +87,8 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     _plateNumberController.removeListener(_onPlateChanged);
     _plateLetterController.dispose();
     _plateNumberController.dispose();
+    _plateLetterFocus.dispose();
+    _plateNumberFocus.dispose();
     super.dispose();
   }
 
@@ -150,6 +154,11 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     }
   }
 
+  void _unfocusPlateFields() {
+    _plateLetterFocus.unfocus();
+    _plateNumberFocus.unfocus();
+  }
+
   void _updateDraft() {
     final draft = widget.controller.currentDraft!;
     widget.controller.updateDraft(
@@ -174,12 +183,13 @@ class _Step6DocumentationState extends State<Step6Documentation> {
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 6: Documentation & Locations',
+          'Step 7: Documentation & Locations',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),
         FormFieldWidget(
           controller: _plateLetterController,
+          focusNode: _plateLetterFocus,
           label: 'Plate Letters *',
           hint: 'e.g., ABC',
           inputFormatters: [
@@ -195,6 +205,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _plateNumberController,
+          focusNode: _plateNumberFocus,
           label: 'Plate Number *',
           hint: 'e.g., 1234',
           errorText: _plateError,
@@ -226,6 +237,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           value: _orcrStatus,
           items: const ['Available', 'In Process', 'Lost', 'Not Available'],
           onChanged: (v) {
+            _unfocusPlateFields();
             setState(() => _orcrStatus = v);
             _updateDraft();
           },
@@ -237,6 +249,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           value: _registrationStatus,
           items: const ['Current', 'Expired', 'Renewal Pending'],
           onChanged: (v) {
+            _unfocusPlateFields();
             setState(() => _registrationStatus = v);
             _updateDraft();
           },
@@ -244,6 +257,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         const SizedBox(height: 16),
         InkWell(
           onTap: () async {
+            _unfocusPlateFields();
             final picked = await showDatePicker(
               context: context,
               initialDate:
@@ -285,6 +299,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           city: _city,
           barangay: _barangay,
           onChanged: (province, city, barangay) {
+            _unfocusPlateFields();
             setState(() {
               _province = province;
               _city = city;

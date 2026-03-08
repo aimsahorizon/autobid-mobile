@@ -30,8 +30,12 @@ class _Step5ConditionState extends State<Step5Condition> {
     super.initState();
     final draft = widget.controller.currentDraft!;
     _mileageController = TextEditingController(text: draft.mileage?.toString());
-    _ownersController = TextEditingController(text: draft.previousOwners?.toString());
-    _modificationsController = TextEditingController(text: draft.modificationsDetails);
+    _ownersController = TextEditingController(
+      text: draft.previousOwners?.toString(),
+    );
+    _modificationsController = TextEditingController(
+      text: draft.modificationsDetails,
+    );
     _warrantyController = TextEditingController(text: draft.warrantyDetails);
     _condition = draft.condition;
     _hasModifications = draft.hasModifications ?? false;
@@ -90,12 +94,20 @@ class _Step5ConditionState extends State<Step5Condition> {
         tireSize: draft.tireSize,
         tireBrand: draft.tireBrand,
         condition: _condition,
-        mileage: _mileageController.text.isEmpty ? null : int.tryParse(_mileageController.text),
-        previousOwners: _ownersController.text.isEmpty ? null : int.tryParse(_ownersController.text),
+        mileage: _mileageController.text.isEmpty
+            ? null
+            : int.tryParse(_mileageController.text),
+        previousOwners: _ownersController.text.isEmpty
+            ? null
+            : int.tryParse(_ownersController.text),
         hasModifications: _hasModifications,
-        modificationsDetails: _modificationsController.text.isEmpty ? null : _modificationsController.text,
+        modificationsDetails: _modificationsController.text.isEmpty
+            ? null
+            : _modificationsController.text,
         hasWarranty: _hasWarranty,
-        warrantyDetails: _warrantyController.text.isEmpty ? null : _warrantyController.text,
+        warrantyDetails: _warrantyController.text.isEmpty
+            ? null
+            : _warrantyController.text,
         usageType: _usageType,
         plateNumber: draft.plateNumber,
         orcrStatus: draft.orcrStatus,
@@ -120,7 +132,7 @@ class _Step5ConditionState extends State<Step5Condition> {
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 5: Condition & History',
+          'Step 6: Condition & History',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),

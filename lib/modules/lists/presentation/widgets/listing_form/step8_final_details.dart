@@ -591,59 +591,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         _buildIncrementSuggestions(startingPrice),
         const SizedBox(height: 24),
 
-        // Enable Incremental Bidding
-        const Text(
-          'Incremental Bidding',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _enableIncrementalBidding,
-                      onChanged: (value) {
-                        setState(() {
-                          _enableIncrementalBidding = value ?? true;
-                        });
-                        _updateDraft();
-                      },
-                    ),
-                    Expanded(
-                      child: Text(
-                        _enableIncrementalBidding
-                            ? 'Enable dynamic increments based on price'
-                            : 'Use fixed increment for all bids',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    _enableIncrementalBidding
-                        ? 'Example: ₱0-500k: ₱1k, ₱500k-1M: ₱5k, ₱1M+: ₱10k increments'
-                        : 'All bids will require a ${_bidIncrementController.text.isNotEmpty ? '₱${_bidIncrementController.text}' : 'fixed'} increment',
-                    style: const TextStyle(fontSize: 11, color: Colors.orange),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
         // Deposit Amount
         const Text(
           'Buyer Deposit Amount (₱) *',
@@ -893,13 +840,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         _summaryRow(
           'Minimum Increment',
           '₱${_bidIncrementController.text.isNotEmpty ? _bidIncrementController.text : '0'}',
-        ),
-        const Divider(),
-        _summaryRow(
-          'Bidding Mode',
-          _enableIncrementalBidding
-              ? '📊 Dynamic Increments'
-              : '📝 Fixed Increment',
         ),
         const Divider(),
         _summaryRow(
