@@ -16,6 +16,7 @@ import '../controllers/browse_controller.dart';
 import '../controllers/buyer_invites_controller.dart';
 import '../widgets/auction_card.dart';
 import 'buyer_invites_page.dart';
+import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 import '../widgets/auction_filter_sheet.dart';
 import 'auction_detail_page.dart';
 
@@ -174,64 +175,7 @@ class _BrowsePageState extends State<BrowsePage> {
                 (isDarkMode ? Colors.white : Colors.black),
           ),
           actions: [
-            // Unified notification bell with combined unread + invite count
-            ListenableBuilder(
-              listenable: Listenable.merge([
-                GetIt.instance<NotificationController>(),
-                GetIt.instance<BuyerInvitesController>(),
-              ]),
-              builder: (context, _) {
-                final notificationController =
-                    GetIt.instance<NotificationController>();
-                final invitesController =
-                    GetIt.instance<BuyerInvitesController>();
-                final totalCount =
-                    notificationController.unreadCount +
-                    invitesController.pendingCount;
-
-                return Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const NotificationsPage(),
-                          ),
-                        );
-                      },
-                      tooltip: 'Notifications',
-                    ),
-                    if (totalCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            totalCount > 9 ? '9+' : '$totalCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
+            const NotificationBellWidget(),
             // Filter button with badge showing active filter count
             Stack(
               children: [
