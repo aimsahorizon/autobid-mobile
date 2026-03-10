@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../controllers/buyer_invites_controller.dart';
+import '../controllers/browse_controller.dart';
 
 /// Page for buyers to view and respond to auction invites
 class BuyerInvitesPage extends StatefulWidget {
@@ -359,6 +360,11 @@ class _BuyerInvitesPageState extends State<BuyerInvitesPage> {
   Future<void> _handleAccept(String inviteId) async {
     final success = await _controller.acceptInvite(inviteId);
     if (!mounted) return;
+
+    if (success) {
+      // Refresh browse tab so the newly accessible private auction appears
+      GetIt.instance<BrowseController>().loadAuctions(isBackground: true);
+    }
 
     (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
       SnackBar(

@@ -96,8 +96,10 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final metaName = '$metaFirstName $metaLastName'.trim();
 
       final response = await SupabaseConfig.client
-          .from('profiles')
-          .select()
+          .from('users')
+          .select(
+            'first_name, middle_name, last_name, email, phone_number, username',
+          )
           .eq('id', widget.userId)
           .maybeSingle();
 
@@ -118,27 +120,25 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
               email = response['email'] as String;
             }
 
-            // Check both phone_number (schema) and contact_number (legacy/view)
-            final profilePhone =
-                response['phone_number'] as String? ??
-                response['contact_number'] as String?;
+            // Check phone_number column
+            final profilePhone = response['phone_number'] as String?;
             if (profilePhone != null && profilePhone.isNotEmpty) {
               phone = profilePhone;
             }
           }
 
           if (_nameController.text.isEmpty) {
-            final profileName = '$firstName $lastName'.trim();
-            // Fallback chain: first+last → display_name → full_name → auth metadata
-            final displayName = (response?['display_name'] as String? ?? '')
+            final middleName = (response?['middle_name'] as String? ?? '')
                 .trim();
-            final fullName = (response?['full_name'] as String? ?? '').trim();
+            final profileName = middleName.isNotEmpty
+                ? '$firstName $middleName $lastName'.trim()
+                : '$firstName $lastName'.trim();
+            final username = (response?['username'] as String? ?? '').trim();
+            // Fallback chain: first+middle+last → username → auth metadata
             if (profileName.isNotEmpty) {
               _nameController.text = profileName;
-            } else if (displayName.isNotEmpty) {
-              _nameController.text = displayName;
-            } else if (fullName.isNotEmpty) {
-              _nameController.text = fullName;
+            } else if (username.isNotEmpty) {
+              _nameController.text = username;
             } else {
               _nameController.text = metaName;
             }
@@ -150,26 +150,6 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
             _phoneController.text = phone;
           }
         });
-
-        // If name is still empty, try the users table as final fallback
-        if (_nameController.text.isEmpty) {
-          try {
-            final userResp = await SupabaseConfig.client
-                .from('users')
-                .select('display_name, full_name')
-                .eq('id', widget.userId)
-                .maybeSingle();
-            if (mounted && userResp != null && _nameController.text.isEmpty) {
-              final dn = (userResp['display_name'] as String? ?? '').trim();
-              final fn = (userResp['full_name'] as String? ?? '').trim();
-              if (dn.isNotEmpty || fn.isNotEmpty) {
-                setState(() {
-                  _nameController.text = dn.isNotEmpty ? dn : fn;
-                });
-              }
-            }
-          } catch (_) {}
-        }
       }
     } catch (e) {
       debugPrint('[DepositPaymentPage] Error loading user profile: $e');
