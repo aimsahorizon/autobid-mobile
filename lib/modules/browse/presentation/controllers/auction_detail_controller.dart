@@ -276,6 +276,7 @@ class AuctionDetailController extends ChangeNotifier {
               auctionId: bid.auctionId,
               amount: bid.amount,
               bidderName: bid.bidderName,
+              username: bid.username,
               timestamp: bid.timestamp,
               isCurrentUser: _userId != null && bid.id.contains(_userId),
               isWinning: bid.isWinning,
