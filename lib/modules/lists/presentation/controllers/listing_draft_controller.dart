@@ -214,13 +214,19 @@ class ListingDraftController extends ChangeNotifier {
     _isSubmissionSuccess = false;
     notifyListeners();
 
-    // Restore offline draft first if available.
+    // Restore offline draft only if it hasn't been synced to DB yet (empty ID).
+    // If it has an ID, it's already accessible via loadDraft() from the drafts list.
     final localDraft = await _loadDraftLocally(sellerId);
-    if (localDraft != null) {
+    if (localDraft != null && localDraft.id.isEmpty) {
       _currentDraft = localDraft;
       _isLoading = false;
       notifyListeners();
       return;
+    }
+
+    // Clear stale local draft (synced drafts should be loaded via loadDraft)
+    if (localDraft != null) {
+      await _clearLocalDraft(sellerId);
     }
 
     // Create local draft with empty ID to defer DB creation
