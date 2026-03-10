@@ -145,11 +145,11 @@ class BidSupabaseDataSource {
         'DEBUG [BidDataSource]: Fetching bid history for auction_id: $auctionId',
       );
 
-      // Query bids with users join to get bidder username/display_name
+      // Query bids with users join to get bidder name info
       final response = await _supabase
           .from('bids')
           .select(
-            'id, bid_amount, is_auto_bid, created_at, bidder_id, bidder:users!bidder_id(username, display_name)',
+            'id, bid_amount, is_auto_bid, created_at, bidder_id, bidder:users!bidder_id(username, first_name, last_name)',
           )
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);

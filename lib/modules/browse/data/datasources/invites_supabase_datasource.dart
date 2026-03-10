@@ -41,11 +41,18 @@ class InvitesSupabaseDatasource {
       return null;
     }
 
-    final query = supabase.from('users').select('id');
+    final query = supabase.from('users').select('id, is_verified');
     final response = type == 'email'
         ? await query.ilike('email', normalized).limit(1).maybeSingle()
         : await query.ilike('username', normalized).limit(1).maybeSingle();
-    return response?['id'] as String?;
+
+    if (response == null) return null;
+
+    if (response['is_verified'] != true) {
+      throw Exception('This user has not completed KYC verification');
+    }
+
+    return response['id'] as String?;
   }
 
   Future<void> respondInvite({

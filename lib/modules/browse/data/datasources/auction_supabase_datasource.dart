@@ -350,6 +350,60 @@ class AuctionSupabaseDataSource {
         'photos': photos,
       });
     } on PostgrestException catch (e) {
+      // Check if the auction exists but is no longer in the browse view (ended)
+      try {
+        final auctionCheck = await _supabase
+            .from('auctions')
+            .select(
+              'id, title, current_price, starting_price, end_time, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
+            )
+            .eq('id', auctionId)
+            .maybeSingle();
+
+        if (auctionCheck != null) {
+          final endTime = DateTime.parse(auctionCheck['end_time'] as String);
+          if (endTime.isBefore(DateTime.now())) {
+            // Auction has ended — return a minimal ended model
+            final carName = [
+              auctionCheck['vehicle_year']?.toString(),
+              auctionCheck['vehicle_make'],
+              auctionCheck['vehicle_model'],
+            ].where((s) => s != null && s.isNotEmpty).join(' ');
+
+            return AuctionDetailModel.fromJson({
+              'id': auctionCheck['id'],
+              'title': auctionCheck['title'] ?? carName,
+              'description': '',
+              'starting_price': auctionCheck['starting_price'] ?? 0,
+              'current_bid':
+                  auctionCheck['current_price'] ??
+                  auctionCheck['starting_price'] ??
+                  0,
+              'reserve_price': null,
+              'bid_increment': 0,
+              'min_bid_increment': 0,
+              'enable_incremental_bidding': false,
+              'deposit_amount': 0,
+              'end_time': auctionCheck['end_time'],
+              'total_bids': 0,
+              'status': 'ended',
+              'car_image_url': auctionCheck['primary_image_url'] ?? '',
+              'brand': auctionCheck['vehicle_make'] ?? '',
+              'make': auctionCheck['vehicle_make'] ?? '',
+              'model': auctionCheck['vehicle_model'] ?? '',
+              'year': auctionCheck['vehicle_year'] ?? 0,
+              'minimum_bid': auctionCheck['starting_price'] ?? 0,
+              'is_reserve_met': false,
+              'show_reserve_price': false,
+              'bidders_count': 0,
+              'has_user_deposited': false,
+              'photos': <String, dynamic>{},
+            });
+          }
+        }
+      } catch (_) {
+        // Ignore fallback errors — throw original
+      }
       throw Exception('Failed to get auction details: ${e.message}');
     } catch (e) {
       throw Exception('Failed to get auction details: $e');

@@ -49,19 +49,21 @@ class AuctionDetailCompositeSupabaseDataSource
 
     // Convert to BidHistoryEntity
     return bidsData.map((bidData) {
-      // Extract bidder username from nested users data
+      // Extract bidder info from nested users data
       String bidderName = 'Bidder';
       String? username;
       final bidderData = bidData['bidder'] as Map<String, dynamic>?;
       if (bidderData != null) {
-        final displayName = bidderData['display_name'] as String?;
+        final firstName = (bidderData['first_name'] as String? ?? '').trim();
+        final lastName = (bidderData['last_name'] as String? ?? '').trim();
         final uname = bidderData['username'] as String?;
 
-        username = uname; // Store username separately
+        username = uname;
 
-        // Prefer display_name if available, fallback to username
-        if (displayName != null && displayName.isNotEmpty) {
-          bidderName = displayName;
+        // Build full name from first + last
+        final fullName = '$firstName $lastName'.trim();
+        if (fullName.isNotEmpty) {
+          bidderName = fullName;
         } else if (username != null && username.isNotEmpty) {
           bidderName = username;
         }
