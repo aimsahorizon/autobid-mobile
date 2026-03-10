@@ -239,10 +239,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
       Navigator.of(context).pop();
 
       if (_controller.errorMessage == null) {
+        _controller.clearAllData();
+        if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
+          builder: (dialogContext) => AlertDialog(
             title: const Row(
               children: [
                 Icon(Icons.check_circle, color: ColorConstants.success),
@@ -256,8 +258,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
             actions: [
               FilledButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
+                  Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
                 },
                 child: const Text('Done'),
               ),
@@ -276,32 +278,32 @@ class _RegistrationPageState extends State<RegistrationPage> {
         if (didPop) return;
         _handleExit();
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(_getStepTitle()),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: _handleExit,
-          ),
-          actions: [
-            if (_controller.editingFromReview &&
-                _controller.currentStep != KYCStep.review)
-              TextButton.icon(
-                onPressed: () {
-                  _controller.returnToReview();
-                  setState(() {});
-                },
-                icon: const Icon(Icons.rate_review_rounded, size: 18),
-                label: const Text('Review'),
+      child: ListenableBuilder(
+        listenable: _controller,
+        builder: (context, _) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(_getStepTitle()),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: _handleExit,
               ),
-          ],
-        ),
-        body: ListenableBuilder(
-          listenable: _controller,
-          builder: (context, _) {
-            return Column(
+              actions: [
+                if (_controller.editingFromReview &&
+                    _controller.currentStep != KYCStep.review)
+                  TextButton.icon(
+                    onPressed: () {
+                      _controller.returnToReview();
+                      setState(() {});
+                    },
+                    icon: const Icon(Icons.rate_review_rounded, size: 18),
+                    label: const Text('Review'),
+                  ),
+              ],
+            ),
+            body: Column(
               children: [
                 _buildProgressIndicator(),
                 Expanded(
@@ -324,9 +326,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 ),
                 _buildNavigationButtons(),
               ],
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
