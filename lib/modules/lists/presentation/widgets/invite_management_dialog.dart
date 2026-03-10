@@ -75,7 +75,7 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
         padding: const EdgeInsets.all(20),
-        constraints: const BoxConstraints(maxWidth: 760, maxHeight: 760),
+        constraints: const BoxConstraints(maxWidth: 900, maxHeight: 900),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
