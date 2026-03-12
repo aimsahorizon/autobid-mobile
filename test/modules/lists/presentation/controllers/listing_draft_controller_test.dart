@@ -70,9 +70,7 @@ void main() {
     provideDummy<Either<Failure, ListingDraftEntity>>(
       const Left(ServerFailure('dummy')),
     );
-    provideDummy<Either<Failure, void>>(
-      const Left(ServerFailure('dummy')),
-    );
+    provideDummy<Either<Failure, void>>(const Left(ServerFailure('dummy')));
 
     controller = ListingDraftController(
       createDraftUseCase: mockCreateDraftUseCase,
@@ -92,56 +90,65 @@ void main() {
     );
   });
 
-  test('createNewDraft creates a local draft and DOES NOT call createDraftUseCase immediately', () async {
-    // Arrange
-    const sellerId = 'user123';
-    final mockProfile = UserProfileEntity(
-      id: sellerId,
-      username: 'testuser',
-      email: 'test@example.com',
-      fullName: 'Test User',
-      profilePhotoUrl: '',
-      coverPhotoUrl: '',
-      province: 'Metro Manila',
-      city: 'Quezon City',
-      barangay: 'Diliman',
-    );
+  test(
+    'createNewDraft creates a local draft and DOES NOT call createDraftUseCase immediately',
+    () async {
+      // Arrange
+      const sellerId = 'user123';
+      final mockProfile = UserProfileEntity(
+        id: sellerId,
+        username: 'testuser',
+        email: 'test@example.com',
+        fullName: 'Test User',
+        profilePhotoUrl: '',
+        coverPhotoUrl: '',
+        province: 'Metro Manila',
+        city: 'Quezon City',
+        barangay: 'Diliman',
+      );
 
-    // Mock profile fetch success
-    when(mockGetUserProfileUseCase.call())
-        .thenAnswer((_) async => Right(mockProfile));
+      // Mock profile fetch success
+      when(
+        mockGetUserProfileUseCase.call(),
+      ).thenAnswer((_) async => Right(mockProfile));
 
-    // Act
-    await controller.createNewDraft(sellerId);
+      // Act
+      await controller.createNewDraft(sellerId);
 
-    // Assert
-    expect(controller.currentDraft, isNotNull);
-    expect(controller.currentDraft!.id, isEmpty, reason: 'Draft ID should be empty for local drafts');
-    expect(controller.currentDraft!.sellerId, sellerId);
-    
-    // Check if address was pre-filled
-    expect(controller.currentDraft!.province, 'Metro Manila');
-    expect(controller.currentDraft!.cityMunicipality, 'Quezon City');
-    expect(controller.currentDraft!.barangay, 'Diliman');
+      // Assert
+      expect(controller.currentDraft, isNotNull);
+      expect(
+        controller.currentDraft!.id,
+        isEmpty,
+        reason: 'Draft ID should be empty for local drafts',
+      );
+      expect(controller.currentDraft!.sellerId, sellerId);
 
-    // VERIFY: The database creation usecase was NEVER called
-    verifyNever(mockCreateDraftUseCase.call(any));
-    
-    // VERIFY: Auto-save was NOT called (because it's local)
-    verifyNever(mockSaveDraftUseCase.call(any));
-  });
+      // Check if address was pre-filled
+      expect(controller.currentDraft!.province, 'Metro Manila');
+      expect(controller.currentDraft!.cityMunicipality, 'Quezon City');
+      expect(controller.currentDraft!.barangay, 'Diliman');
+
+      // VERIFY: The database creation usecase was NEVER called
+      verifyNever(mockCreateDraftUseCase.call(any));
+
+      // VERIFY: Auto-save was NOT called (because it's local)
+      verifyNever(mockSaveDraftUseCase.call(any));
+    },
+  );
 
   test('saveDraft calls createDraftUseCase first if draft is local', () async {
     // Arrange
     const sellerId = 'user123';
     const newDbId = 'draft_db_123';
-    
+
     // Setup local draft state
-    when(mockGetUserProfileUseCase.call())
-        .thenAnswer((_) async => Left(ServerFailure('Profile error'))); // Ignore profile for this test
-    
+    when(mockGetUserProfileUseCase.call()).thenAnswer(
+      (_) async => Left(ServerFailure('Profile error')),
+    ); // Ignore profile for this test
+
     await controller.createNewDraft(sellerId);
-    
+
     // Setup mocks for creation
     final dbDraft = ListingDraftEntity(
       id: newDbId,
@@ -149,12 +156,14 @@ void main() {
       currentStep: 1,
       lastSaved: DateTime.now(),
     );
-    
-    when(mockCreateDraftUseCase.call(sellerId))
-        .thenAnswer((_) async => Right(dbDraft));
-        
-    when(mockSaveDraftUseCase.call(any))
-        .thenAnswer((_) async => const Right(null));
+
+    when(
+      mockCreateDraftUseCase.call(sellerId),
+    ).thenAnswer((_) async => Right(dbDraft));
+
+    when(
+      mockSaveDraftUseCase.call(any),
+    ).thenAnswer((_) async => const Right(null));
 
     // Act
     final success = await controller.saveDraft();
@@ -164,11 +173,145 @@ void main() {
     // Verify creation was called
     verify(mockCreateDraftUseCase.call(sellerId)).called(1);
     // Verify save was called with the NEW ID
-    verify(mockSaveDraftUseCase.call(argThat(
-      predicate<ListingDraftEntity>((draft) => draft.id == newDbId)
-    ))).called(1);
-    
+    verify(
+      mockSaveDraftUseCase.call(
+        argThat(predicate<ListingDraftEntity>((draft) => draft.id == newDbId)),
+      ),
+    ).called(1);
+
     // Verify controller state is updated
     expect(controller.currentDraft!.id, newDbId);
   });
+
+  test('saveDraft preserves ALL local fields when syncing to DB', () async {
+    // Arrange
+    const sellerId = 'user123';
+    const newDbId = 'draft_db_456';
+
+    // Create local draft first
+    when(
+      mockGetUserProfileUseCase.call(),
+    ).thenAnswer((_) async => const Left(ServerFailure('ignore')));
+    await controller.createNewDraft(sellerId);
+
+    // Simulate user filling in many fields
+    controller.updateDraft(
+      controller.currentDraft!.copyWith(
+        brand: 'Toyota',
+        model: 'Vios',
+        variant: 'XLE',
+        bodyType: 'Sedan',
+        year: 2022,
+        engineType: 'Gasoline',
+        transmission: 'Automatic',
+        exteriorColor: 'White',
+        condition: 'Used',
+        mileage: 30000,
+        plateNumber: 'ABC 1234',
+        description: 'Well maintained car',
+        startingPrice: 500000,
+      ),
+    );
+
+    // Setup mocks for creation + save
+    final dbDraft = ListingDraftEntity(
+      id: newDbId,
+      sellerId: sellerId,
+      currentStep: 1,
+      lastSaved: DateTime.now(),
+    );
+    when(
+      mockCreateDraftUseCase.call(sellerId),
+    ).thenAnswer((_) async => Right(dbDraft));
+    when(
+      mockSaveDraftUseCase.call(any),
+    ).thenAnswer((_) async => const Right(null));
+
+    // Act
+    final success = await controller.saveDraft();
+
+    // Assert
+    expect(success, true);
+    final saved = controller.currentDraft!;
+    expect(saved.id, newDbId);
+    // ALL fields should be preserved, not just brand/model/year
+    expect(saved.brand, 'Toyota');
+    expect(saved.model, 'Vios');
+    expect(saved.variant, 'XLE');
+    expect(saved.bodyType, 'Sedan');
+    expect(saved.year, 2022);
+    expect(saved.engineType, 'Gasoline');
+    expect(saved.transmission, 'Automatic');
+    expect(saved.exteriorColor, 'White');
+    expect(saved.condition, 'Used');
+    expect(saved.mileage, 30000);
+    expect(saved.plateNumber, 'ABC 1234');
+    expect(saved.description, 'Well maintained car');
+    expect(saved.startingPrice, 500000);
+  });
+
+  test(
+    'discardDraft clears local draft and deletes DB draft if synced',
+    () async {
+      // Arrange
+      const sellerId = 'user123';
+      const dbId = 'draft_db_789';
+
+      // Create and sync a draft
+      when(
+        mockGetUserProfileUseCase.call(),
+      ).thenAnswer((_) async => const Left(ServerFailure('ignore')));
+      await controller.createNewDraft(sellerId);
+
+      final dbDraft = ListingDraftEntity(
+        id: dbId,
+        sellerId: sellerId,
+        currentStep: 1,
+        lastSaved: DateTime.now(),
+      );
+      when(
+        mockCreateDraftUseCase.call(sellerId),
+      ).thenAnswer((_) async => Right(dbDraft));
+      when(
+        mockSaveDraftUseCase.call(any),
+      ).thenAnswer((_) async => const Right(null));
+
+      // Trigger sync to DB
+      await controller.saveDraft();
+      expect(controller.currentDraft!.id, dbId);
+
+      // Setup delete mock
+      when(
+        mockDeleteDraftUseCase.call(dbId),
+      ).thenAnswer((_) async => const Right(null));
+
+      // Act
+      await controller.discardDraft();
+
+      // Assert
+      expect(controller.currentDraft, isNull);
+      verify(mockDeleteDraftUseCase.call(dbId)).called(1);
+    },
+  );
+
+  test(
+    'discardDraft with local-only draft does not call deleteDraftUseCase',
+    () async {
+      // Arrange
+      const sellerId = 'user123';
+
+      when(
+        mockGetUserProfileUseCase.call(),
+      ).thenAnswer((_) async => const Left(ServerFailure('ignore')));
+      await controller.createNewDraft(sellerId);
+      expect(controller.currentDraft!.id, isEmpty);
+
+      // Act
+      await controller.discardDraft();
+
+      // Assert
+      expect(controller.currentDraft, isNull);
+      verifyNever(mockDeleteDraftUseCase.call(any));
+    },
+  );
 }
