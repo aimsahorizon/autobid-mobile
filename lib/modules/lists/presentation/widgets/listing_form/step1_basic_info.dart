@@ -133,6 +133,19 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
           ),
           const SizedBox(height: 16),
           ComboBoxWidget(
+            label: 'Variant *',
+            value: _variant,
+            items: widget.controller.variants.map((e) => e.name).toList(),
+            hint: 'Select Variant',
+            onChanged: (v) {
+              setState(() => _variant = v);
+              _updateDraft();
+            },
+            validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+            enabled: _model != null,
+          ),
+          const SizedBox(height: 16),
+          ComboBoxWidget(
             label: 'Body Type',
             value: _bodyType,
             items: const [
@@ -152,19 +165,6 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
               setState(() => _bodyType = v);
               _updateDraft();
             },
-          ),
-          const SizedBox(height: 16),
-          ComboBoxWidget(
-            label: 'Variant *',
-            value: _variant,
-            items: widget.controller.variants.map((e) => e.name).toList(),
-            hint: 'Select Variant',
-            onChanged: (v) {
-              setState(() => _variant = v);
-              _updateDraft();
-            },
-            validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
-            enabled: _model != null,
           ),
           const SizedBox(height: 16),
           FormFieldWidget(

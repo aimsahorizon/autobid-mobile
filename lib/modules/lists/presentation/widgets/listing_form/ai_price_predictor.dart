@@ -34,13 +34,15 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
   Future<void> _predictPrice() async {
     try {
       // 1. Load Metadata
-      final jsonStr = await rootBundle.loadString('assets/ai/pricing_metadata.json');
+      final jsonStr = await rootBundle.loadString(
+        'assets/ai/pricing_metadata.json',
+      );
       final Map<String, dynamic> db = json.decode(jsonStr);
 
       final key = '${widget.draft.brand}_${widget.draft.model}'
           .toLowerCase()
           .replaceAll(' ', '_');
-      
+
       final yearKey = widget.draft.year.toString();
 
       if (!db.containsKey(key) || !db[key].containsKey(yearKey)) {
@@ -49,14 +51,14 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
 
       final stats = db[key][yearKey];
       double basePrice = (stats['price'] as num).toDouble();
-      
+
       // 2. Apply Adjustments (Logic-based AI)
-      
+
       // Mileage Adjustment (Avg is ~10k/year)
       final age = DateTime.now().year - (widget.draft.year ?? 2020);
       final expectedMileage = age * 10000;
       final actualMileage = widget.draft.mileage ?? expectedMileage;
-      
+
       if (actualMileage > expectedMileage * 1.5) {
         basePrice *= 0.90; // -10% for high mileage
       } else if (actualMileage < expectedMileage * 0.5) {
@@ -74,7 +76,6 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
         _maxPrice = basePrice * 1.05;
         _isLoading = false;
       });
-
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
@@ -117,7 +118,9 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
       decoration: BoxDecoration(
         color: ColorConstants.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColorConstants.primary.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: ColorConstants.primary.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,7 +152,7 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                 children: [
                   const Text('Estimated Range', style: TextStyle(fontSize: 10)),
                   Text(
-                    'Γé▒${(_minPrice! / 1000).toStringAsFixed(0)}k - Γé▒${(_maxPrice! / 1000).toStringAsFixed(0)}k',
+                    '₱${(_minPrice! / 1000).toStringAsFixed(0)}k - ₱${(_maxPrice! / 1000).toStringAsFixed(0)}k',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -159,7 +162,10 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ColorConstants.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),

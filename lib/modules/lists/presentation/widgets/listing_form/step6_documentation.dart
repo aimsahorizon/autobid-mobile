@@ -250,7 +250,11 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           items: const ['Current', 'Expired', 'Renewal Pending'],
           onChanged: (v) {
             _unfocusPlateFields();
-            setState(() => _registrationStatus = v);
+            setState(() {
+              _registrationStatus = v;
+              // Clear expiry if status changed so user picks a valid date
+              _registrationExpiry = null;
+            });
             _updateDraft();
           },
         ),
@@ -258,13 +262,40 @@ class _Step6DocumentationState extends State<Step6Documentation> {
         InkWell(
           onTap: () async {
             _unfocusPlateFields();
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+            final yesterday = today.subtract(const Duration(days: 1));
+
+            DateTime initialDate;
+            DateTime firstDate;
+            DateTime lastDate;
+
+            if (_registrationStatus == 'Current') {
+              // Must not accept date before today
+              firstDate = today;
+              lastDate = today.add(const Duration(days: 365 * 5));
+              initialDate =
+                  _registrationExpiry ?? today.add(const Duration(days: 365));
+              if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+            } else if (_registrationStatus == 'Expired') {
+              // Must not accept date from today onward, only yesterday and before
+              firstDate = DateTime(2000);
+              lastDate = yesterday;
+              initialDate = _registrationExpiry ?? yesterday;
+              if (initialDate.isAfter(lastDate)) initialDate = lastDate;
+            } else {
+              // Renewal Pending or null — any date
+              firstDate = DateTime(2000);
+              lastDate = today.add(const Duration(days: 365 * 5));
+              initialDate =
+                  _registrationExpiry ?? today.add(const Duration(days: 365));
+            }
+
             final picked = await showDatePicker(
               context: context,
-              initialDate:
-                  _registrationExpiry ??
-                  DateTime.now().add(const Duration(days: 365)),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+              initialDate: initialDate,
+              firstDate: firstDate,
+              lastDate: lastDate,
             );
             if (picked != null) {
               setState(() => _registrationExpiry = picked);
