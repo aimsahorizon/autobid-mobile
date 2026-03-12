@@ -267,8 +267,11 @@ class ListingDraftController extends ChangeNotifier {
     if (_currentDraft == null) return false;
     if (_currentDraft!.id.isNotEmpty) return true;
 
+    // Capture all local data before DB creation overwrites _currentDraft
+    final localDraft = _currentDraft!;
+
     // Create real draft in DB
-    final result = await _createDraftUseCase.call(_currentDraft!.sellerId);
+    final result = await _createDraftUseCase.call(localDraft.sellerId);
 
     return result.fold(
       (failure) {
@@ -277,16 +280,10 @@ class ListingDraftController extends ChangeNotifier {
         return false;
       },
       (newDraft) {
-        // Merge local data into new draft (preserve address/inputs)
-        _currentDraft = newDraft.copyWith(
-          province: _currentDraft!.province,
-          cityMunicipality: _currentDraft!.cityMunicipality,
-          barangay: _currentDraft!.barangay,
-          // Preserve other fields if user typed before save
-          brand: _currentDraft!.brand,
-          model: _currentDraft!.model,
-          year: _currentDraft!.year,
-          // ... map other fields if necessary, but usually create happens early
+        // Merge ALL local data into the new DB draft (only override the ID)
+        _currentDraft = localDraft.copyWith(
+          id: newDraft.id,
+          lastSaved: DateTime.now(),
         );
         notifyListeners();
         return true;
@@ -351,6 +348,11 @@ class ListingDraftController extends ChangeNotifier {
   /// Manual save
   Future<bool> saveDraft() async {
     if (_currentDraft == null) return false;
+    if (_isSaving) return false; // Prevent duplicate saves from rapid clicks
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
 
     await _saveDraftLocally(_currentDraft!);
 
@@ -358,16 +360,13 @@ class ListingDraftController extends ChangeNotifier {
     if (_currentDraft!.id.isEmpty) {
       final success = await _ensureDraftExists();
       if (!success) {
+        _isSaving = false;
         _errorMessage =
             'Saved locally. Connect to internet to sync this draft.';
         notifyListeners();
         return true;
       }
     }
-
-    _isSaving = true;
-    _errorMessage = null;
-    notifyListeners();
 
     final result = await _saveDraftUseCase.call(_currentDraft!);
     _isSaving = false;
@@ -499,22 +498,9 @@ class ListingDraftController extends ChangeNotifier {
   bool _validateBiddingConfig() {
     if (_currentDraft == null) return false;
 
-    final deposit = _currentDraft!.depositAmount ?? 50000;
     final increment = _currentDraft!.bidIncrement ?? 100;
 
-    // Deposit rules: 5k-50k, 5k increments
-    if (deposit < 5000) {
-      _errorMessage = 'Deposit amount must be at least ₱5,000';
-      return false;
-    }
-    if (deposit > 50000) {
-      _errorMessage = 'Deposit amount cannot exceed ₱50,000';
-      return false;
-    }
-    if (deposit % 5000 != 0) {
-      _errorMessage = 'Deposit amount must be a multiple of ₱5,000';
-      return false;
-    }
+    // Deposit is auto-calculated — no manual validation needed
 
     // Bid Increment rules: Min 100, 100 increments
     if (increment < 100) {
@@ -541,7 +527,19 @@ class ListingDraftController extends ChangeNotifier {
       return false;
     }
 
-    // End date is chosen in Approved tab; keep submission unblocked by applying a safe default.
+    // Compute end date from duration if user chose duration mode
+    if (_currentDraft!.auctionEndDate == null &&
+        _currentDraft!.auctionDurationHours != null) {
+      _currentDraft = _currentDraft!.copyWith(
+        auctionEndDate: DateTime.now().toUtc().add(
+          Duration(hours: _currentDraft!.auctionDurationHours!),
+        ),
+        lastSaved: DateTime.now(),
+      );
+      await _saveDraftLocally(_currentDraft!);
+    }
+
+    // Fallback: apply safe default if still null
     if (_currentDraft!.auctionEndDate == null) {
       _currentDraft = _currentDraft!.copyWith(
         auctionEndDate: DateTime.now().toUtc().add(const Duration(days: 7)),
@@ -565,8 +563,8 @@ class ListingDraftController extends ChangeNotifier {
       final saveResult = await _saveDraftUseCase.call(_currentDraft!);
 
       final saveSuccess = saveResult.fold((failure) {
-        _errorMessage =
-            'Unable to save your listing. Please check your connection and try again.';
+        debugPrint('[submitListing] Save failed: ${failure.message}');
+        _errorMessage = 'Unable to save your listing: ${failure.message}';
         return false;
       }, (_) => true);
 
@@ -616,6 +614,25 @@ class ListingDraftController extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  /// Discard current draft: clears local storage and deletes DB draft if synced
+  Future<void> discardDraft() async {
+    if (_currentDraft == null) return;
+
+    final sellerId = _currentDraft!.sellerId;
+    final draftId = _currentDraft!.id;
+
+    // Delete from DB if it was synced (has real ID)
+    if (draftId.isNotEmpty) {
+      await _deleteDraftUseCase.call(draftId);
+      _drafts.removeWhere((d) => d.id == draftId);
+    }
+
+    // Always clear local storage
+    await _clearLocalDraft(sellerId);
+    _currentDraft = null;
+    notifyListeners();
   }
 
   /// Delete draft
@@ -738,6 +755,9 @@ class ListingDraftController extends ChangeNotifier {
         depositAmount: draft.depositAmount,
         enableIncrementalBidding: draft.enableIncrementalBidding,
         autoLiveAfterApproval: draft.autoLiveAfterApproval,
+        scheduleLiveMode: draft.scheduleLiveMode,
+        auctionStartDate: draft.auctionStartDate,
+        auctionDurationHours: draft.auctionDurationHours,
         snipeGuardEnabled: draft.snipeGuardEnabled,
         snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
         snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,
