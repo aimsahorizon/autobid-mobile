@@ -87,6 +87,12 @@ class ListingDraftEntity {
   final bool? enableIncrementalBidding; // Allow price-based increments
   final bool? autoLiveAfterApproval; // Auto-launch after admin approval
 
+  // Schedule / Launch Mode: 'auto_live', 'manual', 'auto_schedule'
+  final String? scheduleLiveMode;
+  final DateTime? auctionStartDate; // Desired start time for auto_schedule
+  final int?
+  auctionDurationHours; // Duration-based end (alternative to end date)
+
   // Snipe Guard Configuration
   final bool? snipeGuardEnabled;
   final int?
@@ -165,6 +171,9 @@ class ListingDraftEntity {
     this.depositAmount,
     this.enableIncrementalBidding,
     this.autoLiveAfterApproval,
+    this.scheduleLiveMode,
+    this.auctionStartDate,
+    this.auctionDurationHours,
     this.snipeGuardEnabled,
     this.snipeGuardThresholdSeconds,
     this.snipeGuardExtendSeconds,
@@ -239,6 +248,9 @@ class ListingDraftEntity {
     double? depositAmount,
     bool? enableIncrementalBidding,
     bool? autoLiveAfterApproval,
+    String? scheduleLiveMode,
+    DateTime? auctionStartDate,
+    int? auctionDurationHours,
     bool? snipeGuardEnabled,
     int? snipeGuardThresholdSeconds,
     int? snipeGuardExtendSeconds,
@@ -313,6 +325,9 @@ class ListingDraftEntity {
           enableIncrementalBidding ?? this.enableIncrementalBidding,
       autoLiveAfterApproval:
           autoLiveAfterApproval ?? this.autoLiveAfterApproval,
+      scheduleLiveMode: scheduleLiveMode ?? this.scheduleLiveMode,
+      auctionStartDate: auctionStartDate ?? this.auctionStartDate,
+      auctionDurationHours: auctionDurationHours ?? this.auctionDurationHours,
       snipeGuardEnabled: snipeGuardEnabled ?? this.snipeGuardEnabled,
       snipeGuardThresholdSeconds:
           snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
@@ -437,13 +452,17 @@ class ListingDraftEntity {
             barangay != null;
       case 8:
         // Step 8: Final Details, Pricing & Bidding
-        return description != null &&
-            description!.length >= 50 &&
-            startingPrice != null &&
-            auctionEndDate != null &&
-            bidIncrement != null &&
-            depositAmount != null &&
-            biddingType != null;
+        if (description == null ||
+            description!.length < 50 ||
+            startingPrice == null ||
+            bidIncrement == null ||
+            depositAmount == null ||
+            biddingType == null) {
+          return false;
+        }
+        // Must have a valid end date or duration
+        return auctionEndDate != null ||
+            (auctionDurationHours != null && auctionDurationHours! > 0);
       case 9:
         // Step 9: Summary - always complete if reached
         return true;
