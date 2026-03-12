@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 
+bool _isAssetPath(String url) => url.startsWith('assets/');
+
 class ListingCard extends StatefulWidget {
   final SellerListingEntity listing;
   final bool isGridView;
@@ -206,18 +208,30 @@ class _ListingCardState extends State<ListingCard> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: widget.listing.imageUrl,
-              width: 100,
-              height: 80,
-              fit: BoxFit.cover,
-              placeholder: (_, __) =>
-                  Container(color: ColorConstants.backgroundSecondaryLight),
-              errorWidget: (_, __, ___) => Container(
-                color: ColorConstants.backgroundSecondaryLight,
-                child: const Icon(Icons.directions_car),
-              ),
-            ),
+            child: _isAssetPath(widget.listing.imageUrl)
+                ? Image.asset(
+                    widget.listing.imageUrl,
+                    width: 100,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: ColorConstants.backgroundSecondaryLight,
+                      child: const Icon(Icons.directions_car),
+                    ),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: widget.listing.imageUrl,
+                    width: 100,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      color: ColorConstants.backgroundSecondaryLight,
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      color: ColorConstants.backgroundSecondaryLight,
+                      child: const Icon(Icons.directions_car),
+                    ),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -282,18 +296,27 @@ class _CardImage extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 16 / 10,
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (_, __) => Container(
-                color: ColorConstants.backgroundSecondaryLight,
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (_, __, ___) => Container(
-                color: ColorConstants.backgroundSecondaryLight,
-                child: const Icon(Icons.directions_car, size: 40),
-              ),
-            ),
+            child: _isAssetPath(imageUrl)
+                ? Image.asset(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: ColorConstants.backgroundSecondaryLight,
+                      child: const Icon(Icons.directions_car, size: 40),
+                    ),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      color: ColorConstants.backgroundSecondaryLight,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      color: ColorConstants.backgroundSecondaryLight,
+                      child: const Icon(Icons.directions_car, size: 40),
+                    ),
+                  ),
           ),
           Positioned(top: 8, right: 8, child: _StatusBadge(status: status)),
         ],
