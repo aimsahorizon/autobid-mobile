@@ -109,6 +109,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
       59,
     );
 
+    // Store as UTC for database consistency
     final newEndTime = localDateTime.toUtc();
 
     // Capture references before async gap
@@ -341,18 +342,6 @@ class ApprovedListingDetailPage extends StatelessWidget {
     final safeEnd = (currentEnd != null && currentEnd.isAfter(scheduledStart))
         ? currentEnd
         : scheduledStart.add(const Duration(days: 7));
-
-    // Validate minimum duration (24 hours)
-    if (safeEnd.difference(scheduledStart).inHours < 24) {
-      if (!context.mounted) return;
-      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-        const SnackBar(
-          content: Text('Scheduled auctions must be at least 24 hours long.'),
-          backgroundColor: ColorConstants.error,
-        ),
-      );
-      return;
-    }
 
     // Capture references before async gap
     final navigator = Navigator.of(context);

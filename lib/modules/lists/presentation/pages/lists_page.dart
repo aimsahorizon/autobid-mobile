@@ -22,9 +22,9 @@ class ListsPage extends StatefulWidget {
 class _ListsPageState extends State<ListsPage>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
-  ListingStatus? _selectedStatusFilter; // null means "All"
 
   static const _currentTabs = [
+    null, // "All" tab
     ListingStatus.active,
     ListingStatus.pending,
     ListingStatus.approved,
@@ -32,17 +32,13 @@ class _ListsPageState extends State<ListsPage>
     ListingStatus.draft,
   ];
 
-  List<ListingStatus> get _tabs => _currentTabs;
-
-  bool _lastShowAll = false;
+  List<ListingStatus?> get _tabs => _currentTabs;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Initialize controller listener
     _controller.addListener(_onControllerChanged);
-    _lastShowAll = _controller.showAll;
 
     _tabController = TabController(length: _tabs.length, vsync: this);
     _controller.loadListings();
@@ -64,13 +60,6 @@ class _ListsPageState extends State<ListsPage>
   }
 
   void _onControllerChanged() {
-    if (_controller.showAll != _lastShowAll) {
-      _lastShowAll = _controller.showAll;
-      // Reset filter when switching to unified view
-      if (_controller.showAll) {
-        _selectedStatusFilter = null;
-      }
-    }
     if (mounted) setState(() {});
   }
 
@@ -78,12 +67,8 @@ class _ListsPageState extends State<ListsPage>
 
   List<SellerListingEntity> _getAllListings() {
     final all = _controller.listings.values.expand((l) => l).toList();
-    if (_selectedStatusFilter == null) {
-      // Sort by created descending
-      all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return all;
-    }
-    return all.where((l) => l.status == _selectedStatusFilter).toList();
+    all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return all;
   }
 
   void _navigateToCreateListing(BuildContext context) {
@@ -110,9 +95,9 @@ class _ListsPageState extends State<ListsPage>
       if (result is Map &&
           result['success'] == true &&
           result['navigateTo'] == 'pending') {
-        if (!_controller.showAll) {
-          _tabController.animateTo(1); // Index 1 is Pending tab
-        }
+        _tabController.animateTo(
+          2,
+        ); // Index 2 is Pending tab (after All, Active)
       }
     });
   }
@@ -198,33 +183,14 @@ class _ListsPageState extends State<ListsPage>
                 ),
                 ListenableBuilder(
                   listenable: _controller,
-                  builder: (context, _) => Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          _controller.showAll
-                              ? Icons
-                                    .view_sidebar_outlined // Icon for "Back to Tabs"
-                              : Icons.filter_list, // Icon for "Unified View"
-                        ),
-                        onPressed: _controller.toggleShowAll,
-                        tooltip: _controller.showAll
-                            ? 'Tabbed View'
-                            : 'Unified View',
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          _controller.isGridView
-                              ? Icons.view_list_rounded
-                              : Icons.grid_view_rounded,
-                        ),
-                        onPressed: _controller.toggleViewMode,
-                        tooltip: _controller.isGridView
-                            ? 'List view'
-                            : 'Grid view',
-                      ),
-                    ],
+                  builder: (context, _) => IconButton(
+                    icon: Icon(
+                      _controller.isGridView
+                          ? Icons.view_list_rounded
+                          : Icons.grid_view_rounded,
+                    ),
+                    onPressed: _controller.toggleViewMode,
+                    tooltip: _controller.isGridView ? 'List view' : 'Grid view',
                   ),
                 ),
               ],
@@ -233,9 +199,6 @@ class _ListsPageState extends State<ListsPage>
           child: ListenableBuilder(
             listenable: _controller,
             builder: (context, _) {
-              if (_controller.showAll) {
-                return _buildFilterChips(isDark);
-              }
               return Container(
                 margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 decoration: BoxDecoration(
@@ -269,15 +232,23 @@ class _ListsPageState extends State<ListsPage>
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
-                  tabs: _tabs
-                      .map(
-                        (status) => _TabWithBadge(
-                          label: status.tabLabel,
-                          count: _controller.getCountByStatus(status),
-                          color: _getStatusColor(status),
-                        ),
-                      )
-                      .toList(),
+                  tabs: _tabs.map((status) {
+                    if (status == null) {
+                      final allCount = _controller.listings.values
+                          .expand((l) => l)
+                          .length;
+                      return _TabWithBadge(
+                        label: 'All',
+                        count: allCount,
+                        color: ColorConstants.primary,
+                      );
+                    }
+                    return _TabWithBadge(
+                      label: status.tabLabel,
+                      count: _controller.getCountByStatus(status),
+                      color: _getStatusColor(status),
+                    );
+                  }).toList(),
                 ),
               );
             },
@@ -293,14 +264,15 @@ class _ListsPageState extends State<ListsPage>
 
           return RefreshIndicator(
             onRefresh: () => _controller.loadListings(),
-            child: _controller.showAll
-                ? _buildUnifiedView()
-                : TabBarView(
-                    controller: _tabController,
-                    children: _tabs
-                        .map((status) => _buildGridForStatus(status))
-                        .toList(),
-                  ),
+            child: TabBarView(
+              controller: _tabController,
+              children: _tabs.map((status) {
+                if (status == null) {
+                  return _buildUnifiedView();
+                }
+                return _buildGridForStatus(status);
+              }).toList(),
+            ),
           );
         },
       ),
@@ -310,105 +282,6 @@ class _ListsPageState extends State<ListsPage>
         label: const Text('New Listing'),
         backgroundColor: ColorConstants.primary,
         foregroundColor: Colors.white,
-      ),
-    );
-  }
-
-  Widget _buildFilterChips(bool isDark) {
-    // Only statuses relevant to listings (exclude transaction-module statuses)
-    final allStatuses = _currentTabs;
-
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          // "All" Chip
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: const Text('All'),
-              selected: _selectedStatusFilter == null,
-              onSelected: (selected) {
-                if (selected) setState(() => _selectedStatusFilter = null);
-              },
-              backgroundColor: isDark
-                  ? ColorConstants.surfaceDark
-                  : Colors.white,
-              selectedColor: ColorConstants.primary.withValues(alpha: 0.2),
-              labelStyle: TextStyle(
-                color: _selectedStatusFilter == null
-                    ? ColorConstants.primary
-                    : (isDark ? Colors.white : Colors.black),
-                fontWeight: _selectedStatusFilter == null
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-              ),
-              checkmarkColor: ColorConstants.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: _selectedStatusFilter == null
-                      ? ColorConstants.primary
-                      : Colors.transparent,
-                ),
-              ),
-            ),
-          ),
-          // Status Chips
-          ...allStatuses.map((status) {
-            final count = _controller.getCountByStatus(status);
-            if (count == 0 && status != _selectedStatusFilter)
-              return const SizedBox.shrink(); // Hide empty if not selected
-
-            final isSelected = _selectedStatusFilter == status;
-            final color = _getStatusColor(status);
-
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(status.tabLabel),
-                    const SizedBox(width: 4),
-                    Text(
-                      '($count)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isSelected ? color : Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() {
-                    _selectedStatusFilter = selected ? status : null;
-                  });
-                },
-                backgroundColor: isDark
-                    ? ColorConstants.surfaceDark
-                    : Colors.white,
-                selectedColor: color.withValues(alpha: 0.15),
-                labelStyle: TextStyle(
-                  color: isSelected
-                      ? color
-                      : (isDark ? Colors.white : Colors.black),
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-                checkmarkColor: color,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(
-                    color: isSelected ? color : Colors.transparent,
-                  ),
-                ),
-              ),
-            );
-          }),
-        ],
       ),
     );
   }
