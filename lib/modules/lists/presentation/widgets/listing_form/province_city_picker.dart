@@ -10,7 +10,8 @@ class LocationPicker extends StatefulWidget {
   final String? province;
   final String? city;
   final String? barangay;
-  final void Function(String? province, String? city, String? barangay) onChanged;
+  final void Function(String? province, String? city, String? barangay)
+  onChanged;
   final String? Function(String?)? provinceValidator;
   final String? Function(String?)? cityValidator;
   final String? Function(String?)? barangayValidator;
@@ -52,6 +53,60 @@ class _LocationPickerState extends State<LocationPicker> {
     super.initState();
     _locationBloc = sl<LocationBloc>();
     _locationBloc.add(LoadRegions());
+  }
+
+  @override
+  void didUpdateWidget(LocationPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.province != oldWidget.province ||
+        widget.city != oldWidget.city ||
+        widget.barangay != oldWidget.barangay) {
+      // External change (e.g. demo autofill) — reset and re-restore
+      if (widget.province != null &&
+          _selectedProvince?.name != widget.province) {
+        _selectedProvince = null;
+        _selectedCity = null;
+        _selectedBarangay = null;
+        _cities = [];
+        _barangays = [];
+        _tryRestoreFromRegions();
+      }
+    }
+  }
+
+  void _tryRestoreFromRegions() {
+    if (_regions.isEmpty || widget.province == null) return;
+    // Iterate regions to find the one containing the target province
+    _restoreRegionIndex(0);
+  }
+
+  void _restoreRegionIndex(int index) {
+    if (index >= _regions.length || widget.province == null) return;
+    final region = _regions[index];
+    // Create a temporary bloc to probe provinces for this region
+    final tempBloc = sl<LocationBloc>();
+    late final void Function(LocationState) listener;
+    listener = (state) {
+      if (state is ProvincesLoaded) {
+        final match = state.provinces.where((p) => p.name == widget.province);
+        if (match.isNotEmpty) {
+          // Found the right region
+          tempBloc.close();
+          setState(() {
+            _selectedRegion = region;
+            _provinces = state.provinces;
+            _selectedProvince = match.first;
+          });
+          _locationBloc.add(LoadCities(match.first.id));
+        } else {
+          tempBloc.close();
+          // Try next region
+          _restoreRegionIndex(index + 1);
+        }
+      }
+    };
+    tempBloc.stream.listen(listener);
+    tempBloc.add(LoadProvinces(region.id));
   }
 
   @override
@@ -107,7 +162,11 @@ class _LocationPickerState extends State<LocationPicker> {
       setState(() {
         _selectedBarangay = barangay;
       });
-      widget.onChanged(_selectedProvince?.name, _selectedCity?.name, barangay.name);
+      widget.onChanged(
+        _selectedProvince?.name,
+        _selectedCity?.name,
+        barangay.name,
+      );
     }
   }
 
@@ -126,16 +185,20 @@ class _LocationPickerState extends State<LocationPicker> {
           if (state is RegionsLoaded) {
             setState(() {
               _regions = state.regions;
-              // Auto-select Region IX for Zamboanga context if possible, or leave empty
-              // For now, if user provided province, we try to match it logic (complex without region map)
             });
+            // Auto-restore region from province name if provided
+            if (widget.province != null && _selectedRegion == null) {
+              _tryRestoreFromRegions();
+            }
           } else if (state is ProvincesLoaded) {
             setState(() {
               _provinces = state.provinces;
               // Restore Province
               if (widget.province != null && _selectedProvince == null) {
                 try {
-                  final match = _provinces.firstWhere((p) => p.name == widget.province);
+                  final match = _provinces.firstWhere(
+                    (p) => p.name == widget.province,
+                  );
                   _selectedProvince = match;
                   _locationBloc.add(LoadCities(match.id));
                 } catch (_) {}
@@ -147,19 +210,23 @@ class _LocationPickerState extends State<LocationPicker> {
               // Restore City
               if (widget.city != null && _selectedCity == null) {
                 try {
-                  final match = _cities.firstWhere((c) => c.name == widget.city);
+                  final match = _cities.firstWhere(
+                    (c) => c.name == widget.city,
+                  );
                   _selectedCity = match;
                   _locationBloc.add(LoadBarangays(match.id));
                 } catch (_) {}
               }
             });
           } else if (state is BarangaysLoaded) {
-             setState(() {
+            setState(() {
               _barangays = state.barangays;
               // Restore Barangay
               if (widget.barangay != null && _selectedBarangay == null) {
                 try {
-                  final match = _barangays.firstWhere((b) => b.name == widget.barangay);
+                  final match = _barangays.firstWhere(
+                    (b) => b.name == widget.barangay,
+                  );
                   _selectedBarangay = match;
                 } catch (_) {}
               }
@@ -168,19 +235,23 @@ class _LocationPickerState extends State<LocationPicker> {
         },
         child: Column(
           children: [
-            if (_isLoading)
-              const LinearProgressIndicator(minHeight: 2),
-              
+            if (_isLoading) const LinearProgressIndicator(minHeight: 2),
+
             // Region Dropdown
             DropdownButtonFormField<RegionEntity>(
               key: ValueKey(_selectedRegion),
               initialValue: _selectedRegion,
               decoration: InputDecoration(
                 labelText: 'Region',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               items: _regions.map((region) {
-                return DropdownMenuItem(value: region, child: Text(region.name));
+                return DropdownMenuItem(
+                  value: region,
+                  child: Text(region.name),
+                );
               }).toList(),
               onChanged: widget.enabled ? _onRegionChanged : null,
             ),
@@ -192,10 +263,15 @@ class _LocationPickerState extends State<LocationPicker> {
               initialValue: _selectedProvince,
               decoration: InputDecoration(
                 labelText: 'Province *',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               items: _provinces.map((province) {
-                return DropdownMenuItem(value: province, child: Text(province.name));
+                return DropdownMenuItem(
+                  value: province,
+                  child: Text(province.name),
+                );
               }).toList(),
               onChanged: (widget.enabled && _selectedRegion != null)
                   ? _onProvinceChanged
@@ -210,7 +286,9 @@ class _LocationPickerState extends State<LocationPicker> {
               initialValue: _selectedCity,
               decoration: InputDecoration(
                 labelText: 'City/Municipality *',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               items: _cities.map((city) {
                 return DropdownMenuItem(value: city, child: Text(city.name));
@@ -222,16 +300,21 @@ class _LocationPickerState extends State<LocationPicker> {
             ),
             const SizedBox(height: 16),
 
-             // Barangay Dropdown
+            // Barangay Dropdown
             DropdownButtonFormField<BarangayEntity>(
               key: ValueKey(_selectedBarangay),
               initialValue: _selectedBarangay,
               decoration: InputDecoration(
                 labelText: 'Barangay *',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               items: _barangays.map((barangay) {
-                return DropdownMenuItem(value: barangay, child: Text(barangay.name));
+                return DropdownMenuItem(
+                  value: barangay,
+                  child: Text(barangay.name),
+                );
               }).toList(),
               onChanged: (widget.enabled && _selectedCity != null)
                   ? _onBarangayChanged

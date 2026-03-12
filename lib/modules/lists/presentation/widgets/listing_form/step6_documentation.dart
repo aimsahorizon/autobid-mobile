@@ -66,10 +66,48 @@ class _Step6DocumentationState extends State<Step6Documentation> {
 
     _plateLetterController.addListener(_onPlateChanged);
     _plateNumberController.addListener(_onPlateChanged);
+    widget.controller.addListener(_onControllerChanged);
 
     // Initial validation if existing value
     if (_combinedPlate.isNotEmpty) {
       _validatePlate(_combinedPlate);
+    }
+  }
+
+  void _onControllerChanged() {
+    if (!mounted) return;
+    final draft = widget.controller.currentDraft;
+    if (draft == null) return;
+
+    if (_province != draft.province ||
+        _city != draft.cityMunicipality ||
+        _barangay != draft.barangay ||
+        _orcrStatus != draft.orcrStatus ||
+        _registrationStatus != draft.registrationStatus ||
+        _registrationExpiry != draft.registrationExpiry) {
+      setState(() {
+        _province = draft.province;
+        _city = draft.cityMunicipality;
+        _barangay = draft.barangay;
+        _orcrStatus = draft.orcrStatus;
+        _registrationStatus = draft.registrationStatus;
+        _registrationExpiry = draft.registrationExpiry;
+      });
+    }
+
+    // Sync plate number
+    final existingPlate = draft.plateNumber ?? '';
+    final parts = existingPlate.split(' ');
+    final newLetters = parts.isNotEmpty ? parts[0] : '';
+    final newNumbers = parts.length > 1 ? parts[1] : '';
+    if (_plateLetterController.text != newLetters ||
+        _plateNumberController.text != newNumbers) {
+      _plateLetterController.removeListener(_onPlateChanged);
+      _plateNumberController.removeListener(_onPlateChanged);
+      _plateLetterController.text = newLetters;
+      _plateNumberController.text = newNumbers;
+      _plateLetterController.addListener(_onPlateChanged);
+      _plateNumberController.addListener(_onPlateChanged);
     }
   }
 
@@ -83,6 +121,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
   @override
   void dispose() {
     _debounce?.cancel();
+    widget.controller.removeListener(_onControllerChanged);
     _plateLetterController.removeListener(_onPlateChanged);
     _plateNumberController.removeListener(_onPlateChanged);
     _plateLetterController.dispose();

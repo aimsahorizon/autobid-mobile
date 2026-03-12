@@ -26,18 +26,14 @@ class ComboBoxWidget extends StatefulWidget {
 
 class _ComboBoxWidgetState extends State<ComboBoxWidget> {
   late TextEditingController _controller;
-  final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
-  OverlayEntry? _overlayEntry;
-  List<String> _filteredItems = [];
-  bool _isOpen = false;
+  final GlobalKey _autocompleteKey = GlobalKey();
+  bool _selecting = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value ?? '');
-    _filteredItems = widget.items;
-    _focusNode.addListener(_onFocusChanged);
   }
 
   @override
@@ -46,66 +42,100 @@ class _ComboBoxWidgetState extends State<ComboBoxWidget> {
     if (widget.value != oldWidget.value && widget.value != _controller.text) {
       _controller.text = widget.value ?? '';
     }
-    if (widget.items != oldWidget.items) {
-      _filteredItems = _filterList(_controller.text);
-      _rebuildOverlay();
-    }
   }
 
   @override
   void dispose() {
-    _removeOverlay();
-    _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  void _onFocusChanged() {
-    if (_focusNode.hasFocus) {
-      _filteredItems = _filterList(_controller.text);
-      _showOverlay();
-    } else {
-      _removeOverlay();
-    }
+  void _selectItem(String value) {
+    _selecting = true;
+    _controller.text = value;
+    _controller.selection = TextSelection.collapsed(offset: value.length);
+    _selecting = false;
+    widget.onChanged(value);
+    _focusNode.unfocus();
   }
 
-  List<String> _filterList(String query) {
-    if (query.isEmpty) return widget.items;
-    return widget.items
-        .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-  }
-
-  void _showOverlay() {
-    _removeOverlay();
-    if (_filteredItems.isEmpty) return;
-
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-    final size = renderBox.size;
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        width: size.width,
-        child: CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: Offset(0, size.height + 4),
+  @override
+  Widget build(BuildContext context) {
+    return RawAutocomplete<String>(
+      key: _autocompleteKey,
+      textEditingController: _controller,
+      focusNode: _focusNode,
+      optionsBuilder: (textEditingValue) {
+        if (textEditingValue.text.isEmpty) {
+          return widget.items;
+        }
+        return widget.items.where(
+          (item) =>
+              item.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+        );
+      },
+      onSelected: _selectItem,
+      optionsViewOpenDirection: OptionsViewOpenDirection.down,
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          enabled: widget.enabled,
+          validator: widget.validator,
+          autovalidateMode: widget.validator != null
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
+          onChanged: (value) {
+            if (!_selecting) {
+              widget.onChanged(value.isEmpty ? null : value);
+            }
+          },
+          onFieldSubmitted: (_) => onFieldSubmitted(),
+          decoration: InputDecoration(
+            labelText: widget.label,
+            hintText: widget.hint,
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.arrow_drop_down),
+              onPressed: widget.enabled
+                  ? () {
+                      if (_focusNode.hasFocus) {
+                        _focusNode.unfocus();
+                      } else {
+                        // Show all options
+                        _controller.selection = TextSelection(
+                          baseOffset: 0,
+                          extentOffset: _controller.text.length,
+                        );
+                        _focusNode.requestFocus();
+                      }
+                    }
+                  : null,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
           child: Material(
             elevation: 4,
             borderRadius: BorderRadius.circular(12),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 200),
+              constraints: BoxConstraints(
+                maxHeight: 200,
+                maxWidth: MediaQuery.of(context).size.width - 32,
+              ),
               child: ListView.builder(
                 padding: EdgeInsets.zero,
                 shrinkWrap: true,
-                itemCount: _filteredItems.length,
+                itemCount: options.length,
                 itemBuilder: (context, index) {
-                  final item = _filteredItems[index];
+                  final item = options.elementAt(index);
                   final isSelected = item == _controller.text;
                   return InkWell(
-                    onTap: () => _selectItem(item),
+                    onTap: () => onSelected(item),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -130,77 +160,8 @@ class _ComboBoxWidgetState extends State<ComboBoxWidget> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-
-    Overlay.of(context).insert(_overlayEntry!);
-    _isOpen = true;
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _isOpen = false;
-  }
-
-  void _rebuildOverlay() {
-    if (_isOpen) {
-      _removeOverlay();
-      if (_focusNode.hasFocus && _filteredItems.isNotEmpty) {
-        _showOverlay();
-      }
-    }
-  }
-
-  void _selectItem(String value) {
-    _controller.text = value;
-    _controller.selection = TextSelection.collapsed(offset: value.length);
-    widget.onChanged(value);
-    _removeOverlay();
-    _focusNode.unfocus();
-  }
-
-  void _toggleDropdown() {
-    if (_isOpen) {
-      _removeOverlay();
-      _focusNode.unfocus();
-    } else {
-      _filteredItems = widget.items;
-      _focusNode.requestFocus();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: TextFormField(
-        controller: _controller,
-        focusNode: _focusNode,
-        enabled: widget.enabled,
-        validator: widget.validator,
-        autovalidateMode: widget.validator != null
-            ? AutovalidateMode.onUserInteraction
-            : AutovalidateMode.disabled,
-        onChanged: (value) {
-          _filteredItems = _filterList(value);
-          widget.onChanged(value.isEmpty ? null : value);
-          _rebuildOverlay();
-          if (!_isOpen && _filteredItems.isNotEmpty) {
-            _showOverlay();
-          }
-        },
-        decoration: InputDecoration(
-          labelText: widget.label,
-          hintText: widget.hint,
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.arrow_drop_down),
-            onPressed: widget.enabled ? _toggleDropdown : null,
-          ),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
+        );
+      },
     );
   }
 }

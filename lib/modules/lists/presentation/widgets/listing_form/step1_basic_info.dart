@@ -33,6 +33,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
     _bodyType = draft.bodyType;
     _yearController = TextEditingController(text: draft.year?.toString());
     _yearController.addListener(_updateDraft);
+    widget.controller.addListener(_onControllerChanged);
 
     // Initial load
     widget.controller.loadBrands().then((_) {
@@ -46,8 +47,44 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
     });
   }
 
+  void _onControllerChanged() {
+    if (!mounted) return;
+    final draft = widget.controller.currentDraft;
+    if (draft == null) return;
+
+    final brandChanged = _brand != draft.brand;
+    final modelChanged = _model != draft.model;
+
+    // Sync local state from draft (for demo autofill)
+    _brand = draft.brand;
+    _model = draft.model;
+    _variant = draft.variant;
+    _bodyType = draft.bodyType;
+    final yearText = draft.year?.toString() ?? '';
+    if (_yearController.text != yearText) {
+      _yearController.removeListener(_updateDraft);
+      _yearController.text = yearText;
+      _yearController.addListener(_updateDraft);
+    }
+
+    // Always rebuild — controller also exposes loading flags and item lists
+    setState(() {});
+
+    // Load dependent data when parent fields changed externally
+    if (brandChanged && _brand != null) {
+      widget.controller.loadModels(_brand!).then((_) {
+        if (modelChanged && _model != null && mounted) {
+          widget.controller.loadVariants(_model!);
+        }
+      });
+    } else if (modelChanged && _model != null) {
+      widget.controller.loadVariants(_model!);
+    }
+  }
+
   @override
   void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
     _yearController.dispose();
     super.dispose();
   }
@@ -102,11 +139,12 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
             onChanged: (v) {
               setState(() {
                 _brand = v;
-                _model = null; // Reset dependent fields
+                _model = null;
                 _variant = null;
               });
               _updateDraft();
-              if (v != null) {
+              if (v != null &&
+                  widget.controller.brands.any((b) => b.name == v)) {
                 widget.controller.loadModels(v);
               }
             },
@@ -121,10 +159,11 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
             onChanged: (v) {
               setState(() {
                 _model = v;
-                _variant = null; // Reset dependent field
+                _variant = null;
               });
               _updateDraft();
-              if (v != null) {
+              if (v != null &&
+                  widget.controller.models.any((m) => m.name == v)) {
                 widget.controller.loadVariants(v);
               }
             },
