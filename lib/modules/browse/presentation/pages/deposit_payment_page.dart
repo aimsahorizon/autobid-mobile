@@ -89,31 +89,27 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final fallbackEmail = currentUser?.email ?? '';
       final fallbackPhone = currentUser?.phone ?? '';
 
-      // Try to get name from metadata if available
+      // Auth metadata stores full_name and display_name (not first_name/last_name)
       final metadata = currentUser?.userMetadata;
-      final metaFirstName = metadata?['first_name'] as String? ?? '';
-      final metaLastName = metadata?['last_name'] as String? ?? '';
-      final metaName = '$metaFirstName $metaLastName'.trim();
+      final metaFullName = (metadata?['full_name'] as String? ?? '').trim();
+      final metaDisplayName = (metadata?['display_name'] as String? ?? '')
+          .trim();
+      final metaName = metaFullName.isNotEmpty ? metaFullName : metaDisplayName;
 
       final response = await SupabaseConfig.client
           .from('users')
           .select(
-            'first_name, middle_name, last_name, email, phone_number, username',
+            'first_name, middle_name, last_name, full_name, display_name, email, phone_number, username',
           )
           .eq('id', widget.userId)
           .maybeSingle();
 
       if (mounted) {
         setState(() {
-          String firstName = '';
-          String lastName = '';
           String email = fallbackEmail;
           String phone = fallbackPhone;
 
           if (response != null) {
-            firstName = response['first_name'] as String? ?? metaFirstName;
-            lastName = response['last_name'] as String? ?? metaLastName;
-
             // Use profile email if available, otherwise fallback
             if (response['email'] != null &&
                 (response['email'] as String).isNotEmpty) {
@@ -128,18 +124,31 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
           }
 
           if (_nameController.text.isEmpty) {
+            // Build name from first+middle+last
+            final firstName = (response?['first_name'] as String? ?? '').trim();
             final middleName = (response?['middle_name'] as String? ?? '')
                 .trim();
-            final profileName = middleName.isNotEmpty
+            final lastName = (response?['last_name'] as String? ?? '').trim();
+            final composedName = middleName.isNotEmpty
                 ? '$firstName $middleName $lastName'.trim()
                 : '$firstName $lastName'.trim();
+
+            // DB full_name / display_name columns
+            final dbFullName = (response?['full_name'] as String? ?? '').trim();
+            final dbDisplayName = (response?['display_name'] as String? ?? '')
+                .trim();
             final username = (response?['username'] as String? ?? '').trim();
-            // Fallback chain: first+middle+last → username → auth metadata
-            if (profileName.isNotEmpty) {
-              _nameController.text = profileName;
+
+            // Fallback chain: composed → full_name → display_name → username → auth metadata
+            if (composedName.isNotEmpty) {
+              _nameController.text = composedName;
+            } else if (dbFullName.isNotEmpty) {
+              _nameController.text = dbFullName;
+            } else if (dbDisplayName.isNotEmpty) {
+              _nameController.text = dbDisplayName;
             } else if (username.isNotEmpty) {
               _nameController.text = username;
-            } else {
+            } else if (metaName.isNotEmpty) {
               _nameController.text = metaName;
             }
           }
@@ -157,7 +166,17 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       if (mounted) {
         final currentUser = SupabaseConfig.client.auth.currentUser;
         if (currentUser != null) {
+          final metadata = currentUser.userMetadata;
+          final metaFullName = (metadata?['full_name'] as String? ?? '').trim();
+          final metaDisplayName = (metadata?['display_name'] as String? ?? '')
+              .trim();
+          final metaName = metaFullName.isNotEmpty
+              ? metaFullName
+              : metaDisplayName;
           setState(() {
+            if (_nameController.text.isEmpty && metaName.isNotEmpty) {
+              _nameController.text = metaName;
+            }
             if (_emailController.text.isEmpty && currentUser.email != null) {
               _emailController.text = currentUser.email!;
             }
