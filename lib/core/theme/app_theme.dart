@@ -133,6 +133,34 @@ class AppTheme {
           color: ColorConstants.textSecondaryLight,
         ),
       ),
+      // Time picker theme — ensures AM/PM segment respects theme
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: ColorConstants.surfaceLight,
+        hourMinuteColor: ColorConstants.surfaceVariantLight,
+        hourMinuteTextColor: ColorConstants.textPrimaryLight,
+        dayPeriodColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return ColorConstants.primary.withValues(alpha: 0.2);
+          }
+          return ColorConstants.surfaceVariantLight;
+        }),
+        dayPeriodTextColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return ColorConstants.primary;
+          }
+          return ColorConstants.textPrimaryLight;
+        }),
+        dialHandColor: ColorConstants.primary,
+        dialBackgroundColor: ColorConstants.surfaceVariantLight,
+        dialTextColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return Colors.white;
+          }
+          return ColorConstants.textPrimaryLight;
+        }),
+        entryModeIconColor: ColorConstants.textSecondaryLight,
+      ),
+
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: ColorConstants.surfaceLight,
         indicatorColor: ColorConstants.primary.withValues(alpha: 0.15),
