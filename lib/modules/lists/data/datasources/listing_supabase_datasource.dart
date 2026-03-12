@@ -92,6 +92,7 @@ class ListingSupabaseDataSource {
         brand: draft.brand,
         model: draft.model,
         variant: draft.variant,
+        bodyType: draft.bodyType,
         year: draft.year,
         engineType: draft.engineType,
         engineDisplacement: draft.engineDisplacement,
@@ -131,6 +132,7 @@ class ListingSupabaseDataSource {
         registrationExpiry: draft.registrationExpiry,
         province: draft.province,
         cityMunicipality: draft.cityMunicipality,
+        barangay: draft.barangay,
         photoUrls: draft.photoUrls,
         coverPhotoUrl: draft.coverPhotoUrl,
         tags: draft.tags,
@@ -148,6 +150,14 @@ class ListingSupabaseDataSource {
         depositAmount: draft.depositAmount,
         enableIncrementalBidding: draft.enableIncrementalBidding,
         autoLiveAfterApproval: draft.autoLiveAfterApproval,
+        scheduleLiveMode: draft.scheduleLiveMode,
+        auctionStartDate: draft.auctionStartDate,
+        auctionDurationHours: draft.auctionDurationHours,
+        snipeGuardEnabled: draft.snipeGuardEnabled,
+        snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
+        snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,
+        allowsInstallment: draft.allowsInstallment,
+        isPlateValid: draft.isPlateValid,
       );
 
       await _supabase
