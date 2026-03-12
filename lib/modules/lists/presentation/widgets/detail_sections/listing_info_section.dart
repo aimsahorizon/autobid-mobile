@@ -17,6 +17,27 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  static bool _isAssetPath(String url) => url.startsWith('assets/');
+
+  static Widget _buildSmartImage(String url, {BoxFit fit = BoxFit.cover}) {
+    if (_isAssetPath(url)) {
+      return Image.asset(
+        url,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(child: Icon(Icons.image, color: Colors.grey));
+        },
+      );
+    }
+    return Image.network(
+      url,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return const Center(child: Icon(Icons.image, color: Colors.grey));
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -488,14 +509,9 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
+                      child: _buildSmartImage(
                         urls[photoIndex],
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(Icons.image, color: Colors.grey),
-                          );
-                        },
                       ),
                     ),
                   );
