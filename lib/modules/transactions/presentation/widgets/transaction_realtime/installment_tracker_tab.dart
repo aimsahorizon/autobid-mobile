@@ -34,13 +34,16 @@ class InstallmentTrackerTab extends StatefulWidget {
   State<InstallmentTrackerTab> createState() => _InstallmentTrackerTabState();
 }
 
-class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
+class _InstallmentTrackerTabState extends State<InstallmentTrackerTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    if (!widget.controller.hasPlan) {
-      widget.controller.loadInstallmentPlan(widget.transactionId);
-    }
+    // Always load/refresh the plan when the tab is first shown
+    widget.controller.loadInstallmentPlan(widget.transactionId);
   }
 
   bool get isBuyer => widget.userRole == FormRole.buyer;
@@ -48,6 +51,7 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -156,9 +160,8 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                 ),
         ),
 
-        // Buyer FAB area — available once plan exists
-        if (isBuyer &&
-            widget.controller.nextPendingPayment != null)
+        // Action bar — available for both buyer and seller once plan exists
+        if (widget.controller.nextPendingPayment != null)
           _buildBuyerActionBar(isDark),
 
         // Review section — visible when installments completed AND delivery completed

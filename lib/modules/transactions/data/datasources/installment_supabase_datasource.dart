@@ -215,7 +215,11 @@ class InstallmentSupabaseDatasource {
       });
     }
 
+    debugPrint(
+      '[InstallmentDatasource] Inserting ${payments.length} payment rows for plan $planId',
+    );
     await _supabase.from('installment_payments').insert(payments);
+    debugPrint('[InstallmentDatasource] Payment schedule generated successfully');
   }
 
   // =========================================================================

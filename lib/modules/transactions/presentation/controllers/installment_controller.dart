@@ -68,16 +68,28 @@ class InstallmentController extends ChangeNotifier {
 
   /// Load installment plan and payments for a transaction
   Future<void> loadInstallmentPlan(String transactionId) async {
-    _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+
+    // Only show spinner on initial load (no plan yet)
+    if (!hasPlan) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
-      _plan = await _datasource.getInstallmentPlan(transactionId);
+      final plan = await _datasource.getInstallmentPlan(transactionId);
+      _plan = plan;
 
-      if (_plan != null) {
-        _payments = await _datasource.getPayments(_plan!.id);
-        _subscribeToRealtime(transactionId, _plan!.id);
+      if (plan != null) {
+        _payments = await _datasource.getPayments(plan.id);
+        debugPrint(
+          '[InstallmentController] Loaded plan ${plan.id} with ${_payments.length} payments',
+        );
+        _subscribeToRealtime(transactionId, plan.id);
+      } else {
+        debugPrint(
+          '[InstallmentController] No plan found for transaction $transactionId',
+        );
       }
     } catch (e) {
       _errorMessage = 'Failed to load installment plan: $e';
@@ -100,14 +112,18 @@ class InstallmentController extends ChangeNotifier {
           notifyListeners();
         }
       },
+      onError: (e) => debugPrint('[InstallmentController] Plan stream error: $e'),
     );
 
     _paymentsSubscription = _datasource.streamPayments(planId).listen((
       payments,
     ) {
+      debugPrint('[InstallmentController] Stream emitted ${payments.length} payments');
       _payments = payments;
       notifyListeners();
-    });
+    },
+    onError: (e) => debugPrint('[InstallmentController] Payments stream error: $e'),
+    );
   }
 
   // =========================================================================
@@ -139,6 +155,7 @@ class InstallmentController extends ChangeNotifier {
 
       if (_plan != null) {
         _payments = await _datasource.getPayments(_plan!.id);
+        notifyListeners(); // Notify immediately so listeners see payments
         _subscribeToRealtime(transactionId, _plan!.id);
       }
 
@@ -177,6 +194,7 @@ class InstallmentController extends ChangeNotifier {
       );
       if (_plan != null) {
         _payments = await _datasource.getPayments(_plan!.id);
+        notifyListeners(); // Notify immediately so listeners see payments
       }
       return true;
     } catch (e) {
