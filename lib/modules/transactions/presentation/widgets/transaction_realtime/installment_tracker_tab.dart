@@ -140,30 +140,6 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
 
     return Column(
       children: [
-        // Agreement gate banner
-        if (!widget.bothConfirmed)
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline, size: 18, color: Colors.orange),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Both parties must confirm the agreement before payments can be submitted.',
-                    style: TextStyle(fontSize: 12, color: Colors.orange),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
         // Progress header
         _buildProgressHeader(plan, isDark),
 
@@ -180,10 +156,8 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                 ),
         ),
 
-        // Buyer FAB area — blocked until both confirmed
-        if (isBuyer &&
-            widget.bothConfirmed &&
-            widget.controller.nextPendingPayment != null)
+        // Buyer FAB area — available once plan exists
+        if (isBuyer && widget.controller.nextPendingPayment != null)
           _buildBuyerActionBar(isDark),
 
         // Review section — visible when installments completed AND delivery completed
