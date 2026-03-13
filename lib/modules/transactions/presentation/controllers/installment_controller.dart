@@ -144,6 +144,8 @@ class InstallmentController extends ChangeNotifier {
     _paymentsSubscription = _datasource.streamPayments(planId).listen((
       payments,
     ) {
+      // Don't overwrite loaded payments with empty stream emission
+      if (payments.isEmpty && _payments.isNotEmpty) return;
       debugPrint('[InstallmentController] Stream emitted ${payments.length} payments');
       _payments = payments;
       notifyListeners();
