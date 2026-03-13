@@ -29,7 +29,9 @@ class _ListsPageState extends State<ListsPage>
     ListingStatus.pending,
     ListingStatus.approved,
     ListingStatus.scheduled,
+    ListingStatus.ended,
     ListingStatus.draft,
+    ListingStatus.cancelled,
   ];
 
   List<ListingStatus?> get _tabs => _currentTabs;

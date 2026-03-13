@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/auction_entity.dart';
 
+bool _isAssetPath(String url) => url.startsWith('assets/');
+
 class AuctionCard extends StatelessWidget {
   final AuctionEntity auction;
   final VoidCallback? onTap;
@@ -83,22 +85,35 @@ class AuctionCard extends StatelessWidget {
       children: [
         AspectRatio(
           aspectRatio: 16 / 9,
-          child: CachedNetworkImage(
-            imageUrl: auction.carImageUrl,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              color: ColorConstants.backgroundSecondaryLight,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              color: ColorConstants.backgroundSecondaryLight,
-              child: const Icon(
-                Icons.directions_car,
-                size: 48,
-                color: ColorConstants.textSecondaryLight,
-              ),
-            ),
-          ),
+          child: _isAssetPath(auction.carImageUrl)
+              ? Image.asset(
+                  auction.carImageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Icon(
+                      Icons.directions_car,
+                      size: 48,
+                      color: ColorConstants.textSecondaryLight,
+                    ),
+                  ),
+                )
+              : CachedNetworkImage(
+                  imageUrl: auction.carImageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Icon(
+                      Icons.directions_car,
+                      size: 48,
+                      color: ColorConstants.textSecondaryLight,
+                    ),
+                  ),
+                ),
         ),
         Positioned(
           top: 8,
