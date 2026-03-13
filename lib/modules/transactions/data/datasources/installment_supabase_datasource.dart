@@ -72,7 +72,7 @@ class InstallmentSupabaseDatasource {
       final plan = InstallmentPlanModel.fromJson(response).toEntity();
 
       // Generate payment schedule immediately
-      await _generatePaymentSchedule(
+      await generatePaymentSchedule(
         planId: plan.id,
         downPayment: plan.downPayment,
         remaining: plan.remainingAmount,
@@ -134,7 +134,7 @@ class InstallmentSupabaseDatasource {
       final plan = InstallmentPlanModel.fromJson(response).toEntity();
 
       // Regenerate payment schedule
-      await _generatePaymentSchedule(
+      await generatePaymentSchedule(
         planId: plan.id,
         downPayment: plan.downPayment,
         remaining: plan.remainingAmount,
@@ -151,7 +151,8 @@ class InstallmentSupabaseDatasource {
   }
 
   /// Generate payment schedule entries (including downpayment as #0)
-  Future<void> _generatePaymentSchedule({
+  /// Generate payment schedule entries (public for recovery)
+  Future<void> generatePaymentSchedule({
     required String planId,
     required double downPayment,
     required double remaining,

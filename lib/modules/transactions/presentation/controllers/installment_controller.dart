@@ -85,6 +85,32 @@ class InstallmentController extends ChangeNotifier {
         debugPrint(
           '[InstallmentController] Loaded plan ${plan.id} with ${_payments.length} payments',
         );
+
+        // Recovery: if plan exists but has no payments, regenerate schedule
+        if (_payments.isEmpty) {
+          debugPrint(
+            '[InstallmentController] Plan has 0 payments — regenerating schedule',
+          );
+          try {
+            await _datasource.generatePaymentSchedule(
+              planId: plan.id,
+              downPayment: plan.downPayment,
+              remaining: plan.remainingAmount,
+              numInstallments: plan.numInstallments,
+              frequency: plan.frequency,
+              startDate: plan.startDate,
+            );
+            _payments = await _datasource.getPayments(plan.id);
+            debugPrint(
+              '[InstallmentController] Regenerated ${_payments.length} payments',
+            );
+          } catch (e) {
+            debugPrint(
+              '[InstallmentController] Failed to regenerate payments: $e',
+            );
+          }
+        }
+
         _subscribeToRealtime(transactionId, plan.id);
       } else {
         debugPrint(
