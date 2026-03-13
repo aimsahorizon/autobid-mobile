@@ -1532,6 +1532,8 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       frequency: _frequency,
       startDate: DateTime.now(),
     );
+    // Refresh transaction so showInstallmentTab reflects the new plan
+    await widget.controller.refresh();
     if (mounted) setState(() => _editing = false);
   }
 
@@ -1548,6 +1550,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       numInstallments: _installments,
       frequency: _frequency,
     );
+    await widget.controller.refresh();
     if (mounted) setState(() => _editing = false);
   }
 
