@@ -92,7 +92,7 @@ class InstallmentController extends ChangeNotifier {
             '[InstallmentController] Plan has 0 payments — regenerating schedule',
           );
           try {
-            await _datasource.generatePaymentSchedule(
+            _payments = await _datasource.generatePaymentSchedule(
               planId: plan.id,
               downPayment: plan.downPayment,
               remaining: plan.remainingAmount,
@@ -100,7 +100,6 @@ class InstallmentController extends ChangeNotifier {
               frequency: plan.frequency,
               startDate: plan.startDate,
             );
-            _payments = await _datasource.getPayments(plan.id);
             debugPrint(
               '[InstallmentController] Regenerated ${_payments.length} payments',
             );
@@ -182,7 +181,12 @@ class InstallmentController extends ChangeNotifier {
       );
 
       if (_plan != null) {
+        // Payments are already generated inside createInstallmentPlan;
+        // fetch them via the RPC to be sure
         _payments = await _datasource.getPayments(_plan!.id);
+        debugPrint(
+          '[InstallmentController] Plan created with ${_payments.length} payments',
+        );
         notifyListeners(); // Notify immediately so listeners see payments
         _subscribeToRealtime(transactionId, _plan!.id);
       }

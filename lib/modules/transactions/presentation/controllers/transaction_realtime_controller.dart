@@ -219,7 +219,9 @@ class TransactionRealtimeController extends ChangeNotifier {
     String userId,
   ) async {
     try {
-      final oldAgreementFields = List<AgreementFieldEntity>.from(_agreementFields);
+      final oldAgreementFields = List<AgreementFieldEntity>.from(
+        _agreementFields,
+      );
       final oldTimeline = List<TransactionTimelineEntity>.from(_timeline);
       final oldTransaction = _transaction;
 
@@ -253,8 +255,10 @@ class TransactionRealtimeController extends ChangeNotifier {
       }
       if (oldTransaction != null) {
         // Check agreement status changes
-        if (_transaction!.sellerFormSubmitted != oldTransaction.sellerFormSubmitted ||
-            _transaction!.buyerFormSubmitted != oldTransaction.buyerFormSubmitted ||
+        if (_transaction!.sellerFormSubmitted !=
+                oldTransaction.sellerFormSubmitted ||
+            _transaction!.buyerFormSubmitted !=
+                oldTransaction.buyerFormSubmitted ||
             _transaction!.sellerConfirmed != oldTransaction.sellerConfirmed ||
             _transaction!.buyerConfirmed != oldTransaction.buyerConfirmed) {
           _agreementUpdateCount++;
@@ -1020,10 +1024,8 @@ class TransactionRealtimeController extends ChangeNotifier {
     final method = enabled ? 'installment' : 'full_payment';
     try {
       await _dataSource.updatePaymentMethod(_transaction!.id, method);
-      // Optimistic local update without notifyListeners —
-      // the realtime subscription will push the authoritative update
-      // and call notifyListeners once, preventing a double-rebuild loop.
       _transaction = _transaction!.copyWith(paymentMethod: method);
+      notifyListeners();
     } catch (e) {
       debugPrint(
         '[TransactionRealtimeController] Error toggling installment: $e',
