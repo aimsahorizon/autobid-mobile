@@ -157,7 +157,8 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
         ),
 
         // Buyer FAB area — available once plan exists
-        if (isBuyer && widget.controller.nextPendingPayment != null)
+        if (isBuyer &&
+            widget.controller.nextPendingPayment != null)
           _buildBuyerActionBar(isDark),
 
         // Review section — visible when installments completed AND delivery completed
