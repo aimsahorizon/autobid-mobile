@@ -293,7 +293,9 @@ class _PreTransactionRealtimePageState
             return _buildBuyerCancelledView(transaction, isDark);
           }
 
-          final showInstallment = transaction.showInstallmentTab;
+          final showInstallment =
+              transaction.showInstallmentTab ||
+              (_installmentController?.hasPlan ?? false);
           final tabCount = showInstallment ? 4 : 3;
           final userRole = widget.controller.getUserRole(widget.userId);
 
@@ -355,11 +357,23 @@ class _PreTransactionRealtimePageState
                       fontSize: 12,
                     ),
                     tabs: [
-                      _buildTabWithBadge('Chat', widget.controller.chatUpdateCount),
-                      _buildTabWithBadge('Agreement', widget.controller.agreementUpdateCount),
-                      _buildTabWithBadge('Progress', widget.controller.progressUpdateCount),
+                      _buildTabWithBadge(
+                        'Chat',
+                        widget.controller.chatUpdateCount,
+                      ),
+                      _buildTabWithBadge(
+                        'Agreement',
+                        widget.controller.agreementUpdateCount,
+                      ),
+                      _buildTabWithBadge(
+                        'Progress',
+                        widget.controller.progressUpdateCount,
+                      ),
                       if (showInstallment)
-                        _buildTabWithBadge('Gives', widget.controller.givesUpdateCount),
+                        _buildTabWithBadge(
+                          'Gives',
+                          widget.controller.givesUpdateCount,
+                        ),
                     ],
                   ),
                 ),
@@ -1053,7 +1067,9 @@ class _PreTransactionRealtimePageState
 
     // Determine reported user
     final isSeller = transaction.sellerId == widget.userId;
-    final reportedUserId = isSeller ? transaction.buyerId : transaction.sellerId;
+    final reportedUserId = isSeller
+        ? transaction.buyerId
+        : transaction.sellerId;
 
     showDialog(
       context: context,
@@ -1080,9 +1096,7 @@ class _PreTransactionRealtimePageState
                     ),
                   ),
                   items: reasons
-                      .map(
-                        (r) => DropdownMenuItem(value: r, child: Text(r)),
-                      )
+                      .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                       .toList(),
                   onChanged: (v) {
                     if (v != null) {
