@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
 
@@ -65,6 +66,9 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   late double _selectedBidAmount; // User-chosen bid (>= next minimum)
   bool _showAutoBidSection = false;
   double _selectedIncrement = 0; // Set in initState based on listing config
+  List<double> _customBidIncrements = [];
+
+  static const _customIncrementsKey = 'custom_bid_increments';
 
   // Local countdown timer for the 60s turn window
   Timer? _turnCountdownTimer;
@@ -87,6 +91,27 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
     if (widget.isMyTurn && widget.turnRemainingMs > 0) {
       _startTurnCountdown(widget.turnRemainingMs);
     }
+    _loadCustomIncrements();
+  }
+
+  Future<void> _loadCustomIncrements() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getStringList(_customIncrementsKey);
+    if (saved != null && saved.isNotEmpty) {
+      setState(() {
+        _customBidIncrements =
+            saved.map((s) => double.tryParse(s)).whereType<double>().toList()
+              ..sort();
+      });
+    }
+  }
+
+  Future<void> _saveCustomIncrements() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _customIncrementsKey,
+      _customBidIncrements.map((d) => d.toStringAsFixed(0)).toList(),
+    );
   }
 
   @override
@@ -971,6 +996,14 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
       widget.currentBid + inc * 5, // 5x
     ];
 
+    // Build custom preset amounts (saved by user, stored as absolute bid amounts relative to current bid)
+    final customPresets = _customBidIncrements
+        .map((customInc) => widget.currentBid + customInc)
+        .where(
+          (amount) => amount >= _nextMinimumBid && !presets.contains(amount),
+        )
+        .toList();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1098,47 +1131,200 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
                     }
                   },
                 ),
+              // Custom saved chips (with delete via long-press)
+              for (final amount in customPresets)
+                GestureDetector(
+                  onLongPress: () =>
+                      _confirmDeleteCustomIncrement(amount - widget.currentBid),
+                  child: ChoiceChip(
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('+₱${_formatNumber(amount - widget.currentBid)}'),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.close,
+                          size: 14,
+                          color: _selectedBidAmount == amount
+                              ? Colors.white70
+                              : (isDark
+                                    ? ColorConstants.textSecondaryDark
+                                    : ColorConstants.textSecondaryLight),
+                        ),
+                      ],
+                    ),
+                    selected: _selectedBidAmount == amount,
+                    selectedColor: ColorConstants.primary,
+                    backgroundColor: isDark
+                        ? ColorConstants.surfaceDark
+                        : ColorConstants.surfaceVariantLight,
+                    labelStyle: TextStyle(
+                      color: _selectedBidAmount == amount
+                          ? Colors.white
+                          : (isDark
+                                ? ColorConstants.textPrimaryDark
+                                : ColorConstants.textPrimaryLight),
+                      fontWeight: _selectedBidAmount == amount
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                    side: BorderSide(
+                      color: _selectedBidAmount == amount
+                          ? ColorConstants.primary
+                          : (isDark
+                                ? ColorConstants.borderDark
+                                : ColorConstants.borderLight),
+                    ),
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedBidAmount = amount;
+                          _customBidController.clear();
+                        });
+                      }
+                    },
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 12),
-          // Custom amount input
-          TextField(
-            controller: _customBidController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              isDense: true,
-              labelText: 'Custom Amount',
-              hintText: 'e.g., ${_formatNumber(_nextMinimumBid + inc * 10)}',
-              prefixText: '₱ ',
-              suffixIcon: _customBidController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () {
-                        _customBidController.clear();
-                        setState(() {
-                          _selectedBidAmount = _nextMinimumBid;
-                        });
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+          // Custom amount input with Add button
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _customBidController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(
+                    isDense: true,
+                    labelText: 'Custom Increment',
+                    hintText: 'e.g., ${_formatNumber(inc * 10)}',
+                    prefixText: '₱ ',
+                    suffixIcon: _customBidController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _customBidController.clear();
+                              setState(() {
+                                _selectedBidAmount = _nextMinimumBid;
+                              });
+                            },
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    helperText: 'Multiples of 100. Long-press chip to delete.',
+                    helperMaxLines: 2,
+                  ),
+                  onChanged: (value) {
+                    final parsed = double.tryParse(value);
+                    if (parsed != null && parsed % 100 == 0 && parsed >= inc) {
+                      setState(() {
+                        _selectedBidAmount = widget.currentBid + parsed;
+                      });
+                    }
+                    setState(() {}); // Refresh suffixIcon visibility
+                  },
+                ),
               ),
-              helperText:
-                  'Min ₱${_formatNumber(_nextMinimumBid)}, multiples of ₱100',
-              helperMaxLines: 2,
-            ),
-            onChanged: (value) {
-              final parsed = double.tryParse(value);
-              if (parsed != null && parsed >= _nextMinimumBid) {
-                // Round up to nearest 100
-                final rounded = (parsed / 100).ceil() * 100.0;
-                setState(() {
-                  _selectedBidAmount = rounded;
-                });
-              }
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ColorConstants.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () => _addCustomIncrement(context),
+                  child: const Text(
+                    'Add',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addCustomIncrement(BuildContext context) {
+    final text = _customBidController.text.trim();
+    final parsed = double.tryParse(text);
+    if (parsed == null || parsed <= 0) {
+      _showChipError(context, 'Enter a valid amount');
+      return;
+    }
+    if (parsed % 100 != 0) {
+      _showChipError(context, 'Must be a multiple of 100');
+      return;
+    }
+    if (parsed < widget.minBidIncrement) {
+      _showChipError(
+        context,
+        'Must be at least ₱${_formatNumber(widget.minBidIncrement)}',
+      );
+      return;
+    }
+    if (_customBidIncrements.contains(parsed)) {
+      _showChipError(context, 'Already saved');
+      return;
+    }
+    setState(() {
+      _customBidIncrements.add(parsed);
+      _customBidIncrements.sort();
+      _selectedBidAmount = widget.currentBid + parsed;
+      _customBidController.clear();
+    });
+    _saveCustomIncrements();
+  }
+
+  void _showChipError(BuildContext context, String message) {
+    (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: ColorConstants.error,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _confirmDeleteCustomIncrement(double incrementValue) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Custom Amount?'),
+        content: Text(
+          'Remove +₱${_formatNumber(incrementValue)} from your saved amounts?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _customBidIncrements.remove(incrementValue);
+                if (_selectedBidAmount == widget.currentBid + incrementValue) {
+                  _selectedBidAmount = _nextMinimumBid;
+                }
+              });
+              _saveCustomIncrements();
+              Navigator.pop(ctx);
             },
+            child: const Text(
+              'Remove',
+              style: TextStyle(color: ColorConstants.error),
+            ),
           ),
         ],
       ),
