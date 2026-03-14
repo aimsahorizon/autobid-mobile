@@ -71,21 +71,8 @@ class InstallmentSupabaseDatasource {
 
       final plan = InstallmentPlanModel.fromJson(response).toEntity();
 
-      // Generate payment schedule immediately
-      await generatePaymentSchedule(
-        planId: plan.id,
-        downPayment: plan.downPayment,
-        remaining: plan.remainingAmount,
-        numInstallments: plan.numInstallments,
-        frequency: plan.frequency,
-        startDate: DateTime.now(),
-      );
-
-      // Update transaction payment_method
-      await _supabase
-          .from('auction_transactions')
-          .update({'payment_method': 'installment'})
-          .eq('id', transactionId);
+      // Payment schedule and payment_method are auto-generated
+      // by the DB trigger (trg_auto_generate_installment_payments)
 
       return plan;
     } catch (e) {
