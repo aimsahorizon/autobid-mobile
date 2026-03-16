@@ -50,8 +50,8 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
 
       setState(() {
         _predictedPrice = price;
-        _minPrice = price * 0.92;
-        _maxPrice = price * 1.08;
+        _minPrice = price * 0.90; // -10% of AI predicted price
+        _maxPrice = price * 1.10; // +10% of AI predicted price
         _confidence = (result['confidence'] as num).toDouble();
         _method = result['method'] as String;
         _isLoading = false;
