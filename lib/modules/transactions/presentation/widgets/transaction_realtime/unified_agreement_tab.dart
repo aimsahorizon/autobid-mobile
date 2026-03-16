@@ -1524,7 +1524,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
     final down = double.tryParse(_downCtrl.text) ?? 0;
     if (total == null || total <= 0 || down >= total) return;
 
-    await widget.installmentController.createPlan(
+    final success = await widget.installmentController.createPlan(
       transactionId: widget.transactionId,
       totalAmount: total,
       downPayment: down,
@@ -1532,6 +1532,20 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
       frequency: _frequency,
       startDate: DateTime.now(),
     );
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.installmentController.errorMessage ??
+                'Failed to propose plan',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     // Refresh transaction so showInstallmentTab reflects the new plan
     await widget.controller.refresh();
     if (mounted) setState(() => _editing = false);
@@ -1543,13 +1557,27 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
     final down = double.tryParse(_downCtrl.text) ?? 0;
     if (total == null || total <= 0 || down >= total) return;
 
-    await widget.installmentController.updatePlan(
+    final success = await widget.installmentController.updatePlan(
       transactionId: widget.transactionId,
       totalAmount: total,
       downPayment: down,
       numInstallments: _installments,
       frequency: _frequency,
     );
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.installmentController.errorMessage ??
+                'Failed to update plan',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     await widget.controller.refresh();
     if (mounted) setState(() => _editing = false);
   }

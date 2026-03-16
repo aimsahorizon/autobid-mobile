@@ -63,16 +63,33 @@ class InstallmentSupabaseDatasource {
         'proposed_by': userId,
       };
 
+      // Use upsert to handle case where plan already exists for this transaction
+      // (UNIQUE constraint on transaction_id). On conflict, update all fields.
       final response = await _supabase
           .from('installment_plans')
-          .insert(data)
+          .upsert(data, onConflict: 'transaction_id')
           .select()
           .single();
 
       final plan = InstallmentPlanModel.fromJson(response).toEntity();
 
-      // Payment schedule and payment_method are auto-generated
-      // by the DB trigger (trg_auto_generate_installment_payments)
+      // For new plans: payment schedule and payment_method are auto-generated
+      // by the DB trigger (trg_auto_generate_installment_payments).
+      // For existing plans (upsert update): regenerate payments via RPC.
+      // We can detect this by checking if payments already exist.
+      final existingPayments = await getPayments(plan.id);
+      if (existingPayments.isEmpty) {
+        // Trigger should have fired on INSERT, but if it didn't
+        // (e.g., plan was updated via upsert), generate manually
+        await generatePaymentSchedule(
+          planId: plan.id,
+          downPayment: plan.downPayment,
+          remaining: plan.remainingAmount,
+          numInstallments: plan.numInstallments,
+          frequency: plan.frequency,
+          startDate: DateTime.now(),
+        );
+      }
 
       return plan;
     } catch (e) {
