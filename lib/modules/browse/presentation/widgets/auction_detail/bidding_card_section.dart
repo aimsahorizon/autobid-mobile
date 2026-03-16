@@ -77,6 +77,8 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   // Local countdown timer for the 60s turn window
   Timer? _turnCountdownTimer;
   int _turnSecondsRemaining = 0;
+  bool _turnExpiredLocally =
+      false; // Prevents timer re-sync loop after local expiry
 
   @override
   void initState() {
@@ -182,23 +184,30 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
     }
     // Start/stop turn countdown when isMyTurn changes
     if (widget.isMyTurn && !oldWidget.isMyTurn && widget.turnRemainingMs > 0) {
+      // Genuinely new turn — reset expired flag and start timer
+      _turnExpiredLocally = false;
       _startTurnCountdown(widget.turnRemainingMs);
     } else if (!widget.isMyTurn && oldWidget.isMyTurn) {
       _stopTurnCountdown();
+      _turnExpiredLocally = false;
     } else if (widget.isMyTurn &&
         widget.turnRemainingMs > 0 &&
-        _turnSecondsRemaining <= 0) {
-      // Re-sync if server sends a new value while timer was at 0
+        _turnSecondsRemaining <= 0 &&
+        !_turnExpiredLocally) {
+      // Re-sync only if timer wasn't locally expired (avoids restart loop)
       _startTurnCountdown(widget.turnRemainingMs);
     }
   }
 
   void _startTurnCountdown(int remainingMs) {
     _stopTurnCountdown();
+    _turnExpiredLocally = false;
     _turnSecondsRemaining = (remainingMs / 1000).ceil().clamp(0, 60);
     _turnCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_turnSecondsRemaining <= 0) {
         timer.cancel();
+        // Mark as locally expired — prevents didUpdateWidget from restarting
+        _turnExpiredLocally = true;
         return;
       }
       setState(() {
@@ -211,6 +220,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
     _turnCountdownTimer?.cancel();
     _turnCountdownTimer = null;
     _turnSecondsRemaining = 0;
+    // Don't reset _turnExpiredLocally here — it's managed by start/didUpdateWidget
   }
 
   @override
@@ -1413,9 +1423,53 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
 
     // =========================================================
     // IT'S YOUR TURN — show bid amount selector + timer + Place Bid
+    // (but if timer expired locally, show expiry message instead)
     // =========================================================
     if (widget.isMyTurn) {
       final turnSeconds = _turnSecondsRemaining;
+
+      // Timer expired locally — show "expired" state while waiting for server
+      if (_turnExpiredLocally && turnSeconds <= 0) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          decoration: BoxDecoration(
+            color: ColorConstants.error.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: ColorConstants.error.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            children: [
+              const Icon(
+                Icons.timer_off,
+                color: ColorConstants.error,
+                size: 28,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Turn Expired',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: ColorConstants.error,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Your 60-second turn has ended. Processing...',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       return Column(
         children: [
           // Timer banner
