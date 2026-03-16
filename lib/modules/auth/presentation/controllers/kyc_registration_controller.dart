@@ -633,7 +633,7 @@ class KYCRegistrationController extends ChangeNotifier {
     // Strict Format Check
     if (!PhilippineIdValidator.validateNationalId(_nationalIdNumber!)) {
       if (reportError)
-        setError('Invalid National ID format. Must be 12 digits.');
+        setError('Invalid National ID format. Must be 16 digits (PCN).');
       return false;
     }
 

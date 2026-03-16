@@ -413,8 +413,8 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
         ];
       case 'Passport':
         return [
-          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
-          LengthLimitingTextInputFormatter(10),
+          FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+          LengthLimitingTextInputFormatter(9),
           TextInputFormatter.withFunction((oldValue, newValue) {
             return TextEditingValue(
               text: newValue.text.toUpperCase(),
@@ -439,6 +439,30 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
           FilteringTextInputFormatter.digitsOnly,
           LengthLimitingTextInputFormatter(7),
         ];
+      case 'Voter\'s ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(12),
+          _VotersIdFormatter(),
+        ];
+      case 'Postal ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(11),
+          _PostalIdFormatter(),
+        ];
+      case 'PWD ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(13),
+          _PWDSeniorFormatter(),
+        ];
+      case 'Senior Citizen ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(13),
+          _PWDSeniorFormatter(),
+        ];
       default:
         return [
           FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9-]')),
@@ -453,13 +477,21 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       case 'Driver\'s License':
         return 'N00-00-000000';
       case 'Passport':
-        return 'XX0000000 or P0000000A';
+        return 'PP1234567 or P1234567A';
       case 'SSS ID':
         return '00-0000000-0';
       case 'UMID':
         return '0000-0000000-0';
       case 'PRC ID':
         return '0000000';
+      case 'Voter\'s ID':
+        return '0000-0000-0000';
+      case 'Postal ID':
+        return '00-00-0000000';
+      case 'PWD ID':
+        return '00-00-00-0000000';
+      case 'Senior Citizen ID':
+        return '00-00-00-0000000';
       default:
         return 'Enter your ID number';
     }
@@ -472,13 +504,21 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       case 'Driver\'s License':
         return 'Format: N00-00-000000';
       case 'Passport':
-        return 'Format: 2 letters + 6-7 digits or P + 7 digits + letter';
+        return 'Format: 2 letters + 7 digits or letter + 7 digits + letter';
       case 'SSS ID':
         return 'Format: 00-0000000-0';
       case 'UMID':
         return 'Format: 0000-0000000-0';
       case 'PRC ID':
         return '7-digit PRC number';
+      case 'Voter\'s ID':
+        return 'Format: 0000-0000-0000';
+      case 'Postal ID':
+        return 'Format: 00-00-0000000';
+      case 'PWD ID':
+        return 'Format: 00-00-00-0000000';
+      case 'Senior Citizen ID':
+        return 'Format: 00-00-00-0000000';
       default:
         return null;
     }
@@ -494,10 +534,10 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
         }
         break;
       case 'Passport':
-        if (value.length < 8 || value.length > 9) {
-          return 'Passport must be 8-9 characters';
+        if (value.length != 9) {
+          return 'Passport must be 9 characters';
         }
-        if (!RegExp(r'^[A-Z]{2}[0-9]{6,7}$').hasMatch(value) &&
+        if (!RegExp(r'^[A-Z]{2}[0-9]{7}$').hasMatch(value) &&
             !RegExp(r'^[A-Z][0-9]{7}[A-Z]$').hasMatch(value)) {
           return 'Invalid passport format';
         }
@@ -517,6 +557,30 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       case 'PRC ID':
         if (value.length != 7) {
           return 'PRC ID must be 7 digits';
+        }
+        break;
+      case 'Voter\'s ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 12) {
+          return 'Voter\'s ID must be 12 digits';
+        }
+        break;
+      case 'Postal ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 11) {
+          return 'Postal ID must be 11 digits';
+        }
+        break;
+      case 'PWD ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length < 11 || digits.length > 13) {
+          return 'PWD ID must be 11-13 digits';
+        }
+        break;
+      case 'Senior Citizen ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length < 11 || digits.length > 13) {
+          return 'Senior Citizen ID must be 11-13 digits';
         }
         break;
     }
@@ -599,6 +663,87 @@ class _UMIDFormatter extends TextInputFormatter {
     for (int i = 0; i < text.length && i < 12; i++) {
       buffer.write(text[i]);
       if (i == 3 || i == 10) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for Voter's ID (COMELEC)
+/// Format: 0000-0000-0000 (12 digits grouped by 4)
+class _VotersIdFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) return newValue.copyWith(text: '');
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 12; i++) {
+      buffer.write(text[i]);
+      if ((i + 1) % 4 == 0 && i + 1 != text.length) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for Postal ID
+/// Format: 00-00-0000000 (2+2+7 digits)
+class _PostalIdFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) return newValue.copyWith(text: '');
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 11; i++) {
+      buffer.write(text[i]);
+      if (i == 1 || i == 3) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for PWD ID and Senior Citizen ID
+/// Format: 00-00-00-0000000 (2+2+2+7 digits)
+class _PWDSeniorFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) return newValue.copyWith(text: '');
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 13; i++) {
+      buffer.write(text[i]);
+      if (i == 1 || i == 3 || i == 5) {
         buffer.write('-');
       }
     }

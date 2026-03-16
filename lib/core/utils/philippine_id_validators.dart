@@ -1,17 +1,18 @@
 /// Utility class for validating Philippine Government IDs
 class PhilippineIdValidator {
-  /// Validates Philippine National ID (PhilSys ID)
-  /// Format: 12 digits, often XXXX-XXXX-XXXX
+  /// Validates Philippine National ID (PhilSys Card Number - PCN)
+  /// Format: 16 digits, ####-####-####-####
+  /// Note: Uses PCN instead of PSN per Philippine Data Privacy Act compliance
   static bool validateNationalId(String idNumber) {
     // Remove hyphens and spaces for checking length and digits
     final cleanId = idNumber.replaceAll(RegExp(r'[\s-]'), '');
 
-    // Must be exactly 12 digits
-    if (!RegExp(r'^\d{12}$').hasMatch(cleanId)) return false;
+    // Must be exactly 16 digits
+    if (!RegExp(r'^\d{16}$').hasMatch(cleanId)) return false;
 
     // Optional: Check if input matches strict format with hyphens if provided
     if (idNumber.contains('-')) {
-      return RegExp(r'^\d{4}-\d{4}-\d{4}$').hasMatch(idNumber);
+      return RegExp(r'^\d{4}-\d{4}-\d{4}-\d{4}$').hasMatch(idNumber);
     }
 
     return true;
@@ -39,7 +40,11 @@ class PhilippineIdValidator {
     } else if (cleanType.contains('voter')) {
       return _validateVotersId(cleanId);
     } else if (cleanType.contains('umid') || cleanType.contains('gsis')) {
-      return _validateUMID(cleanId); // GSIS uses UMID/CRN often
+      return _validateUMID(cleanId);
+    } else if (cleanType.contains('pwd')) {
+      return _validatePWD(cleanId);
+    } else if (cleanType.contains('senior')) {
+      return _validateSeniorCitizen(cleanId);
     }
 
     // Default fallback: non-empty and at least 5 chars
@@ -48,31 +53,29 @@ class PhilippineIdValidator {
 
   // --- Specific Validators ---
 
-  /// Driver's License: L02-XX-XXXXXX or LXX-XX-XXXXXX
-  /// Common pattern: 1 Letter, 2 Digits - 2 Digits - 6 Digits (LXX-XX-XXXXXX)
+  /// Driver's License: A12-34-567890
+  /// Format: 1 Letter + 2 Digits - 2 Digits - 6 Digits
   static bool _validateDriversLicense(String id) {
-    // Official LTO Format: LXX-XX-XXXXXX (Letter, 2 Digits, -, 2 Digits, -, 6 Digits)
-    // Also supports old format: NXX-XX-XXXXXX
-    // Accept with or without dashes
     final clean = id.replaceAll('-', '');
-    return RegExp(r'^[A-Z]\d{2}\d{2}\d{6}$').hasMatch(clean) ||
+    return RegExp(r'^[A-Z]\d{10}$').hasMatch(clean) ||
         RegExp(r'^[A-Z]\d{2}-\d{2}-\d{6}$').hasMatch(id);
   }
 
-  /// Passport:
-  /// New: P0000000A (Letter, 7 Digits, Letter) = 9 chars
-  /// Old: XX000000 (2 Letters, 6 Digits) = 8 chars
+  /// Passport - 3 formats:
+  /// New ePassport (2026+): AA1234567 (2 letters + 7 digits)
+  /// Legacy ePassport (2016-2026): P1234567A (letter + 7 digits + letter)
+  /// Older biometric: AA1234567 (2 letters + 7 digits)
+  /// Combined: ^(?:[A-Z]{2}[0-9]{7}|[A-Z][0-9]{7}[A-Z])$
   static bool _validatePassport(String id) {
-    return RegExp(r'^[A-Z]\d{7}[A-Z]$').hasMatch(id) ||
-        RegExp(r'^[A-Z]{2}\d{6}$').hasMatch(id) ||
-        RegExp(r'^[A-Z]{2}\d{7}$').hasMatch(id);
+    return RegExp(r'^[A-Z]{2}\d{7}$').hasMatch(id) ||
+        RegExp(r'^[A-Z]\d{7}[A-Z]$').hasMatch(id);
   }
 
-  /// SSS: XX-XXXXXXX-X (10 digits)
+  /// SSS: XX-XXXXXXX-X (10 digits, hyphens optional)
   static bool _validateSSS(String id) {
     final clean = id.replaceAll('-', '');
     return RegExp(r'^\d{10}$').hasMatch(clean) ||
-        RegExp(r'^\d{2}-\d{7}-\d{1}$').hasMatch(id);
+        RegExp(r'^\d{2}-?\d{7}-?\d$').hasMatch(id);
   }
 
   /// TIN: XXX-XXX-XXX-000 (9 to 12 digits)
@@ -94,28 +97,38 @@ class PhilippineIdValidator {
     return RegExp(r'^\d{7}$').hasMatch(id);
   }
 
-  /// Postal ID:
-  /// New: XXXX XXXX XXXX XXXX (16 digits)
-  /// Old: XX XXXXXX X (Alpha numeric) - varied.
-  /// We enforce newer card format: 16 digits (PRN)
+  /// Postal ID: XX-XX-XXXXXXX (2+2+7 = 11 digits, hyphens optional)
   static bool _validatePostalId(String id) {
     final clean = id.replaceAll(RegExp(r'[\s-]'), '');
-    return RegExp(r'^\d{16}$').hasMatch(clean) ||
-        RegExp(r'^\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}$').hasMatch(id);
+    return RegExp(r'^\d{11}$').hasMatch(clean) ||
+        RegExp(r'^\d{2}-\d{2}-\d{7}$').hasMatch(id);
   }
 
-  /// Voter's ID: XX-XXXX-XXXX-XXXX (19 digits approx) or varied.
-  /// COMELEC varies, but standard is often region-prov-city-seq
+  /// Voter's ID (COMELEC): XXXX-XXXX-XXXX (12 digits, hyphens optional)
   static bool _validateVotersId(String id) {
-    // Simple check for reasonable length and numeric/dash structure
-    return RegExp(r'^[\d-]{10,25}$').hasMatch(id);
+    final clean = id.replaceAll('-', '');
+    return RegExp(r'^\d{12}$').hasMatch(clean) ||
+        RegExp(r'^\d{4}-?\d{4}-?\d{4}$').hasMatch(id);
   }
 
-  /// UMID / GSIS (CRN): 12 digits (XXXX-XXXX-XXXX)
+  /// UMID (CRN): XXXX-XXXXXXX-X (4+7+1 = 12 digits)
   static bool _validateUMID(String id) {
     final clean = id.replaceAll('-', '');
     return RegExp(r'^\d{12}$').hasMatch(clean) ||
-        RegExp(r'^\d{4}-\d{7}-\d{1}$').hasMatch(id) ||
-        RegExp(r'^\d{4}-\d{4}-\d{4}$').hasMatch(id);
+        RegExp(r'^\d{4}-\d{7}-\d$').hasMatch(id);
+  }
+
+  /// PWD ID: RR-PP-CC-NNNNNNN (2+2+2+5-7 = 11-13 digits)
+  static bool _validatePWD(String id) {
+    final clean = id.replaceAll('-', '');
+    return RegExp(r'^\d{11,13}$').hasMatch(clean) ||
+        RegExp(r'^\d{2}-\d{2}-\d{2}-\d{5,7}$').hasMatch(id);
+  }
+
+  /// Senior Citizen (OSCA): RR-PP-CC-NNNNNNN (2+2+2+5-7 = 11-13 digits)
+  static bool _validateSeniorCitizen(String id) {
+    final clean = id.replaceAll('-', '');
+    return RegExp(r'^\d{11,13}$').hasMatch(clean) ||
+        RegExp(r'^\d{2}-\d{2}-\d{2}-\d{5,7}$').hasMatch(id);
   }
 }
