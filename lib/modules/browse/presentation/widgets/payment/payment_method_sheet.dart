@@ -77,6 +77,14 @@ class PaymentMethodSheet extends StatelessWidget {
           const SizedBox(height: 24),
           _PaymentMethodTile(
             icon: Icons.account_balance_wallet,
+            iconColor: const Color(0xFF1A237E),
+            title: 'Virtual Wallet',
+            subtitle: 'Pay with your demo wallet balance',
+            onTap: () => onSelect(PaymentMethod.virtualWallet),
+          ),
+          const SizedBox(height: 12),
+          _PaymentMethodTile(
+            icon: Icons.account_balance_wallet,
             iconColor: const Color(0xFF007DFE),
             title: 'GCash',
             subtitle: 'Pay with your GCash wallet',
