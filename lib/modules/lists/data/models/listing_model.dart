@@ -332,6 +332,7 @@ class ListingModel {
       sellerId: sellerId,
       transactionId: transactionId,
       cancellationReason: cancellationReason,
+      rejectionReason: rejectionReason,
       visibility: visibility != 'public' ? visibility : biddingType,
       allowsInstallment: allowsInstallment,
     );
@@ -425,6 +426,7 @@ class ListingModel {
       visibility: visibility,
       autoLiveAfterApproval: autoLiveAfterApproval,
       allowsInstallment: allowsInstallment,
+      rejectionReason: rejectionReason,
     );
   }
 
@@ -457,6 +459,8 @@ class ListingModel {
         return ListingStatus.ended;
       case 'cancelled':
         return ListingStatus.cancelled;
+      case 'rejected':
+        return ListingStatus.rejected;
       case 'in_transaction':
         return ListingStatus.inTransaction;
       case 'sold':
