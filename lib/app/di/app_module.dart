@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/services/file_encryption_service.dart';
 import '../../core/services/ai_id_extraction_service.dart';
+import '../../core/services/price_prediction_service.dart';
 import '../../core/network/network_info.dart';
 // Import module initializers
 import '../../modules/auth/auth_module.dart';
@@ -36,6 +37,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => FileEncryptionService(sl()));
   sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
   sl.registerLazySingleton<IAiIdExtractionService>(() => ProductionAiIdExtractionService());
+  sl.registerLazySingleton(() => PricePredictionService());
 
   // 3. Feature Modules
   await initLocationModule();
