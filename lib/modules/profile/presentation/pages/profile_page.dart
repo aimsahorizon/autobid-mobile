@@ -12,6 +12,7 @@ import '../controllers/pricing_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../controllers/review_controller.dart';
 import '../widgets/pricing_section.dart';
+import '../widgets/virtual_wallet_section.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_section.dart';
 import '../widgets/reviews_section.dart';
@@ -441,6 +442,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       onManageTokens: _navigateToTokenPurchase,
                       onManageSubscription: _navigateToSubscription,
                     ),
+                    const SizedBox(height: 16),
+                    const VirtualWalletSection(),
                     const SizedBox(height: 16),
                     AccountSettingsSection(
                       email: profile.email,
