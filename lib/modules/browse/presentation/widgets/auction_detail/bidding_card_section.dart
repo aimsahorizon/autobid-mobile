@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
 
 class BiddingCardSection extends StatefulWidget {
   final bool hasDeposited;
@@ -67,6 +69,8 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
   bool _showAutoBidSection = false;
   double _selectedIncrement = 0; // Set in initState based on listing config
   List<double> _customBidIncrements = [];
+  bool _isCheckingAutoBidEligibility = true;
+  bool _isGoldPlan = false;
 
   static const _customIncrementsKey = 'custom_bid_increments';
 
@@ -92,6 +96,47 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
       _startTurnCountdown(widget.turnRemainingMs);
     }
     _loadCustomIncrements();
+    _loadAutoBidEligibility();
+  }
+
+  Future<void> _loadAutoBidEligibility() async {
+    try {
+      final userId = SupabaseConfig.client.auth.currentUser?.id;
+      if (userId == null) {
+        if (mounted) {
+          setState(() {
+            _isGoldPlan = false;
+            _isCheckingAutoBidEligibility = false;
+          });
+        }
+        return;
+      }
+
+      final response = await SupabaseConfig.client
+          .from('user_subscriptions')
+          .select('plan')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .maybeSingle();
+
+      final currentPlan = SubscriptionPlanExtension.fromJson(
+        response?['plan'] as String? ?? 'free',
+      );
+
+      if (mounted) {
+        setState(() {
+          _isGoldPlan = currentPlan.includesAutoBid;
+          _isCheckingAutoBidEligibility = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isGoldPlan = false;
+          _isCheckingAutoBidEligibility = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadCustomIncrements() async {
@@ -430,6 +475,20 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
         ),
       );
     } else {
+      if (_isCheckingAutoBidEligibility) {
+        return;
+      }
+
+      if (!_isGoldPlan) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Auto-bid is available on Gold plan only.'),
+            backgroundColor: ColorConstants.warning,
+          ),
+        );
+        return;
+      }
+
       // Show setup dialog
       _showAutoBidDialog();
     }
@@ -809,29 +868,47 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
               // Auto-bid toggle button
               if (!_showAutoBidSection && !widget.isAutoBidActive) ...[
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _toggleAutoBid,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                if (_isCheckingAutoBidEligibility)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: null,
+                      icon: const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
-                      side: BorderSide(
-                        color: ColorConstants.primary.withValues(alpha: 0.5),
-                      ),
+                      label: const Text('Checking Auto-Bid access...'),
                     ),
-                    icon: const Icon(Icons.auto_mode),
-                    label: const Text(
-                      'Enable Auto-Bid',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+                  )
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isGoldPlan ? _toggleAutoBid : null,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        side: BorderSide(
+                          color: ColorConstants.primary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      icon: Icon(
+                        _isGoldPlan ? Icons.auto_mode : Icons.lock_outline,
+                      ),
+                      label: Text(
+                        _isGoldPlan
+                            ? 'Enable Auto-Bid'
+                            : 'Auto-Bid (Gold Plan Required)',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ],
           ),

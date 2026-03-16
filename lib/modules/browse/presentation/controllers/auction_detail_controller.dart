@@ -527,6 +527,15 @@ class AuctionDetailController extends ChangeNotifier {
         );
       }
 
+      // Enforce server-side: amount must be at least currentBid + minBidIncrement
+      final current = _auction!.currentBid;
+      final minInc = _auction!.minBidIncrement;
+      if (amount < current + minInc) {
+        _errorMessage =
+            'Bid too low. Minimum increase is ₱${minInc.toStringAsFixed(0)}';
+        return false;
+      }
+
       // Consume bidding token if available
       final hasToken = await _consumeBiddingTokenUsecase.call(
         userId: effectiveUserId,
@@ -536,15 +545,6 @@ class AuctionDetailController extends ChangeNotifier {
       if (!hasToken) {
         _errorMessage =
             'Insufficient bidding tokens. Please purchase more tokens or upgrade your subscription.';
-        return false;
-      }
-
-      // Enforce server-side: amount must be at least currentBid + minBidIncrement
-      final current = _auction!.currentBid;
-      final minInc = _auction!.minBidIncrement;
-      if (amount < current + minInc) {
-        _errorMessage =
-            'Bid too low. Minimum increase is ₱${minInc.toStringAsFixed(0)}';
         return false;
       }
 
