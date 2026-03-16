@@ -1918,7 +1918,7 @@ class ListingSupabaseDataSource {
       final dupes = await _supabase
           .from('auctions')
           .select(
-            '''id, auction_statuses(status_name), auction_vehicles!inner(plate_number)''',
+            '''id, auction_statuses!inner(status_name), auction_vehicles!inner(plate_number)''',
           )
           // Removed .eq('seller_id', sellerId) to check globally
           .inFilter('auction_vehicles.plate_number', variants)
