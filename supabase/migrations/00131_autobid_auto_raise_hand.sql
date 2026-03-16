@@ -7,8 +7,11 @@
 --            else manually raises hand or when 2+ auto-bidders exist.
 -- Problem 2: After a turn expires, user can't lower hand because the entry
 --            is in 'expired' status and lower_hand only looks for pending/active_turn.
+-- Problem 3: ON CONFLICT (auction_id, cycle_number) on bid_queue_cycles fails
+--            because no unique index exists for that column pair.
 --
 -- Fix:
+--   0. Add UNIQUE index on bid_queue_cycles(auction_id, cycle_number).
 --   1. upsert_auto_bid_settings() — after activation, if user is not the
 --      current winner, immediately create a cycle and process it so the
 --      auto-bidder bids right away.
@@ -17,6 +20,10 @@
 --      get a cycle to counter-bid.
 --   3. process_bid_cycles() Phase 3 — same threshold fix.
 -- ============================================================================
+
+-- Fix: Add unique index required by ON CONFLICT (auction_id, cycle_number)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bqc_auction_cycle_number
+  ON bid_queue_cycles(auction_id, cycle_number);
 
 -- ============================================================================
 -- 1. upsert_auto_bid_settings() — Auto-create cycle on activation
