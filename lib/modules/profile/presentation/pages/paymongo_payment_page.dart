@@ -7,6 +7,8 @@ import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../../data/datasources/pricing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/payment/virtual_wallet_payment_form.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
 /// PayMongo payment page for processing token package purchases
 class PayMongoPaymentPage extends StatefulWidget {
@@ -80,6 +82,29 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
+  }
+
+  void _payWithWallet() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VirtualWalletPaymentForm(
+          userId: widget.userId,
+          amount: widget.package.price,
+          description:
+              '${widget.package.tokens} ${widget.package.type == TokenType.bidding ? 'Bidding' : 'Listing'} Tokens',
+          category: WalletTransactionCategory.tokenPurchase,
+          referenceId: widget.package.id,
+          onSuccess: () async {
+            await _creditTokens();
+          },
+        ),
+      ),
+    ).then((result) {
+      if (result == true && mounted) {
+        Navigator.pop(context, true);
+      }
+    });
   }
 
   Future<void> _processPayment() async {
@@ -327,6 +352,48 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
 
               // Package summary
               _buildPackageSummary(theme, isDark),
+              const SizedBox(height: 24),
+
+              // Virtual Wallet Payment Option
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: _isProcessing ? null : _payWithWallet,
+                  icon: const Icon(Icons.account_balance_wallet),
+                  label: const Text(
+                    'Pay with Virtual Wallet',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1A237E),
+                    side: const BorderSide(color: Color(0xFF1A237E), width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR PAY WITH CARD',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark
+                            ? ColorConstants.textSecondaryDark
+                            : ColorConstants.textSecondaryLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
               const SizedBox(height: 32),
 
               // Payment method selection
