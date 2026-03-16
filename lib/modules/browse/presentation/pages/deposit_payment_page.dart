@@ -8,6 +8,8 @@ import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/deposit_supabase_datasource.dart';
+import '../widgets/payment/virtual_wallet_payment_form.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
 /// Deposit payment page for auction participation
 class DepositPaymentPage extends StatefulWidget {
@@ -197,6 +199,40 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
       const SnackBar(content: Text('Switched to Mock Payment Service (Debug)')),
     );
+  }
+
+  void _payWithWallet() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VirtualWalletPaymentForm(
+          userId: widget.userId,
+          amount: widget.depositAmount,
+          description: 'Auction Deposit',
+          category: WalletTransactionCategory.deposit,
+          referenceId: widget.auctionId,
+          onSuccess: () async {
+            // Record deposit in database
+            try {
+              await _depositDataSource.createDeposit(
+                auctionId: widget.auctionId,
+                userId: widget.userId,
+                amount: widget.depositAmount,
+                paymentIntentId:
+                    'wallet_${DateTime.now().millisecondsSinceEpoch}',
+              );
+            } catch (e) {
+              debugPrint('[DepositPaymentPage] Error recording deposit: $e');
+            }
+            widget.onSuccess();
+          },
+        ),
+      ),
+    ).then((result) {
+      if (result == true && mounted) {
+        Navigator.pop(context, true);
+      }
+    });
   }
 
   @override
@@ -504,7 +540,56 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // Virtual Wallet Payment Option
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: OutlinedButton.icon(
+                    onPressed: _isProcessing ? null : _payWithWallet,
+                    icon: const Icon(Icons.account_balance_wallet),
+                    label: const Text(
+                      'Pay with Virtual Wallet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1A237E),
+                      side: const BorderSide(
+                        color: Color(0xFF1A237E),
+                        width: 2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'OR PAY WITH CARD',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? ColorConstants.textSecondaryDark
+                              : ColorConstants.textSecondaryLight,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
 
                 // Billing information
                 Text(
