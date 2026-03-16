@@ -107,6 +107,9 @@ class ListingDetailEntity {
   // Installment
   final bool allowsInstallment;
 
+  // Rejection
+  final String? rejectionReason;
+
   const ListingDetailEntity({
     required this.id,
     required this.status,
@@ -183,6 +186,7 @@ class ListingDetailEntity {
     this.visibility = 'public',
     this.autoLiveAfterApproval = false,
     this.allowsInstallment = false,
+    this.rejectionReason,
   }) : _storedCoverPhotoUrl = storedCoverPhotoUrl;
 
   /// Get formatted car name
