@@ -203,3 +203,52 @@ CREATE TRIGGER trg_auto_generate_installment_payments
   AFTER INSERT ON installment_plans
   FOR EACH ROW
   EXECUTE FUNCTION auto_generate_installment_payments();
+
+-- ============================================================================
+-- 6. Fix trigger_notify_installment_payment: NEW.plan_id → NEW.installment_plan_id
+--    The column in installment_payments is "installment_plan_id", not "plan_id".
+--    This bug causes INSERT on installment_payments to crash.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.trigger_notify_installment_payment()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_plan RECORD;
+  v_transaction RECORD;
+  v_auction_title TEXT;
+BEGIN
+  SELECT p.transaction_id INTO v_plan
+  FROM public.installment_plans p WHERE p.id = NEW.installment_plan_id;
+
+  IF v_plan IS NULL THEN RETURN NEW; END IF;
+
+  SELECT t.buyer_id, t.seller_id, t.auction_id
+  INTO v_transaction
+  FROM public.auction_transactions t
+  WHERE t.id = v_plan.transaction_id;
+
+  IF v_transaction IS NULL THEN RETURN NEW; END IF;
+
+  SELECT a.title INTO v_auction_title
+  FROM public.auctions a WHERE a.id = v_transaction.auction_id;
+
+  PERFORM public.create_notification(
+    v_transaction.buyer_id, 'installment_update', 'Payment logged',
+    format('A payment of ₱%s has been logged for "%s".',
+      ROUND(NEW.amount)::TEXT, COALESCE(v_auction_title, 'a transaction')),
+    'transaction', v_plan.transaction_id,
+    jsonb_build_object('transaction_id', v_plan.transaction_id, 'auction_id', v_transaction.auction_id, 'tab', 'gives'),
+    'normal'
+  );
+
+  PERFORM public.create_notification(
+    v_transaction.seller_id, 'installment_update', 'Payment logged',
+    format('A payment of ₱%s has been logged for "%s".',
+      ROUND(NEW.amount)::TEXT, COALESCE(v_auction_title, 'a transaction')),
+    'transaction', v_plan.transaction_id,
+    jsonb_build_object('transaction_id', v_plan.transaction_id, 'auction_id', v_transaction.auction_id, 'tab', 'gives'),
+    'normal'
+  );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
