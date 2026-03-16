@@ -365,6 +365,8 @@ class _StatusBadge extends StatelessWidget {
         return ColorConstants.textSecondaryLight;
       case ListingStatus.cancelled:
         return ColorConstants.error;
+      case ListingStatus.rejected:
+        return Colors.deepOrange;
       case ListingStatus.inTransaction:
         return ColorConstants.info;
       case ListingStatus.sold:
@@ -524,6 +526,33 @@ class _StatusInfo extends StatelessWidget {
       );
     }
 
+    // Check for rejection reason
+    if (listing.status == ListingStatus.rejected &&
+        listing.rejectionReason != null &&
+        listing.rejectionReason!.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _InfoChip(
+            icon: Icons.block,
+            label: 'Rejected',
+            color: Colors.deepOrange,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Reason: ${listing.rejectionReason}',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.deepOrange,
+              fontStyle: FontStyle.italic,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      );
+    }
+
     switch (listing.status) {
       case ListingStatus.active:
         return _TimeChip(timeRemaining: timeRemaining);
@@ -562,6 +591,12 @@ class _StatusInfo extends StatelessWidget {
           icon: Icons.cancel_outlined,
           label: 'Cancelled',
           color: ColorConstants.error,
+        );
+      case ListingStatus.rejected:
+        return _InfoChip(
+          icon: Icons.block,
+          label: 'Rejected by Admin',
+          color: Colors.deepOrange,
         );
       case ListingStatus.inTransaction:
         return _InfoChip(
