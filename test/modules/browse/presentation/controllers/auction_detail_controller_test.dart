@@ -546,6 +546,48 @@ void main() {
       });
     });
 
+    group('placeBid', () {
+      test('should reject low bid before consuming a token', () async {
+        when(
+          () => mockGetAuctionDetail(
+            auctionId: any(named: 'auctionId'),
+            userId: any(named: 'userId'),
+          ),
+        ).thenAnswer((_) async => Right(testAuction));
+        when(
+          () => mockGetBidIncrement(
+            auctionId: any(named: 'auctionId'),
+            userId: any(named: 'userId'),
+          ),
+        ).thenAnswer((_) async => const Right(null));
+        when(
+          () => mockGetBidHistory(auctionId: any(named: 'auctionId')),
+        ).thenAnswer((_) async => Right(testBidHistory));
+        when(
+          () => mockGetQuestions(
+            auctionId: any(named: 'auctionId'),
+            currentUserId: any(named: 'currentUserId'),
+          ),
+        ).thenAnswer((_) async => Right(testQuestions));
+
+        await controller.loadAuctionDetail(testAuctionId);
+
+        final success = await controller.placeBid(50500);
+
+        expect(success, false);
+        expect(
+          controller.errorMessage,
+          'Bid too low. Minimum increase is ₱1000',
+        );
+        verifyNever(
+          () => mockConsumeBiddingToken.call(
+            userId: any(named: 'userId'),
+            referenceId: any(named: 'referenceId'),
+          ),
+        );
+      });
+    });
+
     group('Edge Cases', () {
       test('should handle null userId gracefully', () async {
         // Arrange - Create controller without userId
