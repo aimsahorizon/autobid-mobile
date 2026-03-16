@@ -89,7 +89,26 @@ Future<void> initBrowseModule() async {
   sl.registerLazySingleton(() => StreamBidUpdatesUseCase(sl()));
   sl.registerLazySingleton(() => StreamQAUpdatesUseCase(sl()));
   sl.registerLazySingleton(() => StreamActiveAuctionsUseCase(sl()));
-  sl.registerLazySingleton(() => SaveAutoBidSettingsUseCase(sl()));
+  sl.registerLazySingleton(
+    () => SaveAutoBidSettingsUseCase(
+      sl(),
+      canUseAutoBid: (userId) async {
+        final response = await sl<SupabaseClient>()
+            .from('user_subscriptions')
+            .select('plan')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .maybeSingle();
+
+        if (response == null) return false;
+        final plan = (response['plan'] as String? ?? '').toLowerCase();
+        return plan == 'gold_monthly' ||
+            plan == 'gold_yearly' ||
+            plan == 'pro_plus_monthly' ||
+            plan == 'pro_plus_yearly';
+      },
+    ),
+  );
   sl.registerLazySingleton(() => GetAutoBidSettingsUseCase(sl()));
   sl.registerLazySingleton(() => DeactivateAutoBidUseCase(sl()));
   sl.registerLazySingleton(() => RaiseHandUseCase(sl()));
