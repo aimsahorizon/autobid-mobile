@@ -27,6 +27,7 @@ class _ListsPageState extends State<ListsPage>
     null, // "All" tab
     ListingStatus.active,
     ListingStatus.pending,
+    ListingStatus.rejected,
     ListingStatus.approved,
     ListingStatus.scheduled,
     ListingStatus.ended,
@@ -312,7 +313,9 @@ class _ListsPageState extends State<ListsPage>
 
   Widget _buildGridForStatus(ListingStatus status) {
     final needsController =
-        status == ListingStatus.draft || status == ListingStatus.cancelled;
+        status == ListingStatus.draft ||
+        status == ListingStatus.cancelled ||
+        status == ListingStatus.rejected;
     final needsSellerId = needsController;
     final userId = SupabaseConfig.client.auth.currentUser?.id;
 
@@ -349,6 +352,8 @@ class _ListsPageState extends State<ListsPage>
         return ColorConstants.textSecondaryLight;
       case ListingStatus.cancelled:
         return ColorConstants.error;
+      case ListingStatus.rejected:
+        return Colors.deepOrange;
       case ListingStatus.inTransaction:
         return ColorConstants.info;
       case ListingStatus.sold:
@@ -374,6 +379,8 @@ class _ListsPageState extends State<ListsPage>
         return 'No drafts';
       case ListingStatus.cancelled:
         return 'No cancelled listings';
+      case ListingStatus.rejected:
+        return 'No rejected listings';
       case ListingStatus.inTransaction:
         return 'No active transactions';
       case ListingStatus.sold:
@@ -399,6 +406,8 @@ class _ListsPageState extends State<ListsPage>
         return 'Your saved drafts will appear here';
       case ListingStatus.cancelled:
         return 'Cancelled listings will appear here';
+      case ListingStatus.rejected:
+        return 'Listings rejected by admin will appear here';
       case ListingStatus.inTransaction:
         return 'Active negotiations will appear here';
       case ListingStatus.sold:
@@ -424,6 +433,8 @@ class _ListsPageState extends State<ListsPage>
         return Icons.edit_note;
       case ListingStatus.cancelled:
         return Icons.cancel_outlined;
+      case ListingStatus.rejected:
+        return Icons.block;
       case ListingStatus.inTransaction:
         return Icons.handshake_outlined;
       case ListingStatus.sold:
