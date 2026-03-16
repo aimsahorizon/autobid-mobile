@@ -177,7 +177,7 @@ BEGIN
     SELECT d.user_id AS uid, d.amount AS dep_amount
     FROM deposits d
     WHERE d.auction_id = p_auction_id
-      AND d.status = 'confirmed'
+      AND d.is_refunded = FALSE
   LOOP
     -- Credit each depositor's wallet
     PERFORM wallet_credit(
@@ -188,8 +188,10 @@ BEGIN
       'Deposit returned for ended auction'
     );
 
-    -- Update deposit status
-    UPDATE deposits SET status = 'returned' WHERE auction_id = p_auction_id AND deposits.user_id = r.uid;
+    -- Mark deposit as refunded
+    UPDATE deposits
+    SET is_refunded = TRUE, refunded_at = NOW()
+    WHERE auction_id = p_auction_id AND deposits.user_id = r.uid;
 
     RETURN QUERY SELECT r.uid, r.dep_amount, TRUE;
   END LOOP;
