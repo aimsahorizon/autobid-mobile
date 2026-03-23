@@ -223,13 +223,17 @@ class QASupabaseDataSource {
     final likedByUser = likesData != null && currentUserId != null
         ? likesData.any((like) => like['user_id'] == currentUserId)
         : false;
+    final questionUserId = j['user_id'] as String?;
+    final isOwnQuestion =
+        currentUserId != null && questionUserId == currentUserId;
 
     return QAEntity(
       id: j['id'] as String,
       auctionId: j['auction_id'] as String,
+      userId: questionUserId,
       category: (j['category'] as String?) ?? 'general',
       question: (j['question'] as String?) ?? '',
-      askedBy: displayName,
+      askedBy: isOwnQuestion ? 'You' : displayName,
       askedAt: DateTime.parse(j['asked_at'] as String),
       answers: answers,
       likesCount: likes,

@@ -72,11 +72,12 @@ class AuctionDetailCompositeSupabaseDataSource
       return BidHistoryEntity(
         id: bidData['id'] as String,
         auctionId: auctionId,
+        bidderId: bidData['bidder_id'] as String?,
         amount: (bidData['bid_amount'] as num).toDouble(),
         bidderName: bidderName,
         username: username,
         timestamp: DateTime.parse(bidData['created_at'] as String).toLocal(),
-        isCurrentUser: false, // Will be set by repository/usecase if needed
+        isCurrentUser: false, // Will be set by controller
         isWinning: false, // Will be set based on current auction state
       );
     }).toList();
