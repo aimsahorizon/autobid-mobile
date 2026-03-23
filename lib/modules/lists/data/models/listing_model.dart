@@ -50,6 +50,7 @@ class ListingModel {
   final String? warrantyDetails;
   final String? usageType;
   final String plateNumber;
+  final String? chassisNumber;
   final String orcrStatus;
   final String registrationStatus;
   final DateTime? registrationExpiry;
@@ -150,6 +151,7 @@ class ListingModel {
     this.warrantyDetails,
     this.usageType,
     required this.plateNumber,
+    this.chassisNumber,
     required this.orcrStatus,
     required this.registrationStatus,
     this.registrationExpiry,
@@ -176,7 +178,7 @@ class ListingModel {
     required this.updatedAt,
     this.transactionId,
     this.cancellationReason,
-    this.biddingType = 'public',
+    this.biddingType = 'open',
     this.bidIncrement = 100,
     this.minBidIncrement = 100,
     this.depositAmount = 0,
@@ -186,7 +188,7 @@ class ListingModel {
     this.snipeGuardThresholdSeconds = 300,
     this.snipeGuardExtendSeconds = 300,
     this.deedOfSaleUrl,
-    this.visibility = 'public',
+    this.visibility = 'open',
     this.allowsInstallment = false,
   });
 
@@ -242,6 +244,7 @@ class ListingModel {
       warrantyDetails: json['warranty_details'] as String?,
       usageType: json['usage_type'] as String?,
       plateNumber: json['plate_number'] as String? ?? '',
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String? ?? '',
       registrationStatus: json['registration_status'] as String? ?? '',
       registrationExpiry: json['registration_expiry'] != null
@@ -284,7 +287,7 @@ class ListingModel {
           : DateTime.now(),
       transactionId: json['transaction_id'] as String?,
       cancellationReason: json['cancellation_reason'] as String?,
-      biddingType: json['bidding_type'] as String? ?? 'public',
+      biddingType: json['bidding_type'] as String? ?? 'open',
       bidIncrement: _toDouble(json['bid_increment']) ?? 100,
       minBidIncrement: _toDouble(json['min_bid_increment']) ?? 100,
       depositAmount: _toDouble(json['deposit_amount']) ?? 0,
@@ -300,7 +303,7 @@ class ListingModel {
       visibility:
           json['visibility'] as String? ??
           json['bidding_type'] as String? ??
-          'public',
+          'open',
       allowsInstallment: json['allows_installment'] as bool? ?? false,
     );
   }
@@ -333,7 +336,7 @@ class ListingModel {
       transactionId: transactionId,
       cancellationReason: cancellationReason,
       rejectionReason: rejectionReason,
-      visibility: visibility != 'public' ? visibility : biddingType,
+      visibility: visibility != 'open' ? visibility : biddingType,
       allowsInstallment: allowsInstallment,
     );
   }
@@ -402,6 +405,7 @@ class ListingModel {
       warrantyDetails: warrantyDetails,
       usageType: usageType,
       plateNumber: plateNumber,
+      chassisNumber: chassisNumber,
       orcrStatus: orcrStatus,
       registrationStatus: registrationStatus,
       registrationExpiry: registrationExpiry,

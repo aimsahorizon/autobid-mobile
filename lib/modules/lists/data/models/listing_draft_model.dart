@@ -47,6 +47,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.warrantyDetails,
     super.usageType,
     super.plateNumber,
+    super.chassisNumber,
     super.orcrStatus,
     super.registrationStatus,
     super.registrationExpiry,
@@ -131,6 +132,7 @@ class ListingDraftModel extends ListingDraftEntity {
       usageType: json['usage_type'] as String?,
       // Step 6: Documentation
       plateNumber: json['plate_number'] as String?,
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String?,
       registrationStatus: json['registration_status'] as String?,
       registrationExpiry: json['registration_expiry'] != null
@@ -160,7 +162,7 @@ class ListingDraftModel extends ListingDraftEntity {
           ? DateTime.parse(json['auction_end_date'] as String)
           : null,
       // Step 8: Bidding Configuration
-      biddingType: json['bidding_type'] as String? ?? 'public',
+      biddingType: json['bidding_type'] as String? ?? 'open',
       bidIncrement: _toDouble(json['bid_increment']),
       minBidIncrement: _toDouble(json['min_bid_increment']),
       depositAmount: _toDouble(json['deposit_amount']),
@@ -232,6 +234,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'usage_type': usageType,
       // Step 6
       'plate_number': plateNumber,
+      'chassis_number': chassisNumber,
       'orcr_status': orcrStatus,
       'registration_status': registrationStatus,
       'registration_expiry': registrationExpiry?.toIso8601String(),
