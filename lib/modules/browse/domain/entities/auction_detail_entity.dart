@@ -12,6 +12,7 @@ class AuctionDetailEntity {
   final double minBidIncrement;
   final bool enableIncrementalBidding;
   final String biddingType;
+  final String? exclusiveTier;
   final double depositAmount;
   final int watchersCount;
   final int biddersCount;
@@ -101,7 +102,8 @@ class AuctionDetailEntity {
     required this.minimumBid,
     required this.minBidIncrement,
     required this.enableIncrementalBidding,
-    this.biddingType = 'public',
+    this.biddingType = 'open',
+    this.exclusiveTier,
     this.depositAmount = 0,
     this.reservePrice,
     required this.isReserveMet,
@@ -196,6 +198,7 @@ class AuctionDetailEntity {
       minBidIncrement: source.minBidIncrement,
       enableIncrementalBidding: source.enableIncrementalBidding,
       biddingType: source.biddingType,
+      exclusiveTier: source.exclusiveTier,
       depositAmount: source.depositAmount,
       reservePrice: source.reservePrice,
       isReserveMet: source.isReserveMet,

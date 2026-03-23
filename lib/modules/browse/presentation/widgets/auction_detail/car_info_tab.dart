@@ -69,6 +69,16 @@ class _AuctionConfigSection extends StatelessWidget {
                 ? 'Mystery'
                 : 'Open',
           ),
+          if (auction.biddingType == 'exclusive' &&
+              auction.exclusiveTier != null)
+            _InfoRow(
+              label: 'Required Tier',
+              value: auction.exclusiveTier == 'silver'
+                  ? 'Silver Only'
+                  : auction.exclusiveTier == 'gold'
+                  ? 'Gold Only'
+                  : 'Silver & Gold',
+            ),
           _InfoRow(
             label: 'Increment Type',
             value: auction.enableIncrementalBidding ? 'Dynamic' : 'Fixed',

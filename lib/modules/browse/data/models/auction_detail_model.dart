@@ -10,6 +10,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
     required super.minBidIncrement,
     required super.enableIncrementalBidding,
     super.biddingType,
+    super.exclusiveTier,
     super.depositAmount,
     super.reservePrice,
     required super.isReserveMet,
@@ -114,7 +115,8 @@ class AuctionDetailModel extends AuctionDetailEntity {
       minimumBid: minimumBidValue.toDouble(),
       minBidIncrement: minBidIncrementValue.toDouble(),
       enableIncrementalBidding: enableIncrementalBiddingValue,
-      biddingType: json['bidding_type'] as String? ?? 'public',
+      biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
       depositAmount: depositAmountValue.toDouble(),
       reservePrice: json['reserve_price'] != null
           ? (json['reserve_price'] as num).toDouble()
