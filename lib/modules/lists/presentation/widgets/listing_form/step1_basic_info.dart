@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 // ...existing code...
 import '../../controllers/listing_draft_controller.dart';
 import 'form_field_widget.dart';
 import 'combo_box_widget.dart';
+import 'package:autobid_mobile/core/services/car_api_service.dart';
 
 class Step1BasicInfo extends StatefulWidget {
   final ListingDraftController controller;
@@ -17,6 +19,8 @@ class Step1BasicInfo extends StatefulWidget {
 class _Step1BasicInfoState extends State<Step1BasicInfo> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _yearController;
+  late TextEditingController _searchController;
+  Timer? _searchDebounce;
 
   String? _brand;
   String? _model;
@@ -33,6 +37,7 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
     _bodyType = draft.bodyType;
     _yearController = TextEditingController(text: draft.year?.toString());
     _yearController.addListener(_updateDraft);
+    _searchController = TextEditingController();
     widget.controller.addListener(_onControllerChanged);
 
     // Initial load
@@ -84,8 +89,10 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     widget.controller.removeListener(_onControllerChanged);
     _yearController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -122,6 +129,11 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
             style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 24),
+
+          // Car Search Autofill
+          _buildCarSearchField(),
+          const SizedBox(height: 16),
+
           if (widget.controller.isLoadingVehicleData &&
               widget.controller.brands.isEmpty)
             const Center(
@@ -227,6 +239,93 @@ class _Step1BasicInfoState extends State<Step1BasicInfo> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCarSearchField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            labelText: 'Quick Search',
+            hintText: 'e.g. Toyota Vios 1.5 G',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: widget.controller.isSearchingCars
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      widget.controller.clearCarSearch();
+                    },
+                  )
+                : null,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          onChanged: (value) {
+            _searchDebounce?.cancel();
+            _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+              widget.controller.searchCars(value);
+            });
+          },
+        ),
+        if (widget.controller.carSearchResults.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            constraints: const BoxConstraints(maxHeight: 200),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: widget.controller.carSearchResults.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final result = widget.controller.carSearchResults[index];
+                return ListTile(
+                  dense: true,
+                  title: Text(
+                    result.displayName,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  subtitle: Text(
+                    [
+                      if (result.bodyType != null) result.bodyType,
+                      if (result.transmission != null) result.transmission,
+                      if (result.fuelType != null) result.fuelType,
+                    ].join(' · '),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                  onTap: () async {
+                    _searchController.clear();
+                    await widget.controller.applyCarSearchResult(result);
+                    // Local state will sync via _onControllerChanged
+                  },
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 }

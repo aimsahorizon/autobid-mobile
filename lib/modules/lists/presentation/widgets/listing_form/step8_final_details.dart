@@ -24,7 +24,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   late TextEditingController _bidIncrementController;
 
   List<String> _features = [];
-  String _biddingType = 'public'; // 'public' or 'private'
+  String _biddingType = 'open'; // 'open', 'exclusive', or 'mystery'
   bool _enableIncrementalBidding = true;
   String _scheduleLiveMode = 'manual'; // 'auto_live', 'manual', 'auto_schedule'
   bool _allowsInstallment = false;
@@ -54,7 +54,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
       text: _formatDouble(draft?.bidIncrement ?? draft?.minBidIncrement ?? 100),
     );
     _features = draft?.features ?? [];
-    _biddingType = draft?.biddingType ?? 'public';
+    _biddingType = draft?.biddingType ?? 'open';
     _enableIncrementalBidding = draft?.enableIncrementalBidding ?? true;
     _scheduleLiveMode = draft?.scheduleLiveMode ?? 'manual';
     _allowsInstallment = draft?.allowsInstallment ?? false;
@@ -300,8 +300,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _descriptionController,
-          label: 'Description *',
-          hint: 'Describe your vehicle in detail...',
+          label: 'Tell me more about the car *',
+          hint:
+              'Share the story, condition highlights, upgrades, and anything buyers should know...',
           maxLines: 5,
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
@@ -608,14 +609,19 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                 ),
                 segments: const <ButtonSegment<String>>[
                   ButtonSegment<String>(
-                    value: 'public',
-                    label: Text('Public'),
+                    value: 'open',
+                    label: Text('Open'),
                     icon: Icon(Icons.public),
                   ),
                   ButtonSegment<String>(
-                    value: 'private',
-                    label: Text('Private'),
+                    value: 'exclusive',
+                    label: Text('Exclusive'),
                     icon: Icon(Icons.lock),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'mystery',
+                    label: Text('Mystery'),
+                    icon: Icon(Icons.visibility_off),
                   ),
                 ],
                 selected: <String>{_biddingType},
@@ -637,9 +643,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            _biddingType == 'public'
+            _biddingType == 'open'
                 ? 'Any buyer can see and bid on your auction'
-                : 'Only invited buyers can see and bid on your auction',
+                : _biddingType == 'exclusive'
+                ? 'Only invited buyers can see and bid on your auction'
+                : 'Bids are hidden until the auction ends. Highest bidder wins. Ties go to the earliest bid.',
             style: const TextStyle(fontSize: 12, color: Colors.blue),
           ),
         ),
@@ -1246,7 +1254,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
       children: [
         _summaryRow(
           'Bidding Type',
-          _biddingType == 'public' ? '🌐 Public' : '🔒 Private',
+          _biddingType == 'open'
+              ? '🌐 Open'
+              : _biddingType == 'exclusive'
+              ? '🔒 Exclusive'
+              : '🎭 Mystery',
         ),
         const Divider(),
         _summaryRow(

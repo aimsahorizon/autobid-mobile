@@ -20,6 +20,7 @@ class Step6Documentation extends StatefulWidget {
 class _Step6DocumentationState extends State<Step6Documentation> {
   late TextEditingController _plateLetterController;
   late TextEditingController _plateNumberController;
+  late TextEditingController _chassisNumberController;
   final _plateLetterFocus = FocusNode();
   final _plateNumberFocus = FocusNode();
   final _validatePlateUseCase = GetIt.I<ValidatePlateNumberUseCase>();
@@ -51,6 +52,9 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     _plateNumberController = TextEditingController(
       text: parts.length > 1 ? parts[1] : '',
     );
+    _chassisNumberController = TextEditingController(
+      text: draft.chassisNumber ?? '',
+    );
 
     _province = draft.province;
     _city = draft.cityMunicipality;
@@ -66,6 +70,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
 
     _plateLetterController.addListener(_onPlateChanged);
     _plateNumberController.addListener(_onPlateChanged);
+    _chassisNumberController.addListener(_updateDraft);
     widget.controller.addListener(_onControllerChanged);
 
     // Initial validation if existing value
@@ -109,6 +114,12 @@ class _Step6DocumentationState extends State<Step6Documentation> {
       _plateLetterController.addListener(_onPlateChanged);
       _plateNumberController.addListener(_onPlateChanged);
     }
+
+    // Sync chassis number
+    final newChassis = draft.chassisNumber ?? '';
+    if (_chassisNumberController.text != newChassis) {
+      _chassisNumberController.text = newChassis;
+    }
   }
 
   String get _combinedPlate {
@@ -124,8 +135,10 @@ class _Step6DocumentationState extends State<Step6Documentation> {
     widget.controller.removeListener(_onControllerChanged);
     _plateLetterController.removeListener(_onPlateChanged);
     _plateNumberController.removeListener(_onPlateChanged);
+    _chassisNumberController.removeListener(_updateDraft);
     _plateLetterController.dispose();
     _plateNumberController.dispose();
+    _chassisNumberController.dispose();
     _plateLetterFocus.dispose();
     _plateNumberFocus.dispose();
     super.dispose();
@@ -204,6 +217,9 @@ class _Step6DocumentationState extends State<Step6Documentation> {
       draft.copyWith(
         lastSaved: DateTime.now(),
         plateNumber: _combinedPlate.isEmpty ? null : _combinedPlate,
+        chassisNumber: _chassisNumberController.text.trim().isEmpty
+            ? null
+            : _chassisNumberController.text.trim().toUpperCase(),
         orcrStatus: _orcrStatus,
         registrationStatus: _registrationStatus,
         registrationExpiry: _registrationExpiry,
@@ -268,6 +284,29 @@ class _Step6DocumentationState extends State<Step6Documentation> {
             if (v?.isEmpty ?? true) return 'Required';
             if (v!.length != 4) return 'Must be exactly 4 digits';
             return _plateError;
+          },
+        ),
+        const SizedBox(height: 16),
+        FormFieldWidget(
+          controller: _chassisNumberController,
+          label: 'Chassis Number (VIN)',
+          hint: 'e.g., 1HGBH41JXMN109186',
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(
+              RegExp(r'[A-HJ-NPR-Za-hj-npr-z0-9]'),
+            ),
+            LengthLimitingTextInputFormatter(17),
+            TextInputFormatter.withFunction((oldValue, newValue) {
+              return newValue.copyWith(text: newValue.text.toUpperCase());
+            }),
+          ],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null; // Optional field
+            if (v.length != 17) return 'VIN must be exactly 17 characters';
+            if (!RegExp(r'^[A-HJ-NPR-Z0-9]{17}$').hasMatch(v)) {
+              return 'Invalid VIN format';
+            }
+            return null;
           },
         ),
         const SizedBox(height: 16),
