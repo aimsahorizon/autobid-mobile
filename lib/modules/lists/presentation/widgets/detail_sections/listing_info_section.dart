@@ -112,7 +112,11 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
         _buildSpecGroup('Bidding Settings', [
           _SpecRow(
             'Bidding Type',
-            widget.listing.biddingType == 'public' ? 'Public' : 'Private',
+            widget.listing.biddingType == 'exclusive'
+                ? 'Exclusive'
+                : widget.listing.biddingType == 'mystery'
+                ? 'Mystery'
+                : 'Open',
           ),
           _SpecRow(
             'Increment Type',
@@ -421,6 +425,15 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
             icon: Icons.pin,
             title: 'Plate Number',
             value: widget.listing.plateNumber!,
+            isDark: isDark,
+          ),
+        const SizedBox(height: 12),
+        if (widget.listing.chassisNumber != null &&
+            widget.listing.chassisNumber!.isNotEmpty)
+          _InfoCard(
+            icon: Icons.confirmation_number,
+            title: 'Chassis Number (VIN)',
+            value: widget.listing.chassisNumber!,
             isDark: isDark,
           ),
         const SizedBox(height: 12),
