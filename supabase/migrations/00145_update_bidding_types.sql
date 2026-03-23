@@ -27,15 +27,25 @@ DROP VIEW IF EXISTS public.auction_browse_listings CASCADE;
 -- 1. Convert auctions.visibility from enum to TEXT
 -- ========================================================================
 
-ALTER TABLE auctions ALTER COLUMN visibility DROP DEFAULT;
-ALTER TABLE auctions ALTER COLUMN visibility TYPE TEXT USING visibility::TEXT;
+-- Safely convert visibility to TEXT if it's still an enum
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'auctions' AND column_name = 'visibility' AND udt_name = 'auction_visibility'
+  ) THEN
+    ALTER TABLE auctions ALTER COLUMN visibility DROP DEFAULT;
+    ALTER TABLE auctions ALTER COLUMN visibility TYPE TEXT USING visibility::TEXT;
+  END IF;
+END $$;
 
--- Update values
+-- Update values (idempotent: only updates rows that still have old values)
 UPDATE auctions SET visibility = 'open' WHERE visibility = 'public';
 UPDATE auctions SET visibility = 'exclusive' WHERE visibility = 'private';
 
 -- Set new default and CHECK constraint
 ALTER TABLE auctions ALTER COLUMN visibility SET DEFAULT 'open';
+ALTER TABLE auctions DROP CONSTRAINT IF EXISTS auctions_visibility_check;
 ALTER TABLE auctions ADD CONSTRAINT auctions_visibility_check
   CHECK (visibility IN ('open', 'exclusive', 'mystery'));
 
@@ -252,129 +262,145 @@ GRANT SELECT ON public.auction_browse_simple TO anon, authenticated, service_rol
 GRANT SELECT ON public.authorized_auctions TO anon, authenticated, service_role;
 
 -- ========================================================================
--- 7. Update submit_listing_from_draft RPC
+-- 7. Update submit_listing_from_draft RPC (only change: default 'public' → 'open')
 -- ========================================================================
+
+DROP FUNCTION IF EXISTS submit_listing_from_draft(UUID);
+
 CREATE OR REPLACE FUNCTION submit_listing_from_draft(draft_id UUID)
-RETURNS JSON
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
+RETURNS JSON AS $$
 DECLARE
-  v_draft listing_drafts%ROWTYPE;
+  v_draft RECORD;
   v_auction_id UUID;
-  v_vehicle_id UUID;
   v_category_id UUID;
   v_status_id UUID;
   v_auction_title TEXT;
-  v_calculated_end_time TIMESTAMPTZ;
-  v_bid_increment NUMERIC;
-  v_deposit_amount NUMERIC;
-  v_bidding_type TEXT;
-  v_min_bid_increment NUMERIC;
-  v_enable_incremental_bidding BOOLEAN;
+  v_photo_category TEXT;
+  v_photo_url TEXT;
+  v_display_order INT;
   v_token_consumed BOOLEAN;
+  v_calculated_end_time TIMESTAMPTZ;
+  v_bid_increment NUMERIC(12, 2);
+  v_min_bid_increment NUMERIC(12, 2);
+  v_deposit_amount NUMERIC(12, 2);
+  v_bidding_type TEXT;
+  v_enable_incremental_bidding BOOLEAN;
   v_tags TEXT[];
+  v_snipe_guard_enabled BOOLEAN;
+  v_snipe_guard_threshold INTEGER;
+  v_snipe_guard_extend INTEGER;
 BEGIN
-  -- ========================================================================
-  -- VALIDATE DRAFT
-  -- ========================================================================
-  SELECT * INTO v_draft FROM listing_drafts WHERE id = draft_id;
+  -- Fetch the draft (with row-level security check)
+  SELECT * INTO v_draft
+  FROM listing_drafts
+  WHERE id = draft_id
+    AND seller_id = auth.uid()
+    AND is_complete = TRUE
+    AND deleted_at IS NULL;
 
+  -- Validate draft exists and belongs to current user
   IF v_draft IS NULL THEN
-    RETURN json_build_object('success', FALSE, 'error', 'Draft not found');
+    RETURN json_build_object(
+      'success', FALSE,
+      'error', 'Draft not found, not complete, or access denied'
+    );
   END IF;
 
-  IF v_draft.seller_id != auth.uid() THEN
-    RETURN json_build_object('success', FALSE, 'error', 'Unauthorized: you do not own this draft');
-  END IF;
+  -- ========================================================================
+  -- COMPREHENSIVE VALIDATION BEFORE TOKEN CONSUMPTION
+  -- ========================================================================
 
-  IF v_draft.status NOT IN ('draft', 'rejected') THEN
-    RETURN json_build_object('success', FALSE, 'error', 'Draft already submitted or not in draft/rejected status');
-  END IF;
-
-  -- Validate required fields
-  IF v_draft.brand IS NULL OR v_draft.model IS NULL THEN
-    RETURN json_build_object('success', FALSE, 'error', 'Brand and model are required');
-  END IF;
-
+  -- Validate starting_price
   IF v_draft.starting_price IS NULL OR v_draft.starting_price <= 0 THEN
-    RETURN json_build_object('success', FALSE, 'error', 'Invalid starting price');
-  END IF;
-
-  IF v_draft.reserve_price IS NOT NULL AND v_draft.reserve_price < v_draft.starting_price THEN
-    RETURN json_build_object('success', FALSE, 'error', 'Reserve price must be >= starting price');
-  END IF;
-
-  -- Calculate end time (default 7 days if not set)
-  v_calculated_end_time := COALESCE(
-    v_draft.auction_end_date,
-    NOW() + INTERVAL '7 days'
-  );
-
-  -- ========================================================================
-  -- USE BIDDING CONFIGURATION FROM DRAFT
-  -- ========================================================================
-
-  -- Get bidding_type from draft (default to 'open')
-  v_bidding_type := COALESCE(v_draft.bidding_type, 'open');
-
-  -- Get min_bid_increment from draft (with fallback to bid_increment, then calculated value)
-  v_min_bid_increment := COALESCE(
-    v_draft.min_bid_increment,
-    v_draft.bid_increment,
-    GREATEST(v_draft.starting_price * 0.05, 1000)
-  );
-
-  -- For backward compatibility, also set bid_increment
-  v_bid_increment := v_min_bid_increment;
-
-  IF v_bid_increment <= 0 THEN
     RETURN json_build_object(
       'success', FALSE,
-      'error', 'Invalid bid increment: must be greater than 0'
+      'error', 'Starting price is required and must be greater than 0'
     );
   END IF;
 
-  -- Get deposit_amount from draft (with fallback to calculated value)
-  v_deposit_amount := COALESCE(
-    v_draft.deposit_amount,
-    GREATEST(v_draft.starting_price * 0.10, 5000)
-  );
+  -- Validate reserve_price if set
+  IF v_draft.reserve_price IS NOT NULL THEN
+    IF v_draft.reserve_price <= 0 THEN
+      RETURN json_build_object(
+        'success', FALSE,
+        'error', 'Reserve price must be greater than 0 if specified'
+      );
+    END IF;
+    IF v_draft.reserve_price < v_draft.starting_price THEN
+      RETURN json_build_object(
+        'success', FALSE,
+        'error', 'Reserve price must be greater than or equal to starting price'
+      );
+    END IF;
+  END IF;
 
-  IF v_deposit_amount <= 0 THEN
+  -- Calculate and validate auction end time
+  v_calculated_end_time := COALESCE(v_draft.auction_end_date, NOW() + INTERVAL '7 days');
+
+  IF v_calculated_end_time <= NOW() THEN
     RETURN json_build_object(
       'success', FALSE,
-      'error', 'Invalid deposit amount: must be greater than 0'
+      'error', 'Auction end date must be in the future. Please select a date after today.'
     );
   END IF;
 
-  -- Get enable_incremental_bidding flag (default to TRUE)
-  v_enable_incremental_bidding := COALESCE(v_draft.enable_incremental_bidding, TRUE);
+  -- Validate auction duration (at least 1 day, max 90 days)
+  IF v_calculated_end_time < NOW() + INTERVAL '1 day' THEN
+    RETURN json_build_object(
+      'success', FALSE,
+      'error', 'Auction must run for at least 1 day. Please select a later end date.'
+    );
+  END IF;
+
+  IF v_calculated_end_time > NOW() + INTERVAL '90 days' THEN
+    RETURN json_build_object(
+      'success', FALSE,
+      'error', 'Auction cannot run for more than 90 days. Please select an earlier end date.'
+    );
+  END IF;
 
   -- ========================================================================
-  -- MAP TAGS: Use draft.tags if available, fallback to ai_generated_tags
+  -- STEP 1: CONSUME LISTING TOKEN
   -- ========================================================================
-  v_tags := COALESCE(v_draft.tags, v_draft.ai_generated_tags);
-
-  -- ========================================================================
-  -- STEP 1: Consume listing token ATOMICALLY (after all validation passes)
-  -- ========================================================================
-  v_token_consumed := consume_listing_token(auth.uid(), draft_id);
+  SELECT consume_listing_token(auth.uid(), draft_id) INTO v_token_consumed;
 
   IF NOT v_token_consumed THEN
     RETURN json_build_object(
       'success', FALSE,
-      'error', 'Insufficient listing tokens. Please purchase more tokens or upgrade your subscription.'
+      'error', 'Insufficient listing tokens. Please upgrade your subscription or purchase more tokens.'
     );
   END IF;
 
   -- ========================================================================
-  -- STEP 2: Get category and status
+  -- STEP 2: Prepare bidding configuration values
   -- ========================================================================
+  v_bid_increment := COALESCE(v_draft.bid_increment, 1000);
+  v_min_bid_increment := COALESCE(v_draft.min_bid_increment, 1000);
+  v_deposit_amount := COALESCE(v_draft.deposit_amount, 50000);
+  v_bidding_type := COALESCE(v_draft.bidding_type, 'open');
+  v_enable_incremental_bidding := COALESCE(v_draft.enable_incremental_bidding, TRUE);
+  v_tags := v_draft.tags;
+
+  -- ========================================================================
+  -- STEP 2.5: Prepare snipe guard configuration
+  -- ========================================================================
+  v_snipe_guard_enabled := COALESCE(v_draft.snipe_guard_enabled, TRUE);
+  v_snipe_guard_threshold := COALESCE(v_draft.snipe_guard_threshold_seconds, 300);
+  v_snipe_guard_extend := COALESCE(v_draft.snipe_guard_extend_seconds, 300);
+
+  -- Validate snipe guard values
+  IF v_snipe_guard_threshold < 0 OR v_snipe_guard_threshold > 3600 THEN
+    v_snipe_guard_threshold := 300; -- Default to 5 minutes
+  END IF;
+
+  IF v_snipe_guard_extend < 60 OR v_snipe_guard_extend > 3600 THEN
+    v_snipe_guard_extend := 300; -- Default to 5 minutes
+  END IF;
+
+  -- Get category and status IDs
   SELECT id INTO v_category_id
   FROM auction_categories
-  WHERE category_name = 'Vehicles'
+  WHERE category_name = 'vehicle'
   LIMIT 1;
 
   IF v_category_id IS NULL THEN
@@ -406,7 +432,7 @@ BEGIN
   END IF;
 
   -- ========================================================================
-  -- STEP 3: Insert auction with bidding configuration
+  -- STEP 3: Insert auction with bidding AND snipe guard configuration
   -- ========================================================================
   INSERT INTO auctions (
     seller_id, category_id, status_id,
@@ -414,6 +440,7 @@ BEGIN
     starting_price, reserve_price, current_price,
     bid_increment, deposit_amount,
     bidding_type, min_bid_increment, enable_incremental_bidding,
+    snipe_guard_enabled, snipe_guard_threshold_seconds, snipe_guard_extend_seconds,
     start_time, end_time
   ) VALUES (
     v_draft.seller_id, v_category_id, v_status_id,
@@ -422,63 +449,108 @@ BEGIN
     v_draft.starting_price, v_draft.reserve_price, v_draft.starting_price,
     v_bid_increment, v_deposit_amount,
     v_bidding_type, v_min_bid_increment, v_enable_incremental_bidding,
+    v_snipe_guard_enabled, v_snipe_guard_threshold, v_snipe_guard_extend,
     NOW(),
     v_calculated_end_time
   )
   RETURNING id INTO v_auction_id;
 
   -- ========================================================================
-  -- STEP 4: Insert vehicle and images
+  -- STEP 4: Insert vehicle details with tags mapped to ai_generated_tags
   -- ========================================================================
   INSERT INTO auction_vehicles (
     auction_id,
     brand, model, variant, year,
-    mileage, transmission, fuel_type, body_type,
-    exterior_color, interior_color, number_of_owners,
-    location, plate_number, chassis_number,
-    description, condition_report,
-    ai_condition_report, ai_generated_tags, tags
+    engine_type, engine_displacement, cylinder_count, horsepower, torque,
+    transmission, fuel_type, drive_type,
+    length, width, height, wheelbase, ground_clearance,
+    seating_capacity, door_count, fuel_tank_capacity, curb_weight, gross_weight,
+    exterior_color, paint_type, rim_type, rim_size, tire_size, tire_brand,
+    condition, mileage, previous_owners, has_modifications, modifications_details,
+    has_warranty, warranty_details, usage_type,
+    plate_number, chassis_number, orcr_status, registration_status, registration_expiry,
+    province, city_municipality,
+    known_issues, features,
+    ai_detected_brand, ai_detected_model, ai_detected_year, ai_detected_color,
+    ai_detected_damage, ai_generated_tags, ai_suggested_price_min, ai_suggested_price_max,
+    ai_price_confidence, ai_price_factors
   ) VALUES (
     v_auction_id,
     v_draft.brand, v_draft.model, v_draft.variant, v_draft.year,
-    v_draft.mileage, v_draft.transmission, v_draft.fuel_type, v_draft.body_type,
-    v_draft.exterior_color, v_draft.interior_color, v_draft.number_of_owners,
-    v_draft.location, v_draft.plate_number, v_draft.chassis_number,
-    COALESCE(v_draft.description, 'No description provided'),
-    v_draft.condition_report,
-    v_draft.ai_condition_report, v_draft.ai_generated_tags, v_tags
-  )
-  RETURNING id INTO v_vehicle_id;
-
-  -- Copy images from draft to auction
-  INSERT INTO auction_images (auction_id, vehicle_id, image_url, display_order)
-  SELECT v_auction_id, v_vehicle_id, image_url, display_order
-  FROM listing_draft_images
-  WHERE draft_id = draft_id
-  ORDER BY display_order;
+    v_draft.engine_type, v_draft.engine_displacement, v_draft.cylinder_count,
+    v_draft.horsepower, v_draft.torque,
+    v_draft.transmission, v_draft.fuel_type, v_draft.drive_type,
+    v_draft.length, v_draft.width, v_draft.height, v_draft.wheelbase, v_draft.ground_clearance,
+    v_draft.seating_capacity, v_draft.door_count, v_draft.fuel_tank_capacity,
+    v_draft.curb_weight, v_draft.gross_weight,
+    v_draft.exterior_color, v_draft.paint_type, v_draft.rim_type, v_draft.rim_size,
+    v_draft.tire_size, v_draft.tire_brand,
+    v_draft.condition, v_draft.mileage, v_draft.previous_owners,
+    v_draft.has_modifications, v_draft.modifications_details,
+    v_draft.has_warranty, v_draft.warranty_details, v_draft.usage_type,
+    v_draft.plate_number, v_draft.chassis_number, v_draft.orcr_status,
+    v_draft.registration_status, v_draft.registration_expiry,
+    v_draft.province, v_draft.city_municipality,
+    v_draft.known_issues, v_draft.features,
+    v_draft.ai_detected_brand, v_draft.ai_detected_model, v_draft.ai_detected_year,
+    v_draft.ai_detected_color, v_draft.ai_detected_damage,
+    v_tags, -- Map draft.tags to auction_vehicles.ai_generated_tags
+    v_draft.ai_suggested_price_min, v_draft.ai_suggested_price_max,
+    v_draft.ai_price_confidence, v_draft.ai_price_factors
+  );
 
   -- ========================================================================
-  -- STEP 5: Update draft status
+  -- STEP 5: Process and insert photos with categories
+  -- ========================================================================
+  IF v_draft.photo_urls IS NOT NULL THEN
+    FOR v_photo_category, v_photo_url IN
+      SELECT key, value
+      FROM jsonb_each_text(v_draft.photo_urls)
+    LOOP
+      v_display_order := 0;
+      FOR v_photo_url IN
+        SELECT jsonb_array_elements_text(v_draft.photo_urls->v_photo_category)
+      LOOP
+        INSERT INTO auction_photos (
+          auction_id,
+          photo_url,
+          category,
+          display_order
+        ) VALUES (
+          v_auction_id,
+          v_photo_url,
+          v_photo_category,
+          v_display_order
+        );
+        v_display_order := v_display_order + 1;
+      END LOOP;
+    END LOOP;
+  END IF;
+
+  -- ========================================================================
+  -- STEP 6: Mark draft as submitted (soft delete)
   -- ========================================================================
   UPDATE listing_drafts
-  SET status = 'submitted',
-      updated_at = NOW()
+  SET deleted_at = NOW()
   WHERE id = draft_id;
 
+  -- ========================================================================
+  -- SUCCESS RESPONSE
+  -- ========================================================================
   RETURN json_build_object(
     'success', TRUE,
     'auction_id', v_auction_id,
-    'vehicle_id', v_vehicle_id,
-    'message', 'Listing submitted successfully for approval'
+    'message', 'Listing submitted successfully and is pending admin approval'
   );
 
 EXCEPTION
   WHEN OTHERS THEN
     RETURN json_build_object(
       'success', FALSE,
-      'error', 'Failed to submit listing: ' || SQLERRM
+      'error', SQLERRM
     );
 END;
-$$;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION submit_listing_from_draft TO authenticated;
+-- Grant execute permissions
+GRANT EXECUTE ON FUNCTION submit_listing_from_draft(UUID) TO authenticated;
