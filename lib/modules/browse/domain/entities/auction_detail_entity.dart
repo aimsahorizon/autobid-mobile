@@ -82,6 +82,7 @@ class AuctionDetailEntity {
 
   // Step 6: Documentation & Location
   final String? plateNumber;
+  final String? chassisNumber;
   final String? orcrStatus;
   final String? registrationStatus;
   final DateTime? registrationExpiry;
@@ -153,6 +154,7 @@ class AuctionDetailEntity {
     this.warrantyDetails,
     this.usageType,
     this.plateNumber,
+    this.chassisNumber,
     this.orcrStatus,
     this.registrationStatus,
     this.registrationExpiry,
@@ -246,6 +248,7 @@ class AuctionDetailEntity {
       warrantyDetails: source.warrantyDetails,
       usageType: source.usageType,
       plateNumber: source.plateNumber,
+      chassisNumber: source.chassisNumber,
       orcrStatus: source.orcrStatus,
       registrationStatus: source.registrationStatus,
       registrationExpiry: source.registrationExpiry,
