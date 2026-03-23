@@ -131,6 +131,7 @@ class _BrowsePageState extends State<BrowsePage> {
       warrantyDetails: auction.warrantyDetails,
       usageType: auction.usageType,
       plateNumber: auction.plateNumber,
+      chassisNumber: auction.chassisNumber,
       orcrStatus: auction.orcrStatus,
       registrationStatus: auction.registrationStatus,
       registrationExpiry: auction.registrationExpiry,

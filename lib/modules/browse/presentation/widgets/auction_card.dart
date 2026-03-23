@@ -79,7 +79,8 @@ class AuctionCard extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    final isPrivate = auction.visibility == 'private';
+    final isExclusive = auction.visibility == 'exclusive';
+    final isMystery = auction.visibility == 'mystery';
 
     return Stack(
       children: [
@@ -121,8 +122,10 @@ class AuctionCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: isPrivate
+              color: isExclusive
                   ? ColorConstants.warning.withValues(alpha: 0.9)
+                  : isMystery
+                  ? Colors.purple.withValues(alpha: 0.9)
                   : ColorConstants.success.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(6),
             ),
@@ -130,13 +133,21 @@ class AuctionCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  isPrivate ? Icons.lock_outline : Icons.public,
+                  isExclusive
+                      ? Icons.lock_outline
+                      : isMystery
+                      ? Icons.visibility_off
+                      : Icons.public,
                   size: 12,
                   color: Colors.white,
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  isPrivate ? 'Private' : 'Public',
+                  isExclusive
+                      ? 'Exclusive'
+                      : isMystery
+                      ? 'Mystery'
+                      : 'Open',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

@@ -477,13 +477,14 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                         ),
                         items: const [
                           DropdownMenuItem(value: '', child: Text('Any')),
+                          DropdownMenuItem(value: 'open', child: Text('Open')),
                           DropdownMenuItem(
-                            value: 'public',
-                            child: Text('Public'),
+                            value: 'exclusive',
+                            child: Text('Exclusive'),
                           ),
                           DropdownMenuItem(
-                            value: 'private',
-                            child: Text('Private'),
+                            value: 'mystery',
+                            child: Text('Mystery'),
                           ),
                         ],
                         onChanged: (value) {

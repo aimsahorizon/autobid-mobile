@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/constants/policy_constants.dart';
+import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
+import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import '../controllers/auction_detail_controller.dart';
 import '../widgets/auction_detail/auction_cover_photo.dart';
 import '../widgets/auction_detail/bidding_info_section.dart';
 import '../widgets/auction_detail/car_photos_section.dart';
 import '../widgets/auction_detail/bidding_card_section.dart';
 import '../widgets/auction_detail/detail_tabs_section.dart';
-import 'deposit_payment_page.dart';
 
 class AuctionDetailPage extends StatefulWidget {
   final String auctionId;
@@ -31,57 +33,34 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     widget.controller.loadAuctionDetail(widget.auctionId);
   }
 
-  Future<void> _handleDeposit() async {
-    final auction = widget.controller.auction;
-    if (auction == null) return;
-
-    // Get current user ID
-    final userId = SupabaseConfig.currentUser?.id;
-    if (userId == null) {
-      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-        const SnackBar(
-          content: Text('Please login to participate in auction'),
-          backgroundColor: ColorConstants.error,
-        ),
-      );
-      return;
-    }
-
-    // Get deposit amount from auction configuration
-    final depositAmount = auction.depositAmount > 0
-        ? auction.depositAmount
-        : 5000.0;
-
-    // Navigate to PayMongo deposit payment page
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DepositPaymentPage(
-          auctionId: auction.id,
-          userId: userId,
-          depositAmount: depositAmount,
-          onSuccess: () {
-            // Reload auction to update deposit status
-            widget.controller.loadAuctionDetail(auction.id);
-          },
-        ),
-      ),
-    );
-
-    if (result == true && mounted) {
-      // Deposit successful - show success message
-      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Deposit successful! You can now place bids on this auction.',
-          ),
-          backgroundColor: ColorConstants.success,
-        ),
-      );
-    }
-  }
-
   void _handleRaiseHand() async {
+    // Policy & suspension check before joining bid queue
+    final userId = SupabaseConfig.currentUser?.id;
+    if (userId != null) {
+      final suspension = await PolicyPenaltyDatasource.instance.checkSuspension(
+        userId,
+      );
+      if (suspension.isSuspended) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You are suspended${suspension.isPermanent ? ' permanently' : ' until ${suspension.endsAt}'}: ${suspension.reason}',
+            ),
+            backgroundColor: ColorConstants.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+    if (!mounted) return;
+    final accepted = await PolicyAcceptanceDialog.show(
+      context: context,
+      policyType: PolicyConstants.biddingRules,
+    );
+    if (!accepted || !mounted) return;
+
     final success = await widget.controller.raiseHand();
     if (!mounted) return;
 
@@ -200,6 +179,32 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
   void _handleBid(double amount) async {
     // Get current user ID
     final userId = SupabaseConfig.currentUser?.id;
+
+    // Policy & suspension check before placing bid
+    if (userId != null) {
+      final suspension = await PolicyPenaltyDatasource.instance.checkSuspension(
+        userId,
+      );
+      if (suspension.isSuspended) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You are suspended${suspension.isPermanent ? ' permanently' : ' until ${suspension.endsAt}'}: ${suspension.reason}',
+            ),
+            backgroundColor: ColorConstants.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+    if (!mounted) return;
+    final accepted = await PolicyAcceptanceDialog.show(
+      context: context,
+      policyType: PolicyConstants.biddingRules,
+    );
+    if (!accepted || !mounted) return;
 
     // Place bid with user ID
     final success = await widget.controller.placeBid(amount, userId: userId);
@@ -358,16 +363,11 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                       CarPhotosSection(photos: auction.photos),
                       const SizedBox(height: 16),
                       BiddingCardSection(
-                        hasDeposited: auction.hasUserDeposited,
                         minimumBid: auction.minimumBid,
                         currentBid: auction.currentBid,
                         minBidIncrement: auction.minBidIncrement,
-                        depositAmount: auction.depositAmount > 0
-                            ? auction.depositAmount
-                            : 5000.0,
                         enableIncrementalBidding:
                             auction.enableIncrementalBidding,
-                        onDeposit: _handleDeposit,
                         onPlaceBid: _handleBid,
                         onAutoBidToggle: _handleAutoBidToggle,
                         isProcessing: widget.controller.isProcessing,
