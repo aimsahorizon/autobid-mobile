@@ -140,8 +140,9 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
     List<TransactionTimelineEntity> timeline,
     bool isDark,
   ) {
-    final filtered =
-        timeline.where((e) => e.type != TimelineEventType.messageSent).toList();
+    final filtered = timeline
+        .where((e) => e.type != TimelineEventType.messageSent)
+        .toList();
     final visible = filtered.take(_visibleCount).toList();
     final hasMore = filtered.length > _visibleCount;
 
@@ -1255,7 +1256,7 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
               Expanded(
                 child: FilledButton(
                   onPressed: hasUploadedPhoto && !controller.isProcessing
-                      ? () => controller.respondToDelivery(accepted: true)
+                      ? () => _showAcceptVehicleWarning(context)
                       : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: ColorConstants.success,
@@ -1440,6 +1441,79 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
         ),
       ),
     );
+  }
+
+  /// Warning dialog before buyer confirms vehicle acceptance.
+  /// This action completes the transaction and cannot be undone.
+  Future<void> _showAcceptVehicleWarning(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Confirm Vehicle Receipt')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'By accepting, you confirm that you have received the vehicle and are satisfied with its condition.',
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ColorConstants.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: ColorConstants.error.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: ColorConstants.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'This action cannot be undone. The transaction will be marked as completed.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Go Back'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.success,
+            ),
+            child: const Text('Accept Vehicle'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      controller.respondToDelivery(accepted: true);
+    }
   }
 
   /// Show photo picker dialog for seller delivery status advancement
