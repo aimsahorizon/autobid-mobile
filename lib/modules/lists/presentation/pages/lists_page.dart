@@ -282,7 +282,7 @@ class _ListsPageState extends State<ListsPage>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _navigateToCreateListing(context),
         icon: const Icon(Icons.add),
-        label: const Text('New Listing'),
+        label: const Text('Sell My Car'),
         backgroundColor: ColorConstants.primary,
         foregroundColor: Colors.white,
       ),

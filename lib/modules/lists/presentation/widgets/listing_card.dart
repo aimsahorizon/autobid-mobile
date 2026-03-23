@@ -160,7 +160,7 @@ class _ListingCardState extends State<ListingCard> {
                   listing: widget.listing,
                   timeRemaining: _timeRemaining,
                 ),
-                if (widget.listing.visibility == 'private' &&
+                if (widget.listing.visibility == 'exclusive' &&
                     widget.onInviteTap != null) ...[
                   const SizedBox(height: 8),
                   SizedBox(
@@ -261,7 +261,7 @@ class _ListingCardState extends State<ListingCard> {
                     Expanded(
                       child: _StatsRow(listing: widget.listing, compact: true),
                     ),
-                    if (widget.listing.visibility == 'private' &&
+                    if (widget.listing.visibility == 'exclusive' &&
                         widget.onInviteTap != null)
                       IconButton(
                         icon: const Icon(Icons.people_outline, size: 18),
