@@ -1236,6 +1236,7 @@ class ListingSupabaseDataSource {
               'warranty_details': vehicleInfo['warranty_details'],
               'usage_type': vehicleInfo['usage_type'],
               'plate_number': vehicleInfo['plate_number'],
+              'chassis_number': vehicleInfo['chassis_number'],
               'orcr_status': vehicleInfo['orcr_status'],
               'registration_status': vehicleInfo['registration_status'],
               'registration_expiry': vehicleInfo['registration_expiry'],
