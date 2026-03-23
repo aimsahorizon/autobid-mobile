@@ -10,6 +10,7 @@ import '../../domain/usecases/media_management_usecases.dart';
 import '../../domain/usecases/get_vehicle_data_usecases.dart';
 import '../../domain/entities/vehicle_entities.dart';
 import '../../../profile/domain/usecases/get_user_profile_usecase.dart';
+import 'package:autobid_mobile/core/services/car_api_service.dart';
 
 /// Controller for managing listing draft creation and editing
 /// Handles 9-step form flow with auto-save and validation
@@ -33,6 +34,9 @@ class ListingDraftController extends ChangeNotifier {
   final GetVehicleModelsUseCase _getVehicleModelsUseCase;
   final GetVehicleVariantsUseCase _getVehicleVariantsUseCase;
 
+  // Car Search Service
+  final CarApiService _carApiService;
+
   ListingDraftController({
     required GetSellerDraftsUseCase getSellerDraftsUseCase,
     required GetDraftUseCase getDraftUseCase,
@@ -48,6 +52,7 @@ class ListingDraftController extends ChangeNotifier {
     required GetVehicleBrandsUseCase getVehicleBrandsUseCase,
     required GetVehicleModelsUseCase getVehicleModelsUseCase,
     required GetVehicleVariantsUseCase getVehicleVariantsUseCase,
+    required CarApiService carApiService,
   }) : _getSellerDraftsUseCase = getSellerDraftsUseCase,
        _getDraftUseCase = getDraftUseCase,
        _createDraftUseCase = createDraftUseCase,
@@ -61,7 +66,8 @@ class ListingDraftController extends ChangeNotifier {
        _getUserProfileUseCase = getUserProfileUseCase,
        _getVehicleBrandsUseCase = getVehicleBrandsUseCase,
        _getVehicleModelsUseCase = getVehicleModelsUseCase,
-       _getVehicleVariantsUseCase = getVehicleVariantsUseCase;
+       _getVehicleVariantsUseCase = getVehicleVariantsUseCase,
+       _carApiService = carApiService;
 
   // State
   ListingDraftEntity? _currentDraft;
@@ -78,6 +84,10 @@ class ListingDraftController extends ChangeNotifier {
   List<VehicleVariant> _variants = [];
   bool _isLoadingVehicleData = false;
 
+  // Car Search State
+  List<CarSearchResult> _carSearchResults = [];
+  bool _isSearchingCars = false;
+
   // Getters
   ListingDraftEntity? get currentDraft => _currentDraft;
   List<ListingDraftEntity> get drafts => _drafts;
@@ -92,6 +102,9 @@ class ListingDraftController extends ChangeNotifier {
   List<VehicleModel> get models => _models;
   List<VehicleVariant> get variants => _variants;
   bool get isLoadingVehicleData => _isLoadingVehicleData;
+
+  List<CarSearchResult> get carSearchResults => _carSearchResults;
+  bool get isSearchingCars => _isSearchingCars;
 
   int get currentStep => _currentDraft?.currentStep ?? 1;
   bool get canGoNext => _currentDraft != null && currentStep < 9;
@@ -171,6 +184,52 @@ class ListingDraftController extends ChangeNotifier {
     );
 
     _isLoadingVehicleData = false;
+    notifyListeners();
+  }
+
+  /// Search cars by query string for autofill
+  Future<void> searchCars(String query) async {
+    if (query.trim().length < 2) {
+      _carSearchResults = [];
+      notifyListeners();
+      return;
+    }
+
+    _isSearchingCars = true;
+    notifyListeners();
+
+    _carSearchResults = await _carApiService.searchCars(query);
+
+    _isSearchingCars = false;
+    notifyListeners();
+  }
+
+  /// Clear search results
+  void clearCarSearch() {
+    _carSearchResults = [];
+    notifyListeners();
+  }
+
+  /// Apply a car search result to the current draft (autofill)
+  Future<void> applyCarSearchResult(CarSearchResult result) async {
+    if (_currentDraft == null) return;
+
+    // Update draft with autofill data
+    _currentDraft = _currentDraft!.copyWith(
+      brand: result.brandName,
+      model: result.modelName,
+      variant: result.variantName,
+      bodyType: result.bodyType,
+      transmission: result.transmission,
+      fuelType: result.fuelType,
+    );
+
+    // Load the cascading dropdowns so they reflect the selection
+    await loadBrands();
+    await loadModels(result.brandName);
+    await loadVariants(result.modelName);
+
+    _carSearchResults = [];
     notifyListeners();
   }
 
