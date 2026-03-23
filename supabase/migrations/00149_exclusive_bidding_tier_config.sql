@@ -9,12 +9,18 @@ ALTER TABLE listing_drafts
 ADD COLUMN IF NOT EXISTS exclusive_tier TEXT;
 
 ALTER TABLE listing_drafts
+DROP CONSTRAINT IF EXISTS chk_listing_drafts_exclusive_tier;
+
+ALTER TABLE listing_drafts
 ADD CONSTRAINT chk_listing_drafts_exclusive_tier
 CHECK (exclusive_tier IS NULL OR exclusive_tier IN ('silver', 'gold', 'silver_gold'));
 
 -- 2) Add exclusive_tier column to auctions
 ALTER TABLE auctions
 ADD COLUMN IF NOT EXISTS exclusive_tier TEXT;
+
+ALTER TABLE auctions
+DROP CONSTRAINT IF EXISTS chk_auctions_exclusive_tier;
 
 ALTER TABLE auctions
 ADD CONSTRAINT chk_auctions_exclusive_tier
@@ -401,13 +407,11 @@ BEGIN
 
   -- Notify invitee
   IF v_invitee_user_id IS NOT NULL THEN
-    INSERT INTO public.notifications(user_id, type, title, body, data)
-    VALUES (
+    PERFORM public.notify_auction_invite(
       v_invitee_user_id,
-      'auction_invite',
-      'Auction Invite',
-      'You have been invited to an exclusive auction.',
-      jsonb_build_object('auction_id', p_auction_id, 'invite_id', v_invite_id)
+      p_auction_id,
+      v_invite_id,
+      'auction_invite'::text
     );
   END IF;
 
