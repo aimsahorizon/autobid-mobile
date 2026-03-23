@@ -88,6 +88,7 @@ class ListingDetailEntity {
 
   // Configuration
   final String biddingType;
+  final String? exclusiveTier;
   final double bidIncrement;
   final double minBidIncrement;
   final double depositAmount;
@@ -177,6 +178,7 @@ class ListingDetailEntity {
     this.features,
     this.auctionEndDate,
     this.biddingType = 'public',
+    this.exclusiveTier,
     this.bidIncrement = 100,
     this.minBidIncrement = 100,
     this.depositAmount = 0,

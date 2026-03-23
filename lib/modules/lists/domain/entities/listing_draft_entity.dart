@@ -82,6 +82,8 @@ class ListingDraftEntity {
   final DateTime? auctionEndDate;
   // Bidding Configuration (Step 8)
   final String? biddingType; // 'open', 'exclusive', or 'mystery'
+  final String?
+  exclusiveTier; // 'silver', 'gold', or 'silver_gold' (exclusive only)
   final double? bidIncrement; // Minimum increment for bids
   final double? minBidIncrement; // Alias for bidIncrement for clarity
   final double? depositAmount; // Required deposit to bid
@@ -168,6 +170,7 @@ class ListingDraftEntity {
     this.reservePrice,
     this.auctionEndDate,
     this.biddingType,
+    this.exclusiveTier,
     this.bidIncrement,
     this.minBidIncrement,
     this.depositAmount,
@@ -246,6 +249,7 @@ class ListingDraftEntity {
     double? reservePrice,
     DateTime? auctionEndDate,
     String? biddingType,
+    String? exclusiveTier,
     double? bidIncrement,
     double? minBidIncrement,
     double? depositAmount,
@@ -322,6 +326,7 @@ class ListingDraftEntity {
       reservePrice: reservePrice ?? this.reservePrice,
       auctionEndDate: auctionEndDate ?? this.auctionEndDate,
       biddingType: biddingType ?? this.biddingType,
+      exclusiveTier: exclusiveTier ?? this.exclusiveTier,
       bidIncrement: bidIncrement ?? this.bidIncrement,
       minBidIncrement: minBidIncrement ?? this.minBidIncrement,
       depositAmount: depositAmount ?? this.depositAmount,
@@ -402,6 +407,7 @@ class ListingDraftEntity {
       features: features,
       auctionEndDate: auctionEndDate,
       biddingType: biddingType ?? 'open',
+      exclusiveTier: exclusiveTier,
       bidIncrement: bidIncrement ?? 100,
       minBidIncrement: minBidIncrement ?? 100,
       depositAmount: depositAmount ?? 0,
