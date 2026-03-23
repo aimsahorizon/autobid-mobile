@@ -7,6 +7,7 @@ import 'package:autobid_mobile/modules/lists/domain/usecases/submission_usecases
 import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
 import 'package:autobid_mobile/modules/profile/domain/entities/user_profile_entity.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_profile_usecase.dart';
+import 'package:autobid_mobile/core/services/car_api_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:mockito/annotations.dart';
@@ -29,6 +30,7 @@ import 'listing_draft_controller_test.mocks.dart';
   GetVehicleBrandsUseCase,
   GetVehicleModelsUseCase,
   GetVehicleVariantsUseCase,
+  CarApiService,
 ])
 void main() {
   late ListingDraftController controller;
@@ -47,6 +49,7 @@ void main() {
   late MockGetVehicleBrandsUseCase mockGetVehicleBrandsUseCase;
   late MockGetVehicleModelsUseCase mockGetVehicleModelsUseCase;
   late MockGetVehicleVariantsUseCase mockGetVehicleVariantsUseCase;
+  late MockCarApiService mockCarApiService;
 
   setUp(() {
     mockCreateDraftUseCase = MockCreateDraftUseCase();
@@ -63,6 +66,7 @@ void main() {
     mockGetVehicleBrandsUseCase = MockGetVehicleBrandsUseCase();
     mockGetVehicleModelsUseCase = MockGetVehicleModelsUseCase();
     mockGetVehicleVariantsUseCase = MockGetVehicleVariantsUseCase();
+    mockCarApiService = MockCarApiService();
 
     provideDummy<Either<Failure, UserProfileEntity>>(
       const Left(ServerFailure('dummy')),
@@ -87,6 +91,7 @@ void main() {
       getVehicleBrandsUseCase: mockGetVehicleBrandsUseCase,
       getVehicleModelsUseCase: mockGetVehicleModelsUseCase,
       getVehicleVariantsUseCase: mockGetVehicleVariantsUseCase,
+      carApiService: mockCarApiService,
     );
   });
 

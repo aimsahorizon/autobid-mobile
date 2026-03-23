@@ -7,6 +7,7 @@ import 'dart:async' as _i6;
 import 'dart:io' as _i13;
 
 import 'package:autobid_mobile/core/error/failures.dart' as _i8;
+import 'package:autobid_mobile/core/services/car_api_service.dart' as _i18;
 import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart'
     as _i9;
 import 'package:autobid_mobile/modules/lists/domain/entities/vehicle_entities.dart'
@@ -591,4 +592,23 @@ class MockGetVehicleVariantsUseCase extends _i1.Mock
                 ),
           )
           as _i6.Future<_i7.Either<_i8.Failure, List<_i17.VehicleVariant>>>);
+}
+
+/// A class which mocks [CarApiService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCarApiService extends _i1.Mock implements _i18.CarApiService {
+  MockCarApiService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i6.Future<List<_i18.CarSearchResult>> searchCars(String? query) =>
+      (super.noSuchMethod(
+            Invocation.method(#searchCars, [query]),
+            returnValue: _i6.Future<List<_i18.CarSearchResult>>.value(
+              <_i18.CarSearchResult>[],
+            ),
+          )
+          as _i6.Future<List<_i18.CarSearchResult>>);
 }
