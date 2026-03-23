@@ -812,6 +812,7 @@ class ListingDraftController extends ChangeNotifier {
         reservePrice: draft.reservePrice,
         auctionEndDate: draft.auctionEndDate,
         biddingType: draft.biddingType,
+        exclusiveTier: draft.exclusiveTier,
         bidIncrement: draft.bidIncrement,
         minBidIncrement: draft.minBidIncrement,
         depositAmount: draft.depositAmount,

@@ -15,6 +15,7 @@ DECLARE
   v_auction RECORD;
   v_existing_bid RECORD;
   v_min_bid NUMERIC;
+  v_active_status_id UUID;
 BEGIN
   SELECT a.*, s.status_name
   INTO v_auction
@@ -65,8 +66,10 @@ BEGIN
   -- New bid: set flag so trigger allows insertion
   PERFORM set_config('app.mystery_bid_allowed', 'true', TRUE);
 
-  INSERT INTO bids (auction_id, bidder_id, bid_amount, is_auto_bid, created_at)
-  VALUES (p_auction_id, p_bidder_id, p_amount, FALSE, NOW());
+  SELECT id INTO v_active_status_id FROM bid_statuses WHERE status_name = 'active' LIMIT 1;
+
+  INSERT INTO bids (auction_id, bidder_id, bid_amount, is_auto_bid, status_id, created_at)
+  VALUES (p_auction_id, p_bidder_id, p_amount, FALSE, v_active_status_id, NOW());
 
   PERFORM set_config('app.mystery_bid_allowed', 'false', TRUE);
 

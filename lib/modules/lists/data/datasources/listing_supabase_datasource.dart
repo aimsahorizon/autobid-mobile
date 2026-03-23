@@ -145,6 +145,7 @@ class ListingSupabaseDataSource {
         auctionEndDate: draft.auctionEndDate,
         // Bidding Configuration
         biddingType: draft.biddingType,
+        exclusiveTier: draft.exclusiveTier,
         bidIncrement: draft.bidIncrement,
         minBidIncrement: draft.minBidIncrement,
         depositAmount: draft.depositAmount,

@@ -6,6 +6,7 @@ import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
 import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import '../controllers/auction_detail_controller.dart';
+import '../../domain/entities/auction_detail_entity.dart';
 import '../widgets/auction_detail/auction_cover_photo.dart';
 import '../widgets/auction_detail/bidding_info_section.dart';
 import '../widgets/auction_detail/car_photos_section.dart';
@@ -431,6 +432,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                         isMystery: widget.controller.isMysteryAuction,
                         mysteryBidCount:
                             widget.controller.mysteryBidStatus?.bidCount,
+                        startingPrice: auction.minimumBid,
                       ),
                       CarPhotosSection(photos: auction.photos),
                       const SizedBox(height: 16),
@@ -553,13 +555,23 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Final Bid: ₱${formatPrice(auction.currentBid)}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: ColorConstants.primary,
-                fontWeight: FontWeight.w600,
+            if (auction is AuctionDetailEntity &&
+                auction.biddingType == 'mystery')
+              Text(
+                'Starting Price: ₱${formatPrice(auction.minimumBid)}',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.deepPurple,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            else
+              Text(
+                'Final Bid: ₱${formatPrice(auction.currentBid)}',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: ColorConstants.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: () => Navigator.of(context).pop(),

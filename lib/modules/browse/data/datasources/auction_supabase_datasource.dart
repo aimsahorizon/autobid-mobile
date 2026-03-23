@@ -341,10 +341,15 @@ class AuctionSupabaseDataSource {
         'minimum_bid': auctionResponse['starting_price'],
         'end_time': auctionResponse['end_time'],
         'is_reserve_met':
+            auctionConfigResponse['bidding_type'] != 'mystery' &&
             auctionResponse['reserve_price'] != null &&
             auctionResponse['current_price'] >=
                 auctionResponse['reserve_price'],
-        'show_reserve_price': true,
+        'show_reserve_price':
+            auctionConfigResponse['bidding_type'] != 'mystery',
+        'reserve_price': auctionConfigResponse['bidding_type'] == 'mystery'
+            ? null
+            : auctionResponse['reserve_price'],
         'bidders_count': auctionResponse['total_bids'] ?? 0,
         'has_user_deposited': hasUserDeposited,
         'photos': photos,
