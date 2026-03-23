@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/services/virtual_wallet_service.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/transaction_review_entity.dart';
 import '../../data/datasources/transaction_realtime_datasource.dart';
@@ -780,7 +781,9 @@ class TransactionRealtimeController extends ChangeNotifier {
     try {
       await _dataSource.cancelAuctionWithPenalty(_transaction!.id, reason);
 
+      // Refresh wallet balance (SQL already deducted penalty + forfeited deposit)
       if (_currentUserId != null) {
+        await VirtualWalletService.instance.loadBalance(_currentUserId!);
         await loadTransaction(_transaction!.id, _currentUserId!);
       }
       return true;
@@ -957,6 +960,8 @@ class TransactionRealtimeController extends ChangeNotifier {
       );
 
       if (success) {
+        // Refresh wallet balance (SQL refunds deposits on acceptance)
+        await VirtualWalletService.instance.loadBalance(_currentUserId!);
         await loadTransaction(_transaction!.id, _currentUserId!);
       }
       return success;

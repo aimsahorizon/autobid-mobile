@@ -43,10 +43,12 @@ enum WalletTransactionType { credit, debit }
 enum WalletTransactionCategory {
   deposit,
   depositReturn,
+  depositForfeit,
   tokenPurchase,
   subscription,
   topUp,
   withdrawal,
+  penalty,
 }
 
 extension WalletTransactionCategoryExt on WalletTransactionCategory {
@@ -56,6 +58,8 @@ extension WalletTransactionCategoryExt on WalletTransactionCategory {
         return 'deposit';
       case WalletTransactionCategory.depositReturn:
         return 'deposit_return';
+      case WalletTransactionCategory.depositForfeit:
+        return 'deposit_forfeit';
       case WalletTransactionCategory.tokenPurchase:
         return 'token_purchase';
       case WalletTransactionCategory.subscription:
@@ -64,6 +68,8 @@ extension WalletTransactionCategoryExt on WalletTransactionCategory {
         return 'top_up';
       case WalletTransactionCategory.withdrawal:
         return 'withdrawal';
+      case WalletTransactionCategory.penalty:
+        return 'penalty';
     }
   }
 
@@ -73,6 +79,8 @@ extension WalletTransactionCategoryExt on WalletTransactionCategory {
         return 'Auction Deposit';
       case WalletTransactionCategory.depositReturn:
         return 'Deposit Return';
+      case WalletTransactionCategory.depositForfeit:
+        return 'Deposit Forfeited';
       case WalletTransactionCategory.tokenPurchase:
         return 'Token Purchase';
       case WalletTransactionCategory.subscription:
@@ -81,6 +89,8 @@ extension WalletTransactionCategoryExt on WalletTransactionCategory {
         return 'Top Up';
       case WalletTransactionCategory.withdrawal:
         return 'Withdrawal';
+      case WalletTransactionCategory.penalty:
+        return 'Cancellation Penalty';
     }
   }
 
@@ -90,6 +100,8 @@ extension WalletTransactionCategoryExt on WalletTransactionCategory {
         return WalletTransactionCategory.deposit;
       case 'deposit_return':
         return WalletTransactionCategory.depositReturn;
+      case 'deposit_forfeit':
+        return WalletTransactionCategory.depositForfeit;
       case 'token_purchase':
         return WalletTransactionCategory.tokenPurchase;
       case 'subscription':
@@ -98,6 +110,8 @@ extension WalletTransactionCategoryExt on WalletTransactionCategory {
         return WalletTransactionCategory.topUp;
       case 'withdrawal':
         return WalletTransactionCategory.withdrawal;
+      case 'penalty':
+        return WalletTransactionCategory.penalty;
       default:
         return WalletTransactionCategory.topUp;
     }
