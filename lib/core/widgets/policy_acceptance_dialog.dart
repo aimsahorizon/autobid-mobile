@@ -21,7 +21,7 @@ class PolicyAcceptanceDialog extends StatefulWidget {
   const PolicyAcceptanceDialog({super.key, required this.policyType});
 
   /// Show the dialog. Returns true if accepted.
-  /// If the user has already accepted this version, returns true immediately.
+  /// The dialog is shown every time to ensure the user acknowledges policies.
   static Future<bool> show({
     required BuildContext context,
     required String policyType,
@@ -29,20 +29,7 @@ class PolicyAcceptanceDialog extends StatefulWidget {
     final userId = SupabaseConfig.currentUser?.id;
     if (userId == null) return false;
 
-    // Determine version
-    final version = _getVersion(policyType);
-
-    // Check if already accepted
-    final alreadyAccepted = await PolicyPenaltyDatasource.instance
-        .hasAcceptedPolicy(
-          userId: userId,
-          policyType: policyType,
-          version: version,
-        );
-
-    if (alreadyAccepted) return true;
-
-    // Show dialog
+    // Always show dialog — user must acknowledge policies each time
     if (!context.mounted) return false;
     final result = await showDialog<bool>(
       context: context,
