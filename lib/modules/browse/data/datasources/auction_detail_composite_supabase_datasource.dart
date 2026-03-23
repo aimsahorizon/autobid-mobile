@@ -228,6 +228,30 @@ class AuctionDetailCompositeSupabaseDataSource
   }
 
   @override
+  Future<void> placeMysteryBid({
+    required String auctionId,
+    required String bidderId,
+    required double amount,
+  }) {
+    return _bidDataSource.placeMysteryBid(
+      auctionId: auctionId,
+      bidderId: bidderId,
+      amount: amount,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> getMysteryBidStatus({
+    required String auctionId,
+    required String userId,
+  }) {
+    return _bidDataSource.getMysteryBidStatus(
+      auctionId: auctionId,
+      userId: userId,
+    );
+  }
+
+  @override
   Future<Map<String, dynamic>> raiseHand({
     required String auctionId,
     required String bidderId,

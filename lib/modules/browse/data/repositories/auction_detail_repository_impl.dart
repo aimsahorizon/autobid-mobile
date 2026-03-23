@@ -311,6 +311,46 @@ class AuctionDetailRepositoryImpl implements AuctionDetailRepository {
   }
 
   @override
+  Future<Either<Failure, void>> placeMysteryBid({
+    required String auctionId,
+    required String bidderId,
+    required double amount,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      await remoteDataSource.placeMysteryBid(
+        auctionId: auctionId,
+        bidderId: bidderId,
+        amount: amount,
+      );
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> getMysteryBidStatus({
+    required String auctionId,
+    required String userId,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.getMysteryBidStatus(
+        auctionId: auctionId,
+        userId: userId,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Map<String, dynamic>>> raiseHand({
     required String auctionId,
     required String bidderId,

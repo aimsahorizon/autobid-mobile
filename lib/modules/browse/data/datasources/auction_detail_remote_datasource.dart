@@ -99,6 +99,19 @@ abstract class AuctionDetailRemoteDataSource {
     String? currentUserId,
   });
 
+  /// Place a sealed bid on a mystery auction (one per user)
+  Future<void> placeMysteryBid({
+    required String auctionId,
+    required String bidderId,
+    required double amount,
+  });
+
+  /// Get mystery bid status for a user on an auction
+  Future<Map<String, dynamic>> getMysteryBidStatus({
+    required String auctionId,
+    required String userId,
+  });
+
   /// Raise hand in the bid queue (queue-only — no bid amount)
   Future<Map<String, dynamic>> raiseHand({
     required String auctionId,

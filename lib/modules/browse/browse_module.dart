@@ -35,6 +35,8 @@ import 'domain/usecases/lower_hand_usecase.dart';
 import 'domain/usecases/submit_turn_bid_usecase.dart';
 import 'domain/usecases/get_queue_status_usecase.dart';
 import 'domain/usecases/stream_queue_updates_usecase.dart';
+import 'domain/usecases/place_mystery_bid_usecase.dart';
+import 'domain/usecases/get_mystery_bid_status_usecase.dart';
 import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
 import 'presentation/controllers/buyer_invites_controller.dart';
@@ -116,6 +118,8 @@ Future<void> initBrowseModule() async {
   sl.registerLazySingleton(() => SubmitTurnBidUseCase(sl()));
   sl.registerLazySingleton(() => GetQueueStatusUseCase(sl()));
   sl.registerLazySingleton(() => StreamQueueUpdatesUseCase(sl()));
+  sl.registerLazySingleton(() => PlaceMysteryBidUseCase(sl()));
+  sl.registerLazySingleton(() => GetMysteryBidStatusUseCase(sl()));
 
   // Buyer Invite Use Cases
   sl.registerLazySingleton(() => ListMyInvitesUseCase(sl()));
@@ -155,6 +159,8 @@ Future<void> initBrowseModule() async {
       submitTurnBidUseCase: sl(),
       getQueueStatusUseCase: sl(),
       streamQueueUpdatesUseCase: sl(),
+      placeMysteryBidUseCase: sl(),
+      getMysteryBidStatusUseCase: sl(),
       userId: sl<SupabaseClient>().auth.currentUser?.id,
     ),
   );

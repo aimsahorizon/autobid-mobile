@@ -104,6 +104,19 @@ abstract class AuctionDetailRepository {
     String? currentUserId,
   });
 
+  /// Place a sealed bid on a mystery auction
+  Future<Either<Failure, void>> placeMysteryBid({
+    required String auctionId,
+    required String bidderId,
+    required double amount,
+  });
+
+  /// Get mystery bid status
+  Future<Either<Failure, Map<String, dynamic>>> getMysteryBidStatus({
+    required String auctionId,
+    required String userId,
+  });
+
   /// Raise hand in the bid queue (queue-only — no bid amount)
   Future<Either<Failure, Map<String, dynamic>>> raiseHand({
     required String auctionId,

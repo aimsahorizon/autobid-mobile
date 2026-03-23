@@ -10,6 +10,8 @@ import '../widgets/auction_detail/auction_cover_photo.dart';
 import '../widgets/auction_detail/bidding_info_section.dart';
 import '../widgets/auction_detail/car_photos_section.dart';
 import '../widgets/auction_detail/bidding_card_section.dart';
+import '../widgets/auction_detail/mystery_bidding_card.dart';
+import '../widgets/auction_detail/mystery_tiebreaker_widget.dart';
 import '../widgets/auction_detail/detail_tabs_section.dart';
 
 class AuctionDetailPage extends StatefulWidget {
@@ -244,6 +246,73 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     }
   }
 
+  void _handleMysteryBid(double amount) async {
+    // Policy & suspension check
+    final userId = SupabaseConfig.currentUser?.id;
+    if (userId != null) {
+      final suspension = await PolicyPenaltyDatasource.instance.checkSuspension(
+        userId,
+      );
+      if (suspension.isSuspended) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You are suspended${suspension.isPermanent ? ' permanently' : ' until ${suspension.endsAt}'}: ${suspension.reason}',
+            ),
+            backgroundColor: ColorConstants.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+    if (!mounted) return;
+    final accepted = await PolicyAcceptanceDialog.show(
+      context: context,
+      policyType: PolicyConstants.biddingRules,
+    );
+    if (!accepted || !mounted) return;
+
+    final success = await widget.controller.placeMysteryBid(amount);
+    if (!mounted) return;
+
+    if (success) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.lock, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Sealed bid of ₱${amount.toStringAsFixed(0)} placed!',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: ColorConstants.success,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (widget.controller.errorMessage != null) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(widget.controller.errorMessage!),
+          backgroundColor: ColorConstants.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      widget.controller.clearError();
+    }
+  }
+
   void _handleAutoBidToggle(
     bool isActive,
     double? maxBid,
@@ -359,30 +428,57 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                         showReservePrice: auction.showReservePrice,
                         totalBids: auction.totalBids,
                         watchersCount: auction.watchersCount,
+                        isMystery: widget.controller.isMysteryAuction,
+                        mysteryBidCount:
+                            widget.controller.mysteryBidStatus?.bidCount,
                       ),
                       CarPhotosSection(photos: auction.photos),
                       const SizedBox(height: 16),
-                      BiddingCardSection(
-                        minimumBid: auction.minimumBid,
-                        currentBid: auction.currentBid,
-                        minBidIncrement: auction.minBidIncrement,
-                        enableIncrementalBidding:
-                            auction.enableIncrementalBidding,
-                        onPlaceBid: _handleBid,
-                        onAutoBidToggle: _handleAutoBidToggle,
-                        isProcessing: widget.controller.isProcessing,
-                        isAutoBidActive: widget.controller.isAutoBidActive,
-                        maxAutoBid: widget.controller.maxAutoBid,
-                        bidIncrement: widget.controller.bidIncrement,
-                        queueStatus: widget.controller.queueStatus,
-                        hasRaisedHand: widget.controller.hasRaisedHand,
-                        isMyTurn: widget.controller.isMyTurn,
-                        turnRemainingMs: widget.controller.turnRemainingMs,
-                        onRaiseHand: _handleRaiseHand,
-                        onLowerHand: _handleLowerHand,
-                        onSubmitTurnBid: _handleSubmitTurnBid,
-                        queuePosition: widget.controller.queuePosition,
-                      ),
+                      if (widget.controller.isMysteryAuction)
+                        MysteryBiddingCard(
+                          minimumBid: auction.minimumBid,
+                          isProcessing: widget.controller.isProcessing,
+                          mysteryStatus: widget.controller.mysteryBidStatus,
+                          isLoadingStatus:
+                              widget.controller.isLoadingMysteryStatus,
+                          onPlaceMysteryBid: _handleMysteryBid,
+                        )
+                      else
+                        BiddingCardSection(
+                          minimumBid: auction.minimumBid,
+                          currentBid: auction.currentBid,
+                          minBidIncrement: auction.minBidIncrement,
+                          enableIncrementalBidding:
+                              auction.enableIncrementalBidding,
+                          onPlaceBid: _handleBid,
+                          onAutoBidToggle: _handleAutoBidToggle,
+                          isProcessing: widget.controller.isProcessing,
+                          isAutoBidActive: widget.controller.isAutoBidActive,
+                          maxAutoBid: widget.controller.maxAutoBid,
+                          bidIncrement: widget.controller.bidIncrement,
+                          queueStatus: widget.controller.queueStatus,
+                          hasRaisedHand: widget.controller.hasRaisedHand,
+                          isMyTurn: widget.controller.isMyTurn,
+                          turnRemainingMs: widget.controller.turnRemainingMs,
+                          onRaiseHand: _handleRaiseHand,
+                          onLowerHand: _handleLowerHand,
+                          onSubmitTurnBid: _handleSubmitTurnBid,
+                          queuePosition: widget.controller.queuePosition,
+                        ),
+                      // Tiebreaker widget for mystery auctions with ties
+                      if (widget.controller.isMysteryAuction &&
+                          widget.controller.mysteryBidStatus?.tiebreaker !=
+                              null) ...[
+                        const SizedBox(height: 16),
+                        MysteryTiebreakerWidget(
+                          tiebreaker:
+                              widget.controller.mysteryBidStatus!.tiebreaker!,
+                          auctionId: widget.auctionId,
+                          currentUserId: SupabaseConfig.currentUser?.id,
+                          isReplay:
+                              widget.controller.mysteryBidStatus!.auctionEnded,
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       DetailTabsSection(
                         auction: widget.controller.auction!,
@@ -393,6 +489,10 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                         isLoadingQA: widget.controller.isLoadingQA,
                         onAskQuestion: widget.controller.askQuestion,
                         onToggleLike: widget.controller.toggleQuestionLike,
+                        isMystery: widget.controller.isMysteryAuction,
+                        isMysteryEnded:
+                            widget.controller.mysteryBidStatus?.auctionEnded ??
+                            false,
                       ),
                       const SizedBox(height: 32),
                     ],

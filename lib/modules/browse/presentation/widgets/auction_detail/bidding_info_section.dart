@@ -10,6 +10,8 @@ class BiddingInfoSection extends StatefulWidget {
   final bool showReservePrice;
   final int totalBids;
   final int watchersCount;
+  final bool isMystery;
+  final int? mysteryBidCount;
 
   const BiddingInfoSection({
     super.key,
@@ -20,6 +22,8 @@ class BiddingInfoSection extends StatefulWidget {
     required this.showReservePrice,
     required this.totalBids,
     required this.watchersCount,
+    this.isMystery = false,
+    this.mysteryBidCount,
   });
 
   @override
@@ -212,6 +216,36 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
   }
 
   Widget _buildBidAmount(ThemeData theme, bool isDark) {
+    if (widget.isMystery) {
+      return Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock, size: 18, color: Colors.deepPurple),
+              const SizedBox(width: 6),
+              Text(
+                'Sealed Auction',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.deepPurple,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${widget.mysteryBidCount ?? widget.totalBids} sealed bid${(widget.mysteryBidCount ?? widget.totalBids) == 1 ? '' : 's'}',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: Colors.deepPurple,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         Text(

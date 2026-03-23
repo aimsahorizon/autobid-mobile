@@ -221,10 +221,20 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                 paymentIntentId:
                     'wallet_${DateTime.now().millisecondsSinceEpoch}',
               );
+              widget.onSuccess();
             } catch (e) {
               debugPrint('[DepositPaymentPage] Error recording deposit: $e');
+              if (mounted) {
+                ScaffoldMessenger.of(context)
+                  ..clearSnackBars()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text('Deposit recording failed: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+              }
             }
-            widget.onSuccess();
           },
         ),
       ),

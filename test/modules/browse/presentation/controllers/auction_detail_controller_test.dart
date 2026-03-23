@@ -25,6 +25,8 @@ import 'package:autobid_mobile/modules/browse/domain/usecases/lower_hand_usecase
 import 'package:autobid_mobile/modules/browse/domain/usecases/submit_turn_bid_usecase.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/get_queue_status_usecase.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/stream_queue_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/place_mystery_bid_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_mystery_bid_status_usecase.dart';
 import 'package:autobid_mobile/modules/browse/presentation/controllers/auction_detail_controller.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/consume_bidding_token_usecase.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
@@ -85,6 +87,12 @@ class MockGetQueueStatusUseCase extends Mock implements GetQueueStatusUseCase {}
 class MockStreamQueueUpdatesUseCase extends Mock
     implements StreamQueueUpdatesUseCase {}
 
+class MockPlaceMysteryBidUseCase extends Mock
+    implements PlaceMysteryBidUseCase {}
+
+class MockGetMysteryBidStatusUseCase extends Mock
+    implements GetMysteryBidStatusUseCase {}
+
 void main() {
   late AuctionDetailController controller;
   late MockGetAuctionDetailUseCase mockGetAuctionDetail;
@@ -109,6 +117,8 @@ void main() {
   late MockSubmitTurnBidUseCase mockSubmitTurnBid;
   late MockGetQueueStatusUseCase mockGetQueueStatus;
   late MockStreamQueueUpdatesUseCase mockStreamQueueUpdates;
+  late MockPlaceMysteryBidUseCase mockPlaceMysteryBid;
+  late MockGetMysteryBidStatusUseCase mockGetMysteryBidStatus;
 
   const testUserId = 'test-user-123';
   const testAuctionId = 'auction-123';
@@ -203,6 +213,8 @@ void main() {
     mockSubmitTurnBid = MockSubmitTurnBidUseCase();
     mockGetQueueStatus = MockGetQueueStatusUseCase();
     mockStreamQueueUpdates = MockStreamQueueUpdatesUseCase();
+    mockPlaceMysteryBid = MockPlaceMysteryBidUseCase();
+    mockGetMysteryBidStatus = MockGetMysteryBidStatusUseCase();
 
     // Default stream behavior
     when(
@@ -244,6 +256,8 @@ void main() {
       submitTurnBidUseCase: mockSubmitTurnBid,
       getQueueStatusUseCase: mockGetQueueStatus,
       streamQueueUpdatesUseCase: mockStreamQueueUpdates,
+      placeMysteryBidUseCase: mockPlaceMysteryBid,
+      getMysteryBidStatusUseCase: mockGetMysteryBidStatus,
       userId: testUserId,
     );
 
@@ -614,7 +628,8 @@ void main() {
           submitTurnBidUseCase: mockSubmitTurnBid,
           getQueueStatusUseCase: mockGetQueueStatus,
           streamQueueUpdatesUseCase: mockStreamQueueUpdates,
-
+          placeMysteryBidUseCase: mockPlaceMysteryBid,
+          getMysteryBidStatusUseCase: mockGetMysteryBidStatus,
           userId: null,
         );
 
