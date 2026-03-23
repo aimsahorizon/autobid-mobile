@@ -713,7 +713,10 @@ class ListingDraftController extends ChangeNotifier {
 
   /// Sanitize technical error messages into user-friendly ones
   String _sanitizeErrorMessage(String message) {
-    final lower = message.toLowerCase();
+    // Strip Dart's "Exception: " wrapper prefix
+    var cleaned = message.replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
+
+    final lower = cleaned.toLowerCase();
     if (lower.contains('token') || lower.contains('insufficient')) {
       return 'You don\'t have enough listing tokens. Please purchase more to submit.';
     }
@@ -733,11 +736,11 @@ class ListingDraftController extends ChangeNotifier {
     if (lower.contains('timeout')) {
       return 'The request timed out. Please try again.';
     }
-    // If message looks like a user-friendly message already (no stack traces or exceptions), return it
-    if (!lower.contains('exception') &&
-        !lower.contains('error:') &&
-        message.length < 200) {
-      return message;
+    // If the cleaned message is reasonable and doesn't contain stack traces, show it
+    if (!lower.contains('stacktrace') &&
+        !lower.contains('at line') &&
+        cleaned.length < 200) {
+      return cleaned;
     }
     return 'Something went wrong while submitting your listing. Please try again.';
   }

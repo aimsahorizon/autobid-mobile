@@ -282,6 +282,7 @@ class ListingSupabaseDataSource {
     } on PostgrestException catch (e) {
       throw Exception('Failed to submit listing: ${e.message}');
     } catch (e) {
+      if (e is Exception) rethrow;
       throw Exception('Failed to submit listing: $e');
     }
   }
