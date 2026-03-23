@@ -184,6 +184,17 @@ class TransactionRealtimeController extends ChangeNotifier {
   /// Check if the buyer has deposited for this auction
   Future<void> _checkDepositStatus(String userId) async {
     if (_transaction == null) return;
+
+    // Skip deposit check for terminal transaction states — deposits are
+    // already refunded/forfeited at that point, so the DB query would return
+    // false and incorrectly re-show the deposit gate.
+    final status = _transaction!.status;
+    if (status == TransactionStatus.completed ||
+        status == TransactionStatus.cancelled) {
+      _hasDeposited = true;
+      return;
+    }
+
     try {
       final auctionId = _transaction!.listingId;
 
