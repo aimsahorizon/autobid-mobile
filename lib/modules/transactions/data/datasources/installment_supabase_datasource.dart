@@ -422,7 +422,7 @@ class InstallmentSupabaseDatasource {
         .from('installment_payments')
         .stream(primaryKey: ['id'])
         .eq('installment_plan_id', planId)
-        .order('payment_number')
+        .order('payment_number', ascending: true)
         .map(
           (list) => list
               .map((json) => InstallmentPaymentModel.fromJson(json).toEntity())
