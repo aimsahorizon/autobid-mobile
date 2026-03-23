@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/seller_listing_entity.dart';
 
@@ -34,6 +35,8 @@ class _ListingCardState extends State<ListingCard> {
   Timer? _timer;
   Duration _timeRemaining = Duration.zero;
 
+  Duration _timeUntilStart = Duration.zero;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +46,13 @@ class _ListingCardState extends State<ListingCard> {
       _timer = Timer.periodic(
         const Duration(seconds: 1),
         (_) => _updateTimeRemaining(),
+      );
+    } else if (widget.listing.status == ListingStatus.scheduled &&
+        widget.listing.startTime != null) {
+      _updateTimeUntilStart();
+      _timer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => _updateTimeUntilStart(),
       );
     }
   }
@@ -60,6 +70,17 @@ class _ListingCardState extends State<ListingCard> {
       if (_timeRemaining.isNegative) {
         _timer?.cancel();
         _timeRemaining = Duration.zero;
+      }
+    });
+  }
+
+  void _updateTimeUntilStart() {
+    if (widget.listing.startTime == null) return;
+    setState(() {
+      _timeUntilStart = widget.listing.startTime!.difference(DateTime.now());
+      if (_timeUntilStart.isNegative) {
+        _timer?.cancel();
+        _timeUntilStart = Duration.zero;
       }
     });
   }
@@ -159,6 +180,7 @@ class _ListingCardState extends State<ListingCard> {
                 _StatusInfo(
                   listing: widget.listing,
                   timeRemaining: _timeRemaining,
+                  timeUntilStart: _timeUntilStart,
                 ),
                 if (widget.listing.visibility == 'exclusive' &&
                     widget.onInviteTap != null) ...[
@@ -491,8 +513,13 @@ class _StatsRow extends StatelessWidget {
 class _StatusInfo extends StatelessWidget {
   final SellerListingEntity listing;
   final Duration timeRemaining;
+  final Duration timeUntilStart;
 
-  const _StatusInfo({required this.listing, required this.timeRemaining});
+  const _StatusInfo({
+    required this.listing,
+    required this.timeRemaining,
+    required this.timeUntilStart,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -555,7 +582,20 @@ class _StatusInfo extends StatelessWidget {
 
     switch (listing.status) {
       case ListingStatus.active:
-        return _TimeChip(timeRemaining: timeRemaining);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _TimeChip(timeRemaining: timeRemaining),
+            if (listing.endTime != null) ...[
+              const SizedBox(height: 4),
+              _DateChip(
+                icon: Icons.event,
+                label:
+                    'Ends ${DateFormat('MMM d, h:mm a').format(listing.endTime!.toLocal())}',
+              ),
+            ],
+          ],
+        );
       case ListingStatus.pending:
         return _InfoChip(
           icon: Icons.hourglass_empty,
@@ -563,16 +603,53 @@ class _StatusInfo extends StatelessWidget {
           color: ColorConstants.warning,
         );
       case ListingStatus.approved:
-        return _InfoChip(
-          icon: Icons.rocket_launch_outlined,
-          label: 'Ready to Publish',
-          color: ColorConstants.info,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _InfoChip(
+              icon: Icons.rocket_launch_outlined,
+              label: 'Ready to Publish',
+              color: ColorConstants.info,
+            ),
+            if (listing.endTime != null) ...[
+              const SizedBox(height: 4),
+              _DateChip(
+                icon: Icons.event,
+                label:
+                    'Ends ${DateFormat('MMM d, h:mm a').format(listing.endTime!.toLocal())}',
+              ),
+            ],
+          ],
         );
       case ListingStatus.scheduled:
-        return _InfoChip(
-          icon: Icons.schedule,
-          label: 'Scheduled',
-          color: ColorConstants.info,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (timeUntilStart > Duration.zero)
+              _ScheduleCountdownChip(timeUntilStart: timeUntilStart)
+            else
+              _InfoChip(
+                icon: Icons.schedule,
+                label: 'Scheduled',
+                color: ColorConstants.info,
+              ),
+            if (listing.startTime != null) ...[
+              const SizedBox(height: 4),
+              _DateChip(
+                icon: Icons.play_arrow_rounded,
+                label:
+                    'Starts ${DateFormat('MMM d, h:mm a').format(listing.startTime!.toLocal())}',
+              ),
+            ],
+            if (listing.endTime != null) ...[
+              const SizedBox(height: 4),
+              _DateChip(
+                icon: Icons.event,
+                label:
+                    'Ends ${DateFormat('MMM d, h:mm a').format(listing.endTime!.toLocal())}',
+              ),
+            ],
+          ],
         );
       case ListingStatus.ended:
         return _InfoChip(
@@ -703,6 +780,75 @@ class _InfoChip extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ScheduleCountdownChip extends StatelessWidget {
+  final Duration timeUntilStart;
+
+  const _ScheduleCountdownChip({required this.timeUntilStart});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: ColorConstants.info.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.schedule, size: 12, color: ColorConstants.info),
+          const SizedBox(width: 4),
+          Text(
+            _formatDuration(timeUntilStart),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: ColorConstants.info,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDuration(Duration d) {
+    if (d.inDays > 0) return 'Starts in ${d.inDays}d ${d.inHours % 24}h';
+    if (d.inHours > 0) return 'Starts in ${d.inHours}h ${d.inMinutes % 60}m';
+    return 'Starts in ${d.inMinutes}m ${d.inSeconds % 60}s';
+  }
+}
+
+class _DateChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _DateChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final color = isDark
+        ? ColorConstants.textSecondaryDark
+        : ColorConstants.textSecondaryLight;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 11, color: color),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 10, color: color),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

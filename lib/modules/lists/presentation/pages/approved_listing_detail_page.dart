@@ -536,6 +536,55 @@ class ApprovedListingDetailPage extends StatelessWidget {
                     : ColorConstants.textSecondaryLight,
               ),
             ),
+          if (listing.rejectionReason != null &&
+              listing.rejectionReason!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ColorConstants.surfaceLight.withValues(alpha: 0.3)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: ColorConstants.success.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.rate_review,
+                        size: 18,
+                        color: ColorConstants.success,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Admin Feedback',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    listing.rejectionReason!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark
+                          ? ColorConstants.textPrimaryDark
+                          : ColorConstants.textPrimaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           Row(
             children: [
