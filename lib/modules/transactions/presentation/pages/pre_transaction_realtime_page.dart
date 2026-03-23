@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/policy_constants.dart';
+import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
+import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import '../controllers/transaction_realtime_controller.dart';
 import '../controllers/installment_controller.dart';
 import '../../domain/entities/transaction_entity.dart';
@@ -10,6 +13,7 @@ import '../widgets/transaction_realtime/chat_realtime_tab.dart';
 import '../widgets/transaction_realtime/progress_realtime_tab.dart';
 import '../widgets/transaction_realtime/unified_agreement_tab.dart';
 import '../widgets/transaction_realtime/installment_tracker_tab.dart';
+import '../widgets/transaction_realtime/deposit_payment_tab.dart';
 
 /// Real-time Pre-Transaction Page
 /// Supports live chat and form updates between buyer and seller
@@ -38,6 +42,9 @@ class _PreTransactionRealtimePageState
     extends State<PreTransactionRealtimePage> {
   String _debugStatus = 'initializing';
   InstallmentController? _installmentController;
+  bool _policyAccepted = false;
+  bool _isSuspended = false;
+  String? _suspensionMessage;
 
   @override
   void initState() {
@@ -56,6 +63,40 @@ class _PreTransactionRealtimePageState
 
   Future<void> _loadWithDebug() async {
     try {
+      // Check suspension before loading
+      final suspension = await PolicyPenaltyDatasource.instance.checkSuspension(
+        widget.userId,
+      );
+      if (suspension.isSuspended) {
+        if (mounted) {
+          setState(() {
+            _isSuspended = true;
+            _suspensionMessage =
+                'You are suspended${suspension.isPermanent ? ' permanently' : ' until ${suspension.endsAt}'}: ${suspension.reason}';
+            _debugStatus = 'suspended';
+          });
+        }
+        return;
+      }
+
+      // Check policy acceptance
+      if (mounted) {
+        final accepted = await PolicyAcceptanceDialog.show(
+          context: context,
+          policyType: PolicyConstants.transactionRules,
+        );
+        if (!accepted) {
+          if (mounted) {
+            setState(() {
+              _policyAccepted = false;
+              _debugStatus = 'policy declined';
+            });
+          }
+          return;
+        }
+        if (mounted) setState(() => _policyAccepted = true);
+      }
+
       setState(() => _debugStatus = 'calling loadTransaction...');
       await widget.controller.loadTransaction(
         widget.transactionId,
@@ -179,6 +220,71 @@ class _PreTransactionRealtimePageState
       body: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, _) {
+          // Suspension gate
+          if (_isSuspended) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.block,
+                      size: 64,
+                      color: ColorConstants.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _suspensionMessage ?? 'You are suspended.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 24),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Go Back'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          // Policy declined gate
+          if (!_policyAccepted && _debugStatus == 'policy declined') {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.policy,
+                      size: 64,
+                      color: ColorConstants.warning,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'You must accept the transaction policies to proceed.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: _loadWithDebug,
+                      child: const Text('Review Policies'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Go Back'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           if (widget.controller.isLoading) {
             return Center(
               child: Column(
@@ -276,6 +382,14 @@ class _PreTransactionRealtimePageState
                   ),
                 ],
               ),
+            );
+          }
+
+          // Check if user needs to pay deposit first (both buyer and seller)
+          if (!widget.controller.hasDeposited) {
+            return DepositPaymentTab(
+              controller: widget.controller,
+              userId: widget.userId,
             );
           }
 
@@ -469,31 +583,52 @@ class _PreTransactionRealtimePageState
                 ),
                 const SizedBox(height: 16),
 
-                // Option 1: Choose next highest bidder
+                // Option 1: Auto-reselect next winner
+                _buildSellerOption(
+                  icon: Icons.auto_fix_high,
+                  title: 'Auto-Select Next Winner',
+                  description:
+                      'Automatically assign to the next highest eligible bidder',
+                  color: ColorConstants.primary,
+                  isDark: isDark,
+                  onTap: () => _showAutoReselectDialog(),
+                ),
+                const SizedBox(height: 12),
+
+                // Option 2: Choose next highest bidder (manual)
                 _buildSellerOption(
                   icon: Icons.person_search,
                   title: 'Choose Next Highest Bidder',
-                  description:
-                      'Offer the vehicle to the next highest bidder from the auction',
+                  description: 'Manually pick from eligible bidders',
                   color: ColorConstants.success,
                   isDark: isDark,
                   onTap: () => _showNextBidderDialog(),
                 ),
                 const SizedBox(height: 12),
 
-                // Option 2: Reauction
+                // Option 3: Relist auction
                 _buildSellerOption(
                   icon: Icons.refresh,
-                  title: 'Relist Auction',
-                  description:
-                      'Start a new auction round with fresh bidding (7 days)',
+                  title: 'Restart Bidding',
+                  description: 'Clear all bids and start a new auction round',
                   color: ColorConstants.info,
                   isDark: isDark,
-                  onTap: () => _showRelistDialog(),
+                  onTap: () => _showRestartBiddingDialog(),
                 ),
                 const SizedBox(height: 12),
 
-                // Option 3: Delete
+                // Option 4: Cancel with penalty
+                _buildSellerOption(
+                  icon: Icons.gavel,
+                  title: 'Cancel Auction',
+                  description: 'Cancel with a penalty fee (5% of agreed price)',
+                  color: ColorConstants.warning,
+                  isDark: isDark,
+                  onTap: () => _showCancelWithPenaltyDialog(),
+                ),
+                const SizedBox(height: 12),
+
+                // Option 5: Delete
                 _buildSellerOption(
                   icon: Icons.delete_forever,
                   title: 'Delete Auction',
@@ -1025,6 +1160,220 @@ class _PreTransactionRealtimePageState
         }
       }
     }
+  }
+
+  Future<void> _showAutoReselectDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.auto_fix_high, color: ColorConstants.primary),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Auto-Select Next Winner')),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This will automatically assign the transaction to the next highest eligible bidder.',
+            ),
+            SizedBox(height: 16),
+            Text(
+              'The previous buyer will be excluded and a new transaction will start.',
+              style: TextStyle(fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.primary,
+            ),
+            child: const Text('Auto-Select'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await widget.controller.autoReselectNextWinner();
+
+      if (mounted) {
+        if (success) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(
+              content: Text('Next winner selected successfully'),
+              backgroundColor: ColorConstants.success,
+            ),
+          );
+        } else {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.controller.errorMessage ??
+                    'No eligible next bidder found',
+              ),
+              backgroundColor: ColorConstants.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showRestartBiddingDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.refresh, color: ColorConstants.info),
+            const SizedBox(width: 12),
+            const Text('Restart Bidding'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This will clear all existing bids and restart the auction from scratch.',
+            ),
+            SizedBox(height: 16),
+            Text(
+              'All previous bids and transaction data will be permanently removed.',
+              style: TextStyle(fontSize: 13, color: Colors.red),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: ColorConstants.info),
+            child: const Text('Restart'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await widget.controller.restartAuctionBidding();
+
+      if (mounted) {
+        if (success) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(
+              content: Text('Bidding restarted successfully'),
+              backgroundColor: ColorConstants.success,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.controller.errorMessage ?? 'Failed to restart bidding',
+              ),
+              backgroundColor: ColorConstants.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showCancelWithPenaltyDialog() async {
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.gavel, color: ColorConstants.warning),
+            const SizedBox(width: 12),
+            const Text('Cancel Auction'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Cancelling will incur a penalty fee of 5% of the agreed price.',
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(fontSize: 13, color: Colors.red),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Reason (optional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Go Back'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.warning,
+            ),
+            child: const Text('Cancel Auction'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await widget.controller.cancelAuctionWithPenalty(
+        reason: reasonController.text.trim(),
+      );
+
+      if (mounted) {
+        if (success) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(
+              content: Text('Auction cancelled with penalty applied'),
+              backgroundColor: ColorConstants.success,
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.controller.errorMessage ?? 'Failed to cancel auction',
+              ),
+              backgroundColor: ColorConstants.error,
+            ),
+          );
+        }
+      }
+    }
+
+    reasonController.dispose();
   }
 
   Widget _buildTabWithBadge(String label, int updateCount) {
