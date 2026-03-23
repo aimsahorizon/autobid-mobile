@@ -476,7 +476,7 @@ class _PreTransactionRealtimePageState
                         widget.controller.chatUpdateCount,
                       ),
                       _buildTabWithBadge(
-                        'Agreement',
+                        'Form',
                         widget.controller.agreementUpdateCount,
                       ),
                       _buildTabWithBadge(
@@ -583,30 +583,19 @@ class _PreTransactionRealtimePageState
                 ),
                 const SizedBox(height: 16),
 
-                // Option 1: Auto-reselect next winner
+                // Option 1: Proceed to next bidder
                 _buildSellerOption(
-                  icon: Icons.auto_fix_high,
-                  title: 'Auto-Select Next Winner',
+                  icon: Icons.skip_next_rounded,
+                  title: 'Proceed to Next Bidder',
                   description:
-                      'Automatically assign to the next highest eligible bidder',
+                      'Offer to the next highest eligible bidder (skips same user)',
                   color: ColorConstants.primary,
                   isDark: isDark,
                   onTap: () => _showAutoReselectDialog(),
                 ),
                 const SizedBox(height: 12),
 
-                // Option 2: Choose next highest bidder (manual)
-                _buildSellerOption(
-                  icon: Icons.person_search,
-                  title: 'Choose Next Highest Bidder',
-                  description: 'Manually pick from eligible bidders',
-                  color: ColorConstants.success,
-                  isDark: isDark,
-                  onTap: () => _showNextBidderDialog(),
-                ),
-                const SizedBox(height: 12),
-
-                // Option 3: Relist auction
+                // Option 2: Relist auction
                 _buildSellerOption(
                   icon: Icons.refresh,
                   title: 'Restart Bidding',
@@ -1168,9 +1157,9 @@ class _PreTransactionRealtimePageState
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.auto_fix_high, color: ColorConstants.primary),
+            Icon(Icons.skip_next_rounded, color: ColorConstants.primary),
             const SizedBox(width: 12),
-            const Expanded(child: Text('Auto-Select Next Winner')),
+            const Expanded(child: Text('Proceed to Next Bidder')),
           ],
         ),
         content: const Column(
@@ -1178,11 +1167,11 @@ class _PreTransactionRealtimePageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'This will automatically assign the transaction to the next highest eligible bidder.',
+              'The transaction will be offered to the next highest bidder. If the same user placed multiple bids, they will be skipped.',
             ),
             SizedBox(height: 16),
             Text(
-              'The previous buyer will be excluded and a new transaction will start.',
+              'This process continues down the bidder list until a different eligible user is found.',
               style: TextStyle(fontSize: 13),
             ),
           ],
@@ -1197,7 +1186,7 @@ class _PreTransactionRealtimePageState
             style: FilledButton.styleFrom(
               backgroundColor: ColorConstants.primary,
             ),
-            child: const Text('Auto-Select'),
+            child: const Text('Proceed'),
           ),
         ],
       ),

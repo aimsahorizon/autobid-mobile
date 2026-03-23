@@ -322,12 +322,13 @@ class _ChatRealtimeTabState extends State<ChatRealtimeTab> {
   }
 
   String _formatTime(DateTime timestamp) {
+    final local = timestamp.toLocal();
     final now = DateTime.now();
-    final diff = now.difference(timestamp);
+    final diff = now.difference(local);
 
     if (diff.inDays > 0) {
-      return '${timestamp.month}/${timestamp.day} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+      return '${local.month}/${local.day} ${local.hour}:${local.minute.toString().padLeft(2, '0')}';
     }
-    return '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+    return '${local.hour}:${local.minute.toString().padLeft(2, '0')}';
   }
 }
