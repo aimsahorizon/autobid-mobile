@@ -177,8 +177,11 @@ class TransactionCompositeSupabaseDataSource
     try {
       // Fetch transaction details to get agreed price and context
       // We use sellerDataSource because it fetches the transaction with buyer profile
-      final transactionMap = await sellerDataSource.getTransactionDetail(form.transactionId);
-      final agreedPrice = (transactionMap['agreed_price'] as num?)?.toDouble() ?? 0.0;
+      final transactionMap = await sellerDataSource.getTransactionDetail(
+        form.transactionId,
+      );
+      final agreedPrice =
+          (transactionMap['agreed_price'] as num?)?.toDouble() ?? 0.0;
 
       if (form.role == FormRole.seller) {
         await sellerDataSource.submitSellerForm(
@@ -198,11 +201,13 @@ class TransactionCompositeSupabaseDataSource
       } else {
         // Map Buyer Profile Data
         // transactionMap has 'user_profiles' which corresponds to the buyer
-        final buyerProfile = transactionMap['user_profiles'] as Map<String, dynamic>?;
-        
+        final buyerProfile =
+            transactionMap['user_profiles'] as Map<String, dynamic>?;
+
         final buyerName = buyerProfile?['full_name'] as String? ?? '';
         final buyerEmail = buyerProfile?['email'] as String? ?? '';
-        final buyerPhone = buyerProfile?['contact_number'] as String? ?? form.contactNumber;
+        final buyerPhone =
+            buyerProfile?['contact_number'] as String? ?? form.contactNumber;
 
         final buyerForm = buyer.BuyerTransactionFormEntity(
           id: form.id,
@@ -286,6 +291,34 @@ class TransactionCompositeSupabaseDataSource
     String reason,
   ) async {
     return await buyerDataSource.rejectVehicle(transactionId, buyerId, reason);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getNextEligibleWinner(String transactionId) {
+    return transactionDataSource.getNextEligibleWinner(transactionId);
+  }
+
+  @override
+  Future<int> countEligibleNextBidders(String transactionId) {
+    return transactionDataSource.countEligibleNextBidders(transactionId);
+  }
+
+  @override
+  Future<bool> cancelAuctionWithPenalty(String transactionId, String reason) {
+    return transactionDataSource.cancelAuctionWithPenalty(
+      transactionId,
+      reason,
+    );
+  }
+
+  @override
+  Future<bool> autoReselectNextWinner(String transactionId) {
+    return transactionDataSource.autoReselectNextWinner(transactionId);
+  }
+
+  @override
+  Future<bool> restartAuctionBidding(String transactionId) {
+    return transactionDataSource.restartAuctionBidding(transactionId);
   }
 
   // Helpers

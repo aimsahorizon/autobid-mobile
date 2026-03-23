@@ -460,4 +460,86 @@ class TransactionSupabaseDataSource {
       'description': description,
     });
   }
+
+  /// Get the next eligible winner for an auction after the current buyer cancels.
+  /// Excludes all bids from the previous winning bidder.
+  /// Returns null if no eligible next winner exists (e.g. only 1 unique bidder).
+  Future<Map<String, dynamic>?> getNextEligibleWinner(
+    String transactionId,
+  ) async {
+    try {
+      final result = await _supabase.rpc(
+        'get_top_next_winner',
+        params: {'p_transaction_id': transactionId},
+      );
+
+      final rows = result as List?;
+      if (rows == null || rows.isEmpty) return null;
+
+      return Map<String, dynamic>.from(rows.first as Map);
+    } catch (e) {
+      debugPrint('[TransactionDS] Error getting next eligible winner: $e');
+      return null;
+    }
+  }
+
+  /// Count unique eligible bidders that could be the next winner.
+  /// Returns 0 if only the cancelled buyer has bid.
+  Future<int> countEligibleNextBidders(String transactionId) async {
+    try {
+      final result = await _supabase.rpc(
+        'count_eligible_next_bidders',
+        params: {'p_transaction_id': transactionId},
+      );
+      return (result as int?) ?? 0;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error counting eligible bidders: $e');
+      return 0;
+    }
+  }
+
+  /// Cancel the auction with penalty recorded for the cancelling party.
+  Future<bool> cancelAuctionWithPenalty(
+    String transactionId,
+    String reason,
+  ) async {
+    try {
+      await _supabase.rpc(
+        'cancel_auction_with_penalty',
+        params: {'p_transaction_id': transactionId, 'p_reason': reason},
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error cancelling with penalty: $e');
+      return false;
+    }
+  }
+
+  /// Automatically reselect the next highest eligible bidder.
+  Future<bool> autoReselectNextWinner(String transactionId) async {
+    try {
+      final result = await _supabase.rpc(
+        'auto_reselect_next_winner',
+        params: {'p_transaction_id': transactionId},
+      );
+      return result == true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error auto-reselecting winner: $e');
+      return false;
+    }
+  }
+
+  /// Restart auction bidding from scratch (relist).
+  Future<bool> restartAuctionBidding(String transactionId) async {
+    try {
+      await _supabase.rpc(
+        'restart_auction_bidding',
+        params: {'p_transaction_id': transactionId},
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error restarting auction: $e');
+      return false;
+    }
+  }
 }

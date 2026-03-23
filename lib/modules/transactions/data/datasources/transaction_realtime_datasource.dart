@@ -1663,6 +1663,44 @@ class TransactionRealtimeDataSource {
     }
   }
 
+  /// Cancel auction with penalty via RPC
+  Future<void> cancelAuctionWithPenalty(
+    String transactionId,
+    String reason,
+  ) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) throw Exception('Transaction not found');
+
+    await _supabase.rpc(
+      'cancel_auction_with_penalty',
+      params: {'p_transaction_id': txnId, 'p_reason': reason},
+    );
+  }
+
+  /// Auto-reselect next winner via RPC
+  Future<bool> autoReselectNextWinner(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return false;
+
+    final result = await _supabase.rpc(
+      'auto_reselect_next_winner',
+      params: {'p_transaction_id': txnId},
+    );
+
+    return result == true;
+  }
+
+  /// Restart auction bidding via RPC
+  Future<void> restartAuctionBidding(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) throw Exception('Transaction not found');
+
+    await _supabase.rpc(
+      'restart_auction_bidding',
+      params: {'p_transaction_id': txnId},
+    );
+  }
+
   // ============================================================================
   // DELIVERY & COMPLETION
   // ============================================================================
