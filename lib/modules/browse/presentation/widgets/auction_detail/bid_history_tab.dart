@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/auction_alias_generator.dart';
 import '../../../domain/entities/bid_history_entity.dart';
 
 /// Displays chronological bid history for an auction
@@ -93,6 +94,18 @@ class _BidHistoryCard extends StatelessWidget {
 
   const _BidHistoryCard({required this.bid, required this.isLatest});
 
+  /// Get display name: alias for other users, real name for current user
+  String get _displayName {
+    if (bid.isCurrentUser) return bid.bidderName;
+    if (bid.bidderId != null) {
+      return AuctionAliasGenerator.generate(bid.auctionId, bid.bidderId!);
+    }
+    return 'Anonymous';
+  }
+
+  /// Only show username for current user
+  bool get _showUsername => bid.isCurrentUser;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -155,7 +168,7 @@ class _BidHistoryCard extends StatelessWidget {
                     // Bidder name
                     Flexible(
                       child: Text(
-                        bid.bidderName,
+                        _displayName,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: bid.isCurrentUser
@@ -189,7 +202,9 @@ class _BidHistoryCard extends StatelessWidget {
                     ],
                   ],
                 ),
-                if (bid.username != null && bid.username != bid.bidderName)
+                if (_showUsername &&
+                    bid.username != null &&
+                    bid.username != bid.bidderName)
                   Text(
                     '@${bid.username}',
                     style: theme.textTheme.bodySmall?.copyWith(

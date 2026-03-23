@@ -82,8 +82,8 @@ class DetailTabsSection extends StatelessWidget {
               ),
               tabs: const [
                 Tab(text: 'Bid History'), // Shows auction bid timeline
-                Tab(text: 'Car Info'),    // Shows car specifications
-                Tab(text: 'Q&A'),         // Shows questions & answers
+                Tab(text: 'Car Info'), // Shows car specifications
+                Tab(text: 'Q&A'), // Shows questions & answers
               ],
             ),
           ),

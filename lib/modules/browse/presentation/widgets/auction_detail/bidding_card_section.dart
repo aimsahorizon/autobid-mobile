@@ -9,13 +9,10 @@ import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.d
 import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
 
 class BiddingCardSection extends StatefulWidget {
-  final bool hasDeposited;
   final double minimumBid;
   final double currentBid;
   final double minBidIncrement;
-  final double depositAmount;
   final bool enableIncrementalBidding;
-  final VoidCallback onDeposit;
   final Function(double) onPlaceBid;
   final Function(bool, double?, double)? onAutoBidToggle;
   final bool isProcessing;
@@ -33,13 +30,10 @@ class BiddingCardSection extends StatefulWidget {
 
   const BiddingCardSection({
     super.key,
-    required this.hasDeposited,
     required this.minimumBid,
     required this.currentBid,
     required this.minBidIncrement,
-    required this.depositAmount,
     required this.enableIncrementalBidding,
-    required this.onDeposit,
     required this.onPlaceBid,
     this.onAutoBidToggle,
     this.isProcessing = false,
@@ -517,12 +511,9 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
             : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.hasDeposited
-              ? ColorConstants.success.withValues(alpha: 0.3)
-              : (isDark
-                    ? ColorConstants.borderDark
-                    : ColorConstants.borderLight),
-          width: widget.hasDeposited ? 1.5 : 1,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
         boxShadow: [
           BoxShadow(
@@ -532,155 +523,7 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
           ),
         ],
       ),
-      child: widget.hasDeposited
-          ? _buildUnlockedBidding(theme, isDark)
-          : _buildLockedBidding(theme, isDark),
-    );
-  }
-
-  Widget _buildLockedBidding(ThemeData theme, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  ColorConstants.warning.withValues(alpha: 0.2),
-                  ColorConstants.warning.withValues(alpha: 0.1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.lock_rounded,
-              size: 36,
-              color: ColorConstants.warning,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'Bidding Locked',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Pay a refundable deposit to start bidding on this auction',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark
-                  ? ColorConstants.textSecondaryDark
-                  : ColorConstants.textSecondaryLight,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: ColorConstants.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.receipt_long,
-                  size: 18,
-                  color: ColorConstants.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '₱${_formatNumber(widget.depositAmount)} Deposit',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: ColorConstants.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: widget.isProcessing ? null : widget.onDeposit,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              icon: widget.isProcessing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.payment_rounded),
-              label: Text(
-                widget.isProcessing ? 'Processing...' : 'Pay Deposit',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildPaymentBadge('GCash', const Color(0xFF007DFE)),
-              const SizedBox(width: 8),
-              _buildPaymentBadge('Maya', const Color(0xFF52B44B)),
-              const SizedBox(width: 8),
-              _buildPaymentBadge('Card', ColorConstants.primary),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.info_outline, size: 14, color: ColorConstants.info),
-              const SizedBox(width: 6),
-              Text(
-                'Fully refundable if you don\'t win',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: ColorConstants.info,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
+      child: _buildUnlockedBidding(theme, isDark),
     );
   }
 
@@ -690,40 +533,22 @@ class _BiddingCardSectionState extends State<BiddingCardSection> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
-            color: ColorConstants.success.withValues(alpha: 0.1),
+            color: ColorConstants.primary.withValues(alpha: 0.1),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Row(
             children: [
               const Icon(
-                Icons.check_circle,
-                color: ColorConstants.success,
+                Icons.gavel_rounded,
+                color: ColorConstants.primary,
                 size: 22,
               ),
               const SizedBox(width: 10),
               Text(
-                'Ready to Bid',
+                'Place Your Bid',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: ColorConstants.success,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Deposit Paid',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: ColorConstants.success,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  color: ColorConstants.primary,
                 ),
               ),
             ],
