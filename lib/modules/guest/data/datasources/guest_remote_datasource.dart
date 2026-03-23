@@ -10,4 +10,7 @@ abstract class GuestRemoteDataSource {
     int limit = 20,
     int offset = 0,
   });
+
+  /// Submit a KYC appeal for a rejected user
+  Future<void> submitKycAppeal(String userId, String appealReason);
 }
