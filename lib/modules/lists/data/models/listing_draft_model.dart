@@ -65,6 +65,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.reservePrice,
     super.auctionEndDate,
     super.biddingType,
+    super.exclusiveTier,
     super.bidIncrement,
     super.minBidIncrement,
     super.depositAmount,
@@ -163,6 +164,7 @@ class ListingDraftModel extends ListingDraftEntity {
           : null,
       // Step 8: Bidding Configuration
       biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
       bidIncrement: _toDouble(json['bid_increment']),
       minBidIncrement: _toDouble(json['min_bid_increment']),
       depositAmount: _toDouble(json['deposit_amount']),
@@ -255,6 +257,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'auction_end_date': auctionEndDate?.toIso8601String(),
       // Step 8: Bidding Configuration
       'bidding_type': biddingType,
+      'exclusive_tier': exclusiveTier,
       'bid_increment': bidIncrement,
       'min_bid_increment': minBidIncrement,
       'deposit_amount': depositAmount,

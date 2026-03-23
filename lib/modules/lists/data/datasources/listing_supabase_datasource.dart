@@ -240,7 +240,9 @@ class ListingSupabaseDataSource {
       // Pre-check: prevent duplicate car (by plate_number) across statuses
       final draftRow = await _supabase
           .from('listing_drafts')
-          .select('seller_id, plate_number, auto_live_after_approval')
+          .select(
+            'seller_id, plate_number, auto_live_after_approval, schedule_live_mode, auction_start_date, auction_end_date, snipe_guard_threshold_seconds, snipe_guard_extend_seconds',
+          )
           .eq('id', draftId)
           .single();
 
@@ -248,6 +250,8 @@ class ListingSupabaseDataSource {
       final plateNumber = draftRow['plate_number'] as String?;
       final autoLiveAfterApproval =
           draftRow['auto_live_after_approval'] as bool? ?? false;
+      final scheduleLiveMode =
+          draftRow['schedule_live_mode'] as String? ?? 'manual';
 
       if (sellerId != null && plateNumber != null && plateNumber.isNotEmpty) {
         await _ensureUniquePlate(sellerId, plateNumber);
@@ -267,7 +271,11 @@ class ListingSupabaseDataSource {
 
         await _supabase
             .from('auctions')
-            .update({'auto_live_after_approval': autoLiveAfterApproval})
+            .update({
+              'auto_live_after_approval': autoLiveAfterApproval,
+              'schedule_live_mode': scheduleLiveMode,
+              'snipe_guard_enabled': true,
+            })
             .eq('id', auctionId);
 
         await _supabase
@@ -1770,6 +1778,10 @@ class ListingSupabaseDataSource {
     mergedJson['description'] = mergedJson['description'] ?? '';
     mergedJson['auto_live_after_approval'] =
         mergedJson['auto_live_after_approval'] ?? false;
+
+    // Map review_notes to rejection_reason for admin feedback display
+    mergedJson['rejection_reason'] =
+        mergedJson['rejection_reason'] ?? mergedJson['review_notes'];
 
     // Ensure numeric fields
     mergedJson['mileage'] = mergedJson['mileage'] ?? 0;

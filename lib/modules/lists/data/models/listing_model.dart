@@ -84,6 +84,7 @@ class ListingModel {
 
   // Bidding Configuration
   final String biddingType;
+  final String? exclusiveTier;
 
   final double bidIncrement;
   final double minBidIncrement;
@@ -179,6 +180,7 @@ class ListingModel {
     this.transactionId,
     this.cancellationReason,
     this.biddingType = 'open',
+    this.exclusiveTier,
     this.bidIncrement = 100,
     this.minBidIncrement = 100,
     this.depositAmount = 0,
@@ -288,6 +290,7 @@ class ListingModel {
       transactionId: json['transaction_id'] as String?,
       cancellationReason: json['cancellation_reason'] as String?,
       biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
       bidIncrement: _toDouble(json['bid_increment']) ?? 100,
       minBidIncrement: _toDouble(json['min_bid_increment']) ?? 100,
       depositAmount: _toDouble(json['deposit_amount']) ?? 0,
@@ -419,6 +422,7 @@ class ListingModel {
       features: features,
       auctionEndDate: auctionEndTime,
       biddingType: biddingType,
+      exclusiveTier: exclusiveTier,
       bidIncrement: bidIncrement,
       minBidIncrement: minBidIncrement,
       depositAmount: depositAmount,
