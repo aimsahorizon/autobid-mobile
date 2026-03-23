@@ -62,6 +62,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
     super.warrantyDetails,
     super.usageType,
     super.plateNumber,
+    super.chassisNumber,
     super.orcrStatus,
     super.registrationStatus,
     super.registrationExpiry,
@@ -186,6 +187,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       warrantyDetails: json['warranty_details'] as String?,
       usageType: json['usage_type'] as String?,
       plateNumber: json['plate_number'] as String?,
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String?,
       registrationStatus: json['registration_status'] as String?,
       registrationExpiry: json['registration_expiry'] != null
@@ -264,6 +266,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'warranty_details': warrantyDetails,
       'usage_type': usageType,
       'plate_number': plateNumber,
+      'chassis_number': chassisNumber,
       'orcr_status': orcrStatus,
       'registration_status': registrationStatus,
       'registration_expiry': registrationExpiry?.toIso8601String(),
