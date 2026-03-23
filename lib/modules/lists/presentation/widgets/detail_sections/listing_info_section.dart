@@ -118,6 +118,16 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
                 ? 'Mystery'
                 : 'Open',
           ),
+          if (widget.listing.biddingType == 'exclusive' &&
+              widget.listing.exclusiveTier != null)
+            _SpecRow(
+              'Required Tier',
+              widget.listing.exclusiveTier == 'silver'
+                  ? 'Silver Only'
+                  : widget.listing.exclusiveTier == 'gold'
+                  ? 'Gold Only'
+                  : 'Silver & Gold',
+            ),
           _SpecRow(
             'Increment Type',
             widget.listing.enableIncrementalBidding ? 'Dynamic' : 'Fixed',
@@ -164,6 +174,54 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
               '₱${fmt.format(widget.listing.reservePrice!)}',
             ),
         ], isDark),
+        if (widget.listing.startTime != null ||
+            widget.listing.endTime != null ||
+            widget.listing.auctionEndDate != null) ...[
+          const SizedBox(height: 16),
+          _buildSpecGroup('Scheduling', [
+            if (widget.listing.startTime != null)
+              _SpecRow(
+                'Start Time',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.startTime!.toLocal()),
+              ),
+            if (widget.listing.endTime != null)
+              _SpecRow(
+                'End Time',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.endTime!.toLocal()),
+              ),
+            if (widget.listing.startTime != null &&
+                widget.listing.endTime != null)
+              _SpecRow(
+                'Duration',
+                _formatDuration(
+                  widget.listing.endTime!.difference(widget.listing.startTime!),
+                ),
+              ),
+            if (widget.listing.auctionEndDate != null &&
+                widget.listing.endTime == null)
+              _SpecRow(
+                'Scheduled End Date',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.auctionEndDate!.toLocal()),
+              ),
+            _SpecRow(
+              'Auto Live After Approval',
+              widget.listing.autoLiveAfterApproval ? 'Yes' : 'No',
+            ),
+          ], isDark),
+        ],
+        if (widget.listing.rejectionReason != null &&
+            widget.listing.rejectionReason!.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildSpecGroup('Admin Feedback', [
+            _SpecRow('Notes', widget.listing.rejectionReason!),
+          ], isDark),
+        ],
       ],
     );
   }
@@ -571,6 +629,17 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
         .where((w) => w.isNotEmpty)
         .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
+  }
+
+  String _formatDuration(Duration d) {
+    if (d.inDays > 0) {
+      final hours = d.inHours % 24;
+      return hours > 0
+          ? '${d.inDays}d ${hours}h'
+          : '${d.inDays} day${d.inDays > 1 ? 's' : ''}';
+    }
+    if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes % 60}m';
+    return '${d.inMinutes}m';
   }
 
   Widget _buildSpecGroup(String title, List<Widget> specs, bool isDark) {

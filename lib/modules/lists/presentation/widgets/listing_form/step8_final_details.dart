@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
 import 'form_field_widget.dart';
 import 'ai_price_predictor.dart';
@@ -25,6 +26,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
 
   List<String> _features = [];
   String _biddingType = 'open'; // 'open', 'exclusive', or 'mystery'
+  String? _exclusiveTier; // 'silver', 'gold', or 'silver_gold'
   bool _enableIncrementalBidding = true;
   String _scheduleLiveMode = 'manual'; // 'auto_live', 'manual', 'auto_schedule'
   bool _allowsInstallment = false;
@@ -55,11 +57,12 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     );
     _features = draft?.features ?? [];
     _biddingType = draft?.biddingType ?? 'open';
+    _exclusiveTier = draft?.exclusiveTier;
     _enableIncrementalBidding = draft?.enableIncrementalBidding ?? true;
     _scheduleLiveMode = draft?.scheduleLiveMode ?? 'manual';
     _allowsInstallment = draft?.allowsInstallment ?? false;
-    _auctionEndDate = draft?.auctionEndDate;
-    _auctionStartDate = draft?.auctionStartDate;
+    _auctionEndDate = draft?.auctionEndDate?.toLocal();
+    _auctionStartDate = draft?.auctionStartDate?.toLocal();
     _auctionDurationHours = draft?.auctionDurationHours;
     _endTimeMode = (_auctionDurationHours != null && _auctionEndDate == null)
         ? 'duration'
@@ -115,14 +118,19 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           final parsed = double.tryParse(_reservePriceController.text);
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
-        auctionEndDate: _auctionEndDate,
+        auctionEndDate: _auctionEndDate?.toUtc(),
         // Scheduling
         scheduleLiveMode: _scheduleLiveMode,
         autoLiveAfterApproval: _scheduleLiveMode == 'auto_live',
-        auctionStartDate: _auctionStartDate,
+        auctionStartDate: _auctionStartDate?.toUtc(),
         auctionDurationHours: _auctionDurationHours,
+        // Snipe guard is always enabled
+        snipeGuardEnabled: true,
+        snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
+        snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,
         // Bidding Configuration
         biddingType: _biddingType,
+        exclusiveTier: _biddingType == 'exclusive' ? _exclusiveTier : null,
         bidIncrement: () {
           if (_bidIncrementController.text.isEmpty) return null;
           final parsed = double.tryParse(_bidIncrementController.text);
@@ -653,6 +661,82 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 24),
 
+        // Exclusive Tier Selector (only shown when bidding type is 'exclusive')
+        if (_biddingType == 'exclusive') ...[
+          const Text(
+            'Required Subscription Tier *',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<String>(
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                      Set<WidgetState> states,
+                    ) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Theme.of(context).colorScheme.primary;
+                      }
+                      return Colors.transparent;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                      Set<WidgetState> states,
+                    ) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.white;
+                      }
+                      return Theme.of(context).colorScheme.onSurface;
+                    }),
+                  ),
+                  segments: const <ButtonSegment<String>>[
+                    ButtonSegment<String>(
+                      value: 'silver',
+                      label: Text('Silver'),
+                      icon: Icon(Icons.workspace_premium),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'gold',
+                      label: Text('Gold'),
+                      icon: Icon(Icons.star),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'silver_gold',
+                      label: Text('Both'),
+                      icon: Icon(Icons.people),
+                    ),
+                  ],
+                  selected: <String>{_exclusiveTier ?? 'silver_gold'},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setState(() {
+                      _exclusiveTier = newSelection.first;
+                    });
+                    _updateDraft();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _exclusiveTier == 'silver'
+                  ? 'Only Silver subscribers can be invited to this auction'
+                  : _exclusiveTier == 'gold'
+                  ? 'Only Gold subscribers can be invited to this auction'
+                  : 'Both Silver and Gold subscribers can be invited',
+              style: const TextStyle(fontSize: 12, color: Colors.orange),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
         // Anti-Sniping Configuration
         const Text(
           'Anti-Sniping Protection',
@@ -922,6 +1006,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   }
 
   Widget _buildDurationPicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final durations = [
       (24, '1 Day'),
       (48, '2 Days'),
@@ -951,8 +1036,26 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                       ].contains(_auctionDurationHours)
                 : _auctionDurationHours == d.$1;
             return ChoiceChip(
-              label: Text(d.$2),
+              label: Text(
+                d.$2,
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : isDark
+                      ? ColorConstants.textPrimaryDark
+                      : ColorConstants.textPrimaryLight,
+                ),
+              ),
               selected: isSelected,
+              selectedColor: ColorConstants.primary,
+              backgroundColor: isDark ? ColorConstants.surfaceDark : null,
+              side: BorderSide(
+                color: isSelected
+                    ? ColorConstants.primary
+                    : isDark
+                    ? ColorConstants.borderDark
+                    : ColorConstants.borderLight,
+              ),
               onSelected: (selected) async {
                 if (d.$1 == -1 && selected) {
                   // Custom duration dialog
