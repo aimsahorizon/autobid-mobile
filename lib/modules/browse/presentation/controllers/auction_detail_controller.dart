@@ -270,15 +270,16 @@ class AuctionDetailController extends ChangeNotifier {
         },
         (bids) {
           _bidHistory = bids.map((bid) {
-            // Set isCurrentUser flag based on userId
+            // Set isCurrentUser flag based on bidderId
             return BidHistoryEntity(
               id: bid.id,
               auctionId: bid.auctionId,
+              bidderId: bid.bidderId,
               amount: bid.amount,
               bidderName: bid.bidderName,
               username: bid.username,
               timestamp: bid.timestamp,
-              isCurrentUser: _userId != null && bid.id.contains(_userId),
+              isCurrentUser: _userId != null && bid.bidderId == _userId,
               isWinning: bid.isWinning,
             );
           }).toList();
