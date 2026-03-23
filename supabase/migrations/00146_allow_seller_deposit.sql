@@ -126,7 +126,7 @@ BEGIN
     JOIN virtual_wallets w ON w.id = wt.wallet_id
     JOIN auctions a ON a.id = wt.reference_id::uuid
     WHERE wt.category = 'deposit'
-      AND wt.transaction_type = 'debit'
+      AND wt.type = 'debit'
       AND a.seller_id = w.user_id
       AND NOT EXISTS (
         SELECT 1 FROM deposits d
@@ -140,9 +140,10 @@ BEGIN
     WHERE user_id = r.user_id;
 
     -- Record the refund transaction
-    INSERT INTO virtual_wallet_transactions (wallet_id, transaction_type, amount, category, reference_id, description)
-    SELECT w.id, 'credit', r.amount, 'deposit_return', r.auction_id::text,
-           'Refund: seller deposit failed to record (migration fix)'
+    INSERT INTO virtual_wallet_transactions (wallet_id, user_id, type, amount, category, reference_id, description, balance_after)
+    SELECT w.id, w.user_id, 'credit', r.amount, 'deposit_return', r.auction_id::text,
+           'Refund: seller deposit failed to record (migration fix)',
+           w.balance
     FROM virtual_wallets w
     WHERE w.user_id = r.user_id;
 
