@@ -28,6 +28,21 @@ class MysteryBiddingCard extends StatefulWidget {
 class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
   final _bidController = TextEditingController();
   bool _showConfirmation = false;
+  bool _isEditing = false;
+
+  @override
+  void didUpdateWidget(MysteryBiddingCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reset editing state after a successful bid update
+    if (_isEditing &&
+        widget.mysteryStatus?.hasBid == true &&
+        widget.mysteryStatus?.userBidAmount !=
+            oldWidget.mysteryStatus?.userBidAmount) {
+      _isEditing = false;
+      _bidController.clear();
+      _showConfirmation = false;
+    }
+  }
 
   @override
   void dispose() {
@@ -131,8 +146,11 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
       return _buildRevealedResults(theme, isDark, status);
     }
 
-    // User already placed a bid
+    // User already placed a bid — show edit form or placed state
     if (status != null && status.hasBid) {
+      if (_isEditing) {
+        return _buildBidForm(theme, isDark, isEdit: true);
+      }
       return _buildBidPlacedState(theme, isDark, status);
     }
 
@@ -140,9 +158,9 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
     return _buildBidForm(theme, isDark);
   }
 
-  Widget _buildBidForm(ThemeData theme, bool isDark) {
+  Widget _buildBidForm(ThemeData theme, bool isDark, {bool isEdit = false}) {
     if (_showConfirmation) {
-      return _buildConfirmationView(theme, isDark);
+      return _buildConfirmationView(theme, isDark, isEdit: isEdit);
     }
 
     return Column(
@@ -157,15 +175,17 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.info_outline,
+              Icon(
+                isEdit ? Icons.edit_note : Icons.info_outline,
                 size: 18,
                 color: Colors.deepPurple,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Place a single sealed bid. All bids are hidden until the auction ends.',
+                  isEdit
+                      ? 'Update your sealed bid. You can keep editing until the auction ends.'
+                      : 'Place a sealed bid. You can edit it anytime before the auction ends.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.deepPurple.withValues(alpha: 0.8),
                   ),
@@ -205,21 +225,26 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
         ),
         const SizedBox(height: 16),
 
-        // One-bid warning
+        // Edit hint
         Row(
           children: [
             Icon(
-              Icons.warning_amber_rounded,
+              Icons.info_outline,
               size: 16,
-              color: ColorConstants.warning,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
             ),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                'You can only bid ONCE. Make it count!',
+                isEdit
+                    ? 'Your previous bid will be replaced with this new amount.'
+                    : 'You can edit your bid anytime before the deadline.',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: ColorConstants.warning,
-                  fontWeight: FontWeight.w500,
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
                 ),
               ),
             ),
@@ -227,7 +252,7 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
         ),
         const SizedBox(height: 16),
 
-        // Place bid button
+        // Place/Update bid button
         SizedBox(
           width: double.infinity,
           height: 52,
@@ -248,26 +273,50 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.lock),
+                : Icon(isEdit ? Icons.edit : Icons.lock),
             label: Text(
-              widget.isProcessing ? 'Placing Bid...' : 'Place Sealed Bid',
+              widget.isProcessing
+                  ? (isEdit ? 'Updating Bid...' : 'Placing Bid...')
+                  : (isEdit ? 'Update Sealed Bid' : 'Place Sealed Bid'),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
+        if (isEdit) ...[
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => setState(() {
+                _isEditing = false;
+                _bidController.clear();
+                _showConfirmation = false;
+              }),
+              child: const Text('Cancel'),
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildConfirmationView(ThemeData theme, bool isDark) {
+  Widget _buildConfirmationView(
+    ThemeData theme,
+    bool isDark, {
+    bool isEdit = false,
+  }) {
     final amount = double.tryParse(_bidController.text) ?? 0;
 
     return Column(
       children: [
-        const Icon(Icons.help_outline, size: 48, color: Colors.deepPurple),
+        Icon(
+          isEdit ? Icons.edit_note : Icons.help_outline,
+          size: 48,
+          color: Colors.deepPurple,
+        ),
         const SizedBox(height: 16),
         Text(
-          'Confirm Your Sealed Bid',
+          isEdit ? 'Confirm Bid Update' : 'Confirm Your Sealed Bid',
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -282,10 +331,14 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
         ),
         const SizedBox(height: 8),
         Text(
-          'This action cannot be undone. You will not be able to change your bid.',
+          isEdit
+              ? 'Your previous bid will be replaced with this new amount.'
+              : 'You can edit your bid later before the auction ends.',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: ColorConstants.warning,
+            color: isEdit
+                ? ColorConstants.warning
+                : Colors.deepPurple.withValues(alpha: 0.7),
           ),
         ),
         const SizedBox(height: 20),
@@ -319,9 +372,9 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Confirm Bid',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                child: Text(
+                  isEdit ? 'Update Bid' : 'Confirm Bid',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -390,6 +443,32 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
                 style: theme.textTheme.bodySmall,
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              setState(() {
+                _isEditing = true;
+                _bidController.text =
+                    status.userBidAmount?.toStringAsFixed(0) ?? '';
+              });
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.deepPurple,
+              side: const BorderSide(color: Colors.deepPurple),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            icon: const Icon(Icons.edit, size: 18),
+            label: const Text(
+              'Edit Bid',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ),
         const SizedBox(height: 8),

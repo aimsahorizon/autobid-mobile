@@ -664,14 +664,18 @@ class AuctionDetailController extends ChangeNotifier {
         return false;
       }
 
-      final hasToken = await _consumeBiddingTokenUsecase.call(
-        userId: effectiveUserId,
-        referenceId: _auction!.id,
-      );
-      if (!hasToken) {
-        _errorMessage =
-            'Insufficient bidding tokens. Please purchase more to continue bidding.';
-        return false;
+      // Only consume a token for new bids, not edits
+      final isEditingExistingBid = _mysteryBidStatus?.hasBid == true;
+      if (!isEditingExistingBid) {
+        final hasToken = await _consumeBiddingTokenUsecase.call(
+          userId: effectiveUserId,
+          referenceId: _auction!.id,
+        );
+        if (!hasToken) {
+          _errorMessage =
+              'Insufficient bidding tokens. Please purchase more to continue bidding.';
+          return false;
+        }
       }
 
       final result = await _placeMysteryBidUseCase(
