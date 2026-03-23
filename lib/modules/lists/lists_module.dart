@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'package:autobid_mobile/core/services/car_api_service.dart';
 import 'presentation/controllers/lists_controller.dart';
 import 'presentation/controllers/listing_draft_controller.dart';
 import 'data/datasources/listing_supabase_datasource.dart';
@@ -26,6 +27,9 @@ Future<void> initListsModule() async {
   sl.registerLazySingleton(() => ListingSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => VehicleSupabaseDataSource(sl()));
   // InvitesSupabaseDatasource is registered in browse_module.dart (its home module)
+
+  // Services
+  sl.registerLazySingleton(() => CarApiService(sl()));
 
   // Repositories
   sl.registerLazySingleton<SellerRepository>(
@@ -92,6 +96,7 @@ Future<void> initListsModule() async {
       getVehicleModelsUseCase: sl(),
       getVehicleVariantsUseCase: sl(),
       getUserProfileUseCase: sl(),
+      carApiService: sl(),
     ),
   );
 }
