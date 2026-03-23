@@ -68,7 +68,7 @@ class SellerListingEntity {
   /// Reason for rejection by admin (if status is rejected)
   final String? rejectionReason;
 
-  /// Visibility of the auction (public or private)
+  /// Visibility of the auction (open, exclusive, or mystery)
   final String visibility;
 
   /// Whether seller accepts installment payments
@@ -97,7 +97,7 @@ class SellerListingEntity {
     this.transactionId,
     this.cancellationReason,
     this.rejectionReason,
-    this.visibility = 'public',
+    this.visibility = 'open',
     this.allowsInstallment = false,
   });
 

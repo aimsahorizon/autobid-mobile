@@ -68,6 +68,7 @@ class ListingDetailEntity {
 
   // Step 6: Documentation & Location
   final String? plateNumber;
+  final String? chassisNumber;
   final String? orcrStatus;
   final String? registrationStatus;
   final DateTime? registrationExpiry;
@@ -162,6 +163,7 @@ class ListingDetailEntity {
     this.warrantyDetails,
     this.usageType,
     this.plateNumber,
+    this.chassisNumber,
     this.orcrStatus,
     this.registrationStatus,
     this.registrationExpiry,

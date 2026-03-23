@@ -59,6 +59,7 @@ class ListingDraftEntity {
 
   // Step 6: Documentation & Location
   final String? plateNumber;
+  final String? chassisNumber;
   final String? orcrStatus;
   final String? registrationStatus;
   final DateTime? registrationExpiry;
@@ -80,7 +81,7 @@ class ListingDraftEntity {
   final double? reservePrice;
   final DateTime? auctionEndDate;
   // Bidding Configuration (Step 8)
-  final String? biddingType; // 'public' or 'private'
+  final String? biddingType; // 'open', 'exclusive', or 'mystery'
   final double? bidIncrement; // Minimum increment for bids
   final double? minBidIncrement; // Alias for bidIncrement for clarity
   final double? depositAmount; // Required deposit to bid
@@ -149,6 +150,7 @@ class ListingDraftEntity {
     this.warrantyDetails,
     this.usageType,
     this.plateNumber,
+    this.chassisNumber,
     this.orcrStatus,
     this.registrationStatus,
     this.registrationExpiry,
@@ -226,6 +228,7 @@ class ListingDraftEntity {
     String? warrantyDetails,
     String? usageType,
     String? plateNumber,
+    String? chassisNumber,
     String? orcrStatus,
     String? registrationStatus,
     DateTime? registrationExpiry,
@@ -301,6 +304,7 @@ class ListingDraftEntity {
       warrantyDetails: warrantyDetails ?? this.warrantyDetails,
       usageType: usageType ?? this.usageType,
       plateNumber: plateNumber ?? this.plateNumber,
+      chassisNumber: chassisNumber ?? this.chassisNumber,
       orcrStatus: orcrStatus ?? this.orcrStatus,
       registrationStatus: registrationStatus ?? this.registrationStatus,
       registrationExpiry: registrationExpiry ?? this.registrationExpiry,
@@ -384,6 +388,7 @@ class ListingDraftEntity {
       warrantyDetails: warrantyDetails,
       usageType: usageType,
       plateNumber: plateNumber,
+      chassisNumber: chassisNumber,
       orcrStatus: orcrStatus,
       registrationStatus: registrationStatus,
       registrationExpiry: registrationExpiry,
@@ -396,7 +401,7 @@ class ListingDraftEntity {
       knownIssues: knownIssues,
       features: features,
       auctionEndDate: auctionEndDate,
-      biddingType: biddingType ?? 'public',
+      biddingType: biddingType ?? 'open',
       bidIncrement: bidIncrement ?? 100,
       minBidIncrement: minBidIncrement ?? 100,
       depositAmount: depositAmount ?? 0,
