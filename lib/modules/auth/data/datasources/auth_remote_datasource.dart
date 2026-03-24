@@ -70,7 +70,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       // Step 1: Look up user by username and check account status
       final userRecord = await _supabase
           .from('users')
-          .select('email, is_active, is_verified, display_name')
+          .select('id, email, is_active, is_verified, display_name')
           .eq('username', username)
           .maybeSingle();
 
@@ -99,6 +99,33 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       // Check if account is active (not suspended/banned)
       if (!isActive) {
+        // Query penalty details for an informative message
+        try {
+          final suspensionInfo = await _supabase.rpc(
+            'is_user_suspended',
+            params: {'p_user_id': userRecord['id']},
+          );
+          if (suspensionInfo is List && suspensionInfo.isNotEmpty) {
+            final row = suspensionInfo[0] as Map<String, dynamic>;
+            final isPermanent = row['is_permanent'] as bool? ?? false;
+            final endsAt = row['suspension_ends_at'] as String?;
+            if (isPermanent) {
+              throw const AuthException(
+                'Your account has been permanently banned due to policy violations. Please contact support.',
+              );
+            } else if (endsAt != null) {
+              final endDate = DateTime.parse(endsAt).toLocal();
+              final formatted =
+                  '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')} ${endDate.hour.toString().padLeft(2, '0')}:${endDate.minute.toString().padLeft(2, '0')}';
+              throw AuthException(
+                'Your account is suspended until $formatted due to a policy violation.',
+              );
+            }
+          }
+        } catch (e) {
+          if (e is AuthException) rethrow;
+          // Fall through to generic message
+        }
         throw const AuthException(
           'Your account has been suspended or deactivated. Please contact support.',
         );

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/virtual_wallet_service.dart';
+import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/transaction_review_entity.dart';
 import '../../data/datasources/transaction_realtime_datasource.dart';
@@ -43,6 +44,9 @@ class TransactionRealtimeController extends ChangeNotifier {
   final DepositSupabaseDataSource _depositDataSource =
       DepositSupabaseDataSource(SupabaseConfig.client);
 
+  // Suspension state after cancellation
+  SuspensionStatus? _suspensionAfterCancel;
+
   // Red-dot tab update tracking
   // Counts that increment on each realtime update; the UI saves the
   // "last seen" value when the user views the tab and compares.
@@ -66,6 +70,7 @@ class TransactionRealtimeController extends ChangeNotifier {
   List<AgreementFieldEntity> get agreementFields => _agreementFields;
   bool get hasDeposited => _hasDeposited;
   double get depositAmount => _depositAmount;
+  SuspensionStatus? get suspensionAfterCancel => _suspensionAfterCancel;
   int get chatUpdateCount => _chatUpdateCount;
   int get agreementUpdateCount => _agreementUpdateCount;
   int get progressUpdateCount => _progressUpdateCount;
@@ -720,13 +725,12 @@ class TransactionRealtimeController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _dataSource.deleteAuction(_transaction!.id);
+      await _dataSource.softDeleteAuction(_transaction!.id);
 
-      if (success) {
-        debugPrint('[TransactionRealtimeController] ✅ Auction deleted');
-      }
-
-      return success;
+      // Transaction is deleted by the RPC — clear local state
+      _transaction = null;
+      debugPrint('[TransactionRealtimeController] ✅ Auction soft-deleted');
+      return true;
     } catch (e) {
       _errorMessage = 'Failed to delete auction';
       debugPrint(
@@ -787,13 +791,16 @@ class TransactionRealtimeController extends ChangeNotifier {
     if (_transaction == null) return false;
 
     _isProcessing = true;
+    _suspensionAfterCancel = null;
     notifyListeners();
 
     try {
       await _dataSource.cancelAuctionWithPenalty(_transaction!.id, reason);
 
-      // Refresh wallet balance (SQL already deducted penalty + forfeited deposit)
+      // Check suspension status — record_penalty() suspends immediately
       if (_currentUserId != null) {
+        _suspensionAfterCancel = await PolicyPenaltyDatasource.instance
+            .checkSuspension(_currentUserId!);
         await VirtualWalletService.instance.loadBalance(_currentUserId!);
         await loadTransaction(_transaction!.id, _currentUserId!);
       }
@@ -847,9 +854,8 @@ class TransactionRealtimeController extends ChangeNotifier {
     try {
       await _dataSource.restartAuctionBidding(_transaction!.id);
 
-      if (_currentUserId != null) {
-        await loadTransaction(_transaction!.id, _currentUserId!);
-      }
+      // Transaction is deleted by the RPC — clear local state
+      _transaction = null;
       return true;
     } catch (e) {
       _errorMessage = 'Failed to restart bidding';

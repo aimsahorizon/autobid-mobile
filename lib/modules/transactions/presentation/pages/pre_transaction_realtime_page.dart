@@ -4,6 +4,7 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
 import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
+import 'package:autobid_mobile/modules/auth/auth_routes.dart';
 import '../controllers/transaction_realtime_controller.dart';
 import '../controllers/installment_controller.dart';
 import '../../domain/entities/transaction_entity.dart';
@@ -539,6 +540,8 @@ class _PreTransactionRealtimePageState
     TransactionEntity transaction,
     bool isDark,
   ) {
+    final buyerCancelled = transaction.cancelledBy == 'buyer';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -552,7 +555,9 @@ class _PreTransactionRealtimePageState
           ),
           const SizedBox(height: 12),
           Text(
-            'The buyer has cancelled this transaction. You can choose how to proceed with your listing.',
+            buyerCancelled
+                ? 'The buyer has cancelled this transaction. You can choose how to proceed with your listing.'
+                : 'This transaction has been cancelled. You can choose how to proceed with your listing.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -607,18 +612,7 @@ class _PreTransactionRealtimePageState
                 ),
                 const SizedBox(height: 12),
 
-                // Option 4: Cancel with penalty
-                _buildSellerOption(
-                  icon: Icons.gavel,
-                  title: 'Cancel Auction',
-                  description: 'Cancel with a penalty fee (5% of agreed price)',
-                  color: ColorConstants.warning,
-                  isDark: isDark,
-                  onTap: () => _showCancelWithPenaltyDialog(),
-                ),
-                const SizedBox(height: 12),
-
-                // Option 5: Delete
+                // Option 3: Delete
                 _buildSellerOption(
                   icon: Icons.delete_forever,
                   title: 'Delete Auction',
@@ -1284,86 +1278,43 @@ class _PreTransactionRealtimePageState
     }
   }
 
-  Future<void> _showCancelWithPenaltyDialog() async {
-    final reasonController = TextEditingController();
+  Future<void> _showSuspensionAndSignOut(SuspensionStatus suspension) async {
+    final message = suspension.isPermanent
+        ? 'Your account has been permanently banned due to repeated policy violations.'
+        : 'Your account has been suspended until ${suspension.endsAt?.toLocal().toString().split('.').first ?? 'unknown'} for violating transaction policies.';
 
-    final confirmed = await showDialog<bool>(
+    await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.gavel, color: ColorConstants.warning),
+            Icon(Icons.block, color: ColorConstants.error),
             const SizedBox(width: 12),
-            const Text('Cancel Auction'),
+            const Text('Account Suspended'),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Cancelling will incur a penalty fee of 5% of the agreed price.',
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'This action cannot be undone.',
-              style: TextStyle(fontSize: 13, color: Colors.red),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                labelText: 'Reason (optional)',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-          ],
-        ),
+        content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Go Back'),
-          ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx),
             style: FilledButton.styleFrom(
-              backgroundColor: ColorConstants.warning,
+              backgroundColor: ColorConstants.error,
             ),
-            child: const Text('Cancel Auction'),
+            child: const Text('I Understand'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true && mounted) {
-      final success = await widget.controller.cancelAuctionWithPenalty(
-        reason: reasonController.text.trim(),
-      );
-
+    if (mounted) {
+      await Supabase.instance.client.auth.signOut();
       if (mounted) {
-        if (success) {
-          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-            const SnackBar(
-              content: Text('Auction cancelled with penalty applied'),
-              backgroundColor: ColorConstants.success,
-            ),
-          );
-          Navigator.pop(context);
-        } else {
-          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.controller.errorMessage ?? 'Failed to cancel auction',
-              ),
-              backgroundColor: ColorConstants.error,
-            ),
-          );
-        }
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AuthRoutes.login, (route) => false);
       }
     }
-
-    reasonController.dispose();
   }
 
   Widget _buildTabWithBadge(String label, int updateCount) {

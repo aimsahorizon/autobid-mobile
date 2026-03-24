@@ -2,6 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/modules/auth/auth_routes.dart';
+import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import '../../controllers/installment_controller.dart';
@@ -356,13 +360,20 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
 
       if (context.mounted) {
         if (success) {
-          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-            const SnackBar(
-              content: Text('Deal cancelled. Penalties applied as per policy.'),
-              backgroundColor: ColorConstants.success,
-            ),
-          );
-          Navigator.pop(context);
+          final suspension = controller.suspensionAfterCancel;
+          if (suspension != null && suspension.isSuspended) {
+            await _showSuspensionAndSignOut(context, suspension);
+          } else {
+            (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Deal cancelled. Penalties applied as per policy.',
+                ),
+                backgroundColor: ColorConstants.success,
+              ),
+            );
+            Navigator.pop(context);
+          }
         } else {
           (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
@@ -375,6 +386,48 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
     }
 
     reasonController.dispose();
+  }
+
+  Future<void> _showSuspensionAndSignOut(
+    BuildContext context,
+    SuspensionStatus suspension,
+  ) async {
+    final message = suspension.isPermanent
+        ? 'Your account has been permanently banned due to repeated policy violations.'
+        : 'Your account has been suspended until ${suspension.endsAt?.toLocal().toString().split('.').first ?? 'unknown'} for violating transaction policies.';
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.block, color: ColorConstants.error),
+            const SizedBox(width: 12),
+            const Text('Account Suspended'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.error,
+            ),
+            child: const Text('I Understand'),
+          ),
+        ],
+      ),
+    );
+
+    if (context.mounted) {
+      await Supabase.instance.client.auth.signOut();
+      if (context.mounted) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AuthRoutes.login, (route) => false);
+      }
+    }
   }
 
   Widget _buildReviewSection(

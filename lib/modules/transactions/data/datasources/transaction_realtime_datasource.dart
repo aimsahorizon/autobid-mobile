@@ -1282,76 +1282,16 @@ class TransactionRealtimeDataSource {
     }
   }
 
-  /// Delete the auction entirely after a failed deal
-  /// Marks the auction as cancelled (soft delete)
-  Future<bool> deleteAuction(String transactionId) async {
-    try {
-      debugPrint('[DeleteAuction] Starting for transaction: $transactionId');
+  /// Soft-delete the auction after a failed deal via RPC
+  /// Sets auction status to 'deleted', deleted_at timestamp, and removes transaction
+  Future<void> softDeleteAuction(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) throw Exception('Transaction not found');
 
-      final txn = await _getTransactionSummary(transactionId);
-      if (txn == null) {
-        debugPrint('[DeleteAuction] ❌ Transaction summary not found');
-        return false;
-      }
-
-      final auctionId = txn['auctionId'] as String?;
-      final txnId = txn['transactionId'] as String?;
-      if (auctionId == null) {
-        debugPrint('[DeleteAuction] ❌ Auction ID not found');
-        return false;
-      }
-
-      debugPrint('[DeleteAuction] Auction: $auctionId, Transaction: $txnId');
-
-      // Get the 'cancelled' status ID
-      final cancelledStatusResponse = await _supabase
-          .from('auction_statuses')
-          .select('id')
-          .eq('status_name', 'cancelled')
-          .maybeSingle();
-
-      if (cancelledStatusResponse == null) {
-        debugPrint('[DeleteAuction] ❌ Cancelled status not found');
-        return false;
-      }
-
-      final cancelledStatusId = cancelledStatusResponse['id'] as String;
-
-      // Update auction status to cancelled (soft delete)
-      await _supabase
-          .from('auctions')
-          .update({
-            'status_id': cancelledStatusId,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', auctionId);
-
-      debugPrint('[DeleteAuction] ✅ Auction marked as cancelled');
-
-      // Add timeline event to the failed transaction
-      if (txnId != null) {
-        final actorId = _supabase.auth.currentUser?.id ?? '';
-        final actorName =
-            _supabase.auth.currentUser?.userMetadata?['display_name'] ??
-            'Seller';
-
-        await _addTimelineEvent(
-          txnId,
-          'Auction Deleted',
-          'Seller chose to delete the auction after the deal failed.',
-          'cancelled',
-          actorId,
-          actorName,
-        );
-      }
-
-      debugPrint('[DeleteAuction] 🎉 SUCCESS');
-      return true;
-    } catch (e, stack) {
-      debugPrint('[DeleteAuction] ❌ Error: $e');
-      debugPrint('[DeleteAuction] Stack: $stack');
-      return false;
-    }
+    await _supabase.rpc(
+      'soft_delete_auction',
+      params: {'p_transaction_id': txnId},
+    );
   }
 
   // ============================================================================
