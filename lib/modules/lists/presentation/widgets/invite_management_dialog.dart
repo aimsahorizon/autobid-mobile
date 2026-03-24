@@ -21,6 +21,8 @@ class InviteManagementDialog extends StatefulWidget {
 class _InviteManagementDialogState extends State<InviteManagementDialog> {
   final _identifierController = TextEditingController();
   String _identifierType = 'username'; // 'username' or 'email'
+  String? _feedbackMessage;
+  bool _feedbackIsError = false;
 
   @override
   void initState() {
@@ -48,20 +50,18 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
     if (success) {
       _identifierController.clear();
       if (mounted) {
-        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-          const SnackBar(content: Text('Invitation sent successfully')),
-        );
+        setState(() {
+          _feedbackMessage = 'Invitation sent successfully';
+          _feedbackIsError = false;
+        });
       }
     } else {
       if (mounted) {
-        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.controller.errorMessage ?? 'Failed to send invite',
-            ),
-            backgroundColor: ColorConstants.error,
-          ),
-        );
+        setState(() {
+          _feedbackMessage =
+              widget.controller.errorMessage ?? 'Failed to send invite';
+          _feedbackIsError = true;
+        });
       }
     }
   }
@@ -71,48 +71,86 @@ class _InviteManagementDialogState extends State<InviteManagementDialog> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        constraints: const BoxConstraints(maxWidth: 900, maxHeight: 900),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+      appBar: AppBar(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Manage Invites',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        widget.carName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: ColorConstants.textSecondaryLight,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+            const Text('Manage Invites'),
+            Text(
+              widget.carName,
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onSurface.withAlpha(150),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Feedback banner
+            if (_feedbackMessage != null)
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: (_feedbackIsError
+                          ? ColorConstants.error
+                          : ColorConstants.success)
+                      .withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: (_feedbackIsError
+                            ? ColorConstants.error
+                            : ColorConstants.success)
+                        .withAlpha(75),
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                child: Row(
+                  children: [
+                    Icon(
+                      _feedbackIsError
+                          ? Icons.error_outline
+                          : Icons.check_circle_outline,
+                      size: 18,
+                      color: _feedbackIsError
+                          ? ColorConstants.error
+                          : ColorConstants.success,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _feedbackMessage!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: _feedbackIsError
+                              ? ColorConstants.error
+                              : ColorConstants.success,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => setState(() => _feedbackMessage = null),
+                      child: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: _feedbackIsError
+                            ? ColorConstants.error
+                            : ColorConstants.success,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const Divider(height: 32),
+              ),
 
             // Invite Form
             const Text(

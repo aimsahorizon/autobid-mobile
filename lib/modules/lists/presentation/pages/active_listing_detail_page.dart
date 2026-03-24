@@ -43,12 +43,13 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
   void _showInviteManagement(BuildContext context) {
     final controller = GetIt.instance<ListsController>();
 
-    showDialog(
-      context: context,
-      builder: (context) => InviteManagementDialog(
-        controller: controller,
-        auctionId: _listing.id,
-        carName: _listing.carName,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => InviteManagementDialog(
+          controller: controller,
+          auctionId: _listing.id,
+          carName: _listing.carName,
+        ),
       ),
     );
   }

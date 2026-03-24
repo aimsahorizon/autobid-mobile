@@ -158,6 +158,7 @@ class _ListingCardState extends State<ListingCard> {
           _CardImage(
             imageUrl: widget.listing.imageUrl,
             status: widget.listing.status,
+            cancelledBy: widget.listing.cancelledBy,
           ),
           Padding(
             padding: const EdgeInsets.all(12),
@@ -182,6 +183,14 @@ class _ListingCardState extends State<ListingCard> {
                   timeRemaining: _timeRemaining,
                   timeUntilStart: _timeUntilStart,
                 ),
+                if (widget.listing.status == ListingStatus.sold &&
+                    widget.listing.hasReview != null) ...[
+                  const SizedBox(height: 8),
+                  _ReviewIndicator(
+                    hasReview: widget.listing.hasReview!,
+                    onTap: widget.onTap,
+                  ),
+                ],
                 if (widget.listing.visibility == 'exclusive' &&
                     widget.onInviteTap != null) ...[
                   const SizedBox(height: 8),
@@ -272,7 +281,10 @@ class _ListingCardState extends State<ListingCard> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    _StatusBadge(status: widget.listing.status),
+                    _StatusBadge(
+                      status: widget.listing.status,
+                      cancelledBy: widget.listing.cancelledBy,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -295,6 +307,15 @@ class _ListingCardState extends State<ListingCard> {
                       ),
                   ],
                 ),
+                if (widget.listing.status == ListingStatus.sold &&
+                    widget.listing.hasReview != null) ...[
+                  const SizedBox(height: 4),
+                  _ReviewIndicator(
+                    hasReview: widget.listing.hasReview!,
+                    onTap: widget.onTap,
+                    compact: true,
+                  ),
+                ],
               ],
             ),
           ),
@@ -307,8 +328,13 @@ class _ListingCardState extends State<ListingCard> {
 class _CardImage extends StatelessWidget {
   final String imageUrl;
   final ListingStatus status;
+  final String? cancelledBy;
 
-  const _CardImage({required this.imageUrl, required this.status});
+  const _CardImage({
+    required this.imageUrl,
+    required this.status,
+    this.cancelledBy,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -340,7 +366,11 @@ class _CardImage extends StatelessWidget {
                     ),
                   ),
           ),
-          Positioned(top: 8, right: 8, child: _StatusBadge(status: status)),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: _StatusBadge(status: status, cancelledBy: cancelledBy),
+          ),
         ],
       ),
     );
@@ -349,8 +379,9 @@ class _CardImage extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final ListingStatus status;
+  final String? cancelledBy;
 
-  const _StatusBadge({required this.status});
+  const _StatusBadge({required this.status, this.cancelledBy});
 
   @override
   Widget build(BuildContext context) {
@@ -361,7 +392,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status.label,
+        _getLabel(),
         style: const TextStyle(
           color: Colors.white,
           fontSize: 10,
@@ -369,6 +400,16 @@ class _StatusBadge extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getLabel() {
+    if (status == ListingStatus.dealFailed) {
+      if (cancelledBy == 'buyer') return 'Rejected';
+      if (cancelledBy == 'seller') return 'Cancelled';
+      return 'Cancelled';
+    }
+    if (status == ListingStatus.sold) return 'Completed';
+    return status.label;
   }
 
   Color _getStatusColor(ListingStatus status) {
@@ -534,7 +575,7 @@ class _StatusInfo extends StatelessWidget {
           _InfoChip(
             icon: Icons.cancel_outlined,
             label: listing.status == ListingStatus.dealFailed
-                ? 'Deal Failed'
+                ? (listing.cancelledBy == 'buyer' ? 'Rejected' : 'Cancelled')
                 : 'Cancelled',
             color: ColorConstants.error,
           ),
@@ -684,16 +725,74 @@ class _StatusInfo extends StatelessWidget {
       case ListingStatus.sold:
         return _InfoChip(
           icon: Icons.check_circle_outlined,
-          label: 'Sold',
+          label: 'Completed',
           color: ColorConstants.success,
         );
       case ListingStatus.dealFailed:
         return _InfoChip(
           icon: Icons.cancel_outlined,
-          label: 'Deal Failed',
+          label: listing.cancelledBy == 'buyer' ? 'Rejected' : 'Cancelled',
           color: ColorConstants.error,
         );
     }
+  }
+}
+
+class _ReviewIndicator extends StatelessWidget {
+  final bool hasReview;
+  final VoidCallback? onTap;
+  final bool compact;
+
+  const _ReviewIndicator({
+    required this.hasReview,
+    this.onTap,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (hasReview) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.rate_review_outlined,
+            size: compact ? 12 : 14,
+            color: ColorConstants.success,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Reviewed',
+            style: TextStyle(
+              fontSize: compact ? 10 : 11,
+              color: ColorConstants.success,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: compact ? 28 : 32,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(Icons.star_outline, size: compact ? 14 : 16),
+        label: Text(
+          'Leave a Review',
+          style: TextStyle(fontSize: compact ? 10 : 11),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: ColorConstants.warning,
+          side: BorderSide(
+            color: ColorConstants.warning.withValues(alpha: 0.5),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+    );
   }
 }
 
