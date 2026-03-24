@@ -46,6 +46,8 @@ enum NotificationSubType {
   kycApproved,
   kycRejected,
   messageReceived,
+  // Listing status update (for invitees)
+  listingStatusUpdate,
   // Unknown / fallback
   unknown,
 }
