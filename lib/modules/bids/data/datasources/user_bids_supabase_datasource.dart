@@ -218,29 +218,47 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
             '[UserBidsSupabaseDataSource]   isDealFailed: $isDealFailed',
           );
 
-          // Get highest bidder
-          String? highestBidderId;
+          // Determine if user is the current transaction buyer
+          // (more reliable than get_highest_bid which ignores bid status)
+          bool isCurrentBuyer = false;
           try {
-            final rpcResult = await _supabase.rpc(
-              'get_highest_bid',
-              params: {'auction_id_param': auctionId},
-            );
-            if (rpcResult is List && rpcResult.isNotEmpty) {
-              highestBidderId =
-                  (rpcResult.first as Map<String, dynamic>)['bidder_id']
-                      as String?;
-            } else if (rpcResult is Map) {
-              highestBidderId = rpcResult['bidder_id'] as String?;
+            final txnResult = await _supabase
+                .from('auction_transactions')
+                .select('buyer_id')
+                .eq('auction_id', auctionId)
+                .maybeSingle();
+            if (txnResult != null) {
+              isCurrentBuyer = txnResult['buyer_id'] == userId;
             }
           } catch (_) {
-            highestBidderId = null;
+            isCurrentBuyer = false;
           }
 
-          final isUserHighestBidder =
-              highestBidderId != null && highestBidderId == userId;
+          // Fallback: for ended auctions without a transaction yet, use highest bid
+          bool isUserHighestBidder = isCurrentBuyer;
+          if (!isCurrentBuyer && !isInTransaction && !isDealFailed) {
+            try {
+              final rpcResult = await _supabase.rpc(
+                'get_highest_bid',
+                params: {'auction_id_param': auctionId},
+              );
+              String? highestBidderId;
+              if (rpcResult is List && rpcResult.isNotEmpty) {
+                highestBidderId =
+                    (rpcResult.first as Map<String, dynamic>)['bidder_id']
+                        as String?;
+              } else if (rpcResult is Map) {
+                highestBidderId = rpcResult['bidder_id'] as String?;
+              }
+              isUserHighestBidder =
+                  highestBidderId != null && highestBidderId == userId;
+            } catch (_) {
+              isUserHighestBidder = false;
+            }
+          }
 
           debugPrint(
-            '[UserBidsSupabaseDataSource]   highestBidderId: $highestBidderId',
+            '[UserBidsSupabaseDataSource]   isCurrentBuyer: $isCurrentBuyer',
           );
           debugPrint(
             '[UserBidsSupabaseDataSource]   isUserHighestBidder: $isUserHighestBidder',

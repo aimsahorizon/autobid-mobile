@@ -41,28 +41,20 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  -- Find next eligible winner:
-  -- Exclude ALL users who have been penalized for this auction (not just current buyer)
-  -- Also exclude lost/refunded bid statuses
-  -- Group by bidder to get unique users, pick highest bid per user
-  SELECT sub.bidder_id, sub.bid_amount, sub.bidder_name
+  -- Find next eligible winner FROM STANDBY QUEUE ONLY
+  -- Only users who opted in to standby, ordered by highest bid amount
+  SELECT asb.user_id, asb.bid_amount,
+         COALESCE(u.full_name, u.display_name, 'Unknown')
     INTO v_next_bidder, v_next_amount, v_next_name
-    FROM (
-      SELECT b.bidder_id,
-             MAX(b.bid_amount) AS bid_amount,
-             MAX(COALESCE(u.full_name, u.display_name, 'Unknown')) AS bidder_name
-        FROM public.bids b
-        LEFT JOIN public.bid_statuses bs ON b.status_id = bs.id
-        LEFT JOIN public.users u ON b.bidder_id = u.id
-       WHERE b.auction_id = v_auction_id
-         AND b.bidder_id NOT IN (
-           SELECT cp.user_id FROM public.cancellation_penalties cp
-            WHERE cp.auction_id = v_auction_id
-         )
-         AND (bs.status_name IS NULL OR bs.status_name NOT IN ('lost', 'refunded'))
-       GROUP BY b.bidder_id
-    ) sub
-   ORDER BY sub.bid_amount DESC
+    FROM public.auction_standby asb
+    LEFT JOIN public.users u ON asb.user_id = u.id
+   WHERE asb.auction_id = v_auction_id
+     AND asb.status = 'waiting'
+     AND asb.user_id NOT IN (
+       SELECT cp.user_id FROM public.cancellation_penalties cp
+        WHERE cp.auction_id = v_auction_id
+     )
+   ORDER BY asb.bid_amount DESC
    LIMIT 1;
 
   IF v_next_bidder IS NULL THEN
@@ -75,6 +67,11 @@ BEGIN
          updated_at = now()
    WHERE auction_id = v_auction_id
      AND bidder_id = v_current_buyer;
+
+  -- Mark standby user as selected
+  UPDATE public.auction_standby
+     SET status = 'selected', updated_at = now()
+   WHERE auction_id = v_auction_id AND user_id = v_next_bidder;
 
   -- Delete old transaction (CASCADE removes chat_messages, timeline, forms, agreement_fields)
   DELETE FROM public.auction_transactions WHERE id = p_transaction_id;
@@ -149,24 +146,28 @@ CREATE TABLE IF NOT EXISTS public.auction_standby (
 
 ALTER TABLE public.auction_standby ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS standby_select_own ON public.auction_standby;
 CREATE POLICY standby_select_own ON public.auction_standby
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS standby_select_seller ON public.auction_standby;
 CREATE POLICY standby_select_seller ON public.auction_standby
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.auctions a WHERE a.id = auction_id AND a.seller_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS standby_insert_own ON public.auction_standby;
 CREATE POLICY standby_insert_own ON public.auction_standby
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS standby_admin_select ON public.auction_standby;
 CREATE POLICY standby_admin_select ON public.auction_standby
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.admin_users au WHERE au.user_id = auth.uid())
   );
 
-CREATE INDEX idx_auction_standby_auction ON public.auction_standby(auction_id);
-CREATE INDEX idx_auction_standby_user ON public.auction_standby(user_id);
+CREATE INDEX IF NOT EXISTS idx_auction_standby_auction ON public.auction_standby(auction_id);
+CREATE INDEX IF NOT EXISTS idx_auction_standby_user ON public.auction_standby(user_id);
 
 -- ============================================================================
 -- PART 3: Opt-in to standby queue
