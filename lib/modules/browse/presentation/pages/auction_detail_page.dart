@@ -18,11 +18,13 @@ import '../widgets/auction_detail/detail_tabs_section.dart';
 class AuctionDetailPage extends StatefulWidget {
   final String auctionId;
   final AuctionDetailController controller;
+  final bool showLostBanner;
 
   const AuctionDetailPage({
     super.key,
     required this.auctionId,
     required this.controller,
+    this.showLostBanner = false,
   });
 
   @override
@@ -384,6 +386,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
               // Check if it's an auction-ended scenario
               final existingAuction = widget.controller.auction;
               if (existingAuction != null && existingAuction.hasEnded) {
+                if (widget.showLostBanner) {
+                  return _buildLostAuctionDetail(existingAuction);
+                }
                 return _buildAuctionEndedState(existingAuction);
               }
               return _buildErrorState();
@@ -394,6 +399,9 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
 
             // Show graceful ended state when auction status is 'ended'
             if (auction.status == 'ended' || auction.hasEnded) {
+              if (widget.showLostBanner) {
+                return _buildLostAuctionDetail(auction);
+              }
               return _buildAuctionEndedState(auction);
             }
 
@@ -508,6 +516,84 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildLostAuctionDetail(dynamic auction) {
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 250,
+          pinned: true,
+          flexibleSpace: FlexibleSpaceBar(
+            background: AuctionCoverPhoto(
+              imageUrl: auction.carImageUrl,
+              carName: auction.carName,
+              status: auction.status,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Column(
+            children: [
+              // Lost banner
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                color: ColorConstants.error.withValues(alpha: 0.1),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: ColorConstants.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'You lost this auction',
+                        style: TextStyle(
+                          color: ColorConstants.error,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              BiddingInfoSection(
+                endTime: auction.endTime,
+                currentBid: auction.currentBid,
+                reservePrice: auction.reservePrice,
+                isReserveMet: auction.isReserveMet,
+                showReservePrice: auction.showReservePrice,
+                totalBids: auction.totalBids,
+                watchersCount: auction.watchersCount,
+                isMystery: false,
+                startingPrice: auction.minimumBid,
+              ),
+              CarPhotosSection(photos: auction.photos),
+              const SizedBox(height: 24),
+              DetailTabsSection(
+                auction: auction,
+                bidHistory: widget.controller.bidHistory,
+                questions: widget.controller.questions,
+                isLoadingBidHistory: widget.controller.isLoadingBidHistory,
+                isLoadingQA: widget.controller.isLoadingQA,
+                onAskQuestion: widget.controller.askQuestion,
+                onToggleLike: widget.controller.toggleQuestionLike,
+                isMystery: false,
+                isMysteryEnded: false,
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

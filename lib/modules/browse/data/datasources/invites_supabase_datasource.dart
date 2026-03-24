@@ -21,6 +21,11 @@ class InvitesSupabaseDatasource {
       );
     }
 
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId != null && inviteeId == currentUserId) {
+      throw Exception('You cannot invite yourself to your own auction');
+    }
+
     final res = await supabase.rpc(
       'invite_user_to_auction',
       params: {
