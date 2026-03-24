@@ -166,6 +166,18 @@ class AuctionDetailController extends ChangeNotifier {
   bool get isLoadingMysteryStatus => _isLoadingMysteryStatus;
   bool get isMysteryAuction => _auction?.biddingType == 'mystery';
 
+  /// Whether the current user won the auction (highest winning bid belongs to them)
+  bool get isCurrentUserWinner {
+    if (_userId == null || _bidHistory.isEmpty) return false;
+    return _bidHistory.any((b) => b.isCurrentUser && b.isWinning);
+  }
+
+  /// Whether the current user placed any bid on this auction
+  bool get hasUserBid {
+    if (_userId == null) return false;
+    return _bidHistory.any((b) => b.isCurrentUser);
+  }
+
   /// Whether it's currently this user's turn to bid (60s window)
   bool get isMyTurn {
     if (_userId == null) return false;
@@ -250,10 +262,10 @@ class AuctionDetailController extends ChangeNotifier {
         _subscribeToRealtimeUpdates(id);
       }
     } catch (e) {
-      // If background reload fails and auction already ended, mark as ended gracefully
-      if (isBackground &&
-          _auction != null &&
-          _auction!.endTime.isBefore(DateTime.now())) {
+      // If auction was already loaded and has ended, mark as ended gracefully
+      if (_auction != null &&
+          (_auction!.status == 'ended' ||
+              _auction!.endTime.isBefore(DateTime.now()))) {
         _auction = AuctionDetailEntity.copyWithStatus(_auction!, 'ended');
         _errorMessage = null;
       } else {

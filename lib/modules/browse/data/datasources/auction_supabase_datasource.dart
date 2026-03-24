@@ -355,19 +355,21 @@ class AuctionSupabaseDataSource {
         'photos': photos,
       });
     } on PostgrestException catch (e) {
-      // Check if the auction exists but is no longer in the browse view (ended)
+      // Check if the auction exists but is no longer in the browse view (ended/sold)
       try {
         final auctionCheck = await _supabase
             .from('auctions')
             .select(
-              'id, title, current_price, starting_price, end_time, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
+              'id, title, current_price, starting_price, end_time, status, vehicle_year, vehicle_make, vehicle_model, vehicle_variant, primary_image_url',
             )
             .eq('id', auctionId)
             .maybeSingle();
 
         if (auctionCheck != null) {
           final endTime = DateTime.parse(auctionCheck['end_time'] as String);
-          if (endTime.isBefore(DateTime.now())) {
+          final status = auctionCheck['status'] as String? ?? '';
+          final isEnded = endTime.isBefore(DateTime.now()) || status != 'live';
+          if (isEnded) {
             // Auction has ended — return a minimal ended model
             final carName = [
               auctionCheck['vehicle_year']?.toString(),

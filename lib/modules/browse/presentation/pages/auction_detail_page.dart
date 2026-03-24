@@ -544,21 +544,37 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                   vertical: 12,
                 ),
                 color: ColorConstants.error.withValues(alpha: 0.1),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 20,
-                      color: ColorConstants.error,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'You lost this auction',
-                        style: TextStyle(
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 20,
                           color: ColorConstants.error,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'You lost this auction',
+                            style: TextStyle(
+                              color: ColorConstants.error,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 28),
+                      child: Text(
+                        'If the winner cancels the deal, you may still get a chance.',
+                        style: TextStyle(
+                          color: ColorConstants.error.withValues(alpha: 0.7),
+                          fontSize: 12,
                         ),
                       ),
                     ),
@@ -607,6 +623,152 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
           (Match m) => '${m[1]},',
         );
 
+    final isWinner = widget.controller.isCurrentUserWinner;
+    final hasBid = widget.controller.hasUserBid;
+
+    // Won state
+    if (isWinner) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: ColorConstants.success.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.emoji_events_outlined,
+                  size: 40,
+                  color: ColorConstants.success,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Congratulations!',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: ColorConstants.success,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'You won the auction for',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${auction.carName}',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Winning Bid: ₱${formatPrice(auction.currentBid)}',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: ColorConstants.success,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('Go to My Bids'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Lost state (user bid but didn't win)
+    if (hasBid) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: ColorConstants.warning.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.sentiment_neutral_outlined,
+                  size: 40,
+                  color: ColorConstants.warning,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Auction Has Ended',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${auction.carName}',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (auction is AuctionDetailEntity &&
+                  auction.biddingType == 'mystery')
+                Text(
+                  'Starting Price: ₱${formatPrice(auction.minimumBid)}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.deepPurple,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              else
+                Text(
+                  'Final Bid: ₱${formatPrice(auction.currentBid)}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: ColorConstants.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Text(
+                'Unfortunately, you were outbid this time. But don\'t lose hope — if the winner cancels, you may still get a chance!',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Back to Browse'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Default state (user didn't bid, just viewing)
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
