@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import '../../controllers/installment_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
@@ -51,10 +52,9 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
         final isBuyer =
             userId != null && controller.getUserRole(userId!) == FormRole.buyer;
 
-        // Check if deal can be cancelled (not yet finalized and not already failed/cancelled)
-        // Both buyer and seller can cancel
+        // Check if deal can be cancelled — available at any active stage
+        // Both buyer and seller can cancel (penalties escalate by stage per policy)
         final canCancelDeal =
-            !transaction.adminApproved &&
             transaction.status != TransactionStatus.cancelled &&
             transaction.status != TransactionStatus.completed;
 
@@ -193,7 +193,7 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'If you can no longer proceed with this purchase, you can cancel the deal. The seller will be notified and may offer to the next highest bidder.',
+            'Cancelling this deal will result in penalties as per the transaction policy you accepted.',
             style: TextStyle(
               fontSize: 13,
               color: isDark
@@ -238,57 +238,100 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
           children: [
             Icon(Icons.warning_amber_rounded, color: ColorConstants.error),
             const SizedBox(width: 12),
-            const Text('Cancel Deal'),
+            const Expanded(
+              child: Text('Cancel Deal', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Are you sure you want to cancel this deal? This action cannot be undone.',
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Please provide a reason (optional):',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Enter reason for cancellation...',
-                border: OutlineInputBorder(
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Are you sure you want to cancel this deal? This action cannot be undone.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+
+              // Policy reminder
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: ColorConstants.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: ColorConstants.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.policy_rounded,
+                          color: ColorConstants.error,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Cancellation Penalties',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...PolicyConstants.transactionPolicies
+                        .where(
+                          (p) =>
+                              p.contains('cancel') ||
+                              p.contains('deposit') ||
+                              p.contains('penalty') ||
+                              p.contains('Suspension') ||
+                              p.contains('penalties') ||
+                              p.startsWith('  •'),
+                        )
+                        .map(
+                          (policy) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              policy,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: ColorConstants.error.withValues(
+                                  alpha: 0.9,
+                                ),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ColorConstants.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 16),
+
+              const Text(
+                'Reason for cancellation:',
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: ColorConstants.warning,
-                    size: 20,
+              const SizedBox(height: 8),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Enter reason for cancellation...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'The seller will be notified and may offer to the next highest bidder.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -307,33 +350,20 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
     );
 
     if (confirmed == true && context.mounted) {
-      debugPrint(
-        '[ProgressRealtimeTab] User confirmed cancel. Calling controller...',
-      );
-      debugPrint(
-        '[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"',
-      );
-
-      final success = await controller.cancelDeal(
+      final success = await controller.cancelAuctionWithPenalty(
         reason: reasonController.text.trim(),
       );
-
-      debugPrint('[ProgressRealtimeTab] cancelDeal returned: $success');
 
       if (context.mounted) {
         if (success) {
           (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
-              content: Text('Deal cancelled successfully'),
+              content: Text('Deal cancelled. Penalties applied as per policy.'),
               backgroundColor: ColorConstants.success,
             ),
           );
-          // Navigate back since the deal is cancelled
           Navigator.pop(context);
         } else {
-          debugPrint(
-            '[ProgressRealtimeTab] ❌ Cancel failed. Error: ${controller.errorMessage}',
-          );
           (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(controller.errorMessage ?? 'Failed to cancel deal'),
