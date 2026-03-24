@@ -82,6 +82,9 @@ class ListingModel {
   /// Reason for cancellation (if applicable)
   final String? cancellationReason;
 
+  /// Who cancelled the deal ('seller' or 'buyer')
+  final String? cancelledBy;
+
   // Bidding Configuration
   final String biddingType;
   final String? exclusiveTier;
@@ -104,6 +107,9 @@ class ListingModel {
 
   // Installment
   final bool allowsInstallment;
+
+  // Review status (for completed transactions)
+  final bool? hasReview;
 
   const ListingModel({
     required this.id,
@@ -179,6 +185,7 @@ class ListingModel {
     required this.updatedAt,
     this.transactionId,
     this.cancellationReason,
+    this.cancelledBy,
     this.biddingType = 'open',
     this.exclusiveTier,
     this.bidIncrement = 100,
@@ -192,6 +199,7 @@ class ListingModel {
     this.deedOfSaleUrl,
     this.visibility = 'open',
     this.allowsInstallment = false,
+    this.hasReview,
   });
 
   /// Convert database row to model
@@ -289,6 +297,7 @@ class ListingModel {
           : DateTime.now(),
       transactionId: json['transaction_id'] as String?,
       cancellationReason: json['cancellation_reason'] as String?,
+      cancelledBy: json['cancelled_by'] as String?,
       biddingType: json['bidding_type'] as String? ?? 'open',
       exclusiveTier: json['exclusive_tier'] as String?,
       bidIncrement: _toDouble(json['bid_increment']) ?? 100,
@@ -308,6 +317,7 @@ class ListingModel {
           json['bidding_type'] as String? ??
           'open',
       allowsInstallment: json['allows_installment'] as bool? ?? false,
+      hasReview: json['has_review'] as bool?,
     );
   }
 
@@ -338,9 +348,11 @@ class ListingModel {
       sellerId: sellerId,
       transactionId: transactionId,
       cancellationReason: cancellationReason,
+      cancelledBy: cancelledBy,
       rejectionReason: rejectionReason,
       visibility: visibility != 'open' ? visibility : biddingType,
       allowsInstallment: allowsInstallment,
+      hasReview: hasReview,
     );
   }
 
