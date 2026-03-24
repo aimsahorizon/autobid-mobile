@@ -149,6 +149,8 @@ class _UserBidCardState extends State<UserBidCard> {
         return ColorConstants.error.withValues(alpha: 0.5);
       case UserBidStatus.cancelled:
         return Colors.grey.withValues(alpha: 0.5);
+      case UserBidStatus.standby:
+        return ColorConstants.warning.withValues(alpha: 0.5);
     }
   }
 }
@@ -354,6 +356,11 @@ class _StatusChip extends StatelessWidget {
       iconColor = ColorConstants.success;
       icon = Icons.emoji_events;
       text = 'Won';
+    } else if (status == UserBidStatus.standby) {
+      backgroundColor = ColorConstants.warning.withValues(alpha: 0.1);
+      iconColor = ColorConstants.warning;
+      icon = Icons.hourglass_empty_rounded;
+      text = 'Standby';
     } else {
       backgroundColor = ColorConstants.error.withValues(alpha: 0.1);
       iconColor = ColorConstants.error;

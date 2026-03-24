@@ -399,13 +399,15 @@ class _PreTransactionRealtimePageState
           if (transaction.status == TransactionStatus.cancelled) {
             final role = widget.controller.getUserRole(widget.userId);
             final isSeller = role == FormRole.seller;
+            final buyerCancelled = transaction.cancelledBy == 'buyer';
 
-            // Seller sees options to handle failed deal
-            if (isSeller) {
+            // Seller sees action options ONLY when buyer cancelled
+            if (isSeller && buyerCancelled) {
               return _buildSellerDealFailedOptions(transaction, isDark);
             }
 
-            // Buyer sees detailed cancellation record
+            // Both parties see immutable cancelled view when they are the canceller
+            // or when viewing as buyer
             return _buildBuyerCancelledView(transaction, isDark);
           }
 
@@ -1188,14 +1190,28 @@ class _PreTransactionRealtimePageState
     );
 
     if (confirmed == true && mounted) {
-      final success = await widget.controller.autoReselectNextWinner();
+      final newTxnId = await widget.controller.autoReselectNextWinner();
 
       if (mounted) {
-        if (success) {
+        if (newTxnId != null) {
           (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Next winner selected successfully'),
               backgroundColor: ColorConstants.success,
+            ),
+          );
+          // Navigate to the new transaction (replace current page)
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PreTransactionRealtimePage(
+                controller: TransactionRealtimeController(
+                  widget.controller.dataSource,
+                ),
+                transactionId: newTxnId,
+                userId: widget.userId,
+                userName: widget.userName,
+              ),
             ),
           );
         } else {

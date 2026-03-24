@@ -5,6 +5,7 @@ import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
 import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
+import '../../../bids/data/datasources/user_bids_supabase_datasource.dart';
 import '../controllers/auction_detail_controller.dart';
 import '../../domain/entities/auction_detail_entity.dart';
 import '../widgets/auction_detail/auction_cover_photo.dart';
@@ -32,6 +33,9 @@ class AuctionDetailPage extends StatefulWidget {
 }
 
 class _AuctionDetailPageState extends State<AuctionDetailPage> {
+  bool _standbyJoined = false;
+  bool _standbyLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -581,6 +585,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                   ],
                 ),
               ),
+              // Standby opt-in button
+              _buildStandbyOptIn(auction),
               BiddingInfoSection(
                 endTime: auction.endTime,
                 currentBid: auction.currentBid,
@@ -611,6 +617,85 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildStandbyOptIn(dynamic auction) {
+    if (_standbyJoined) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        color: ColorConstants.warning.withValues(alpha: 0.1),
+        child: Row(
+          children: [
+            Icon(
+              Icons.hourglass_empty_rounded,
+              size: 20,
+              color: ColorConstants.warning,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'You are on standby for this auction. You\'ll be notified if selected.',
+                style: TextStyle(
+                  color: ColorConstants.warning,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: _standbyLoading ? null : _handleJoinStandby,
+          icon: _standbyLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.hourglass_empty_rounded),
+          label: Text(
+            _standbyLoading ? 'Joining...' : 'Stand By for This Auction',
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: ColorConstants.warning,
+            side: BorderSide(color: ColorConstants.warning),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleJoinStandby() async {
+    setState(() => _standbyLoading = true);
+    try {
+      final ds = UserBidsSupabaseDataSource(SupabaseConfig.client);
+      final success = await ds.joinStandbyQueue(widget.auctionId);
+      if (mounted) {
+        setState(() {
+          _standbyJoined = success;
+          _standbyLoading = false;
+        });
+        if (success) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            SnackBar(
+              content: const Text('You are now on standby for this auction!'),
+              backgroundColor: ColorConstants.success,
+            ),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) setState(() => _standbyLoading = false);
+    }
   }
 
   Widget _buildAuctionEndedState(dynamic auction) {

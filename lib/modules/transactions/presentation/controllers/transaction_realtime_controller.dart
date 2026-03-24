@@ -17,6 +17,7 @@ import '../../domain/entities/agreement_field_entity.dart';
 /// Supports live chat updates between buyer and seller
 class TransactionRealtimeController extends ChangeNotifier {
   final TransactionRealtimeDataSource _dataSource;
+  TransactionRealtimeDataSource get dataSource => _dataSource;
 
   // Subscriptions
   StreamSubscription<ChatMessageEntity>? _chatSubscription;
@@ -818,26 +819,56 @@ class TransactionRealtimeController extends ChangeNotifier {
   }
 
   /// Auto-reselect the next highest eligible bidder
-  Future<bool> autoReselectNextWinner() async {
-    if (_transaction == null) return false;
+  /// Returns the new transaction ID on success, null on failure.
+  Future<String?> autoReselectNextWinner() async {
+    if (_transaction == null) return null;
 
     _isProcessing = true;
     notifyListeners();
 
     try {
-      final success = await _dataSource.autoReselectNextWinner(
+      final newTxnId = await _dataSource.autoReselectNextWinner(
         _transaction!.id,
       );
 
-      if (success && _currentUserId != null) {
-        await loadTransaction(_transaction!.id, _currentUserId!);
+      if (newTxnId != null) {
+        // Old transaction is deleted; clear and load new one
+        _transaction = null;
       }
 
-      return success;
+      return newTxnId;
     } catch (e) {
       _errorMessage = 'Failed to reselect next winner';
       debugPrint('[TransactionRealtimeController] ❌ Error auto-reselect: $e');
-      return false;
+      return null;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Select a standby user as next winner. Returns new transaction ID.
+  Future<String?> selectFromStandby(String standbyUserId) async {
+    if (_transaction == null) return null;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final newTxnId = await _dataSource.selectFromStandby(
+        _transaction!.id,
+        standbyUserId,
+      );
+
+      if (newTxnId != null) {
+        _transaction = null;
+      }
+
+      return newTxnId;
+    } catch (e) {
+      _errorMessage = 'Failed to select from standby';
+      debugPrint('[TransactionRealtimeController] ❌ Error select standby: $e');
+      return null;
     } finally {
       _isProcessing = false;
       notifyListeners();

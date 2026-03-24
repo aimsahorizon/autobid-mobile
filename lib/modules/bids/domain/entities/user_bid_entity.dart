@@ -54,6 +54,9 @@ class UserBidEntity {
   /// in buyer views)
   final String? sellerId;
 
+  /// Note attached to standby status (e.g., released reason)
+  final String? standbyNote;
+
   const UserBidEntity({
     required this.id,
     required this.auctionId,
@@ -72,6 +75,7 @@ class UserBidEntity {
     required this.canAccess,
     this.transactionStatus,
     this.sellerId,
+    this.standbyNote,
   });
 
   /// Get formatted car name (e.g., "2020 Toyota Supra 3.0 Premium")
@@ -100,4 +104,7 @@ enum UserBidStatus {
 
   /// Deal was cancelled by buyer or fell through
   cancelled,
+
+  /// User opted to stand by for this auction
+  standby,
 }

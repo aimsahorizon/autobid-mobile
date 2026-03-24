@@ -31,7 +31,7 @@ class _BidsPageState extends State<BidsPage>
   void initState() {
     super.initState();
     // Initialize tab controller for 3 tabs
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     // Load bids on page init
     widget.controller.loadUserBids();
   }
@@ -82,7 +82,8 @@ class _BidsPageState extends State<BidsPage>
       '[BidsPage] _navigateToWonBid called with auctionId=${bid.auctionId}',
     );
 
-    final transactionController = GetIt.instance<TransactionRealtimeController>();
+    final transactionController =
+        GetIt.instance<TransactionRealtimeController>();
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
     final userName =
         SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
@@ -198,6 +199,11 @@ class _BidsPageState extends State<BidsPage>
                       color: ColorConstants.success,
                     ),
                     _TabWithBadge(
+                      label: 'Standby',
+                      count: widget.controller.standbyBids.length,
+                      color: ColorConstants.warning,
+                    ),
+                    _TabWithBadge(
                       label: 'Lost',
                       count: widget.controller.lostBids.length,
                       color: ColorConstants.error,
@@ -232,6 +238,17 @@ class _BidsPageState extends State<BidsPage>
                             'Keep bidding to win your first auction!',
                         emptyIcon: Icons.emoji_events_outlined,
                         onBidTap: (bid) => _navigateToWonBid(context, bid),
+                        isGridView: _isGridView,
+                      ),
+                      // Standby bids tab
+                      UserBidsList(
+                        bids: widget.controller.standbyBids,
+                        isLoading: widget.controller.isLoading,
+                        emptyTitle: 'No Standby Bids',
+                        emptySubtitle:
+                            'Opt in to standby on lost auctions to get a second chance!',
+                        emptyIcon: Icons.hourglass_empty_rounded,
+                        onBidTap: (bid) => _navigateToLostBid(context, bid),
                         isGridView: _isGridView,
                       ),
                       // Lost bids tab

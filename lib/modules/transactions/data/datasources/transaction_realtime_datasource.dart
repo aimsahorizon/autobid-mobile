@@ -1618,16 +1618,35 @@ class TransactionRealtimeDataSource {
   }
 
   /// Auto-reselect next winner via RPC
-  Future<bool> autoReselectNextWinner(String transactionId) async {
+  /// Returns the new transaction ID on success, null on failure.
+  Future<String?> autoReselectNextWinner(String transactionId) async {
     final txnId = await _resolveTransactionId(transactionId);
-    if (txnId == null) return false;
+    if (txnId == null) return null;
 
     final result = await _supabase.rpc(
       'auto_reselect_next_winner',
       params: {'p_transaction_id': txnId},
     );
 
-    return result == true;
+    if (result == null) return null;
+    return result.toString();
+  }
+
+  /// Select a standby user as the next winner. Returns new transaction ID.
+  Future<String?> selectFromStandby(
+    String transactionId,
+    String standbyUserId,
+  ) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return null;
+
+    final result = await _supabase.rpc(
+      'select_from_standby',
+      params: {'p_transaction_id': txnId, 'p_standby_user_id': standbyUserId},
+    );
+
+    if (result == null) return null;
+    return result.toString();
   }
 
   /// Restart auction bidding via RPC
