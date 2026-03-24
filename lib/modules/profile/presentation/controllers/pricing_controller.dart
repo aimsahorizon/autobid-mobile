@@ -100,7 +100,9 @@ class PricingController extends ChangeNotifier {
     }
   }
 
-  /// Subscribe to a plan
+  /// Subscribe to a plan.
+  /// Returns true on success, false on error.
+  /// Sets [error] with user-facing message on failure including cooldown.
   Future<bool> subscribe({
     required String userId,
     required SubscriptionPlan plan,
@@ -119,6 +121,16 @@ class PricingController extends ChangeNotifier {
 
       notifyListeners();
       return true;
+    } on SubscriptionChangeException catch (e) {
+      if (e.code == 'downgrade_cooldown') {
+        _error = 'You can downgrade after 24 hours from your last plan change.';
+      } else if (e.code == 'already_on_plan') {
+        _error = 'You are already on this plan.';
+      } else {
+        _error = 'Subscription change failed: ${e.code}';
+      }
+      notifyListeners();
+      return false;
     } catch (e) {
       _error = e.toString();
       notifyListeners();

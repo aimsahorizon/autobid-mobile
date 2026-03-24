@@ -2,6 +2,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../models/pricing_model.dart';
 
+/// Exception for subscription change failures
+class SubscriptionChangeException implements Exception {
+  final String code;
+  final String? cooldownEndsAt;
+  SubscriptionChangeException(this.code, {this.cooldownEndsAt});
+
+  @override
+  String toString() => 'SubscriptionChangeException: $code';
+}
+
 /// Supabase datasource for pricing and token management
 class PricingSupabaseDatasource {
   final SupabaseClient supabase;
@@ -139,6 +149,28 @@ class PricingSupabaseDatasource {
         .single();
 
     return UserSubscriptionModel.fromJson(response);
+  }
+
+  /// Change subscription via atomic RPC (handles tokens, cooldown, time)
+  Future<UserSubscriptionModel> changeSubscription({
+    required String userId,
+    required String plan,
+  }) async {
+    final response = await supabase.rpc(
+      'change_subscription',
+      params: {'p_user_id': userId, 'p_new_plan': plan},
+    );
+
+    final result = Map<String, dynamic>.from(response as Map);
+    if (result['success'] != true) {
+      throw SubscriptionChangeException(
+        result['error'] as String? ?? 'unknown',
+        cooldownEndsAt: result['cooldown_ends_at'] as String?,
+      );
+    }
+
+    final sub = Map<String, dynamic>.from(result['subscription'] as Map);
+    return UserSubscriptionModel.fromJson(sub);
   }
 
   /// Cancel subscription
