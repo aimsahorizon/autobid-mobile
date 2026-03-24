@@ -26,7 +26,8 @@ ALTER TABLE public.notification_types ADD CONSTRAINT notification_types_type_nam
     'auction_invite_rejected', 'new_question', 'qa_reply',
     'transaction_started', 'auction_live', 'auction_ended',
     'forms_confirmed', 'chat_message', 'review_received', 'activity_log',
-    'listing_status_update'
+    'agreement_update', 'installment_update', 'delivery_update',
+    'payment_method_update', 'listing_status_update'
   ));
 
 -- ============================================================================
