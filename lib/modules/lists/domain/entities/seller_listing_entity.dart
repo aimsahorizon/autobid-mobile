@@ -65,6 +65,9 @@ class SellerListingEntity {
   /// Reason for cancellation (if status is dealFailed or cancelled)
   final String? cancellationReason;
 
+  /// Who cancelled the deal ('seller' or 'buyer')
+  final String? cancelledBy;
+
   /// Reason for rejection by admin (if status is rejected)
   final String? rejectionReason;
 
@@ -73,6 +76,9 @@ class SellerListingEntity {
 
   /// Whether seller accepts installment payments
   final bool allowsInstallment;
+
+  /// Whether the current user has reviewed this transaction
+  final bool? hasReview;
 
   const SellerListingEntity({
     required this.id,
@@ -96,9 +102,11 @@ class SellerListingEntity {
     this.sellerId,
     this.transactionId,
     this.cancellationReason,
+    this.cancelledBy,
     this.rejectionReason,
     this.visibility = 'open',
     this.allowsInstallment = false,
+    this.hasReview,
   });
 
   /// Get formatted car name
