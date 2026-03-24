@@ -6,11 +6,14 @@ class PolicyPenaltyDatasource {
   PolicyPenaltyDatasource._();
   static final instance = PolicyPenaltyDatasource._();
 
-  /// Check if user has accepted a specific policy version
+  /// Check if user has accepted a specific policy version for a given context.
+  /// [contextId] scopes acceptance to an auction or transaction.
+  /// If null, always returns false (dialog will always show).
   Future<bool> hasAcceptedPolicy({
     required String userId,
     required String policyType,
     int version = 1,
+    String? contextId,
   }) async {
     try {
       final result = await SupabaseConfig.client.rpc(
@@ -19,6 +22,7 @@ class PolicyPenaltyDatasource {
           'p_user_id': userId,
           'p_policy_type': policyType,
           'p_policy_version': version,
+          'p_context_id': contextId,
         },
       );
       return result as bool? ?? false;
@@ -28,11 +32,12 @@ class PolicyPenaltyDatasource {
     }
   }
 
-  /// Record policy acceptance
+  /// Record policy acceptance for a given context
   Future<bool> acceptPolicy({
     required String userId,
     required String policyType,
     int version = 1,
+    String? contextId,
   }) async {
     try {
       final result = await SupabaseConfig.client.rpc(
@@ -41,6 +46,7 @@ class PolicyPenaltyDatasource {
           'p_user_id': userId,
           'p_policy_type': policyType,
           'p_policy_version': version,
+          'p_context_id': contextId,
         },
       );
       return result as bool? ?? false;

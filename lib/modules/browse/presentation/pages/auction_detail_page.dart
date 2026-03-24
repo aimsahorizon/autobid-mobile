@@ -61,6 +61,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     final accepted = await PolicyAcceptanceDialog.show(
       context: context,
       policyType: PolicyConstants.biddingRules,
+      contextId: widget.auctionId,
     );
     if (!accepted || !mounted) return;
 
@@ -206,6 +207,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     final accepted = await PolicyAcceptanceDialog.show(
       context: context,
       policyType: PolicyConstants.biddingRules,
+      contextId: widget.auctionId,
     );
     if (!accepted || !mounted) return;
 
@@ -272,6 +274,7 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
     final accepted = await PolicyAcceptanceDialog.show(
       context: context,
       policyType: PolicyConstants.biddingRules,
+      contextId: widget.auctionId,
     );
     if (!accepted || !mounted) return;
 

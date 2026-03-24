@@ -17,24 +17,48 @@ import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 /// ```
 class PolicyAcceptanceDialog extends StatefulWidget {
   final String policyType;
+  final String? contextId;
 
-  const PolicyAcceptanceDialog({super.key, required this.policyType});
+  const PolicyAcceptanceDialog({
+    super.key,
+    required this.policyType,
+    this.contextId,
+  });
 
   /// Show the dialog. Returns true if accepted.
-  /// The dialog is shown every time to ensure the user acknowledges policies.
+  ///
+  /// [contextId] scopes the acceptance:
+  ///   - Bidding: pass auctionId → shown once per auction
+  ///   - Transaction: pass transactionId → shown once per transaction
+  ///   - Listing: pass null → shown every time
   static Future<bool> show({
     required BuildContext context,
     required String policyType,
+    String? contextId,
   }) async {
     final userId = SupabaseConfig.currentUser?.id;
     if (userId == null) return false;
 
-    // Always show dialog — user must acknowledge policies each time
+    // If contextId is provided, check if already accepted for this context
+    if (contextId != null) {
+      final version = _getVersion(policyType);
+      final alreadyAccepted = await PolicyPenaltyDatasource.instance
+          .hasAcceptedPolicy(
+            userId: userId,
+            policyType: policyType,
+            version: version,
+            contextId: contextId,
+          );
+      if (alreadyAccepted) return true;
+    }
+
+    // Show dialog
     if (!context.mounted) return false;
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => PolicyAcceptanceDialog(policyType: policyType),
+      builder: (_) =>
+          PolicyAcceptanceDialog(policyType: policyType, contextId: contextId),
     );
 
     return result ?? false;
@@ -114,6 +138,7 @@ class _PolicyAcceptanceDialogState extends State<PolicyAcceptanceDialog> {
       userId: userId,
       policyType: widget.policyType,
       version: version,
+      contextId: widget.contextId,
     );
 
     if (mounted) Navigator.pop(context, true);
