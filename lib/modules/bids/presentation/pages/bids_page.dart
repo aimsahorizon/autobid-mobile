@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../../browse/presentation/pages/auction_detail_page.dart';
 import '../../../browse/presentation/controllers/auction_detail_controller.dart';
+import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
+import '../../../transactions/presentation/controllers/transaction_realtime_controller.dart';
 import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 import '../controllers/bids_controller.dart';
 import '../widgets/user_bids_list.dart';
 import '../../domain/entities/user_bid_entity.dart';
-import 'won_bid_detail_page.dart';
-import 'lost_bid_detail_page.dart';
 
 /// Main page for Bids module displaying user's auction participation
 /// Features three tabs: Active, Won, and Lost bids
@@ -29,8 +30,8 @@ class _BidsPageState extends State<BidsPage>
   @override
   void initState() {
     super.initState();
-    // Initialize tab controller for 4 tabs
-    _tabController = TabController(length: 4, vsync: this);
+    // Initialize tab controller for 3 tabs
+    _tabController = TabController(length: 3, vsync: this);
     // Load bids on page init
     widget.controller.loadUserBids();
   }
@@ -80,10 +81,23 @@ class _BidsPageState extends State<BidsPage>
     debugPrint(
       '[BidsPage] _navigateToWonBid called with auctionId=${bid.auctionId}',
     );
+
+    final transactionController = GetIt.instance<TransactionRealtimeController>();
+    final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+    final userName =
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
+        SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
+        'Buyer';
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => WonBidDetailPage(auctionId: bid.auctionId),
+        builder: (context) => PreTransactionRealtimePage(
+          controller: transactionController,
+          transactionId: bid.auctionId,
+          userId: userId,
+          userName: userName,
+        ),
       ),
     );
   }
@@ -92,10 +106,15 @@ class _BidsPageState extends State<BidsPage>
     debugPrint(
       '[BidsPage] _navigateToLostBid called with auctionId=${bid.auctionId}',
     );
+    final controller = GetIt.instance<AuctionDetailController>();
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LostBidDetailPage(auctionId: bid.auctionId),
+        builder: (context) => AuctionDetailPage(
+          auctionId: bid.auctionId,
+          controller: controller,
+          showLostBanner: true,
+        ),
       ),
     );
   }
@@ -183,11 +202,6 @@ class _BidsPageState extends State<BidsPage>
                       count: widget.controller.lostBids.length,
                       color: ColorConstants.error,
                     ),
-                    _TabWithBadge(
-                      label: 'Cancelled',
-                      count: widget.controller.cancelledBids.length,
-                      color: ColorConstants.warning,
-                    ),
                   ],
                 ),
               ),
@@ -231,18 +245,6 @@ class _BidsPageState extends State<BidsPage>
                         onBidTap: (bid) => _navigateToLostBid(context, bid),
                         isGridView: _isGridView,
                       ),
-                      // Cancelled bids tab
-                      UserBidsList(
-                        bids: widget.controller.cancelledBids,
-                        isLoading: widget.controller.isLoading,
-                        emptyTitle: 'No Cancelled Deals',
-                        emptySubtitle:
-                            'Deals you\'ve cancelled will appear here.',
-                        emptyIcon: Icons.cancel_outlined,
-                        onBidTap: (bid) =>
-                            _navigateToCancelledBid(context, bid),
-                        isGridView: _isGridView,
-                      ),
                     ],
                   ),
                 ),
@@ -250,19 +252,6 @@ class _BidsPageState extends State<BidsPage>
             ],
           );
         },
-      ),
-    );
-  }
-
-  void _navigateToCancelledBid(BuildContext context, UserBidEntity bid) {
-    // Cancelled bids are read-only - just show auction details
-    debugPrint(
-      '[BidsPage] _navigateToCancelledBid called with auctionId=${bid.auctionId}',
-    );
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LostBidDetailPage(auctionId: bid.auctionId),
       ),
     );
   }
