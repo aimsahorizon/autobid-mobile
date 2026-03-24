@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/widgets/user_profile_bottom_sheet.dart';
 import '../../../domain/entities/user_bid_entity.dart';
 
 class UserBidCard extends StatefulWidget {
@@ -101,6 +102,32 @@ class _UserBidCardState extends State<UserBidCard> {
                     _TimeRemainingChip(timeRemaining: _timeRemaining)
                   else
                     _StatusChip(status: widget.bid.status),
+                  const SizedBox(height: 6),
+                  if (widget.bid.sellerId != null)
+                    GestureDetector(
+                      onTap: () => UserProfileBottomSheet.show(
+                        context,
+                        userId: widget.bid.sellerId!,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            size: 12,
+                            color: ColorConstants.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'View Seller',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: ColorConstants.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
