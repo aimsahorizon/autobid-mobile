@@ -84,6 +84,7 @@ class _PreTransactionRealtimePageState
         final accepted = await PolicyAcceptanceDialog.show(
           context: context,
           policyType: PolicyConstants.transactionRules,
+          contextId: widget.transactionId,
         );
         if (!accepted) {
           if (mounted) {
