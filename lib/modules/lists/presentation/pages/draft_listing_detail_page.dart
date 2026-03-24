@@ -38,7 +38,7 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
     setState(() {
       _isDeleteEnabled = !_isDeleteEnabled;
     });
-    
+
     if (_isDeleteEnabled) {
       (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
@@ -63,8 +63,8 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
     );
 
     // If draft was submitted, go back to listings page with result
-    if (result == true && mounted) {
-      navigator.pop(true);
+    if (result is Map && result['navigateTo'] == 'pending' && mounted) {
+      navigator.pop(result);
     }
   }
 

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/listing_draft_model.dart';
 import '../models/listing_model.dart';
@@ -238,6 +239,9 @@ class ListingSupabaseDataSource {
   /// Submit draft as listing (calls database function)
   Future<String> submitListing(String draftId) async {
     try {
+      // Upload any asset-path demo photos to Supabase storage first
+      await _uploadAssetPhotosIfNeeded(draftId);
+
       // Pre-check: prevent duplicate car (by plate_number) across statuses
       final draftRow = await _supabase
           .from('listing_drafts')
@@ -1885,6 +1889,71 @@ class ListingSupabaseDataSource {
       }
     } catch (_) {
       // Do not fail submission if post-submit primary sync fails.
+    }
+  }
+
+  /// Upload asset-path demo photos to Supabase storage and update the draft.
+  /// Called before submission so the SQL function receives real URLs.
+  Future<void> _uploadAssetPhotosIfNeeded(String draftId) async {
+    final draft = await _supabase
+        .from('listing_drafts')
+        .select('seller_id, photo_urls, cover_photo_url')
+        .eq('id', draftId)
+        .single();
+
+    final sellerId = draft['seller_id'] as String?;
+    final photoUrlsRaw = draft['photo_urls'];
+    final coverPhotoUrl = draft['cover_photo_url'] as String?;
+
+    if (sellerId == null || photoUrlsRaw == null) return;
+
+    final photoUrls = Map<String, dynamic>.from(photoUrlsRaw as Map);
+    bool changed = false;
+    String? newCoverUrl;
+
+    for (final category in photoUrls.keys.toList()) {
+      final urls = List<String>.from(photoUrls[category] as List);
+      for (int i = 0; i < urls.length; i++) {
+        if (!urls[i].startsWith('assets/')) continue;
+
+        final assetPath = urls[i];
+        try {
+          final bytes = await rootBundle.load(assetPath);
+          final ext = assetPath.split('.').last;
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final storagePath = '$draftId/$category/demo_${timestamp}_$i.$ext';
+
+          await _supabase.storage
+              .from('auction-images')
+              .uploadBinary(
+                storagePath,
+                bytes.buffer.asUint8List(),
+                fileOptions: const FileOptions(upsert: true),
+              );
+
+          final publicUrl = _supabase.storage
+              .from('auction-images')
+              .getPublicUrl(storagePath);
+
+          urls[i] = publicUrl;
+          changed = true;
+
+          if (coverPhotoUrl == assetPath) {
+            newCoverUrl = publicUrl;
+          }
+        } catch (e) {
+          debugPrint('Failed to upload asset photo $assetPath: $e');
+        }
+      }
+      photoUrls[category] = urls;
+    }
+
+    if (changed) {
+      final update = <String, dynamic>{'photo_urls': photoUrls};
+      if (newCoverUrl != null) {
+        update['cover_photo_url'] = newCoverUrl;
+      }
+      await _supabase.from('listing_drafts').update(update).eq('id', draftId);
     }
   }
 
