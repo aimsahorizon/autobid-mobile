@@ -44,10 +44,15 @@ class NotificationActionHandler {
 
       // ---- Invite Notifications → Auction Detail ----
       case NotificationSubType.auctionInvite:
-        // If already accepted, go directly to auction
+        // If already accepted, navigate only if auction is live
         final inviteStatus = metadata['invite_status'] as String?;
         if (inviteStatus == 'accepted') {
-          _navigateToAuction(metadata['auction_id'] as String?);
+          final listingStatus = metadata['listing_status'] as String?;
+          if (listingStatus == 'live') {
+            _navigateToAuction(metadata['auction_id'] as String?);
+          } else {
+            _showListingStatusMessage(listingStatus);
+          }
         }
         // If pending (no status), tapping does nothing extra — buttons handle it
         // If rejected, no navigation
@@ -55,6 +60,16 @@ class NotificationActionHandler {
       case NotificationSubType.auctionInviteAccepted:
       case NotificationSubType.auctionInviteRejected:
         _navigateToAuction(metadata['auction_id'] as String?);
+        break;
+
+      // ---- Listing Status Update (invitee) → Auction Detail if live ----
+      case NotificationSubType.listingStatusUpdate:
+        final status = metadata['listing_status'] as String?;
+        if (status == 'live') {
+          _navigateToAuction(metadata['auction_id'] as String?);
+        } else {
+          _showListingStatusMessage(status);
+        }
         break;
 
       // ---- Q&A Notifications → Auction Detail (Q&A section) ----
@@ -181,5 +196,25 @@ class NotificationActionHandler {
   void _navigateToProfile() {
     // Navigate to home and switch to profile tab (index 4)
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  void _showListingStatusMessage(String? status) {
+    final displayStatus = switch (status) {
+      'pending_approval' => 'Pending Approval',
+      'scheduled' => 'Approved (Scheduled)',
+      'ended' => 'Ended',
+      'sold' => 'Sold',
+      'unsold' => 'Unsold',
+      'cancelled' => 'Cancelled',
+      _ => 'Not Yet Live',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'This auction is not yet live. Current status: $displayStatus',
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 }
