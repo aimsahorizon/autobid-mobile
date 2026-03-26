@@ -1,11 +1,55 @@
 -- ============================================================================
 -- Migration 00159: Fix auto_reselect_next_winner + Standby Queue System
 -- ============================================================================
--- 1. Fix auto_reselect: create NEW transaction (delete old), fix table refs,
+-- 1. Fix create_auction_transaction trigger: ON CONFLICT DO NOTHING
+--    (prevents trigger from overwriting reselected buyer)
+-- 2. Fix auto_reselect: standby-only, create NEW transaction (delete old),
 --    exclude ALL previously penalized buyers
--- 2. Standby queue: auction_standby table, opt-in RPC, select-from-standby RPC
--- 3. Notifications for standby lifecycle
+-- 3. Standby queue: auction_standby table, opt-in RPC, select-from-standby RPC
+-- 4. Notifications for standby lifecycle
 -- ============================================================================
+
+-- ============================================================================
+-- PART 0: Fix create_auction_transaction trigger — DO NOTHING on conflict
+-- The original trigger overwrites buyer_id on conflict, which undoes reselection.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION create_auction_transaction()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_highest_bid RECORD;
+  v_in_transaction_status_id UUID;
+BEGIN
+  SELECT id INTO v_in_transaction_status_id
+  FROM auction_statuses
+  WHERE status_name = 'in_transaction';
+
+  IF v_in_transaction_status_id IS NULL THEN
+    RAISE EXCEPTION 'auction_statuses missing status_name=in_transaction';
+  END IF;
+
+  IF NEW.status_id = v_in_transaction_status_id AND OLD.status_id IS DISTINCT FROM NEW.status_id THEN
+    SELECT bidder_id, bid_amount
+    INTO v_highest_bid
+    FROM bids
+    WHERE auction_id = NEW.id
+    ORDER BY bid_amount DESC, created_at DESC
+    LIMIT 1;
+
+    IF v_highest_bid.bidder_id IS NOT NULL THEN
+      INSERT INTO auction_transactions (
+        auction_id, seller_id, buyer_id, agreed_price, status, created_at, updated_at
+      ) VALUES (
+        NEW.id, NEW.seller_id, v_highest_bid.bidder_id,
+        v_highest_bid.bid_amount, 'in_transaction', NOW(), NOW()
+      )
+      ON CONFLICT (auction_id) DO NOTHING;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ============================================================================
 -- PART 1: Fix auto_reselect_next_winner
@@ -73,19 +117,8 @@ BEGIN
      SET status = 'selected', updated_at = now()
    WHERE auction_id = v_auction_id AND user_id = v_next_bidder;
 
-  -- Delete old transaction (CASCADE removes chat_messages, timeline, forms, agreement_fields)
-  DELETE FROM public.auction_transactions WHERE id = p_transaction_id;
-
-  -- Create NEW transaction
-  v_new_txn_id := gen_random_uuid();
-  INSERT INTO public.auction_transactions (
-    id, auction_id, seller_id, buyer_id, agreed_price, status, created_at, updated_at
-  ) VALUES (
-    v_new_txn_id, v_auction_id, v_seller_id, v_next_bidder, v_next_amount,
-    'in_transaction', now(), now()
-  );
-
-  -- Update auction price and status to in_transaction
+  -- Update auction price and status WHILE old transaction exists
+  -- (trigger fires but DO NOTHING since auction_id row already exists)
   SELECT id INTO v_in_txn_status
     FROM public.auction_statuses
    WHERE status_name = 'in_transaction'
@@ -98,6 +131,17 @@ BEGIN
            updated_at = now()
      WHERE id = v_auction_id;
   END IF;
+
+  -- NOW delete old transaction and create new one
+  DELETE FROM public.auction_transactions WHERE id = p_transaction_id;
+
+  v_new_txn_id := gen_random_uuid();
+  INSERT INTO public.auction_transactions (
+    id, auction_id, seller_id, buyer_id, agreed_price, status, created_at, updated_at
+  ) VALUES (
+    v_new_txn_id, v_auction_id, v_seller_id, v_next_bidder, v_next_amount,
+    'in_transaction', now(), now()
+  );
 
   -- Add timeline event on new transaction
   INSERT INTO public.transaction_timeline (
@@ -278,19 +322,8 @@ BEGIN
      SET status = 'selected', updated_at = now()
    WHERE auction_id = v_auction_id AND user_id = p_standby_user_id;
 
-  -- Delete old transaction
-  DELETE FROM public.auction_transactions WHERE id = p_transaction_id;
-
-  -- Create NEW transaction
-  v_new_txn_id := gen_random_uuid();
-  INSERT INTO public.auction_transactions (
-    id, auction_id, seller_id, buyer_id, agreed_price, status, created_at, updated_at
-  ) VALUES (
-    v_new_txn_id, v_auction_id, v_seller_id, p_standby_user_id, v_bid_amount,
-    'in_transaction', now(), now()
-  );
-
-  -- Update auction
+  -- Update auction WHILE old transaction exists
+  -- (trigger fires but DO NOTHING since auction_id row already exists)
   SELECT id INTO v_in_txn_status
     FROM public.auction_statuses WHERE status_name = 'in_transaction' LIMIT 1;
 
@@ -301,6 +334,17 @@ BEGIN
            updated_at = now()
      WHERE id = v_auction_id;
   END IF;
+
+  -- NOW delete old transaction and create new one
+  DELETE FROM public.auction_transactions WHERE id = p_transaction_id;
+
+  v_new_txn_id := gen_random_uuid();
+  INSERT INTO public.auction_transactions (
+    id, auction_id, seller_id, buyer_id, agreed_price, status, created_at, updated_at
+  ) VALUES (
+    v_new_txn_id, v_auction_id, v_seller_id, p_standby_user_id, v_bid_amount,
+    'in_transaction', now(), now()
+  );
 
   -- Timeline
   INSERT INTO public.transaction_timeline (
