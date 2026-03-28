@@ -90,12 +90,16 @@ class SellerTransactionDemoController extends ChangeNotifier {
       await _updateDelivery(DeliveryStatus.delivered);
       await _delay(3000); // Increased delay
 
-      // Step 11: Completed
-      debugPrint('DEBUG [DemoController]: Step 11 - Delivery: Completed');
-      await _updateDelivery(DeliveryStatus.completed);
+      // Step 11: Enable auto-accept demo (3-minute deadline)
+      debugPrint(
+        'DEBUG [DemoController]: Step 11 - Enabling auto-accept demo mode',
+      );
+      _currentStep = 'Enabling auto-accept demo (3 min deadline)...';
+      notifyListeners();
+      await transactionController.enableAutoAcceptDemo();
       await _delay(2000);
 
-      _currentStep = 'Demo completed!';
+      _currentStep = 'Demo completed! Auto-accept in ~3 minutes.';
       debugPrint('DEBUG [DemoController]: ✅ Demo completed successfully');
       notifyListeners();
     } catch (e, stackTrace) {
@@ -239,7 +243,7 @@ class SellerTransactionDemoController extends ChangeNotifier {
       );
       // Removed MockDataSource dependency.
       // Ideally this should call an endpoint or be handled manually in Supabase.
-      
+
       // Reload transaction to reflect changes
       await transactionController.loadTransaction(
         transactionController.transaction!.id,

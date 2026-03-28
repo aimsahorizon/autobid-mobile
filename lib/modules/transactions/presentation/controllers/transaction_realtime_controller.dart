@@ -9,6 +9,7 @@ import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/transaction_review_entity.dart';
 import '../../data/datasources/transaction_realtime_datasource.dart';
+import '../../data/datasources/buyer_transaction_supabase_datasource.dart';
 import '../../domain/entities/agreement_field_entity.dart';
 
 /// Controller for real-time transaction management
@@ -45,6 +46,11 @@ class TransactionRealtimeController extends ChangeNotifier {
   final DepositSupabaseDataSource _depositDataSource =
       DepositSupabaseDataSource(SupabaseConfig.client);
 
+  // Auto-accept deadline state
+  DateTime? _buyerAcceptanceDeadline;
+  final BuyerTransactionSupabaseDataSource _buyerTransactionDataSource =
+      BuyerTransactionSupabaseDataSource(SupabaseConfig.client);
+
   // Suspension state after cancellation
   SuspensionStatus? _suspensionAfterCancel;
 
@@ -71,6 +77,7 @@ class TransactionRealtimeController extends ChangeNotifier {
   List<AgreementFieldEntity> get agreementFields => _agreementFields;
   bool get hasDeposited => _hasDeposited;
   double get depositAmount => _depositAmount;
+  DateTime? get buyerAcceptanceDeadline => _buyerAcceptanceDeadline;
   SuspensionStatus? get suspensionAfterCancel => _suspensionAfterCancel;
   int get chatUpdateCount => _chatUpdateCount;
   int get agreementUpdateCount => _agreementUpdateCount;
@@ -154,6 +161,9 @@ class TransactionRealtimeController extends ChangeNotifier {
         ]);
 
         // Finalization now happens immediately when both confirm (no grace period)
+
+        // Load buyer acceptance deadline if delivery is in progress
+        await _loadBuyerAcceptanceDeadline();
 
         // Subscribe to real-time updates only once per transaction
         if (_subscribedTransactionId != _transaction!.id) {
@@ -314,6 +324,7 @@ class TransactionRealtimeController extends ChangeNotifier {
           _loadTimelineSafe(_transaction!.id),
           _loadReviewSafe(_transaction!.id, userId),
           _loadAgreementFieldsSafe(_transaction!.id),
+          _loadBuyerAcceptanceDeadline(),
         ]);
       }
 
@@ -1011,11 +1022,45 @@ class TransactionRealtimeController extends ChangeNotifier {
         // Refresh wallet balance (SQL refunds deposits on acceptance)
         await VirtualWalletService.instance.loadBalance(_currentUserId!);
         await loadTransaction(_transaction!.id, _currentUserId!);
+      } else {
+        _errorMessage = accepted
+            ? 'Failed to accept delivery'
+            : 'Failed to reject delivery. Please try again.';
       }
       return success;
     } catch (e) {
       _errorMessage = 'Failed to submit response';
       debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Seller raises objection to buyer rejection (creates dispute)
+  Future<bool> raiseSellerObjection({required String reason}) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final error = await _dataSource.raiseSellerObjection(
+        transactionId: _transaction!.id,
+        sellerId: _currentUserId!,
+        reason: reason,
+      );
+
+      if (error == null) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+        return true;
+      }
+      _errorMessage = error;
+      return false;
+    } catch (e) {
+      _errorMessage = 'Failed to raise objection';
+      debugPrint('[TransactionRealtimeController] Error raising objection: $e');
       return false;
     } finally {
       _isProcessing = false;
@@ -1214,6 +1259,57 @@ class TransactionRealtimeController extends ChangeNotifier {
       debugPrint(
         '[TransactionRealtimeController] Error toggling installment: $e',
       );
+    }
+  }
+
+  // ============================================================================
+  // AUTO-ACCEPT DEADLINE
+  // ============================================================================
+
+  Future<void> _loadBuyerAcceptanceDeadline() async {
+    if (_transaction == null) return;
+    if (_transaction!.deliveryStatus != DeliveryStatus.delivered ||
+        _transaction!.buyerAcceptanceStatus != BuyerAcceptanceStatus.pending) {
+      _buyerAcceptanceDeadline = null;
+      return;
+    }
+    try {
+      _buyerAcceptanceDeadline = await _buyerTransactionDataSource
+          .getBuyerAcceptanceDeadline(_transaction!.id);
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error loading deadline: $e');
+    }
+  }
+
+  /// Sweep expired deliveries and auto-accept. Returns count of affected.
+  Future<int> sweepAutoAccept() async {
+    try {
+      final count = await _buyerTransactionDataSource.checkAndAutoAccept();
+      if (count > 0 && _transaction != null && _currentUserId != null) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+      return count;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Auto-accept sweep error: $e');
+      return 0;
+    }
+  }
+
+  /// Enable demo mode (3-min deadline) for the current transaction.
+  Future<bool> enableAutoAcceptDemo() async {
+    if (_transaction == null) return false;
+    try {
+      final success = await _buyerTransactionDataSource.enableAutoAcceptDemo(
+        _transaction!.id,
+      );
+      if (success) {
+        await _loadBuyerAcceptanceDeadline();
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Demo mode error: $e');
+      return false;
     }
   }
 
