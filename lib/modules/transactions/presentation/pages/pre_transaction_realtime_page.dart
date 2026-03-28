@@ -395,6 +395,14 @@ class _PreTransactionRealtimePageState
             );
           }
 
+          // Check if dispute was resolved by admin
+          if (transaction.isDisputeResolved &&
+              transaction.status == TransactionStatus.cancelled) {
+            final role = widget.controller.getUserRole(widget.userId);
+            final isSeller = role == FormRole.seller;
+            return _buildDisputeResolvedPage(transaction, isDark, isSeller);
+          }
+
           // Check if deal is cancelled/failed
           if (transaction.status == TransactionStatus.cancelled) {
             final role = widget.controller.getUserRole(widget.userId);
@@ -557,7 +565,9 @@ class _PreTransactionRealtimePageState
           ),
           const SizedBox(height: 12),
           Text(
-            buyerCancelled
+            transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected
+                ? 'The buyer has rejected the delivery. You can raise a dispute if you believe this is unfair, or proceed with other options.'
+                : buyerCancelled
                 ? 'The buyer has cancelled this transaction. You can choose how to proceed with your listing.'
                 : 'This transaction has been cancelled. You can choose how to proceed with your listing.',
             textAlign: TextAlign.center,
@@ -568,6 +578,58 @@ class _PreTransactionRealtimePageState
                   : ColorConstants.textSecondaryLight,
             ),
           ),
+
+          // Show buyer rejection reason if available
+          if (transaction.buyerAcceptanceStatus ==
+                  BuyerAcceptanceStatus.rejected &&
+              transaction.buyerRejectionReason != null &&
+              transaction.buyerRejectionReason!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ColorConstants.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: ColorConstants.error.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: ColorConstants.error,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Buyer\'s Rejection Reason',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: ColorConstants.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    transaction.buyerRejectionReason!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark
+                          ? ColorConstants.textSecondaryDark
+                          : ColorConstants.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 32),
 
           // Options Card
@@ -590,6 +652,21 @@ class _PreTransactionRealtimePageState
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 16),
+
+                // Option 0: Raise Dispute (only when buyer rejected delivery)
+                if (transaction.buyerAcceptanceStatus ==
+                    BuyerAcceptanceStatus.rejected) ...[
+                  _buildSellerOption(
+                    icon: Icons.gavel,
+                    title: 'Raise Dispute',
+                    description:
+                        'Object to the buyer\'s rejection — an admin will review',
+                    color: Colors.orange,
+                    isDark: isDark,
+                    onTap: () => _showRaiseDisputeDialog(transaction),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // Option 1: Proceed to next bidder
                 _buildSellerOption(
@@ -1532,6 +1609,260 @@ class _PreTransactionRealtimePageState
         ],
       ),
     );
+  }
+
+  /// Build page shown after admin resolves a dispute
+  Widget _buildDisputeResolvedPage(
+    TransactionEntity transaction,
+    bool isDark,
+    bool isSeller,
+  ) {
+    final resolution = transaction.disputeResolution;
+    final isRefundBoth = resolution == 'refund_both';
+    final isPenalizeSeller = resolution == 'penalize_seller';
+    final isPenalizeBuyer = resolution == 'penalize_buyer';
+
+    // Determine if current user is the penalized one
+    final currentUserPenalized =
+        (isSeller && isPenalizeSeller) || (!isSeller && isPenalizeBuyer);
+
+    // Resolution header info
+    String title;
+    String description;
+    IconData icon;
+    Color color;
+
+    if (isRefundBoth) {
+      title = 'Dispute Resolved';
+      description = 'Both deposits have been refunded. No party was penalized.';
+      icon = Icons.handshake;
+      color = Colors.blue;
+    } else if (currentUserPenalized) {
+      title = 'Account Suspended';
+      description =
+          'You were found at fault in this dispute. Your account has been suspended and both deposits were refunded.';
+      icon = Icons.block;
+      color = ColorConstants.error;
+    } else {
+      // Unpenalized party
+      final faultyParty = isPenalizeSeller ? 'seller' : 'buyer';
+      title = 'Dispute Resolved in Your Favor';
+      description =
+          'The $faultyParty was found at fault. Both deposits have been refunded.';
+      icon = Icons.verified;
+      color = ColorConstants.success;
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Icon(icon, size: 64, color: color),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              color: isDark
+                  ? ColorConstants.textSecondaryDark
+                  : ColorConstants.textSecondaryLight,
+            ),
+          ),
+
+          // Admin notes
+          if (transaction.disputeAdminNotes != null &&
+              transaction.disputeAdminNotes!.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.admin_panel_settings,
+                        size: 16,
+                        color: Colors.blue,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Admin Notes',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    transaction.disputeAdminNotes!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark
+                          ? ColorConstants.textSecondaryDark
+                          : ColorConstants.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Seller who is NOT penalized gets 3 action options
+          if (isSeller && !currentUserPenalized) ...[
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark ? ColorConstants.surfaceDark : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
+                      : Colors.grey.shade300,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'What would you like to do?',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSellerOption(
+                    icon: Icons.skip_next_rounded,
+                    title: 'Proceed to Next Bidder',
+                    description: 'Offer to the next highest eligible bidder',
+                    color: ColorConstants.primary,
+                    isDark: isDark,
+                    onTap: () => _showAutoReselectDialog(),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSellerOption(
+                    icon: Icons.refresh,
+                    title: 'Restart Bidding',
+                    description: 'Clear all bids and start a new auction round',
+                    color: ColorConstants.info,
+                    isDark: isDark,
+                    onTap: () => _showRestartBiddingDialog(),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildSellerOption(
+                    icon: Icons.delete_forever,
+                    title: 'Delete Auction',
+                    description: 'Permanently remove this listing',
+                    color: ColorConstants.error,
+                    isDark: isDark,
+                    onTap: () => _showDeleteAuctionDialog(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back),
+            label: const Text('Go Back'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Dialog for seller to raise dispute against buyer rejection
+  Future<void> _showRaiseDisputeDialog(TransactionEntity transaction) async {
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.gavel, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Raise Dispute'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Explain why you believe the buyer\'s rejection is unjustified. '
+              'An admin will review the full conversation and evidence.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 4,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'Your objection reason',
+                hintText: 'Describe why the rejection is unfair...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (reasonController.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Submit Dispute'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await widget.controller.raiseSellerObjection(
+        reason: reasonController.text.trim(),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Dispute raised. An admin will review your case.'
+                  : widget.controller.errorMessage ??
+                        'Failed to raise dispute. Please try again.',
+            ),
+            backgroundColor: success ? Colors.orange : ColorConstants.error,
+          ),
+        );
+      }
+    }
+
+    reasonController.dispose();
   }
 }
 
