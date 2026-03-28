@@ -27,7 +27,7 @@ class PolicyConstants {
   static const List<String> listingPolicies = [
     'By listing your vehicle, you commit to selling it to the winning bidder if the reserve price is met.',
     'You must proceed to transaction within 24 hours after the auction ends if the reserve is met. Failure results in account suspension.',
-    'You must pay a refundable deposit (equal to the buyer\'s deposit) when starting the transaction as a security guarantee.',
+    'You must pay a refundable deposit (1% of starting price, equal to the buyer\'s deposit) when starting the transaction as a security guarantee.',
     'Cancelling a transaction results in deposit deduction and account suspension. The buyer\'s deposit will be fully refunded.',
     'Repeated cancellations lead to escalating suspensions and relist restrictions.',
     'Your transaction success rate is visible to buyers as part of your reputation profile.',
@@ -36,7 +36,7 @@ class PolicyConstants {
 
   /// Transaction rules shown to both parties before entering pre-transaction
   static const List<String> transactionPolicies = [
-    'Both buyer and seller must pay a refundable deposit before proceeding.',
+    'Both buyer and seller must pay a refundable deposit (1% of starting price) before proceeding.',
     'Deposits are returned in full upon successful transaction completion or mutual cancellation.',
     'If you cancel unilaterally, penalties will be imposed based on the transaction stage:',
     '  • Before agreement forms: 25% deposit deduction + suspension',
