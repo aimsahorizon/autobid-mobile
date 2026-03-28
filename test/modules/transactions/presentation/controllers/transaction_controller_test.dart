@@ -32,6 +32,15 @@ class MockAcceptVehicleUseCase extends Mock implements AcceptVehicleUseCase {}
 
 class MockRejectVehicleUseCase extends Mock implements RejectVehicleUseCase {}
 
+class MockGetDeadlineUseCase extends Mock
+    implements GetBuyerAcceptanceDeadlineUseCase {}
+
+class MockCheckAutoAcceptUseCase extends Mock
+    implements CheckAutoAcceptUseCase {}
+
+class MockEnableAutoAcceptDemoUseCase extends Mock
+    implements EnableAutoAcceptDemoUseCase {}
+
 class FakeTransactionFormEntity extends Fake implements TransactionFormEntity {}
 
 void main() {
@@ -47,6 +56,9 @@ void main() {
   late MockUpdateDeliveryStatusUseCase mockUpdateDeliveryStatusUseCase;
   late MockAcceptVehicleUseCase mockAcceptVehicleUseCase;
   late MockRejectVehicleUseCase mockRejectVehicleUseCase;
+  late MockGetDeadlineUseCase mockGetDeadlineUseCase;
+  late MockCheckAutoAcceptUseCase mockCheckAutoAcceptUseCase;
+  late MockEnableAutoAcceptDemoUseCase mockEnableAutoAcceptDemoUseCase;
 
   setUpAll(() {
     registerFallbackValue(FakeTransactionFormEntity());
@@ -67,6 +79,10 @@ void main() {
     mockAcceptVehicleUseCase = MockAcceptVehicleUseCase();
     mockRejectVehicleUseCase = MockRejectVehicleUseCase();
 
+    mockGetDeadlineUseCase = MockGetDeadlineUseCase();
+    mockCheckAutoAcceptUseCase = MockCheckAutoAcceptUseCase();
+    mockEnableAutoAcceptDemoUseCase = MockEnableAutoAcceptDemoUseCase();
+
     controller = TransactionController(
       getTransactionUseCase: mockGetTransactionUseCase,
       getChatMessagesUseCase: mockGetChatMessagesUseCase,
@@ -79,6 +95,9 @@ void main() {
       updateDeliveryStatusUseCase: mockUpdateDeliveryStatusUseCase,
       acceptVehicleUseCase: mockAcceptVehicleUseCase,
       rejectVehicleUseCase: mockRejectVehicleUseCase,
+      getDeadlineUseCase: mockGetDeadlineUseCase,
+      checkAutoAcceptUseCase: mockCheckAutoAcceptUseCase,
+      enableAutoAcceptDemoUseCase: mockEnableAutoAcceptDemoUseCase,
     );
   });
 
@@ -433,6 +452,9 @@ void main() {
         updateDeliveryStatusUseCase: mockUpdateDeliveryStatusUseCase,
         acceptVehicleUseCase: mockAcceptVehicleUseCase,
         rejectVehicleUseCase: mockRejectVehicleUseCase,
+        getDeadlineUseCase: mockGetDeadlineUseCase,
+        checkAutoAcceptUseCase: mockCheckAutoAcceptUseCase,
+        enableAutoAcceptDemoUseCase: mockEnableAutoAcceptDemoUseCase,
       );
 
       // Act
