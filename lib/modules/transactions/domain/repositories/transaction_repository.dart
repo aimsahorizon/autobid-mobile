@@ -53,4 +53,9 @@ abstract class TransactionRepository {
   );
   Future<Either<Failure, bool>> autoReselectNextWinner(String transactionId);
   Future<Either<Failure, bool>> restartAuctionBidding(String transactionId);
+  Future<Either<Failure, DateTime?>> getBuyerAcceptanceDeadline(
+    String transactionId,
+  );
+  Future<Either<Failure, int>> checkAndAutoAccept();
+  Future<Either<Failure, bool>> enableAutoAcceptDemo(String transactionId);
 }

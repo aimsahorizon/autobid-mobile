@@ -105,3 +105,26 @@ class RestartAuctionBiddingUseCase {
   Future<Either<Failure, bool>> call(String transactionId) =>
       repository.restartAuctionBidding(transactionId);
 }
+
+/// Get the buyer acceptance deadline for a transaction.
+class GetBuyerAcceptanceDeadlineUseCase {
+  final TransactionRepository repository;
+  GetBuyerAcceptanceDeadlineUseCase(this.repository);
+  Future<Either<Failure, DateTime?>> call(String transactionId) =>
+      repository.getBuyerAcceptanceDeadline(transactionId);
+}
+
+/// Sweep and auto-accept expired deliveries.
+class CheckAutoAcceptUseCase {
+  final TransactionRepository repository;
+  CheckAutoAcceptUseCase(this.repository);
+  Future<Either<Failure, int>> call() => repository.checkAndAutoAccept();
+}
+
+/// Enable auto-accept demo mode (3-min deadline).
+class EnableAutoAcceptDemoUseCase {
+  final TransactionRepository repository;
+  EnableAutoAcceptDemoUseCase(this.repository);
+  Future<Either<Failure, bool>> call(String transactionId) =>
+      repository.enableAutoAcceptDemo(transactionId);
+}
