@@ -151,14 +151,10 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   }
 
   /// Auto-calculate deposit based on starting price.
-  /// Philippine-reasonable: enough to prove seriousness, not too expensive.
-  /// Range: ₱5,000 – ₱50,000 in ₱5,000 increments.
+  /// Flat 1% of starting price for all price ranges.
   static double _calculateDeposit(double? startingPrice) {
-    if (startingPrice == null || startingPrice <= 0) return 5000;
-    // ~3-5% of starting price, rounded to nearest 5k, clamped 5k-50k
-    final raw = startingPrice * 0.04;
-    final rounded = (raw / 5000).round() * 5000;
-    return rounded.clamp(5000, 50000).toDouble();
+    if (startingPrice == null || startingPrice <= 0) return 0;
+    return startingPrice * 0.01;
   }
 
   void _addFeature() {
@@ -838,7 +834,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Auto-calculated based on starting price (~4%, ₱5k–₱50k)',
+          'Auto-calculated: 1% of starting price',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 8),

@@ -220,5 +220,4 @@ class AdminTransactionController extends ChangeNotifier {
       await loadTransactions();
     }
   }
-
 }
