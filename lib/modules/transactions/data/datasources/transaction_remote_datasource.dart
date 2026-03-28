@@ -34,4 +34,7 @@ abstract class TransactionRemoteDataSource {
   Future<bool> cancelAuctionWithPenalty(String transactionId, String reason);
   Future<bool> autoReselectNextWinner(String transactionId);
   Future<bool> restartAuctionBidding(String transactionId);
+  Future<DateTime?> getBuyerAcceptanceDeadline(String transactionId);
+  Future<int> checkAndAutoAccept();
+  Future<bool> enableAutoAcceptDemo(String transactionId);
 }

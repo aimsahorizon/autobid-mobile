@@ -321,6 +321,21 @@ class TransactionCompositeSupabaseDataSource
     return transactionDataSource.restartAuctionBidding(transactionId);
   }
 
+  @override
+  Future<DateTime?> getBuyerAcceptanceDeadline(String transactionId) {
+    return buyerDataSource.getBuyerAcceptanceDeadline(transactionId);
+  }
+
+  @override
+  Future<int> checkAndAutoAccept() {
+    return buyerDataSource.checkAndAutoAccept();
+  }
+
+  @override
+  Future<bool> enableAutoAcceptDemo(String transactionId) {
+    return buyerDataSource.enableAutoAcceptDemo(transactionId);
+  }
+
   // Helpers
   TransactionEntity _mapBuyerEntityToTransactionEntity(
     buyer.BuyerTransactionEntity e,

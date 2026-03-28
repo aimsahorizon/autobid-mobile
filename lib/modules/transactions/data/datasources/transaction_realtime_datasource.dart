@@ -284,6 +284,15 @@ class TransactionRealtimeDataSource {
       buyerRejectionReason: data['buyer_rejection_reason'] as String?,
       sellerRejectionReason: data['seller_rejection_reason'] as String?,
       cancelledBy: _inferCancelledBy(data),
+      sellerObjectionReason: data['seller_objection_reason'] as String?,
+      sellerObjectedAt: data['seller_objected_at'] != null
+          ? DateTime.parse(data['seller_objected_at'] as String)
+          : null,
+      disputeResolution: data['dispute_resolution'] as String?,
+      disputeResolvedAt: data['dispute_resolved_at'] != null
+          ? DateTime.parse(data['dispute_resolved_at'] as String)
+          : null,
+      disputeAdminNotes: data['dispute_admin_notes'] as String?,
       paymentMethod: data['payment_method'] as String? ?? 'full_payment',
       allowsInstallment: _extractAllowsInstallment(data),
       sellerPrepPhotoUrl: data['seller_prep_photo_url'] as String?,
@@ -349,6 +358,8 @@ class TransactionRealtimeDataSource {
         return TransactionStatus.completed;
       case 'deal_failed':
         return TransactionStatus.cancelled;
+      case 'disputed':
+        return TransactionStatus.disputed;
       default:
         return TransactionStatus.discussion;
     }
@@ -2043,7 +2054,10 @@ class TransactionRealtimeDataSource {
       case 'completed':
         return TimelineEventType.completed;
       case 'cancelled':
+      case 'deal_failed':
         return TimelineEventType.cancelled;
+      case 'disputed':
+        return TimelineEventType.disputed;
       default:
         return TimelineEventType.created;
     }
@@ -2645,6 +2659,48 @@ class TransactionRealtimeDataSource {
     _chatStreamController.close();
     _transactionUpdateController.close();
     _userTransactionsUpdateController.close();
+  }
+
+  // ============================================================================
+  // DISPUTE RESOLUTION
+  // ============================================================================
+
+  /// Seller raises objection to buyer rejection (creates dispute)
+  /// Returns null on success, or an error string on failure.
+  Future<String?> raiseSellerObjection({
+    required String transactionId,
+    required String sellerId,
+    required String reason,
+  }) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      debugPrint(
+        '[RaiseDispute] txnId resolved: $txnId (from: $transactionId)',
+      );
+      if (txnId == null) {
+        return 'Could not resolve transaction ID';
+      }
+
+      final response = await _supabase.rpc(
+        'raise_seller_objection',
+        params: {
+          'p_transaction_id': txnId,
+          'p_seller_id': sellerId,
+          'p_reason': reason,
+        },
+      );
+
+      debugPrint('[RaiseDispute] RPC response: $response');
+
+      if (response is Map) {
+        if (response['success'] == true) return null;
+        return response['error']?.toString() ?? 'Unknown RPC error';
+      }
+      return 'Unexpected response type: ${response.runtimeType}';
+    } catch (e) {
+      debugPrint('[RaiseDispute] Exception: $e');
+      return 'Exception: $e';
+    }
   }
 
   /// Update payment_method on the transaction

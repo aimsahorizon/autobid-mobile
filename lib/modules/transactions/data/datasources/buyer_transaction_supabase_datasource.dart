@@ -494,4 +494,46 @@ class BuyerTransactionSupabaseDataSource {
       throw Exception('Failed to cancel transaction: $e');
     }
   }
+
+  /// Get buyer acceptance deadline for a transaction
+  Future<DateTime?> getBuyerAcceptanceDeadline(String transactionId) async {
+    try {
+      final response = await _supabase
+          .from('auction_transactions')
+          .select('buyer_acceptance_deadline')
+          .eq('id', transactionId)
+          .maybeSingle();
+      if (response == null) return null;
+      final deadline = response['buyer_acceptance_deadline'] as String?;
+      return deadline != null ? DateTime.parse(deadline) : null;
+    } catch (e) {
+      debugPrint('[BuyerTransactionDS] Error getting deadline: $e');
+      return null;
+    }
+  }
+
+  /// Check and auto-accept expired deliveries (calls server-side function)
+  Future<int> checkAndAutoAccept() async {
+    try {
+      final result = await _supabase.rpc('auto_accept_expired_deliveries');
+      return (result as int?) ?? 0;
+    } catch (e) {
+      debugPrint('[BuyerTransactionDS] Error checking auto-accept: $e');
+      return 0;
+    }
+  }
+
+  /// Enable demo mode: set deadline to 3 minutes for a transaction
+  Future<bool> enableAutoAcceptDemo(String transactionId) async {
+    try {
+      final result = await _supabase.rpc(
+        'auto_accept_demo_mode',
+        params: {'p_transaction_id': transactionId},
+      );
+      return result == true;
+    } catch (e) {
+      debugPrint('[BuyerTransactionDS] Error enabling demo mode: $e');
+      return false;
+    }
+  }
 }
