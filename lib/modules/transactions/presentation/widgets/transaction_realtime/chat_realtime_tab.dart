@@ -93,8 +93,9 @@ class _ChatRealtimeTabState extends State<ChatRealtimeTab> {
 
     return Column(
       children: [
-        // Other party profile bar
-        if (otherUserId != null)
+        // Other party profile bar — TEMPORARILY HIDDEN
+        // TODO: Re-enable when profile view is ready
+        if (false && otherUserId != null)
           GestureDetector(
             onTap: () =>
                 UserProfileBottomSheet.show(context, userId: otherUserId),

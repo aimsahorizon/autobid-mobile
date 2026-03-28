@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -31,11 +32,33 @@ class ProgressRealtimeTab extends StatefulWidget {
 class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
   static const int _pageSize = 20;
   int _visibleCount = _pageSize;
+  Timer? _deadlineTimer;
 
   TransactionRealtimeController get controller => widget.controller;
   String? get userId => widget.userId;
   InstallmentController? get installmentController =>
       widget.installmentController;
+
+  @override
+  void initState() {
+    super.initState();
+    _deadlineTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final deadline = controller.buyerAcceptanceDeadline;
+      if (deadline != null && mounted) {
+        if (DateTime.now().isAfter(deadline)) {
+          controller.sweepAutoAccept();
+          _deadlineTimer?.cancel();
+        }
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _deadlineTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1070,6 +1093,53 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
     }
 
     if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
+      // If dispute is active (seller already objected)
+      if (transaction.isDisputed) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            children: [
+              const Icon(Icons.gavel, color: Colors.orange, size: 32),
+              const SizedBox(height: 8),
+              const Text(
+                'Dispute Under Review',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your objection: ${transaction.sellerObjectionReason ?? ""}',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: ColorConstants.textSecondaryLight),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'An admin is reviewing the dispute. You will be notified of the decision.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: ColorConstants.textSecondaryLight,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // If dispute was resolved
+      if (transaction.isDisputeResolved) {
+        return _buildDisputeResolutionView(transaction);
+      }
+
+      // Buyer rejected, seller can object
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -1088,6 +1158,24 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
             const SizedBox(height: 8),
             Text(
               'Reason: ${transaction.buyerRejectionReason ?? "None provided"}',
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'If you believe this rejection is unjustified, you can raise a dispute for admin review.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: controller.isProcessing
+                    ? null
+                    : () => _showSellerObjectionDialog(context),
+                icon: const Icon(Icons.gavel, size: 18),
+                label: const Text('Raise Dispute'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+              ),
             ),
           ],
         ),
@@ -1140,6 +1228,45 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
             "Buyer's Photo Proof",
             transaction.buyerDeliveryPhotoUrl!,
             context,
+          ),
+          const SizedBox(height: 12),
+        ],
+        // Auto-accept countdown for seller
+        if (transaction.deliveryStatus == DeliveryStatus.delivered &&
+            transaction.buyerAcceptanceStatus ==
+                BuyerAcceptanceStatus.pending) ...[
+          _buildAutoAcceptCountdown(context),
+          const SizedBox(height: 8),
+          // Demo mode button: shorten deadline to 3 minutes for testing
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: controller.isProcessing
+                  ? null
+                  : () async {
+                      final success = await controller.enableAutoAcceptDemo();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? 'Demo mode enabled — auto-accept in 3 minutes'
+                                  : 'Failed to enable demo mode',
+                            ),
+                            backgroundColor: success
+                                ? Colors.orange
+                                : ColorConstants.error,
+                          ),
+                        );
+                      }
+                    },
+              icon: const Icon(Icons.speed, size: 16),
+              label: const Text('Demo: Auto-accept in 3 min'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
         ],
@@ -1220,6 +1347,46 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
 
     if (transaction.deliveryStatus == DeliveryStatus.delivered) {
       if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
+        // If dispute is active
+        if (transaction.isDisputed) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.gavel, color: Colors.orange, size: 32),
+                const SizedBox(height: 8),
+                const Text(
+                  'Dispute Under Review',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The seller has objected to your rejection. An admin is reviewing the dispute.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: ColorConstants.textSecondaryLight,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // If dispute was resolved
+        if (transaction.isDisputeResolved) {
+          return _buildDisputeResolutionView(transaction);
+        }
+
         return const Center(
           child: Text(
             'You rejected the delivery.',
@@ -1245,6 +1412,9 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
+          // Auto-accept countdown for buyer
+          _buildAutoAcceptCountdown(context),
+          const SizedBox(height: 12),
           // Show seller's delivery photo
           if (transaction.sellerDeliveryPhotoUrl != null) ...[
             _buildPhotoProofTile(
@@ -1455,7 +1625,7 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 if (reasonController.text.isEmpty || photos.isEmpty) {
                   (ScaffoldMessenger.of(
                     context,
@@ -1467,11 +1637,21 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
                   return;
                 }
                 Navigator.pop(context);
-                controller.respondToDelivery(
+                final success = await controller.respondToDelivery(
                   accepted: false,
                   rejectionReason: reasonController.text,
                   rejectionPhotos: photos,
                 );
+                if (!success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        controller.errorMessage ?? 'Failed to reject delivery',
+                      ),
+                      backgroundColor: ColorConstants.error,
+                    ),
+                  );
+                }
               },
               style: FilledButton.styleFrom(
                 backgroundColor: ColorConstants.error,
@@ -1829,6 +2009,233 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
         ).pushNamedAndRemoveUntil(AuthRoutes.login, (route) => false);
       }
     }
+  }
+
+  /// Dialog for seller to explain their objection to buyer rejection
+  Future<void> _showSellerObjectionDialog(BuildContext context) async {
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.gavel, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Raise Dispute'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Explain why you believe the buyer\'s rejection is unjustified. '
+              'An admin will review the full conversation and evidence.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 4,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'Your objection reason',
+                hintText: 'Describe why the rejection is unfair...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (reasonController.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Submit Dispute'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final success = await controller.raiseSellerObjection(
+        reason: reasonController.text.trim(),
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Dispute raised. An admin will review your case.'
+                  : 'Failed to raise dispute. Please try again.',
+            ),
+            backgroundColor: success ? Colors.orange : ColorConstants.error,
+          ),
+        );
+      }
+    }
+
+    reasonController.dispose();
+  }
+
+  /// Shows dispute resolution result for both parties
+  Widget _buildDisputeResolutionView(TransactionEntity transaction) {
+    final resolution = transaction.disputeResolution;
+    final isRefundBoth = resolution == 'refund_both';
+    final isPenalizeSeller = resolution == 'penalize_seller';
+
+    String title;
+    String description;
+    IconData icon;
+    Color color;
+
+    if (isRefundBoth) {
+      title = 'Dispute Resolved — No Penalty';
+      description = 'Both deposits have been refunded. No party was penalized.';
+      icon = Icons.handshake;
+      color = Colors.blue;
+    } else if (isPenalizeSeller) {
+      title = 'Dispute Resolved — Seller Penalized';
+      description =
+          'The seller was found at fault. Both deposits refunded. The seller\'s account has been suspended.';
+      icon = Icons.warning_amber;
+      color = ColorConstants.error;
+    } else {
+      title = 'Dispute Resolved — Buyer Penalized';
+      description =
+          'The buyer was found at fault. Both deposits refunded. The buyer\'s account has been suspended.';
+      icon = Icons.warning_amber;
+      color = ColorConstants.error;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: ColorConstants.textSecondaryLight,
+              fontSize: 12,
+            ),
+          ),
+          if (transaction.disputeAdminNotes != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Admin notes: ${transaction.disputeAdminNotes}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoAcceptCountdown(BuildContext context) {
+    final deadline = controller.buyerAcceptanceDeadline;
+    if (deadline == null) return const SizedBox.shrink();
+
+    final now = DateTime.now();
+    final remaining = deadline.difference(now);
+    if (remaining.isNegative) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: ColorConstants.success.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: ColorConstants.success.withValues(alpha: 0.3),
+          ),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle, color: ColorConstants.success, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Auto-accepting...',
+              style: TextStyle(
+                color: ColorConstants.success,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final days = remaining.inDays;
+    final hours = remaining.inHours % 24;
+    final minutes = remaining.inMinutes % 60;
+    final seconds = remaining.inSeconds % 60;
+
+    String timeText;
+    if (days > 0) {
+      timeText = '${days}d ${hours}h ${minutes}m';
+    } else if (hours > 0) {
+      timeText = '${hours}h ${minutes}m ${seconds}s';
+    } else {
+      timeText = '${minutes}m ${seconds}s';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ColorConstants.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: ColorConstants.warning.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.timer_outlined,
+            color: ColorConstants.warning,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Auto-accepts in $timeText',
+              style: const TextStyle(
+                color: ColorConstants.warning,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

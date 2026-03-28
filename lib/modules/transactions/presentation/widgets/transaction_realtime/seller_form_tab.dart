@@ -180,57 +180,59 @@ class _SellerFormTabState extends State<SellerFormTab> {
                 // Status Banner
                 if (isSubmitted) _buildSubmittedBanner(isDark),
 
-                // Buyer Profile Link
-                GestureDetector(
-                  onTap: () {
-                    final transaction = widget.controller.transaction;
-                    if (transaction != null) {
-                      UserProfileBottomSheet.show(
-                        context,
-                        userId: transaction.buyerId,
-                      );
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: ColorConstants.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: ColorConstants.primary.withValues(alpha: 0.2),
+                // Buyer Profile Link — TEMPORARILY HIDDEN
+                // TODO: Re-enable when profile view is ready
+                if (false)
+                  GestureDetector(
+                    onTap: () {
+                      final transaction = widget.controller.transaction;
+                      if (transaction != null) {
+                        UserProfileBottomSheet.show(
+                          context,
+                          userId: transaction.buyerId,
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.person,
-                          size: 18,
-                          color: ColorConstants.primary,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: ColorConstants.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: ColorConstants.primary.withValues(alpha: 0.2),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'View Buyer Profile & Stats',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: ColorConstants.primary,
-                              fontWeight: FontWeight.w600,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            size: 18,
+                            color: ColorConstants.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'View Buyer Profile & Stats',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: ColorConstants.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
-                        Icon(
-                          Icons.chevron_right,
-                          size: 18,
-                          color: ColorConstants.primary,
-                        ),
-                      ],
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: ColorConstants.primary,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
                 // Document Preparation Section
                 _buildSectionHeader('Document Preparation', Icons.folder_copy),

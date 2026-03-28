@@ -191,8 +191,9 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
                 // Status Banner
                 if (isSubmitted) _buildSubmittedBanner(isDark),
 
-                // Seller Profile Link
-                if (transaction != null) ...[
+                // Seller Profile Link — TEMPORARILY HIDDEN
+                // TODO: Re-enable when profile view is ready
+                if (false && transaction != null) ...[
                   GestureDetector(
                     onTap: () => UserProfileBottomSheet.show(
                       context,
