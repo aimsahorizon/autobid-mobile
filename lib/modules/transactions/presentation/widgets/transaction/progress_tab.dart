@@ -509,6 +509,41 @@ class ProgressTab extends StatelessWidget {
             ),
           ],
 
+          // Show auto-accept deadline
+          if (acceptanceStatus == BuyerAcceptanceStatus.pending &&
+              controller.buyerAcceptanceDeadline != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.timer_outlined,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Auto-accepts on ${_formatTimestamp(controller.buyerAcceptanceDeadline!)}',
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Show acceptance timestamp
           if (acceptanceStatus != BuyerAcceptanceStatus.pending &&
               transaction.buyerAcceptedAt != null) ...[
@@ -636,8 +671,6 @@ class ProgressTab extends StatelessWidget {
         return Colors.green;
     }
   }
-
-
 
   Widget _buildDeliveryConnector(bool isCompleted, bool isDark) {
     return Container(
