@@ -17,6 +17,9 @@ class TransactionController extends ChangeNotifier {
   final UpdateDeliveryStatusUseCase _updateDeliveryStatusUseCase;
   final AcceptVehicleUseCase _acceptVehicleUseCase;
   final RejectVehicleUseCase _rejectVehicleUseCase;
+  final GetBuyerAcceptanceDeadlineUseCase _getDeadlineUseCase;
+  final CheckAutoAcceptUseCase _checkAutoAcceptUseCase;
+  final EnableAutoAcceptDemoUseCase _enableAutoAcceptDemoUseCase;
 
   TransactionController({
     required GetTransactionUseCase getTransactionUseCase,
@@ -30,6 +33,9 @@ class TransactionController extends ChangeNotifier {
     required UpdateDeliveryStatusUseCase updateDeliveryStatusUseCase,
     required AcceptVehicleUseCase acceptVehicleUseCase,
     required RejectVehicleUseCase rejectVehicleUseCase,
+    required GetBuyerAcceptanceDeadlineUseCase getDeadlineUseCase,
+    required CheckAutoAcceptUseCase checkAutoAcceptUseCase,
+    required EnableAutoAcceptDemoUseCase enableAutoAcceptDemoUseCase,
   }) : _getTransactionUseCase = getTransactionUseCase,
        _getChatMessagesUseCase = getChatMessagesUseCase,
        _getTransactionFormUseCase = getTransactionFormUseCase,
@@ -40,7 +46,10 @@ class TransactionController extends ChangeNotifier {
        _submitToAdminUseCase = submitToAdminUseCase,
        _updateDeliveryStatusUseCase = updateDeliveryStatusUseCase,
        _acceptVehicleUseCase = acceptVehicleUseCase,
-       _rejectVehicleUseCase = rejectVehicleUseCase;
+       _rejectVehicleUseCase = rejectVehicleUseCase,
+       _getDeadlineUseCase = getDeadlineUseCase,
+       _checkAutoAcceptUseCase = checkAutoAcceptUseCase,
+       _enableAutoAcceptDemoUseCase = enableAutoAcceptDemoUseCase;
 
   // State
   TransactionEntity? _transaction;
@@ -51,6 +60,7 @@ class TransactionController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isProcessing = false;
   String? _errorMessage;
+  DateTime? _buyerAcceptanceDeadline;
 
   // Getters
   TransactionEntity? get transaction => _transaction;
@@ -62,6 +72,7 @@ class TransactionController extends ChangeNotifier {
   bool get isProcessing => _isProcessing;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
+  DateTime? get buyerAcceptanceDeadline => _buyerAcceptanceDeadline;
 
   // Determine user's role (seller or buyer)
   FormRole getUserRole(String userId) {
@@ -77,7 +88,7 @@ class TransactionController extends ChangeNotifier {
 
     try {
       final result = await _getTransactionUseCase.call(transactionId);
-      
+
       await result.fold(
         (failure) async {
           _errorMessage = failure.message;
@@ -90,7 +101,9 @@ class TransactionController extends ChangeNotifier {
           }
 
           final role = getUserRole(userId);
-          final otherRole = role == FormRole.seller ? FormRole.buyer : FormRole.seller;
+          final otherRole = role == FormRole.seller
+              ? FormRole.buyer
+              : FormRole.seller;
 
           // Load all data in parallel
           await Future.wait([
@@ -99,7 +112,10 @@ class TransactionController extends ChangeNotifier {
             _loadOtherPartyForm(transactionId, otherRole),
             _loadTimeline(transactionId),
           ]);
-        }
+
+          // Load buyer acceptance deadline if applicable
+          await _loadBuyerAcceptanceDeadline();
+        },
       );
     } catch (e) {
       _errorMessage = 'Failed to load transaction: $e';
@@ -111,38 +127,30 @@ class TransactionController extends ChangeNotifier {
 
   Future<void> _loadChatMessages(String transactionId) async {
     final result = await _getChatMessagesUseCase.call(transactionId);
-    result.fold(
-      (failure) => null,
-      (messages) => _chatMessages = messages,
-    );
+    result.fold((failure) => null, (messages) => _chatMessages = messages);
   }
 
   Future<void> _loadMyForm(String transactionId, FormRole role) async {
     final result = await _getTransactionFormUseCase.call(transactionId, role);
-    result.fold(
-      (failure) => null,
-      (form) => _myForm = form,
-    );
+    result.fold((failure) => null, (form) => _myForm = form);
   }
 
   Future<void> _loadOtherPartyForm(String transactionId, FormRole role) async {
     final result = await _getTransactionFormUseCase.call(transactionId, role);
-    result.fold(
-      (failure) => null,
-      (form) => _otherPartyForm = form,
-    );
+    result.fold((failure) => null, (form) => _otherPartyForm = form);
   }
 
   Future<void> _loadTimeline(String transactionId) async {
     final result = await _getTimelineUseCase.call(transactionId);
-    result.fold(
-      (failure) => null,
-      (timeline) => _timeline = timeline,
-    );
+    result.fold((failure) => null, (timeline) => _timeline = timeline);
   }
 
   /// Send chat message
-  Future<void> sendMessage(String userId, String userName, String message) async {
+  Future<void> sendMessage(
+    String userId,
+    String userName,
+    String message,
+  ) async {
     if (_transaction == null || message.trim().isEmpty) return;
 
     _isProcessing = true;
@@ -155,13 +163,10 @@ class TransactionController extends ChangeNotifier {
         userName,
         message,
       );
-      
-      result.fold(
-        (failure) => _errorMessage = failure.message,
-        (success) {
-          if (success) _loadChatMessages(_transaction!.id);
-        }
-      );
+
+      result.fold((failure) => _errorMessage = failure.message, (success) {
+        if (success) _loadChatMessages(_transaction!.id);
+      });
     } catch (e) {
       _errorMessage = 'Failed to send message';
     } finally {
@@ -188,11 +193,13 @@ class TransactionController extends ChangeNotifier {
           if (success) {
             await loadTransaction(
               _transaction!.id,
-              form.role == FormRole.seller ? _transaction!.sellerId : _transaction!.buyerId,
+              form.role == FormRole.seller
+                  ? _transaction!.sellerId
+                  : _transaction!.buyerId,
             );
           }
           return success;
-        }
+        },
       );
     } catch (e) {
       _errorMessage = 'Failed to submit form';
@@ -211,7 +218,10 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _confirmFormUseCase.call(_transaction!.id, otherPartyRole);
+      final result = await _confirmFormUseCase.call(
+        _transaction!.id,
+        otherPartyRole,
+      );
       return await result.fold(
         (failure) {
           _errorMessage = failure.message;
@@ -219,11 +229,13 @@ class TransactionController extends ChangeNotifier {
         },
         (success) async {
           if (success) {
-            final userId = otherPartyRole == FormRole.buyer ? _transaction!.sellerId : _transaction!.buyerId;
+            final userId = otherPartyRole == FormRole.buyer
+                ? _transaction!.sellerId
+                : _transaction!.buyerId;
             await loadTransaction(_transaction!.id, userId);
           }
           return success;
-        }
+        },
       );
     } catch (e) {
       _errorMessage = 'Failed to confirm form';
@@ -236,7 +248,8 @@ class TransactionController extends ChangeNotifier {
 
   /// Submit to admin for approval
   Future<bool> submitToAdmin() async {
-    if (_transaction == null || !_transaction!.readyForAdminReview) return false;
+    if (_transaction == null || !_transaction!.readyForAdminReview)
+      return false;
 
     _isProcessing = true;
     notifyListeners();
@@ -253,7 +266,7 @@ class TransactionController extends ChangeNotifier {
             await loadTransaction(_transaction!.id, _transaction!.sellerId);
           }
           return success;
-        }
+        },
       );
     } catch (e) {
       _errorMessage = 'Failed to submit to admin';
@@ -287,7 +300,7 @@ class TransactionController extends ChangeNotifier {
             await loadTransaction(_transaction!.id, _transaction!.sellerId);
           }
           return success;
-        }
+        },
       );
     } catch (e) {
       _errorMessage = 'Failed to update delivery status';
@@ -310,7 +323,10 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _acceptVehicleUseCase.call(_transaction!.id, buyerId);
+      final result = await _acceptVehicleUseCase.call(
+        _transaction!.id,
+        buyerId,
+      );
       return await result.fold(
         (failure) {
           _errorMessage = failure.message;
@@ -321,7 +337,7 @@ class TransactionController extends ChangeNotifier {
             await loadTransaction(_transaction!.id, _transaction!.sellerId);
           }
           return success;
-        }
+        },
       );
     } catch (e) {
       _errorMessage = 'Failed to accept vehicle';
@@ -344,7 +360,11 @@ class TransactionController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _rejectVehicleUseCase.call(_transaction!.id, buyerId, reason);
+      final result = await _rejectVehicleUseCase.call(
+        _transaction!.id,
+        buyerId,
+        reason,
+      );
       return await result.fold(
         (failure) {
           _errorMessage = failure.message;
@@ -355,7 +375,7 @@ class TransactionController extends ChangeNotifier {
             await loadTransaction(_transaction!.id, _transaction!.sellerId);
           }
           return success;
-        }
+        },
       );
     } catch (e) {
       _errorMessage = 'Failed to reject vehicle';
@@ -369,5 +389,28 @@ class TransactionController extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  Future<void> _loadBuyerAcceptanceDeadline() async {
+    if (_transaction == null) return;
+    if (_transaction!.deliveryStatus != DeliveryStatus.delivered ||
+        _transaction!.buyerAcceptanceStatus != BuyerAcceptanceStatus.pending) {
+      _buyerAcceptanceDeadline = null;
+      return;
+    }
+    final result = await _getDeadlineUseCase.call(_transaction!.id);
+    result.fold(
+      (failure) => null,
+      (deadline) => _buyerAcceptanceDeadline = deadline,
+    );
+  }
+
+  Future<bool> enableAutoAcceptDemo() async {
+    if (_transaction == null) return false;
+    final result = await _enableAutoAcceptDemoUseCase.call(_transaction!.id);
+    return result.fold((failure) => false, (success) {
+      if (success) _loadBuyerAcceptanceDeadline();
+      return success;
+    });
   }
 }

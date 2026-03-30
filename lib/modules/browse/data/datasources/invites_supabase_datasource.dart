@@ -21,6 +21,11 @@ class InvitesSupabaseDatasource {
       );
     }
 
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId != null && inviteeId == currentUserId) {
+      throw Exception('You cannot invite yourself to your own auction');
+    }
+
     final res = await supabase.rpc(
       'invite_user_to_auction',
       params: {
@@ -41,11 +46,18 @@ class InvitesSupabaseDatasource {
       return null;
     }
 
-    final query = supabase.from('users').select('id');
+    final query = supabase.from('users').select('id, is_verified');
     final response = type == 'email'
         ? await query.ilike('email', normalized).limit(1).maybeSingle()
         : await query.ilike('username', normalized).limit(1).maybeSingle();
-    return response?['id'] as String?;
+
+    if (response == null) return null;
+
+    if (response['is_verified'] != true) {
+      throw Exception('This user has not completed KYC verification');
+    }
+
+    return response['id'] as String?;
   }
 
   Future<void> respondInvite({

@@ -59,6 +59,7 @@ class ListingDraftEntity {
 
   // Step 6: Documentation & Location
   final String? plateNumber;
+  final String? chassisNumber;
   final String? orcrStatus;
   final String? registrationStatus;
   final DateTime? registrationExpiry;
@@ -80,12 +81,20 @@ class ListingDraftEntity {
   final double? reservePrice;
   final DateTime? auctionEndDate;
   // Bidding Configuration (Step 8)
-  final String? biddingType; // 'public' or 'private'
+  final String? biddingType; // 'open', 'exclusive', or 'mystery'
+  final String?
+  exclusiveTier; // 'silver', 'gold', or 'silver_gold' (exclusive only)
   final double? bidIncrement; // Minimum increment for bids
   final double? minBidIncrement; // Alias for bidIncrement for clarity
   final double? depositAmount; // Required deposit to bid
   final bool? enableIncrementalBidding; // Allow price-based increments
   final bool? autoLiveAfterApproval; // Auto-launch after admin approval
+
+  // Schedule / Launch Mode: 'auto_live', 'manual', 'auto_schedule'
+  final String? scheduleLiveMode;
+  final DateTime? auctionStartDate; // Desired start time for auto_schedule
+  final int?
+  auctionDurationHours; // Duration-based end (alternative to end date)
 
   // Snipe Guard Configuration
   final bool? snipeGuardEnabled;
@@ -143,6 +152,7 @@ class ListingDraftEntity {
     this.warrantyDetails,
     this.usageType,
     this.plateNumber,
+    this.chassisNumber,
     this.orcrStatus,
     this.registrationStatus,
     this.registrationExpiry,
@@ -160,11 +170,15 @@ class ListingDraftEntity {
     this.reservePrice,
     this.auctionEndDate,
     this.biddingType,
+    this.exclusiveTier,
     this.bidIncrement,
     this.minBidIncrement,
     this.depositAmount,
     this.enableIncrementalBidding,
     this.autoLiveAfterApproval,
+    this.scheduleLiveMode,
+    this.auctionStartDate,
+    this.auctionDurationHours,
     this.snipeGuardEnabled,
     this.snipeGuardThresholdSeconds,
     this.snipeGuardExtendSeconds,
@@ -217,6 +231,7 @@ class ListingDraftEntity {
     String? warrantyDetails,
     String? usageType,
     String? plateNumber,
+    String? chassisNumber,
     String? orcrStatus,
     String? registrationStatus,
     DateTime? registrationExpiry,
@@ -234,11 +249,15 @@ class ListingDraftEntity {
     double? reservePrice,
     DateTime? auctionEndDate,
     String? biddingType,
+    String? exclusiveTier,
     double? bidIncrement,
     double? minBidIncrement,
     double? depositAmount,
     bool? enableIncrementalBidding,
     bool? autoLiveAfterApproval,
+    String? scheduleLiveMode,
+    DateTime? auctionStartDate,
+    int? auctionDurationHours,
     bool? snipeGuardEnabled,
     int? snipeGuardThresholdSeconds,
     int? snipeGuardExtendSeconds,
@@ -289,6 +308,7 @@ class ListingDraftEntity {
       warrantyDetails: warrantyDetails ?? this.warrantyDetails,
       usageType: usageType ?? this.usageType,
       plateNumber: plateNumber ?? this.plateNumber,
+      chassisNumber: chassisNumber ?? this.chassisNumber,
       orcrStatus: orcrStatus ?? this.orcrStatus,
       registrationStatus: registrationStatus ?? this.registrationStatus,
       registrationExpiry: registrationExpiry ?? this.registrationExpiry,
@@ -306,6 +326,7 @@ class ListingDraftEntity {
       reservePrice: reservePrice ?? this.reservePrice,
       auctionEndDate: auctionEndDate ?? this.auctionEndDate,
       biddingType: biddingType ?? this.biddingType,
+      exclusiveTier: exclusiveTier ?? this.exclusiveTier,
       bidIncrement: bidIncrement ?? this.bidIncrement,
       minBidIncrement: minBidIncrement ?? this.minBidIncrement,
       depositAmount: depositAmount ?? this.depositAmount,
@@ -313,6 +334,9 @@ class ListingDraftEntity {
           enableIncrementalBidding ?? this.enableIncrementalBidding,
       autoLiveAfterApproval:
           autoLiveAfterApproval ?? this.autoLiveAfterApproval,
+      scheduleLiveMode: scheduleLiveMode ?? this.scheduleLiveMode,
+      auctionStartDate: auctionStartDate ?? this.auctionStartDate,
+      auctionDurationHours: auctionDurationHours ?? this.auctionDurationHours,
       snipeGuardEnabled: snipeGuardEnabled ?? this.snipeGuardEnabled,
       snipeGuardThresholdSeconds:
           snipeGuardThresholdSeconds ?? this.snipeGuardThresholdSeconds,
@@ -369,6 +393,7 @@ class ListingDraftEntity {
       warrantyDetails: warrantyDetails,
       usageType: usageType,
       plateNumber: plateNumber,
+      chassisNumber: chassisNumber,
       orcrStatus: orcrStatus,
       registrationStatus: registrationStatus,
       registrationExpiry: registrationExpiry,
@@ -381,7 +406,8 @@ class ListingDraftEntity {
       knownIssues: knownIssues,
       features: features,
       auctionEndDate: auctionEndDate,
-      biddingType: biddingType ?? 'public',
+      biddingType: biddingType ?? 'open',
+      exclusiveTier: exclusiveTier,
       bidIncrement: bidIncrement ?? 100,
       minBidIncrement: minBidIncrement ?? 100,
       depositAmount: depositAmount ?? 0,
@@ -437,13 +463,17 @@ class ListingDraftEntity {
             barangay != null;
       case 8:
         // Step 8: Final Details, Pricing & Bidding
-        return description != null &&
-            description!.length >= 50 &&
-            startingPrice != null &&
-            auctionEndDate != null &&
-            bidIncrement != null &&
-            depositAmount != null &&
-            biddingType != null;
+        if (description == null ||
+            description!.length < 50 ||
+            startingPrice == null ||
+            bidIncrement == null ||
+            depositAmount == null ||
+            biddingType == null) {
+          return false;
+        }
+        // Must have a valid end date or duration
+        return auctionEndDate != null ||
+            (auctionDurationHours != null && auctionDurationHours! > 0);
       case 9:
         // Step 9: Summary - always complete if reached
         return true;

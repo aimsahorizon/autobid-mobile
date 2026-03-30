@@ -21,7 +21,13 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
   Future<Map<String, List<UserBidEntity>>> getUserBids([String? userId]) async {
     if (userId == null) {
       debugPrint('[UserBidsSupabaseDataSource] getUserBids: userId is null');
-      return {'active': [], 'won': [], 'lost': [], 'cancelled': []};
+      return {
+        'active': [],
+        'won': [],
+        'lost': [],
+        'cancelled': [],
+        'standby': [],
+      };
     }
 
     debugPrint(
@@ -53,7 +59,7 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
 
       if (bidsList.isEmpty) {
         debugPrint('[UserBidsSupabaseDataSource] No bids found for user');
-        return {'active': [], 'won': [], 'lost': []};
+        return {'active': [], 'won': [], 'lost': [], 'standby': []};
       }
 
       // Group bids by auction_id to get max bid per auction
@@ -181,7 +187,9 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
 
           debugPrint('[UserBidsSupabaseDataSource]   title: $title');
           debugPrint('[UserBidsSupabaseDataSource]   statusName: $statusName');
-          debugPrint('[UserBidsSupabaseDataSource]   vehicle: $vehicleYear $brand $model $variant');
+          debugPrint(
+            '[UserBidsSupabaseDataSource]   vehicle: $vehicleYear $brand $model $variant',
+          );
           debugPrint('[UserBidsSupabaseDataSource]   endTime: $endTime');
 
           // Check if auction ended: consider both end_time and explicit status
@@ -210,29 +218,47 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
             '[UserBidsSupabaseDataSource]   isDealFailed: $isDealFailed',
           );
 
-          // Get highest bidder
-          String? highestBidderId;
+          // Determine if user is the current transaction buyer
+          // (more reliable than get_highest_bid which ignores bid status)
+          bool isCurrentBuyer = false;
           try {
-            final rpcResult = await _supabase.rpc(
-              'get_highest_bid',
-              params: {'auction_id_param': auctionId},
-            );
-            if (rpcResult is List && rpcResult.isNotEmpty) {
-              highestBidderId =
-                  (rpcResult.first as Map<String, dynamic>)['bidder_id']
-                      as String?;
-            } else if (rpcResult is Map) {
-              highestBidderId = rpcResult['bidder_id'] as String?;
+            final txnResult = await _supabase
+                .from('auction_transactions')
+                .select('buyer_id')
+                .eq('auction_id', auctionId)
+                .maybeSingle();
+            if (txnResult != null) {
+              isCurrentBuyer = txnResult['buyer_id'] == userId;
             }
           } catch (_) {
-            highestBidderId = null;
+            isCurrentBuyer = false;
           }
 
-          final isUserHighestBidder =
-              highestBidderId != null && highestBidderId == userId;
+          // Fallback: for ended auctions without a transaction yet, use highest bid
+          bool isUserHighestBidder = isCurrentBuyer;
+          if (!isCurrentBuyer && !isInTransaction && !isDealFailed) {
+            try {
+              final rpcResult = await _supabase.rpc(
+                'get_highest_bid',
+                params: {'auction_id_param': auctionId},
+              );
+              String? highestBidderId;
+              if (rpcResult is List && rpcResult.isNotEmpty) {
+                highestBidderId =
+                    (rpcResult.first as Map<String, dynamic>)['bidder_id']
+                        as String?;
+              } else if (rpcResult is Map) {
+                highestBidderId = rpcResult['bidder_id'] as String?;
+              }
+              isUserHighestBidder =
+                  highestBidderId != null && highestBidderId == userId;
+            } catch (_) {
+              isUserHighestBidder = false;
+            }
+          }
 
           debugPrint(
-            '[UserBidsSupabaseDataSource]   highestBidderId: $highestBidderId',
+            '[UserBidsSupabaseDataSource]   isCurrentBuyer: $isCurrentBuyer',
           );
           debugPrint(
             '[UserBidsSupabaseDataSource]   isUserHighestBidder: $isUserHighestBidder',
@@ -354,11 +380,109 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
       debugPrint(
         '[UserBidsSupabaseDataSource] SUMMARY: active=${activeBids.length}, won=${wonBids.length}, lost=${lostBids.length}, cancelled=${cancelledBids.length}',
       );
+
+      // Fetch standby queue entries for this user
+      final List<UserBidEntity> standbyBids = [];
+      try {
+        final standbyResponse = await _supabase
+            .from('auction_standby')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('status', 'waiting');
+
+        final standbyList = List<Map<String, dynamic>>.from(standbyResponse);
+        final standbyAuctionIds = standbyList
+            .map((s) => s['auction_id'] as String)
+            .toSet();
+
+        // Remove lost bids that are in standby (they graduate to standby tab)
+        lostBids.removeWhere((b) => standbyAuctionIds.contains(b.auctionId));
+
+        for (final standby in standbyList) {
+          final aId = standby['auction_id'] as String;
+          try {
+            final auctionResp = await _supabase
+                .from('auctions')
+                .select('*')
+                .eq('id', aId)
+                .maybeSingle();
+
+            if (auctionResp == null) continue;
+
+            String? coverUrl;
+            try {
+              final photoResp = await _supabase
+                  .from('auction_photos')
+                  .select('photo_url')
+                  .eq('auction_id', aId)
+                  .eq('is_primary', true)
+                  .limit(1);
+              if (photoResp.isNotEmpty) {
+                coverUrl = photoResp.first['photo_url'] as String?;
+              }
+            } catch (_) {}
+
+            String brand = '';
+            String model = '';
+            String? variant;
+            int year = 0;
+            try {
+              final vResp = await _supabase
+                  .from('auction_vehicles')
+                  .select('brand, model, variant, year')
+                  .eq('auction_id', aId)
+                  .limit(1);
+              if (vResp.isNotEmpty) {
+                brand = vResp.first['brand'] as String? ?? '';
+                model = vResp.first['model'] as String? ?? '';
+                variant = vResp.first['variant'] as String?;
+                year = (vResp.first['year'] as num?)?.toInt() ?? 0;
+              }
+            } catch (_) {}
+
+            standbyBids.add(
+              UserBidEntity(
+                id: standby['id'] as String? ?? '',
+                auctionId: aId,
+                carImageUrl: coverUrl ?? '',
+                year: year,
+                make: brand,
+                model: model,
+                variant: variant,
+                userBidAmount:
+                    (standby['bid_amount'] as num?)?.toDouble() ?? 0.0,
+                currentHighestBid:
+                    (auctionResp['current_price'] as num?)?.toDouble() ?? 0.0,
+                endTime:
+                    DateTime.tryParse(
+                      auctionResp['end_time'] as String? ?? '',
+                    ) ??
+                    DateTime.now(),
+                status: UserBidStatus.standby,
+                hasDeposited: true,
+                isHighestBidder: false,
+                userBidCount: 0,
+                canAccess: false,
+                sellerId: auctionResp['seller_id'] as String?,
+                standbyNote: standby['note'] as String?,
+              ),
+            );
+          } catch (e) {
+            debugPrint(
+              '[UserBidsSupabaseDataSource] Error loading standby auction $aId: $e',
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('[UserBidsSupabaseDataSource] Error loading standby: $e');
+      }
+
       return {
         'active': activeBids,
         'won': wonBids,
         'lost': lostBids,
         'cancelled': cancelledBids,
+        'standby': standbyBids,
       };
     } catch (e, st) {
       debugPrint('[UserBidsSupabaseDataSource] Failed to load bids: $e\n$st');
@@ -404,5 +528,19 @@ class UserBidsSupabaseDataSource implements BidsRemoteDataSource {
         .stream(primaryKey: ['id']);
 
     return StreamGroup.merge([myBidsStream, auctionsStream]);
+  }
+
+  /// Join the standby queue for an auction
+  Future<bool> joinStandbyQueue(String auctionId) async {
+    try {
+      final result = await _supabase.rpc(
+        'join_standby_queue',
+        params: {'p_auction_id': auctionId},
+      );
+      return result == true;
+    } catch (e) {
+      debugPrint('[UserBidsSupabaseDataSource] Error joining standby: $e');
+      return false;
+    }
   }
 }

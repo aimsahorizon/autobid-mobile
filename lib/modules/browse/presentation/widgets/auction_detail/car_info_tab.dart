@@ -63,8 +63,22 @@ class _AuctionConfigSection extends StatelessWidget {
         children: [
           _InfoRow(
             label: 'Bidding Type',
-            value: auction.biddingType == 'public' ? 'Public' : 'Private',
+            value: auction.biddingType == 'exclusive'
+                ? 'Exclusive'
+                : auction.biddingType == 'mystery'
+                ? 'Mystery'
+                : 'Open',
           ),
+          if (auction.biddingType == 'exclusive' &&
+              auction.exclusiveTier != null)
+            _InfoRow(
+              label: 'Required Tier',
+              value: auction.exclusiveTier == 'silver'
+                  ? 'Silver Only'
+                  : auction.exclusiveTier == 'gold'
+                  ? 'Gold Only'
+                  : 'Silver & Gold',
+            ),
           _InfoRow(
             label: 'Increment Type',
             value: auction.enableIncrementalBidding ? 'Dynamic' : 'Fixed',
@@ -366,6 +380,12 @@ class _DocumentationSection extends StatelessWidget {
             ),
           if (auction.plateNumber != null)
             _InfoRow(label: 'Plate Number', value: auction.plateNumber!),
+          if (auction.chassisNumber != null &&
+              auction.chassisNumber!.isNotEmpty)
+            _InfoRow(
+              label: 'Chassis Number (VIN)',
+              value: auction.chassisNumber!,
+            ),
           if (auction.orcrStatus != null)
             _InfoRow(label: 'OR/CR Status', value: auction.orcrStatus!),
           if (auction.registrationStatus != null)

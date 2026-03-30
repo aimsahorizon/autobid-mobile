@@ -28,6 +28,8 @@ class DetailTabsSection extends StatelessWidget {
   final bool isLoadingQA;
   final Function(String category, String question) onAskQuestion;
   final Function(String questionId) onToggleLike;
+  final bool isMystery;
+  final bool isMysteryEnded;
 
   const DetailTabsSection({
     super.key,
@@ -38,6 +40,8 @@ class DetailTabsSection extends StatelessWidget {
     required this.onToggleLike,
     this.isLoadingBidHistory = false,
     this.isLoadingQA = false,
+    this.isMystery = false,
+    this.isMysteryEnded = false,
   });
 
   @override
@@ -82,8 +86,8 @@ class DetailTabsSection extends StatelessWidget {
               ),
               tabs: const [
                 Tab(text: 'Bid History'), // Shows auction bid timeline
-                Tab(text: 'Car Info'),    // Shows car specifications
-                Tab(text: 'Q&A'),         // Shows questions & answers
+                Tab(text: 'Car Info'), // Shows car specifications
+                Tab(text: 'Q&A'), // Shows questions & answers
               ],
             ),
           ),
@@ -96,6 +100,8 @@ class DetailTabsSection extends StatelessWidget {
                 BidHistoryTab(
                   bidHistory: bidHistory,
                   isLoading: isLoadingBidHistory,
+                  isMystery: isMystery,
+                  isMysteryEnded: isMysteryEnded,
                 ),
                 // Car Info Tab: Static car details and specs
                 CarInfoTab(auction: auction),

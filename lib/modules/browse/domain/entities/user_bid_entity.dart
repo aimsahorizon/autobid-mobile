@@ -83,4 +83,7 @@ enum UserBidStatus {
 
   /// Deal was cancelled after winning
   cancelled,
+
+  /// User opted to stand by for this auction
+  standby,
 }

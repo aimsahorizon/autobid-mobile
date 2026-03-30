@@ -26,13 +26,14 @@ class ComboBoxWidget extends StatefulWidget {
 
 class _ComboBoxWidgetState extends State<ComboBoxWidget> {
   late TextEditingController _controller;
-  List<String> _filteredItems = [];
+  final FocusNode _focusNode = FocusNode();
+  final GlobalKey _autocompleteKey = GlobalKey();
+  bool _selecting = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value ?? '');
-    _filteredItems = widget.items;
   }
 
   @override
@@ -45,66 +46,122 @@ class _ComboBoxWidgetState extends State<ComboBoxWidget> {
 
   @override
   void dispose() {
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
 
-  void _filterItems(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredItems = widget.items;
-      } else {
-        _filteredItems = widget.items
-            .where((item) => item.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-      }
-    });
+  void _selectItem(String value) {
+    _selecting = true;
+    _controller.text = value;
+    _controller.selection = TextSelection.collapsed(offset: value.length);
+    _selecting = false;
+    widget.onChanged(value);
+    _focusNode.unfocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: _controller,
-      enabled: widget.enabled,
-      validator: widget.validator,
-      onChanged: (value) {
-        _filterItems(value);
-        widget.onChanged(value.isEmpty ? null : value);
+    return RawAutocomplete<String>(
+      key: _autocompleteKey,
+      textEditingController: _controller,
+      focusNode: _focusNode,
+      optionsBuilder: (textEditingValue) {
+        if (textEditingValue.text.isEmpty) {
+          return widget.items;
+        }
+        return widget.items.where(
+          (item) =>
+              item.toLowerCase().contains(textEditingValue.text.toLowerCase()),
+        );
       },
-      onTap: () {
-        setState(() {
-          _filteredItems = widget.items;
-        });
-      },
-      decoration: InputDecoration(
-        labelText: widget.label,
-        hintText: widget.hint,
-        suffixIcon: PopupMenuButton<String>(
-          icon: const Icon(Icons.arrow_drop_down),
+      onSelected: _selectItem,
+      optionsViewOpenDirection: OptionsViewOpenDirection.down,
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        return TextFormField(
+          controller: controller,
+          focusNode: focusNode,
           enabled: widget.enabled,
-          onSelected: (value) {
-            _controller.text = value;
-            widget.onChanged(value);
-          },
-          itemBuilder: (context) {
-            if (_filteredItems.isEmpty) {
-              return [
-                PopupMenuItem<String>(
-                  enabled: false,
-                  child: Text(
-                    'No matches found',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ),
-              ];
+          validator: widget.validator,
+          autovalidateMode: widget.validator != null
+              ? AutovalidateMode.onUserInteraction
+              : AutovalidateMode.disabled,
+          onChanged: (value) {
+            if (!_selecting) {
+              widget.onChanged(value.isEmpty ? null : value);
             }
-            return _filteredItems.map((item) {
-              return PopupMenuItem<String>(value: item, child: Text(item));
-            }).toList();
           },
-        ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+          onFieldSubmitted: (_) => onFieldSubmitted(),
+          decoration: InputDecoration(
+            labelText: widget.label,
+            hintText: widget.hint,
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.arrow_drop_down),
+              onPressed: widget.enabled
+                  ? () {
+                      if (_focusNode.hasFocus) {
+                        _focusNode.unfocus();
+                      } else {
+                        // Show all options
+                        _controller.selection = TextSelection(
+                          baseOffset: 0,
+                          extentOffset: _controller.text.length,
+                        );
+                        _focusNode.requestFocus();
+                      }
+                    }
+                  : null,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: 200,
+                maxWidth: MediaQuery.of(context).size.width - 32,
+              ),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                itemBuilder: (context, index) {
+                  final item = options.elementAt(index);
+                  final isSelected = item == _controller.text;
+                  return InkWell(
+                    onTap: () => onSelected(item),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      color: isSelected
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.1)
+                          : null,
+                      child: Text(
+                        item,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -165,7 +165,7 @@ class AdminSupabaseDataSource {
     }
   }
 
-  /// Approve a listing (move to approved; seller schedules later)
+  /// Approve a listing — respects auto_live and auto_schedule preferences
   Future<void> approveListing(String auctionId, {String? notes}) async {
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
@@ -182,22 +182,62 @@ class AdminSupabaseDataSource {
           .single();
 
       final adminUserId = adminUserResponse['id'] as String;
-      // Approval should keep listing in 'approved' status; seller will schedule/go live later
-      final statusId = await _getStatusId('approved');
 
-      await _supabase
+      // Read the seller's scheduling preferences from the auction
+      final auctionRow = await _supabase
           .from('auctions')
-          .update({
-            'status_id': statusId,
-            'reviewed_at': DateTime.now().toIso8601String(),
-            'reviewed_by': adminUserId,
-            'review_notes': notes,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', auctionId);
+          .select('auto_live_after_approval, schedule_live_mode, end_time')
+          .eq('id', auctionId)
+          .single();
+
+      final autoLive = auctionRow['auto_live_after_approval'] as bool? ?? false;
+      final scheduleLiveMode =
+          auctionRow['schedule_live_mode'] as String? ?? 'manual';
+      final existingEndTime = auctionRow['end_time'] as String?;
+
+      // Determine target status and timing based on preferences
+      String targetStatus;
+      Map<String, dynamic> updateData;
+      final now = DateTime.now().toUtc();
+
+      if (autoLive || scheduleLiveMode == 'auto_live') {
+        // Auto-live: go live immediately
+        targetStatus = 'live';
+        final endTime = existingEndTime != null
+            ? DateTime.parse(existingEndTime)
+            : now.add(const Duration(days: 7));
+        final safeEnd = endTime.isAfter(now)
+            ? endTime
+            : now.add(const Duration(days: 7));
+
+        updateData = {
+          'start_time': now.toIso8601String(),
+          'end_time': safeEnd.toIso8601String(),
+        };
+      } else if (scheduleLiveMode == 'auto_schedule') {
+        // Auto-schedule: set to scheduled status
+        targetStatus = 'scheduled';
+        updateData = {};
+      } else {
+        // Manual: seller decides when to go live
+        targetStatus = 'approved';
+        updateData = {};
+      }
+
+      final statusId = await _getStatusId(targetStatus);
+
+      updateData.addAll({
+        'status_id': statusId,
+        'reviewed_at': now.toIso8601String(),
+        'reviewed_by': adminUserId,
+        'review_notes': notes,
+        'updated_at': now.toIso8601String(),
+      });
+
+      await _supabase.from('auctions').update(updateData).eq('id', auctionId);
 
       debugPrint(
-        '[ADMIN] Approved listing $auctionId -> status: approved by admin_user $adminUserId (user: $currentUserId)',
+        '[ADMIN] Approved listing $auctionId -> status: $targetStatus (auto_live=$autoLive, schedule_mode=$scheduleLiveMode) by admin_user $adminUserId (user: $currentUserId)',
       );
     } catch (e) {
       throw Exception('Failed to approve listing: $e');

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/policy_constants.dart';
+import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
+import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 
@@ -16,6 +19,34 @@ class Step9Summary extends StatelessWidget {
 
   Future<void> _submitListing(BuildContext context) async {
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
+
+    // Suspension check
+    if (userId.isNotEmpty) {
+      final suspension = await PolicyPenaltyDatasource.instance.checkSuspension(
+        userId,
+      );
+      if (suspension.isSuspended) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You are suspended${suspension.isPermanent ? ' permanently' : ' until ${suspension.endsAt}'}: ${suspension.reason}',
+            ),
+            backgroundColor: ColorConstants.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+
+    // Policy acceptance check
+    if (!context.mounted) return;
+    final accepted = await PolicyAcceptanceDialog.show(
+      context: context,
+      policyType: PolicyConstants.listingRules,
+    );
+    if (!accepted) return;
 
     final success = await controller.submitListing(userId);
 
@@ -285,30 +316,35 @@ class Step9Summary extends StatelessWidget {
   }
 
   Widget _buildBiddingTypeSummary(ListingDraftEntity draft, bool isDark) {
+    final bt = draft.biddingType ?? 'open';
+    final isExclusive = bt == 'exclusive';
+    final isMystery = bt == 'mystery';
+    final Color typeColor = isExclusive
+        ? Colors.orange
+        : isMystery
+        ? Colors.purple
+        : Colors.blue;
+    final IconData typeIcon = isExclusive
+        ? Icons.lock
+        : isMystery
+        ? Icons.visibility_off
+        : Icons.public;
+    final String typeLabel = isExclusive
+        ? 'Exclusive Auction'
+        : isMystery
+        ? 'Mystery Auction'
+        : 'Open Auction';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: (draft.biddingType ?? 'public') == 'private'
-            ? Colors.orange.withAlpha((0.08 * 255).toInt())
-            : Colors.blue.withAlpha((0.08 * 255).toInt()),
+        color: typeColor.withAlpha((0.08 * 255).toInt()),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: (draft.biddingType ?? 'public') == 'private'
-              ? Colors.orange.withAlpha((0.3 * 255).toInt())
-              : Colors.blue.withAlpha((0.3 * 255).toInt()),
-        ),
+        border: Border.all(color: typeColor.withAlpha((0.3 * 255).toInt())),
       ),
       child: Row(
         children: [
-          Icon(
-            (draft.biddingType ?? 'public') == 'private'
-                ? Icons.lock
-                : Icons.public,
-            color: (draft.biddingType ?? 'public') == 'private'
-                ? Colors.orange
-                : Colors.blue,
-            size: 28,
-          ),
+          Icon(typeIcon, color: typeColor, size: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -325,9 +361,7 @@ class Step9Summary extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  (draft.biddingType ?? 'public') == 'private'
-                      ? 'Private Auction'
-                      : 'Public Auction',
+                  typeLabel,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

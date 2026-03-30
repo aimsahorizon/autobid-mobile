@@ -7,6 +7,9 @@ class BidHistoryEntity {
   /// ID of the auction this bid belongs to
   final String auctionId;
 
+  /// User ID of the bidder (used for alias generation)
+  final String? bidderId;
+
   /// Display name of the bidder (anonymized for privacy)
   final String bidderName;
 
@@ -28,6 +31,7 @@ class BidHistoryEntity {
   const BidHistoryEntity({
     required this.id,
     required this.auctionId,
+    this.bidderId,
     required this.bidderName,
     this.username,
     required this.amount,

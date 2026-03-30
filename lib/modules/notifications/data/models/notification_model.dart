@@ -119,6 +119,8 @@ class NotificationModel extends NotificationEntity {
         return NotificationSubType.reviewReceived;
       case 'activity_log':
         return NotificationSubType.activityLog;
+      case 'listing_status_update':
+        return NotificationSubType.listingStatusUpdate;
       case 'agreement_update':
         return NotificationSubType.agreementUpdate;
       case 'installment_update':
@@ -195,6 +197,8 @@ class NotificationModel extends NotificationEntity {
         return 'review_received';
       case NotificationSubType.activityLog:
         return 'activity_log';
+      case NotificationSubType.listingStatusUpdate:
+        return 'listing_status_update';
       case NotificationSubType.agreementUpdate:
         return 'agreement_update';
       case NotificationSubType.installmentUpdate:
@@ -240,6 +244,7 @@ class NotificationModel extends NotificationEntity {
         return NotificationType.auctionUpdate;
       // Listing category
       case NotificationSubType.auctionApproved:
+      case NotificationSubType.listingStatusUpdate:
         return NotificationType.listingUpdate;
       // Invite category
       case NotificationSubType.auctionInvite:

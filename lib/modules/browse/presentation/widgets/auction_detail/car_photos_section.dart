@@ -4,6 +4,31 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/auction_detail_entity.dart';
 
+bool _isAssetPath(String url) => url.startsWith('assets/');
+
+Widget _buildImage(
+  String url, {
+  BoxFit fit = BoxFit.cover,
+  Widget? placeholder,
+  Widget? errorWidget,
+}) {
+  final fallback =
+      errorWidget ??
+      Container(
+        color: ColorConstants.backgroundSecondaryLight,
+        child: const Icon(Icons.image_not_supported),
+      );
+  if (_isAssetPath(url)) {
+    return Image.asset(url, fit: fit, errorBuilder: (_, __, ___) => fallback);
+  }
+  return CachedNetworkImage(
+    imageUrl: url,
+    fit: fit,
+    placeholder: placeholder != null ? (_, __) => placeholder : null,
+    errorWidget: (_, __, ___) => fallback,
+  );
+}
+
 class CarPhotosSection extends StatefulWidget {
   final CarPhotosEntity photos;
 
@@ -144,10 +169,9 @@ class _CarPhotosSectionState extends State<CarPhotosSection> {
           onTap: () => _showFullScreenImage(context, index),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: _currentPhotos[index],
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
+            child: _buildImage(
+              _currentPhotos[index],
+              placeholder: Container(
                 color: ColorConstants.backgroundSecondaryLight,
                 child: const Center(
                   child: SizedBox(
@@ -156,10 +180,6 @@ class _CarPhotosSectionState extends State<CarPhotosSection> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: ColorConstants.backgroundSecondaryLight,
-                child: const Icon(Icons.image_not_supported),
               ),
             ),
           ),
@@ -203,12 +223,12 @@ class _FullScreenGallery extends StatelessWidget {
           controller: PageController(initialPage: initialIndex),
           itemCount: photos.length,
           itemBuilder: (context, index) {
+            final url = photos[index];
             return InteractiveViewer(
               child: Center(
-                child: CachedNetworkImage(
-                  imageUrl: photos[index],
-                  fit: BoxFit.contain,
-                ),
+                child: _isAssetPath(url)
+                    ? Image.asset(url, fit: BoxFit.contain)
+                    : CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
               ),
             );
           },

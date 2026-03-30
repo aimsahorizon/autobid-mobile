@@ -56,40 +56,50 @@ Future<void> initTransactionsModule() async {
   sl.registerLazySingleton(() => UpdateDeliveryStatusUseCase(sl()));
   sl.registerLazySingleton(() => AcceptVehicleUseCase(sl()));
   sl.registerLazySingleton(() => RejectVehicleUseCase(sl()));
+  sl.registerLazySingleton(() => GetBuyerAcceptanceDeadlineUseCase(sl()));
+  sl.registerLazySingleton(() => CheckAutoAcceptUseCase(sl()));
+  sl.registerLazySingleton(() => EnableAutoAcceptDemoUseCase(sl()));
 
   // Realtime Datasource (Singleton)
   sl.registerLazySingleton(() => TransactionRealtimeDataSource(sl()));
 
   // Controllers (Factory)
-  sl.registerFactory(() => TransactionController(
-    getTransactionUseCase: sl(),
-    getChatMessagesUseCase: sl(),
-    getTransactionFormUseCase: sl(),
-    getTimelineUseCase: sl(),
-    sendMessageUseCase: sl(),
-    submitFormUseCase: sl(),
-    confirmFormUseCase: sl(),
-    submitToAdminUseCase: sl(),
-    updateDeliveryStatusUseCase: sl(),
-    acceptVehicleUseCase: sl(),
-    rejectVehicleUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => TransactionController(
+      getTransactionUseCase: sl(),
+      getChatMessagesUseCase: sl(),
+      getTransactionFormUseCase: sl(),
+      getTimelineUseCase: sl(),
+      sendMessageUseCase: sl(),
+      submitFormUseCase: sl(),
+      confirmFormUseCase: sl(),
+      submitToAdminUseCase: sl(),
+      updateDeliveryStatusUseCase: sl(),
+      acceptVehicleUseCase: sl(),
+      rejectVehicleUseCase: sl(),
+      getDeadlineUseCase: sl(),
+      checkAutoAcceptUseCase: sl(),
+      enableAutoAcceptDemoUseCase: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => TransactionRealtimeController(
-    sl(),
-  ));
-  
-  sl.registerFactory(() => TransactionsStatusController(
-    sl(), // TransactionSupabaseDataSource
-    sl<TransactionRealtimeDataSource>(),
-    sl<SupabaseClient>().auth.currentUser?.id ?? '',
-  ));
-  
-  sl.registerFactory(() => BuyerSellerTransactionsController(
-    sl<TransactionSupabaseDataSource>(),
-    sl<TransactionRealtimeDataSource>(),
-    sl<SupabaseClient>().auth.currentUser?.id ?? '',
-  ));
+  sl.registerFactory(() => TransactionRealtimeController(sl()));
+
+  sl.registerFactory(
+    () => TransactionsStatusController(
+      sl(), // TransactionSupabaseDataSource
+      sl<TransactionRealtimeDataSource>(),
+      sl<SupabaseClient>().auth.currentUser?.id ?? '',
+    ),
+  );
+
+  sl.registerFactory(
+    () => BuyerSellerTransactionsController(
+      sl<TransactionSupabaseDataSource>(),
+      sl<TransactionRealtimeDataSource>(),
+      sl<SupabaseClient>().auth.currentUser?.id ?? '',
+    ),
+  );
 }
 
 /// Transactions Module - Manages buyer-seller transactions (Legacy)
@@ -97,10 +107,10 @@ class TransactionsModule {
   static final TransactionsModule _instance = TransactionsModule._internal();
   static TransactionsModule get instance => _instance;
   TransactionsModule._internal();
-  
+
   // Legacy methods removed as they are replaced by DI
   // Keeping class for potential static references if any remain
-  
+
   TransactionRealtimeController createRealtimeTransactionController() {
     // Fallback for any legacy calls not yet using sl
     return TransactionRealtimeController(

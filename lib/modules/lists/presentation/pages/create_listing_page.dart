@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart'; // Add for kDebugMode
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -63,7 +64,10 @@ class _CreateListingPageState extends State<CreateListingPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () async {
+              await widget.controller.discardDraft();
+              if (mounted) Navigator.pop(context, true);
+            },
             child: const Text('Discard'),
           ),
           TextButton(
@@ -325,12 +329,43 @@ class _CreateListingPageState extends State<CreateListingPage> {
     });
   }
 
+  /// Cached asset manifest entries per basePath
+  Map<String, List<String>>? _assetManifestCache;
+
+  Future<List<String>> _loadAssetManifest() async {
+    if (_assetManifestCache != null) return _assetManifestCache!.keys.toList();
+    try {
+      final manifestJson = await rootBundle.loadString('AssetManifest.json');
+      final manifest = Map<String, dynamic>.from(
+        (manifestJson.startsWith('{'))
+            ? Map<String, dynamic>.from(json.decode(manifestJson) as Map)
+            : <String, dynamic>{},
+      );
+      _assetManifestCache = manifest.map((k, v) => MapEntry(k, [k]));
+      return _assetManifestCache!.keys.toList();
+    } catch (_) {
+      _assetManifestCache = {};
+      return [];
+    }
+  }
+
   Future<String?> _probeAsset(String basePath, String key) async {
-    for (final ext in ['png', 'jpeg', 'jpg']) {
-      try {
-        await rootBundle.load('$basePath/$key.$ext');
-        return '$basePath/$key.$ext';
-      } catch (_) {}
+    final manifest = await _loadAssetManifest();
+    final prefix = '$basePath/';
+
+    // Build candidate keys: original, singular (drop trailing 's'), plural (add 's')
+    final candidates = <String>[key];
+    if (key.endsWith('s')) {
+      candidates.add(key.substring(0, key.length - 1));
+    } else {
+      candidates.add('${key}s');
+    }
+
+    for (final candidate in candidates) {
+      for (final ext in ['jpg', 'jpeg', 'png']) {
+        final path = '$prefix$candidate.$ext';
+        if (manifest.contains(path)) return path;
+      }
     }
     return null;
   }
@@ -401,7 +436,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
           'bidIncrement': 5000.0,
           'minBidIncrement': 2000.0,
           'depositAmount': 20000.0,
-          'biddingType': 'public',
+          'biddingType': 'open',
           'enableIncrementalBidding': true,
           'autoLiveAfterApproval': true,
           'snipeGuardEnabled': true,
@@ -477,7 +512,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
           'bidIncrement': 10000.0,
           'minBidIncrement': 5000.0,
           'depositAmount': 30000.0,
-          'biddingType': 'private',
+          'biddingType': 'exclusive',
           'enableIncrementalBidding': false,
           'autoLiveAfterApproval': false,
           'snipeGuardEnabled': true,
@@ -553,7 +588,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
           'bidIncrement': 10000.0,
           'minBidIncrement': 5000.0,
           'depositAmount': 50000.0,
-          'biddingType': 'public',
+          'biddingType': 'mystery',
           'enableIncrementalBidding': true,
           'autoLiveAfterApproval': true,
           'snipeGuardEnabled': false,
@@ -573,18 +608,22 @@ class _CreateListingPageState extends State<CreateListingPage> {
     final basePath = 'assets/autofill_cars/$carFolder';
     final car = _getCarDetails(carFolder);
 
-    // Build photo URLs by probing assets
+    // Build photo URLs by probing assets — only add found assets
     final photoUrls = <String, List<String>>{};
 
     for (final category in PhotoCategories.all) {
       final key = PhotoCategories.toKey(category);
       final assetPath = await _probeAsset(basePath, key);
-      photoUrls[key] = [assetPath ?? category];
+      if (assetPath != null) {
+        photoUrls[key] = [assetPath];
+      }
     }
 
-    // Cover photo: use front_view asset if available
+    // Cover photo: use front_view asset, or first found photo
     final frontAsset = await _probeAsset(basePath, 'front_view');
-    final coverPhotoUrl = frontAsset ?? 'Front View';
+    final coverPhotoUrl =
+        frontAsset ??
+        (photoUrls.isNotEmpty ? photoUrls.values.first.first : null);
 
     // Deed of sale
     final deedAsset = await _probeAsset(basePath, 'deed_of_sale');
@@ -942,34 +981,57 @@ class _CreateListingPageState extends State<CreateListingPage> {
     );
   }
 
+  // Cache step widgets to preserve state across tab changes
+  final Map<int, Widget> _stepCache = {};
+
+  Widget _getOrCreateStep(int step) {
+    return _stepCache.putIfAbsent(step, () {
+      switch (step) {
+        case 1:
+          return Step7Photos(controller: widget.controller);
+        case 2:
+          return Step1BasicInfo(controller: widget.controller);
+        case 3:
+          return Step2MechanicalSpec(controller: widget.controller);
+        case 4:
+          return Step3Dimensions(controller: widget.controller);
+        case 5:
+          return Step4Exterior(controller: widget.controller);
+        case 6:
+          return Step5Condition(controller: widget.controller);
+        case 7:
+          return Step6Documentation(controller: widget.controller);
+        case 8:
+          return Step8FinalDetails(controller: widget.controller);
+        case 9:
+          return Step9Summary(
+            controller: widget.controller,
+            onSubmitSuccess: _showSuccessModal,
+          );
+        default:
+          return const Center(child: Text('Invalid step'));
+      }
+    });
+  }
+
   Widget _buildStepContent() {
-    switch (widget.controller.currentStep) {
-      case 1:
-        // NEW ORDER: Photos first with AI detection
-        return Step7Photos(controller: widget.controller);
-      case 2:
-        // AI-prefilled from photos
-        return Step1BasicInfo(controller: widget.controller);
-      case 3:
-        return Step2MechanicalSpec(controller: widget.controller);
-      case 4:
-        return Step3Dimensions(controller: widget.controller);
-      case 5:
-        return Step4Exterior(controller: widget.controller);
-      case 6:
-        return Step5Condition(controller: widget.controller);
-      case 7:
-        return Step6Documentation(controller: widget.controller);
-      case 8:
-        return Step8FinalDetails(controller: widget.controller);
-      case 9:
-        return Step9Summary(
-          controller: widget.controller,
-          onSubmitSuccess: _showSuccessModal,
-        );
-      default:
-        return const Center(child: Text('Invalid step'));
+    final currentStep = widget.controller.currentStep;
+    // Pre-build current step so it's cached
+    _getOrCreateStep(currentStep);
+
+    // Build all cached steps in an IndexedStack to preserve state
+    final steps = <int>[];
+    for (int i = 1; i <= 9; i++) {
+      if (_stepCache.containsKey(i)) {
+        steps.add(i);
+      }
     }
+
+    final currentIndex = steps.indexOf(currentStep);
+    return IndexedStack(
+      index: currentIndex >= 0 ? currentIndex : 0,
+      children: steps.map((s) => _stepCache[s]!).toList(),
+    );
   }
 
   Widget _buildNavigationBar(bool isDark) {

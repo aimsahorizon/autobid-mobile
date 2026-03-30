@@ -145,11 +145,11 @@ class BidSupabaseDataSource {
         'DEBUG [BidDataSource]: Fetching bid history for auction_id: $auctionId',
       );
 
-      // Query bids with users join to get bidder username/display_name
+      // Query bids with users join to get bidder name info
       final response = await _supabase
           .from('bids')
           .select(
-            'id, bid_amount, is_auto_bid, created_at, bidder_id, bidder:users!bidder_id(username, display_name)',
+            'id, bid_amount, is_auto_bid, created_at, bidder_id, bidder:users!bidder_id(username, first_name, last_name)',
           )
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);
@@ -310,6 +310,62 @@ class BidSupabaseDataSource {
         .stream(primaryKey: ['id'])
         .eq('auction_id', auctionId)
         .order('created_at', ascending: false);
+  }
+
+  // ==========================================================================
+  // MYSTERY BIDDING SYSTEM
+  // ==========================================================================
+
+  /// Place a sealed bid on a mystery auction (one bid per user)
+  Future<void> placeMysteryBid({
+    required String auctionId,
+    required String bidderId,
+    required double amount,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'place_mystery_bid',
+        params: {
+          'p_auction_id': auctionId,
+          'p_bidder_id': bidderId,
+          'p_amount': amount,
+        },
+      );
+
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to place sealed bid');
+      }
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to place sealed bid: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to place sealed bid: $e');
+    }
+  }
+
+  /// Get mystery bid status for a user on an auction
+  Future<Map<String, dynamic>> getMysteryBidStatus({
+    required String auctionId,
+    required String userId,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_mystery_bid_status',
+        params: {'p_auction_id': auctionId, 'p_user_id': userId},
+      );
+
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to get mystery bid status');
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to get mystery bid status: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to get mystery bid status: $e');
+    }
   }
 
   // ==========================================================================

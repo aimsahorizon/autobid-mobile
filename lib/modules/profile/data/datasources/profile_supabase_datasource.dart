@@ -343,4 +343,25 @@ class ProfileSupabaseDataSource {
       throw Exception('Failed to change password: $e');
     }
   }
+
+  /// Get another user's public profile with bidding & transaction stats
+  /// Uses the get_user_bidding_stats RPC
+  Future<UserProfileModel?> getUserBiddingStats(String userId) async {
+    try {
+      final result = await _supabase.rpc(
+        'get_user_bidding_stats',
+        params: {'p_user_id': userId},
+      );
+      if (result is Map<String, dynamic>) {
+        return UserProfileModel.fromStatsJson(result);
+      }
+      return null;
+    } on PostgrestException catch (e) {
+      debugPrint('Failed to get user bidding stats: ${e.message}');
+      return null;
+    } catch (e) {
+      debugPrint('Failed to get user bidding stats: $e');
+      return null;
+    }
+  }
 }

@@ -65,11 +65,20 @@ class SellerListingEntity {
   /// Reason for cancellation (if status is dealFailed or cancelled)
   final String? cancellationReason;
 
-  /// Visibility of the auction (public or private)
+  /// Who cancelled the deal ('seller' or 'buyer')
+  final String? cancelledBy;
+
+  /// Reason for rejection by admin (if status is rejected)
+  final String? rejectionReason;
+
+  /// Visibility of the auction (open, exclusive, or mystery)
   final String visibility;
 
   /// Whether seller accepts installment payments
   final bool allowsInstallment;
+
+  /// Whether the current user has reviewed this transaction
+  final bool? hasReview;
 
   const SellerListingEntity({
     required this.id,
@@ -93,8 +102,11 @@ class SellerListingEntity {
     this.sellerId,
     this.transactionId,
     this.cancellationReason,
-    this.visibility = 'public',
+    this.cancelledBy,
+    this.rejectionReason,
+    this.visibility = 'open',
     this.allowsInstallment = false,
+    this.hasReview,
   });
 
   /// Get formatted car name
@@ -136,6 +148,9 @@ enum ListingStatus {
   /// Listing saved but not submitted
   draft,
 
+  /// Listing was rejected by admin during review
+  rejected,
+
   /// Listing was cancelled by seller or admin (pre-auction or post-auction)
   cancelled,
 
@@ -166,6 +181,8 @@ extension ListingStatusExtension on ListingStatus {
         return 'Ended';
       case ListingStatus.draft:
         return 'Draft';
+      case ListingStatus.rejected:
+        return 'Rejected';
       case ListingStatus.cancelled:
         return 'Cancelled';
       case ListingStatus.inTransaction:
@@ -192,6 +209,8 @@ extension ListingStatusExtension on ListingStatus {
         return 'Ended';
       case ListingStatus.draft:
         return 'Drafts';
+      case ListingStatus.rejected:
+        return 'Rejected';
       case ListingStatus.cancelled:
         return 'Cancelled';
       case ListingStatus.inTransaction:

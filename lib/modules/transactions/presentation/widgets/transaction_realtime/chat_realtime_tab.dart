@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/widgets/user_profile_bottom_sheet.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
@@ -83,8 +84,58 @@ class _ChatRealtimeTabState extends State<ChatRealtimeTab> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final transaction = widget.controller.transaction;
+    final otherUserId = transaction != null
+        ? (transaction.buyerId == widget.userId
+              ? transaction.sellerId
+              : transaction.buyerId)
+        : null;
+
     return Column(
       children: [
+        // Other party profile bar — TEMPORARILY HIDDEN
+        // TODO: Re-enable when profile view is ready
+        if (false && otherUserId != null)
+          GestureDetector(
+            onTap: () =>
+                UserProfileBottomSheet.show(context, userId: otherUserId),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ColorConstants.surfaceDark
+                    : ColorConstants.backgroundSecondaryLight,
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark
+                        ? ColorConstants.borderDark
+                        : ColorConstants.borderLight,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.person, size: 18, color: ColorConstants.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'View ${transaction!.buyerId == widget.userId ? "Seller" : "Buyer"} Profile & Stats',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: ColorConstants.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: ColorConstants.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
         // Messages list
         Expanded(
           child: ListenableBuilder(
@@ -322,12 +373,13 @@ class _ChatRealtimeTabState extends State<ChatRealtimeTab> {
   }
 
   String _formatTime(DateTime timestamp) {
+    final local = timestamp.toLocal();
     final now = DateTime.now();
-    final diff = now.difference(timestamp);
+    final diff = now.difference(local);
 
     if (diff.inDays > 0) {
-      return '${timestamp.month}/${timestamp.day} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+      return '${local.month}/${local.day} ${local.hour}:${local.minute.toString().padLeft(2, '0')}';
     }
-    return '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+    return '${local.hour}:${local.minute.toString().padLeft(2, '0')}';
   }
 }

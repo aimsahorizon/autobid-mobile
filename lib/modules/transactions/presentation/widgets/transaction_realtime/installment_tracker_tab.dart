@@ -34,11 +34,24 @@ class InstallmentTrackerTab extends StatefulWidget {
   State<InstallmentTrackerTab> createState() => _InstallmentTrackerTabState();
 }
 
-class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
+class _InstallmentTrackerTabState extends State<InstallmentTrackerTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    if (!widget.controller.hasPlan) {
+    // Always load/refresh the plan when the tab is first shown
+    widget.controller.loadInstallmentPlan(widget.transactionId);
+  }
+
+  @override
+  void didUpdateWidget(covariant InstallmentTrackerTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Reload when bothConfirmed changes or when the controller changes
+    if (oldWidget.bothConfirmed != widget.bothConfirmed ||
+        oldWidget.controller != widget.controller) {
       widget.controller.loadInstallmentPlan(widget.transactionId);
     }
   }
@@ -48,6 +61,7 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -132,6 +146,34 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
   }
 
   // =========================================================================
+  // Pre-Confirm Banner
+  // =========================================================================
+
+  Widget _buildPreConfirmBanner(bool isDark) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Lock and confirm the agreement to enable payment submissions.',
+              style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
   // Plan View — Progress + Payments
   // =========================================================================
 
@@ -140,32 +182,11 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
 
     return Column(
       children: [
-        // Agreement gate banner
-        if (!widget.bothConfirmed)
-          Container(
-            margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline, size: 18, color: Colors.orange),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Both parties must confirm the agreement before payments can be submitted.',
-                    style: TextStyle(fontSize: 12, color: Colors.orange),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
         // Progress header
         _buildProgressHeader(plan, isDark),
+
+        // Pre-confirmation banner
+        if (!widget.bothConfirmed) _buildPreConfirmBanner(isDark),
 
         // Payments list
         Expanded(
@@ -180,9 +201,9 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
                 ),
         ),
 
-        // Buyer FAB area — blocked until both confirmed
-        if (isBuyer &&
-            widget.bothConfirmed &&
+        // Action bar — only for buyer after both parties confirmed agreement
+        if (widget.bothConfirmed &&
+            isBuyer &&
             widget.controller.nextPendingPayment != null)
           _buildBuyerActionBar(isDark),
 
@@ -538,8 +559,8 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab> {
               ),
             ],
 
-            // Seller actions for submitted payments
-            if (isSeller && payment.canSellerAct) ...[
+            // Seller actions for submitted payments (only after both confirmed)
+            if (widget.bothConfirmed && isSeller && payment.canSellerAct) ...[
               const SizedBox(height: 12),
               Row(
                 children: [

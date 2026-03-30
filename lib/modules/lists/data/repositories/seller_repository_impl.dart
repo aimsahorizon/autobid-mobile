@@ -230,6 +230,20 @@ class SellerRepositoryImpl implements SellerRepository {
         result[ListingStatus.cancelled] = [];
       }
 
+      // 11. Rejected (Admin rejected during review)
+      try {
+        final rejectedModels = await dataSource.getSellerListingsByStatus(
+          sellerId,
+          'rejected',
+        );
+        result[ListingStatus.rejected] = rejectedModels
+            .map((l) => l.toSellerListingEntity())
+            .toList();
+      } catch (e) {
+        debugPrint('Error loading rejected listings: $e');
+        result[ListingStatus.rejected] = [];
+      }
+
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
@@ -423,7 +437,7 @@ class SellerRepositoryImpl implements SellerRepository {
   @override
   Stream<void> streamSellerListings(String sellerId) {
     // Merge streams from both auctions and drafts to trigger updates for any change
-    // Removed skip(1) to ensure we catch initial state and any immediate updates, 
+    // Removed skip(1) to ensure we catch initial state and any immediate updates,
     // relying on the controller to handle redundant loads gracefully (isBackground: true)
     final auctionsStream = dataSource.streamSellerListings(sellerId);
     final draftsStream = dataSource.streamSellerDrafts(sellerId);

@@ -10,6 +10,7 @@ import '../../domain/usecases/media_management_usecases.dart';
 import '../../domain/usecases/get_vehicle_data_usecases.dart';
 import '../../domain/entities/vehicle_entities.dart';
 import '../../../profile/domain/usecases/get_user_profile_usecase.dart';
+import 'package:autobid_mobile/core/services/car_api_service.dart';
 
 /// Controller for managing listing draft creation and editing
 /// Handles 9-step form flow with auto-save and validation
@@ -33,6 +34,9 @@ class ListingDraftController extends ChangeNotifier {
   final GetVehicleModelsUseCase _getVehicleModelsUseCase;
   final GetVehicleVariantsUseCase _getVehicleVariantsUseCase;
 
+  // Car Search Service
+  final CarApiService _carApiService;
+
   ListingDraftController({
     required GetSellerDraftsUseCase getSellerDraftsUseCase,
     required GetDraftUseCase getDraftUseCase,
@@ -48,6 +52,7 @@ class ListingDraftController extends ChangeNotifier {
     required GetVehicleBrandsUseCase getVehicleBrandsUseCase,
     required GetVehicleModelsUseCase getVehicleModelsUseCase,
     required GetVehicleVariantsUseCase getVehicleVariantsUseCase,
+    required CarApiService carApiService,
   }) : _getSellerDraftsUseCase = getSellerDraftsUseCase,
        _getDraftUseCase = getDraftUseCase,
        _createDraftUseCase = createDraftUseCase,
@@ -61,7 +66,8 @@ class ListingDraftController extends ChangeNotifier {
        _getUserProfileUseCase = getUserProfileUseCase,
        _getVehicleBrandsUseCase = getVehicleBrandsUseCase,
        _getVehicleModelsUseCase = getVehicleModelsUseCase,
-       _getVehicleVariantsUseCase = getVehicleVariantsUseCase;
+       _getVehicleVariantsUseCase = getVehicleVariantsUseCase,
+       _carApiService = carApiService;
 
   // State
   ListingDraftEntity? _currentDraft;
@@ -78,6 +84,10 @@ class ListingDraftController extends ChangeNotifier {
   List<VehicleVariant> _variants = [];
   bool _isLoadingVehicleData = false;
 
+  // Car Search State
+  List<CarSearchResult> _carSearchResults = [];
+  bool _isSearchingCars = false;
+
   // Getters
   ListingDraftEntity? get currentDraft => _currentDraft;
   List<ListingDraftEntity> get drafts => _drafts;
@@ -92,6 +102,9 @@ class ListingDraftController extends ChangeNotifier {
   List<VehicleModel> get models => _models;
   List<VehicleVariant> get variants => _variants;
   bool get isLoadingVehicleData => _isLoadingVehicleData;
+
+  List<CarSearchResult> get carSearchResults => _carSearchResults;
+  bool get isSearchingCars => _isSearchingCars;
 
   int get currentStep => _currentDraft?.currentStep ?? 1;
   bool get canGoNext => _currentDraft != null && currentStep < 9;
@@ -174,6 +187,52 @@ class ListingDraftController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Search cars by query string for autofill
+  Future<void> searchCars(String query) async {
+    if (query.trim().length < 2) {
+      _carSearchResults = [];
+      notifyListeners();
+      return;
+    }
+
+    _isSearchingCars = true;
+    notifyListeners();
+
+    _carSearchResults = await _carApiService.searchCars(query);
+
+    _isSearchingCars = false;
+    notifyListeners();
+  }
+
+  /// Clear search results
+  void clearCarSearch() {
+    _carSearchResults = [];
+    notifyListeners();
+  }
+
+  /// Apply a car search result to the current draft (autofill)
+  Future<void> applyCarSearchResult(CarSearchResult result) async {
+    if (_currentDraft == null) return;
+
+    // Update draft with autofill data
+    _currentDraft = _currentDraft!.copyWith(
+      brand: result.brandName,
+      model: result.modelName,
+      variant: result.variantName,
+      bodyType: result.bodyType,
+      transmission: result.transmission,
+      fuelType: result.fuelType,
+    );
+
+    // Load the cascading dropdowns so they reflect the selection
+    await loadBrands();
+    await loadModels(result.brandName);
+    await loadVariants(result.modelName);
+
+    _carSearchResults = [];
+    notifyListeners();
+  }
+
   /// Load all drafts for seller
   Future<void> loadDrafts(String sellerId) async {
     _isLoading = true;
@@ -214,13 +273,19 @@ class ListingDraftController extends ChangeNotifier {
     _isSubmissionSuccess = false;
     notifyListeners();
 
-    // Restore offline draft first if available.
+    // Restore offline draft only if it hasn't been synced to DB yet (empty ID).
+    // If it has an ID, it's already accessible via loadDraft() from the drafts list.
     final localDraft = await _loadDraftLocally(sellerId);
-    if (localDraft != null) {
+    if (localDraft != null && localDraft.id.isEmpty) {
       _currentDraft = localDraft;
       _isLoading = false;
       notifyListeners();
       return;
+    }
+
+    // Clear stale local draft (synced drafts should be loaded via loadDraft)
+    if (localDraft != null) {
+      await _clearLocalDraft(sellerId);
     }
 
     // Create local draft with empty ID to defer DB creation
@@ -261,8 +326,11 @@ class ListingDraftController extends ChangeNotifier {
     if (_currentDraft == null) return false;
     if (_currentDraft!.id.isNotEmpty) return true;
 
+    // Capture all local data before DB creation overwrites _currentDraft
+    final localDraft = _currentDraft!;
+
     // Create real draft in DB
-    final result = await _createDraftUseCase.call(_currentDraft!.sellerId);
+    final result = await _createDraftUseCase.call(localDraft.sellerId);
 
     return result.fold(
       (failure) {
@@ -271,16 +339,10 @@ class ListingDraftController extends ChangeNotifier {
         return false;
       },
       (newDraft) {
-        // Merge local data into new draft (preserve address/inputs)
-        _currentDraft = newDraft.copyWith(
-          province: _currentDraft!.province,
-          cityMunicipality: _currentDraft!.cityMunicipality,
-          barangay: _currentDraft!.barangay,
-          // Preserve other fields if user typed before save
-          brand: _currentDraft!.brand,
-          model: _currentDraft!.model,
-          year: _currentDraft!.year,
-          // ... map other fields if necessary, but usually create happens early
+        // Merge ALL local data into the new DB draft (only override the ID)
+        _currentDraft = localDraft.copyWith(
+          id: newDraft.id,
+          lastSaved: DateTime.now(),
         );
         notifyListeners();
         return true;
@@ -345,6 +407,11 @@ class ListingDraftController extends ChangeNotifier {
   /// Manual save
   Future<bool> saveDraft() async {
     if (_currentDraft == null) return false;
+    if (_isSaving) return false; // Prevent duplicate saves from rapid clicks
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
 
     await _saveDraftLocally(_currentDraft!);
 
@@ -352,16 +419,13 @@ class ListingDraftController extends ChangeNotifier {
     if (_currentDraft!.id.isEmpty) {
       final success = await _ensureDraftExists();
       if (!success) {
+        _isSaving = false;
         _errorMessage =
             'Saved locally. Connect to internet to sync this draft.';
         notifyListeners();
         return true;
       }
     }
-
-    _isSaving = true;
-    _errorMessage = null;
-    notifyListeners();
 
     final result = await _saveDraftUseCase.call(_currentDraft!);
     _isSaving = false;
@@ -493,22 +557,9 @@ class ListingDraftController extends ChangeNotifier {
   bool _validateBiddingConfig() {
     if (_currentDraft == null) return false;
 
-    final deposit = _currentDraft!.depositAmount ?? 50000;
     final increment = _currentDraft!.bidIncrement ?? 100;
 
-    // Deposit rules: 5k-50k, 5k increments
-    if (deposit < 5000) {
-      _errorMessage = 'Deposit amount must be at least ₱5,000';
-      return false;
-    }
-    if (deposit > 50000) {
-      _errorMessage = 'Deposit amount cannot exceed ₱50,000';
-      return false;
-    }
-    if (deposit % 5000 != 0) {
-      _errorMessage = 'Deposit amount must be a multiple of ₱5,000';
-      return false;
-    }
+    // Deposit is auto-calculated — no manual validation needed
 
     // Bid Increment rules: Min 100, 100 increments
     if (increment < 100) {
@@ -535,7 +586,19 @@ class ListingDraftController extends ChangeNotifier {
       return false;
     }
 
-    // End date is chosen in Approved tab; keep submission unblocked by applying a safe default.
+    // Compute end date from duration if user chose duration mode
+    if (_currentDraft!.auctionEndDate == null &&
+        _currentDraft!.auctionDurationHours != null) {
+      _currentDraft = _currentDraft!.copyWith(
+        auctionEndDate: DateTime.now().toUtc().add(
+          Duration(hours: _currentDraft!.auctionDurationHours!),
+        ),
+        lastSaved: DateTime.now(),
+      );
+      await _saveDraftLocally(_currentDraft!);
+    }
+
+    // Fallback: apply safe default if still null
     if (_currentDraft!.auctionEndDate == null) {
       _currentDraft = _currentDraft!.copyWith(
         auctionEndDate: DateTime.now().toUtc().add(const Duration(days: 7)),
@@ -559,8 +622,8 @@ class ListingDraftController extends ChangeNotifier {
       final saveResult = await _saveDraftUseCase.call(_currentDraft!);
 
       final saveSuccess = saveResult.fold((failure) {
-        _errorMessage =
-            'Unable to save your listing. Please check your connection and try again.';
+        debugPrint('[submitListing] Save failed: ${failure.message}');
+        _errorMessage = 'Unable to save your listing: ${failure.message}';
         return false;
       }, (_) => true);
 
@@ -612,6 +675,25 @@ class ListingDraftController extends ChangeNotifier {
     }
   }
 
+  /// Discard current draft: clears local storage and deletes DB draft if synced
+  Future<void> discardDraft() async {
+    if (_currentDraft == null) return;
+
+    final sellerId = _currentDraft!.sellerId;
+    final draftId = _currentDraft!.id;
+
+    // Delete from DB if it was synced (has real ID)
+    if (draftId.isNotEmpty) {
+      await _deleteDraftUseCase.call(draftId);
+      _drafts.removeWhere((d) => d.id == draftId);
+    }
+
+    // Always clear local storage
+    await _clearLocalDraft(sellerId);
+    _currentDraft = null;
+    notifyListeners();
+  }
+
   /// Delete draft
   Future<bool> deleteDraft(String draftId) async {
     final result = await _deleteDraftUseCase.call(draftId);
@@ -631,7 +713,10 @@ class ListingDraftController extends ChangeNotifier {
 
   /// Sanitize technical error messages into user-friendly ones
   String _sanitizeErrorMessage(String message) {
-    final lower = message.toLowerCase();
+    // Strip Dart's "Exception: " wrapper prefix
+    var cleaned = message.replaceFirst(RegExp(r'^Exception:\s*'), '').trim();
+
+    final lower = cleaned.toLowerCase();
     if (lower.contains('token') || lower.contains('insufficient')) {
       return 'You don\'t have enough listing tokens. Please purchase more to submit.';
     }
@@ -651,11 +736,11 @@ class ListingDraftController extends ChangeNotifier {
     if (lower.contains('timeout')) {
       return 'The request timed out. Please try again.';
     }
-    // If message looks like a user-friendly message already (no stack traces or exceptions), return it
-    if (!lower.contains('exception') &&
-        !lower.contains('error:') &&
-        message.length < 200) {
-      return message;
+    // If the cleaned message is reasonable and doesn't contain stack traces, show it
+    if (!lower.contains('stacktrace') &&
+        !lower.contains('at line') &&
+        cleaned.length < 200) {
+      return cleaned;
     }
     return 'Something went wrong while submitting your listing. Please try again.';
   }
@@ -727,11 +812,15 @@ class ListingDraftController extends ChangeNotifier {
         reservePrice: draft.reservePrice,
         auctionEndDate: draft.auctionEndDate,
         biddingType: draft.biddingType,
+        exclusiveTier: draft.exclusiveTier,
         bidIncrement: draft.bidIncrement,
         minBidIncrement: draft.minBidIncrement,
         depositAmount: draft.depositAmount,
         enableIncrementalBidding: draft.enableIncrementalBidding,
         autoLiveAfterApproval: draft.autoLiveAfterApproval,
+        scheduleLiveMode: draft.scheduleLiveMode,
+        auctionStartDate: draft.auctionStartDate,
+        auctionDurationHours: draft.auctionDurationHours,
         snipeGuardEnabled: draft.snipeGuardEnabled,
         snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
         snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,

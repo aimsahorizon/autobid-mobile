@@ -16,4 +16,10 @@ abstract class GuestRepository {
     int limit = 20,
     int offset = 0,
   });
+
+  /// Submit a KYC appeal for a rejected user
+  Future<Either<Failure, void>> submitKycAppeal(
+    String userId,
+    String appealReason,
+  );
 }

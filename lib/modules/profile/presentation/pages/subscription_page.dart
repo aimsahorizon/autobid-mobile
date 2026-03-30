@@ -37,7 +37,8 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           'Subscribe to ${plan.name} for ₱${plan.price.toStringAsFixed(0)}${plan.isYearly ? '/year' : '/month'}?\n\n'
           'You will receive:\n'
           '• ${plan.biddingTokens} bidding tokens${plan.isYearly ? ' monthly' : ''}\n'
-          '• ${plan.listingTokens} listing tokens${plan.isYearly ? ' monthly' : ''}',
+          '• ${plan.listingTokens} listing tokens${plan.isYearly ? ' monthly' : ''}'
+          '${plan.includesAutoBid ? '\n• Auto-bid access' : ''}',
         ),
         actions: [
           TextButton(
@@ -57,7 +58,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     // Handle Paid Plans via PayMongo
     if (plan != SubscriptionPlan.free) {
       if (!mounted) return;
-      
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -106,9 +107,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Subscription Plans'),
-      ),
+      appBar: AppBar(title: const Text('Subscription Plans')),
       body: ListenableBuilder(
         listenable: widget.controller,
         builder: (context, _) {
@@ -141,58 +140,71 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 // Free plan
                 _PlanCard(
                   plan: SubscriptionPlan.free,
-                  isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.free,
+                  isCurrentPlan:
+                      widget.controller.currentPlan == SubscriptionPlan.free,
                   onSubscribe: () => _subscribeToPlan(SubscriptionPlan.free),
                   isDark: isDark,
                 ),
                 const SizedBox(height: 16),
 
-                // Monthly plans
+                // Silver plans
                 Text(
-                  'Monthly Plans',
+                  'Silver Plans',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 12),
                 _PlanCard(
-                  plan: SubscriptionPlan.proBasicMonthly,
-                  isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.proBasicMonthly,
-                  onSubscribe: () => _subscribeToPlan(SubscriptionPlan.proBasicMonthly),
+                  plan: SubscriptionPlan.silverMonthly,
+                  isCurrentPlan:
+                      widget.controller.currentPlan ==
+                      SubscriptionPlan.silverMonthly,
+                  onSubscribe: () =>
+                      _subscribeToPlan(SubscriptionPlan.silverMonthly),
                   isDark: isDark,
                 ),
                 const SizedBox(height: 12),
                 _PlanCard(
-                  plan: SubscriptionPlan.proPlusMonthly,
-                  isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.proPlusMonthly,
-                  onSubscribe: () => _subscribeToPlan(SubscriptionPlan.proPlusMonthly),
+                  plan: SubscriptionPlan.silverYearly,
+                  isCurrentPlan:
+                      widget.controller.currentPlan ==
+                      SubscriptionPlan.silverYearly,
+                  onSubscribe: () =>
+                      _subscribeToPlan(SubscriptionPlan.silverYearly),
                   isDark: isDark,
-                  isRecommended: true,
+                  savingsPercent: 16,
                 ),
                 const SizedBox(height: 24),
 
-                // Yearly plans
+                // Gold plans
                 Text(
-                  'Yearly Plans (Save more)',
+                  'Gold Plans',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 12),
                 _PlanCard(
-                  plan: SubscriptionPlan.proBasicYearly,
-                  isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.proBasicYearly,
-                  onSubscribe: () => _subscribeToPlan(SubscriptionPlan.proBasicYearly),
+                  plan: SubscriptionPlan.goldMonthly,
+                  isCurrentPlan:
+                      widget.controller.currentPlan ==
+                      SubscriptionPlan.goldMonthly,
+                  onSubscribe: () =>
+                      _subscribeToPlan(SubscriptionPlan.goldMonthly),
                   isDark: isDark,
-                  savingsPercent: 29,
+                  isRecommended: true,
                 ),
                 const SizedBox(height: 12),
                 _PlanCard(
-                  plan: SubscriptionPlan.proPlusYearly,
-                  isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.proPlusYearly,
-                  onSubscribe: () => _subscribeToPlan(SubscriptionPlan.proPlusYearly),
+                  plan: SubscriptionPlan.goldYearly,
+                  isCurrentPlan:
+                      widget.controller.currentPlan ==
+                      SubscriptionPlan.goldYearly,
+                  onSubscribe: () =>
+                      _subscribeToPlan(SubscriptionPlan.goldYearly),
                   isDark: isDark,
-                  savingsPercent: 25,
+                  savingsPercent: 16,
                 ),
               ],
             ),
@@ -232,7 +244,11 @@ class _CurrentSubscriptionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.workspace_premium, color: Colors.white, size: 28),
+              const Icon(
+                Icons.workspace_premium,
+                color: Colors.white,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Current Plan',
@@ -263,7 +279,11 @@ class _CurrentSubscriptionCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, color: Colors.white70, size: 16),
+                  const Icon(
+                    Icons.calendar_today,
+                    color: Colors.white70,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Renews on ${_formatDate(subscription.endDate!)}',
@@ -309,12 +329,16 @@ class _PlanCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isCurrentPlan || isRecommended
               ? ColorConstants.primary
-              : (isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+              : (isDark
+                    ? ColorConstants.borderDark
+                    : ColorConstants.borderLight),
           width: isCurrentPlan || isRecommended ? 2 : 1,
         ),
       ),
@@ -338,7 +362,10 @@ class _PlanCard extends StatelessWidget {
                         if (isRecommended) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: ColorConstants.primary,
                               borderRadius: BorderRadius.circular(12),
@@ -369,15 +396,22 @@ class _PlanCard extends StatelessWidget {
                           Text(
                             plan.isYearly ? '/year' : '/month',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight,
+                              color: isDark
+                                  ? ColorConstants.textSecondaryDark
+                                  : ColorConstants.textSecondaryLight,
                             ),
                           ),
                           if (savingsPercent != null) ...[
                             const SizedBox(width: 12),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: ColorConstants.success.withValues(alpha: 0.1),
+                                color: ColorConstants.success.withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -400,14 +434,27 @@ class _PlanCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _FeatureRow(icon: Icons.gavel, text: '${plan.biddingTokens} bidding tokens${plan != SubscriptionPlan.free && plan.isYearly ? ' monthly' : ''}'),
+          _FeatureRow(
+            icon: Icons.gavel,
+            text:
+                '${plan.biddingTokens} bidding tokens${plan != SubscriptionPlan.free && plan.isYearly ? ' monthly' : ''}',
+          ),
           const SizedBox(height: 8),
-          _FeatureRow(icon: Icons.format_list_bulleted, text: '${plan.listingTokens} listing tokens${plan != SubscriptionPlan.free && plan.isYearly ? ' monthly' : ''}'),
+          _FeatureRow(
+            icon: Icons.format_list_bulleted,
+            text:
+                '${plan.listingTokens} listing tokens${plan != SubscriptionPlan.free && plan.isYearly ? ' monthly' : ''}',
+          ),
+          if (plan.includesAutoBid) ...[
+            const SizedBox(height: 8),
+            _FeatureRow(icon: Icons.auto_mode, text: 'Auto-bid access'),
+          ],
           if (plan != SubscriptionPlan.free) ...[
             const SizedBox(height: 8),
-            _FeatureRow(icon: Icons.support_agent, text: 'Priority support'),
-            const SizedBox(height: 8),
-            _FeatureRow(icon: Icons.trending_up, text: 'Advanced analytics'),
+            _FeatureRow(
+              icon: Icons.add_shopping_cart,
+              text: 'Buy additional token packs anytime',
+            ),
           ],
           const SizedBox(height: 16),
           SizedBox(
@@ -419,7 +466,9 @@ class _PlanCard extends StatelessWidget {
                   )
                 : FilledButton(
                     onPressed: onSubscribe,
-                    child: Text(plan == SubscriptionPlan.free ? 'Downgrade' : 'Subscribe'),
+                    child: Text(
+                      plan == SubscriptionPlan.free ? 'Downgrade' : 'Subscribe',
+                    ),
                   ),
           ),
         ],
@@ -441,10 +490,7 @@ class _FeatureRow extends StatelessWidget {
         Icon(icon, size: 18, color: ColorConstants.primary),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
         ),
       ],
     );

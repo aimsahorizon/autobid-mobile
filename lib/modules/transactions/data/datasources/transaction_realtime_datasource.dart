@@ -284,6 +284,15 @@ class TransactionRealtimeDataSource {
       buyerRejectionReason: data['buyer_rejection_reason'] as String?,
       sellerRejectionReason: data['seller_rejection_reason'] as String?,
       cancelledBy: _inferCancelledBy(data),
+      sellerObjectionReason: data['seller_objection_reason'] as String?,
+      sellerObjectedAt: data['seller_objected_at'] != null
+          ? DateTime.parse(data['seller_objected_at'] as String)
+          : null,
+      disputeResolution: data['dispute_resolution'] as String?,
+      disputeResolvedAt: data['dispute_resolved_at'] != null
+          ? DateTime.parse(data['dispute_resolved_at'] as String)
+          : null,
+      disputeAdminNotes: data['dispute_admin_notes'] as String?,
       paymentMethod: data['payment_method'] as String? ?? 'full_payment',
       allowsInstallment: _extractAllowsInstallment(data),
       sellerPrepPhotoUrl: data['seller_prep_photo_url'] as String?,
@@ -349,6 +358,8 @@ class TransactionRealtimeDataSource {
         return TransactionStatus.completed;
       case 'deal_failed':
         return TransactionStatus.cancelled;
+      case 'disputed':
+        return TransactionStatus.disputed;
       default:
         return TransactionStatus.discussion;
     }
@@ -1282,76 +1293,16 @@ class TransactionRealtimeDataSource {
     }
   }
 
-  /// Delete the auction entirely after a failed deal
-  /// Marks the auction as cancelled (soft delete)
-  Future<bool> deleteAuction(String transactionId) async {
-    try {
-      debugPrint('[DeleteAuction] Starting for transaction: $transactionId');
+  /// Soft-delete the auction after a failed deal via RPC
+  /// Sets auction status to 'deleted', deleted_at timestamp, and removes transaction
+  Future<void> softDeleteAuction(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) throw Exception('Transaction not found');
 
-      final txn = await _getTransactionSummary(transactionId);
-      if (txn == null) {
-        debugPrint('[DeleteAuction] ❌ Transaction summary not found');
-        return false;
-      }
-
-      final auctionId = txn['auctionId'] as String?;
-      final txnId = txn['transactionId'] as String?;
-      if (auctionId == null) {
-        debugPrint('[DeleteAuction] ❌ Auction ID not found');
-        return false;
-      }
-
-      debugPrint('[DeleteAuction] Auction: $auctionId, Transaction: $txnId');
-
-      // Get the 'cancelled' status ID
-      final cancelledStatusResponse = await _supabase
-          .from('auction_statuses')
-          .select('id')
-          .eq('status_name', 'cancelled')
-          .maybeSingle();
-
-      if (cancelledStatusResponse == null) {
-        debugPrint('[DeleteAuction] ❌ Cancelled status not found');
-        return false;
-      }
-
-      final cancelledStatusId = cancelledStatusResponse['id'] as String;
-
-      // Update auction status to cancelled (soft delete)
-      await _supabase
-          .from('auctions')
-          .update({
-            'status_id': cancelledStatusId,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', auctionId);
-
-      debugPrint('[DeleteAuction] ✅ Auction marked as cancelled');
-
-      // Add timeline event to the failed transaction
-      if (txnId != null) {
-        final actorId = _supabase.auth.currentUser?.id ?? '';
-        final actorName =
-            _supabase.auth.currentUser?.userMetadata?['display_name'] ??
-            'Seller';
-
-        await _addTimelineEvent(
-          txnId,
-          'Auction Deleted',
-          'Seller chose to delete the auction after the deal failed.',
-          'cancelled',
-          actorId,
-          actorName,
-        );
-      }
-
-      debugPrint('[DeleteAuction] 🎉 SUCCESS');
-      return true;
-    } catch (e, stack) {
-      debugPrint('[DeleteAuction] ❌ Error: $e');
-      debugPrint('[DeleteAuction] Stack: $stack');
-      return false;
-    }
+    await _supabase.rpc(
+      'soft_delete_auction',
+      params: {'p_transaction_id': txnId},
+    );
   }
 
   // ============================================================================
@@ -1661,6 +1612,63 @@ class TransactionRealtimeDataSource {
       debugPrint('[OfferToSpecificBidder] Stack: $stack');
       return false;
     }
+  }
+
+  /// Cancel auction with penalty via RPC
+  Future<void> cancelAuctionWithPenalty(
+    String transactionId,
+    String reason,
+  ) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) throw Exception('Transaction not found');
+
+    await _supabase.rpc(
+      'cancel_auction_with_penalty',
+      params: {'p_transaction_id': txnId, 'p_reason': reason},
+    );
+  }
+
+  /// Auto-reselect next winner via RPC
+  /// Returns the new transaction ID on success, null on failure.
+  Future<String?> autoReselectNextWinner(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return null;
+
+    final result = await _supabase.rpc(
+      'auto_reselect_next_winner',
+      params: {'p_transaction_id': txnId},
+    );
+
+    if (result == null) return null;
+    return result.toString();
+  }
+
+  /// Select a standby user as the next winner. Returns new transaction ID.
+  Future<String?> selectFromStandby(
+    String transactionId,
+    String standbyUserId,
+  ) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) return null;
+
+    final result = await _supabase.rpc(
+      'select_from_standby',
+      params: {'p_transaction_id': txnId, 'p_standby_user_id': standbyUserId},
+    );
+
+    if (result == null) return null;
+    return result.toString();
+  }
+
+  /// Restart auction bidding via RPC
+  Future<void> restartAuctionBidding(String transactionId) async {
+    final txnId = await _resolveTransactionId(transactionId);
+    if (txnId == null) throw Exception('Transaction not found');
+
+    await _supabase.rpc(
+      'restart_auction_bidding',
+      params: {'p_transaction_id': txnId},
+    );
   }
 
   // ============================================================================
@@ -2046,7 +2054,10 @@ class TransactionRealtimeDataSource {
       case 'completed':
         return TimelineEventType.completed;
       case 'cancelled':
+      case 'deal_failed':
         return TimelineEventType.cancelled;
+      case 'disputed':
+        return TimelineEventType.disputed;
       default:
         return TimelineEventType.created;
     }
@@ -2648,6 +2659,48 @@ class TransactionRealtimeDataSource {
     _chatStreamController.close();
     _transactionUpdateController.close();
     _userTransactionsUpdateController.close();
+  }
+
+  // ============================================================================
+  // DISPUTE RESOLUTION
+  // ============================================================================
+
+  /// Seller raises objection to buyer rejection (creates dispute)
+  /// Returns null on success, or an error string on failure.
+  Future<String?> raiseSellerObjection({
+    required String transactionId,
+    required String sellerId,
+    required String reason,
+  }) async {
+    try {
+      final txnId = await _resolveTransactionId(transactionId);
+      debugPrint(
+        '[RaiseDispute] txnId resolved: $txnId (from: $transactionId)',
+      );
+      if (txnId == null) {
+        return 'Could not resolve transaction ID';
+      }
+
+      final response = await _supabase.rpc(
+        'raise_seller_objection',
+        params: {
+          'p_transaction_id': txnId,
+          'p_seller_id': sellerId,
+          'p_reason': reason,
+        },
+      );
+
+      debugPrint('[RaiseDispute] RPC response: $response');
+
+      if (response is Map) {
+        if (response['success'] == true) return null;
+        return response['error']?.toString() ?? 'Unknown RPC error';
+      }
+      return 'Unexpected response type: ${response.runtimeType}';
+    } catch (e) {
+      debugPrint('[RaiseDispute] Exception: $e');
+      return 'Exception: $e';
+    }
   }
 
   /// Update payment_method on the transaction

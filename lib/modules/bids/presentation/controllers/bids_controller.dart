@@ -23,6 +23,7 @@ class BidsController extends ChangeNotifier {
   List<UserBidEntity> _wonBids = [];
   List<UserBidEntity> _lostBids = [];
   List<UserBidEntity> _cancelledBids = [];
+  List<UserBidEntity> _standbyBids = [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -35,6 +36,7 @@ class BidsController extends ChangeNotifier {
   List<UserBidEntity> get wonBids => _wonBids;
   List<UserBidEntity> get lostBids => _lostBids;
   List<UserBidEntity> get cancelledBids => _cancelledBids;
+  List<UserBidEntity> get standbyBids => _standbyBids;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
@@ -75,6 +77,7 @@ class BidsController extends ChangeNotifier {
           _wonBids = bidsMap['won'] ?? [];
           _lostBids = bidsMap['lost'] ?? [];
           _cancelledBids = bidsMap['cancelled'] ?? [];
+          _standbyBids = bidsMap['standby'] ?? [];
 
           // Start polling if there are active bids
           if (_activeBids.isNotEmpty) {
@@ -134,12 +137,14 @@ class BidsController extends ChangeNotifier {
             final newWonBids = bidsMap['won'] ?? [];
             final newLostBids = bidsMap['lost'] ?? [];
             final newCancelledBids = bidsMap['cancelled'] ?? [];
+            final newStandbyBids = bidsMap['standby'] ?? [];
 
             // Only update if bids changed (avoid unnecessary rebuilds)
             if (newActiveBids.length != _activeBids.length ||
                 newWonBids.length != _wonBids.length ||
                 newLostBids.length != _lostBids.length ||
-                newCancelledBids.length != _cancelledBids.length) {
+                newCancelledBids.length != _cancelledBids.length ||
+                newStandbyBids.length != _standbyBids.length) {
               debugPrint(
                 '[BidsController] Bids changed during polling - updating UI',
               );
@@ -147,6 +152,7 @@ class BidsController extends ChangeNotifier {
               _wonBids = newWonBids;
               _lostBids = newLostBids;
               _cancelledBids = newCancelledBids;
+              _standbyBids = newStandbyBids;
               notifyListeners();
 
               // Stop polling if no more active bids
@@ -192,6 +198,7 @@ class BidsController extends ChangeNotifier {
         _wonBids = bidsMap['won'] ?? [];
         _lostBids = bidsMap['lost'] ?? [];
         _cancelledBids = bidsMap['cancelled'] ?? [];
+        _standbyBids = bidsMap['standby'] ?? [];
         notifyListeners();
       });
     } catch (e) {
@@ -210,7 +217,8 @@ class BidsController extends ChangeNotifier {
       _activeBids.length +
       _wonBids.length +
       _lostBids.length +
-      _cancelledBids.length;
+      _cancelledBids.length +
+      _standbyBids.length;
 
   /// Get count of bids where user is currently winning
   int get winningBidsCount =>

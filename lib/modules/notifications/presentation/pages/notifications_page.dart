@@ -498,6 +498,33 @@ class _NotificationCard extends StatelessWidget {
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        // Listing status chip for invite & status update notifications
+                        if (_listingStatusLabel != null) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _listingStatusColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: _listingStatusColor.withValues(
+                                  alpha: 0.3,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              'Status: $_listingStatusLabel',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: _listingStatusColor,
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -639,6 +666,39 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 
+  /// Listing status label from metadata (for invite & status update notifications)
+  String? get _listingStatusLabel {
+    final status = notification.metadata?['listing_status'] as String?;
+    if (status == null) return null;
+    if (notification.subType != NotificationSubType.auctionInvite &&
+        notification.subType != NotificationSubType.listingStatusUpdate) {
+      return null;
+    }
+    return switch (status) {
+      'pending_approval' => 'Pending Approval',
+      'scheduled' => 'Approved',
+      'live' => 'Live',
+      'ended' => 'Ended',
+      'sold' => 'Sold',
+      'unsold' => 'Unsold',
+      'cancelled' => 'Cancelled',
+      _ => status.replaceAll('_', ' '),
+    };
+  }
+
+  /// Color for the listing status chip
+  Color get _listingStatusColor {
+    final status = notification.metadata?['listing_status'] as String?;
+    return switch (status) {
+      'live' => ColorConstants.success,
+      'scheduled' => ColorConstants.info,
+      'pending_approval' => ColorConstants.warning,
+      'cancelled' => ColorConstants.error,
+      'ended' || 'sold' || 'unsold' => ColorConstants.textSecondaryLight,
+      _ => ColorConstants.info,
+    };
+  }
+
   /// Border color based on priority for urgent/high notifications
   Color _borderColor(bool isDark) {
     if (!notification.isRead) {
@@ -700,6 +760,8 @@ class _NotificationCard extends StatelessWidget {
         return (Icons.check_circle, ColorConstants.success);
       case NotificationSubType.auctionInviteRejected:
         return (Icons.cancel, ColorConstants.error);
+      case NotificationSubType.listingStatusUpdate:
+        return (Icons.update, ColorConstants.info);
 
       // Q&A notifications
       case NotificationSubType.newQuestion:

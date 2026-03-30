@@ -5,6 +5,7 @@ import 'data/repositories/guest_repository_impl.dart';
 import 'domain/repositories/guest_repository.dart';
 import 'domain/usecases/check_account_status_usecase.dart';
 import 'domain/usecases/get_guest_auction_listings_usecase.dart';
+import 'domain/usecases/submit_kyc_appeal_usecase.dart';
 import 'presentation/controllers/guest_controller.dart';
 
 /// Initialize Guest module dependencies
@@ -19,21 +20,20 @@ Future<void> initGuestModule() async {
 
   // Repositories
   sl.registerLazySingleton<GuestRepository>(
-    () => GuestRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => GuestRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Use Cases
   sl.registerLazySingleton(() => CheckAccountStatusUseCase(sl()));
   sl.registerLazySingleton(() => GetGuestAuctionListingsUseCase(sl()));
+  sl.registerLazySingleton(() => SubmitKycAppealUseCase(sl()));
 
   // Controllers (Factory - create new instance each time)
   sl.registerFactory(
     () => GuestController(
       checkAccountStatusUseCase: sl(),
       getGuestAuctionListingsUseCase: sl(),
+      submitKycAppealUseCase: sl(),
     ),
   );
 }

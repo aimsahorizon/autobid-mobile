@@ -283,7 +283,7 @@ class _CreateTicketPage extends StatefulWidget {
 class _CreateTicketPageState extends State<_CreateTicketPage> {
   final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
-  SupportCategory _selectedCategory = SupportCategory.general;
+  SupportCategoryEntity? _selectedCategory;
   late SupportController _controller;
   bool _isSubmitting = false;
 
@@ -291,6 +291,7 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
   void initState() {
     super.initState();
     _controller = GetIt.instance<SupportController>();
+    _controller.loadCategories();
   }
 
   @override
@@ -301,7 +302,9 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
   }
 
   Future<void> _submitTicket() async {
-    if (_subjectController.text.isEmpty || _messageController.text.isEmpty) {
+    if (_selectedCategory == null ||
+        _subjectController.text.isEmpty ||
+        _messageController.text.isEmpty) {
       (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
@@ -311,7 +314,7 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
     setState(() => _isSubmitting = true);
 
     await _controller.createTicket(
-      categoryId: 'cat_${_selectedCategory.name}',
+      categoryId: _selectedCategory!.id,
       subject: _subjectController.text,
       description: _messageController.text,
       priority: TicketPriority.medium,
@@ -350,43 +353,64 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
           children: [
             Text('Category', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: SupportCategory.values.map((cat) {
-                final isSelected = _selectedCategory == cat;
-                final isDark = Theme.of(context).brightness == Brightness.dark;
-                return ChoiceChip(
-                  label: Text(cat.label),
-                  selected: isSelected,
-                  onSelected: (_) => setState(() => _selectedCategory = cat),
-                  selectedColor: ColorConstants.primary.withValues(alpha: 0.15),
-                  backgroundColor: isDark
-                      ? ColorConstants.surfaceDark
-                      : ColorConstants.surfaceLight,
-                  labelStyle: TextStyle(
-                    color: isSelected
-                        ? ColorConstants.primary
-                        : isDark
-                        ? ColorConstants.textPrimaryDark
-                        : ColorConstants.textPrimaryLight,
-                    fontWeight: isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                  ),
-                  checkmarkColor: ColorConstants.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                      color: isSelected
-                          ? ColorConstants.primary
-                          : isDark
-                          ? ColorConstants.borderDark
-                          : ColorConstants.borderLight,
+            ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                if (_controller.isCategoriesLoading) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
                     ),
-                  ),
+                  );
+                }
+                final categories = _controller.categories;
+                if (categories.isEmpty) {
+                  return const Text('No categories available');
+                }
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: categories.map((cat) {
+                    final isSelected = _selectedCategory?.id == cat.id;
+                    final isDark =
+                        Theme.of(context).brightness == Brightness.dark;
+                    return ChoiceChip(
+                      label: Text(cat.name),
+                      selected: isSelected,
+                      onSelected: (_) =>
+                          setState(() => _selectedCategory = cat),
+                      selectedColor: ColorConstants.primary.withValues(
+                        alpha: 0.15,
+                      ),
+                      backgroundColor: isDark
+                          ? ColorConstants.surfaceDark
+                          : ColorConstants.surfaceLight,
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? ColorConstants.primary
+                            : isDark
+                            ? ColorConstants.textPrimaryDark
+                            : ColorConstants.textPrimaryLight,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                      checkmarkColor: ColorConstants.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isSelected
+                              ? ColorConstants.primary
+                              : isDark
+                              ? ColorConstants.borderDark
+                              : ColorConstants.borderLight,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
             const SizedBox(height: 24),
             TextField(

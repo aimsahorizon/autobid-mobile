@@ -2,29 +2,98 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../models/pricing_model.dart';
 
+/// Exception for subscription change failures
+class SubscriptionChangeException implements Exception {
+  final String code;
+  final String? cooldownEndsAt;
+  SubscriptionChangeException(this.code, {this.cooldownEndsAt});
+
+  @override
+  String toString() => 'SubscriptionChangeException: $code';
+}
+
 /// Supabase datasource for pricing and token management
 class PricingSupabaseDatasource {
   final SupabaseClient supabase;
 
+  static const int starterBiddingTokens = 10;
+  static const int starterListingTokens = 1;
+
   PricingSupabaseDatasource({required this.supabase});
 
-  /// Get user's token balance
-  Future<TokenBalanceModel> getTokenBalance(String userId) async {
-    final response = await supabase
+  Future<Map<String, dynamic>?> fetchTokenBalanceRow(String userId) {
+    return supabase
         .from('user_token_balances')
         .select()
         .eq('user_id', userId)
         .maybeSingle();
+  }
+
+  Future<Map<String, dynamic>> createStarterTokenBalance(String userId) {
+    return supabase
+        .from('user_token_balances')
+        .upsert({
+          'user_id': userId,
+          'bidding_tokens': starterBiddingTokens,
+          'listing_tokens': starterListingTokens,
+        }, onConflict: 'user_id')
+        .select()
+        .single();
+  }
+
+  Future<Map<String, dynamic>?> fetchActiveSubscriptionRow(String userId) {
+    return supabase
+        .from('user_subscriptions')
+        .select()
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .maybeSingle();
+  }
+
+  Future<Map<String, dynamic>> createFreeSubscription(String userId) {
+    return supabase
+        .from('user_subscriptions')
+        .insert({
+          'user_id': userId,
+          'plan': SubscriptionPlan.free.toJson(),
+          'is_active': true,
+          'start_date': DateTime.now().toIso8601String(),
+        })
+        .select()
+        .single();
+  }
+
+  Future<bool> callConsumeBiddingTokenRpc({
+    required String userId,
+    required String referenceId,
+  }) async {
+    final response = await supabase.rpc(
+      'consume_bidding_token',
+      params: {'p_user_id': userId, 'p_reference_id': referenceId},
+    );
+
+    return response as bool;
+  }
+
+  Future<bool> callConsumeListingTokenRpc({
+    required String userId,
+    required String referenceId,
+  }) async {
+    final response = await supabase.rpc(
+      'consume_listing_token',
+      params: {'p_user_id': userId, 'p_reference_id': referenceId},
+    );
+
+    return response as bool;
+  }
+
+  /// Get user's token balance
+  Future<TokenBalanceModel> getTokenBalance(String userId) async {
+    final response = await fetchTokenBalanceRow(userId);
 
     if (response == null) {
-      // Return default balance if no record found
-      // This should be created by the database trigger, but return default as fallback
-      return TokenBalanceModel(
-        userId: userId,
-        biddingTokens: 10,
-        listingTokens: 1,
-        updatedAt: DateTime.now(),
-      );
+      final created = await createStarterTokenBalance(userId);
+      return TokenBalanceModel.fromJson(created);
     }
 
     return TokenBalanceModel.fromJson(response);
@@ -32,21 +101,21 @@ class PricingSupabaseDatasource {
 
   /// Get user's subscription
   Future<UserSubscriptionModel> getUserSubscription(String userId) async {
-    final response = await supabase
-        .from('user_subscriptions')
-        .select()
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .maybeSingle();
+    final response = await fetchActiveSubscriptionRow(userId);
 
     if (response == null) {
-      // Return default free plan if no subscription found
-      return UserSubscriptionModel(
-        userId: userId,
-        plan: SubscriptionPlan.free,
-        isActive: true,
-        startDate: DateTime.now(),
-      );
+      try {
+        final created = await createFreeSubscription(userId);
+        return UserSubscriptionModel.fromJson(created);
+      } catch (_) {
+        // If another request created it concurrently, fetch the active row again.
+        final retried = await fetchActiveSubscriptionRow(userId);
+        if (retried != null) {
+          return UserSubscriptionModel.fromJson(retried);
+        }
+
+        rethrow;
+      }
     }
 
     return UserSubscriptionModel.fromJson(response);
@@ -82,6 +151,28 @@ class PricingSupabaseDatasource {
     return UserSubscriptionModel.fromJson(response);
   }
 
+  /// Change subscription via atomic RPC (handles tokens, cooldown, time)
+  Future<UserSubscriptionModel> changeSubscription({
+    required String userId,
+    required String plan,
+  }) async {
+    final response = await supabase.rpc(
+      'change_subscription',
+      params: {'p_user_id': userId, 'p_new_plan': plan},
+    );
+
+    final result = Map<String, dynamic>.from(response as Map);
+    if (result['success'] != true) {
+      throw SubscriptionChangeException(
+        result['error'] as String? ?? 'unknown',
+        cooldownEndsAt: result['cooldown_ends_at'] as String?,
+      );
+    }
+
+    final sub = Map<String, dynamic>.from(result['subscription'] as Map);
+    return UserSubscriptionModel.fromJson(sub);
+  }
+
   /// Cancel subscription
   Future<void> cancelSubscription(String userId) async {
     await supabase
@@ -99,15 +190,8 @@ class PricingSupabaseDatasource {
     required String userId,
     required String referenceId,
   }) async {
-    final response = await supabase.rpc(
-      'consume_bidding_token',
-      params: {
-        'p_user_id': userId,
-        'p_reference_id': referenceId,
-      },
-    );
-
-    return response as bool;
+    await getTokenBalance(userId);
+    return callConsumeBiddingTokenRpc(userId: userId, referenceId: referenceId);
   }
 
   /// Consume listing token using SQL function
@@ -115,15 +199,8 @@ class PricingSupabaseDatasource {
     required String userId,
     required String referenceId,
   }) async {
-    final response = await supabase.rpc(
-      'consume_listing_token',
-      params: {
-        'p_user_id': userId,
-        'p_reference_id': referenceId,
-      },
-    );
-
-    return response as bool;
+    await getTokenBalance(userId);
+    return callConsumeListingTokenRpc(userId: userId, referenceId: referenceId);
   }
 
   /// Add tokens using SQL function

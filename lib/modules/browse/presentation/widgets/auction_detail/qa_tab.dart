@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/auction_alias_generator.dart';
 import '../../../domain/entities/qa_entity.dart';
 
 class QATab extends StatefulWidget {
@@ -197,6 +198,15 @@ class _QuestionCard extends StatelessWidget {
 
   const _QuestionCard({required this.question, required this.onToggleLike});
 
+  /// Display alias instead of real name; keep 'You' for own questions.
+  String _aliasedName(QAEntity q) {
+    if (q.askedBy == 'You') return 'You';
+    if (q.userId != null) {
+      return AuctionAliasGenerator.generate(q.auctionId, q.userId!);
+    }
+    return 'Anonymous';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -234,7 +244,7 @@ class _QuestionCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Asked by ${question.askedBy} • ${_formatTime(question.askedAt)}',
+            'Asked by ${_aliasedName(question)} • ${_formatTime(question.askedAt)}',
             style: theme.textTheme.bodySmall,
           ),
           if (question.isAnswered) ...[

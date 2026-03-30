@@ -4,6 +4,7 @@ import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/modules/guest/presentation/controllers/guest_controller.dart';
 import 'package:autobid_mobile/modules/guest/domain/usecases/check_account_status_usecase.dart';
 import 'package:autobid_mobile/modules/guest/domain/usecases/get_guest_auction_listings_usecase.dart';
+import 'package:autobid_mobile/modules/guest/domain/usecases/submit_kyc_appeal_usecase.dart';
 import 'package:autobid_mobile/modules/guest/domain/entities/account_status_entity.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 
@@ -13,17 +14,23 @@ class MockCheckAccountStatusUseCase extends Mock
 class MockGetGuestAuctionListingsUseCase extends Mock
     implements GetGuestAuctionListingsUseCase {}
 
+class MockSubmitKycAppealUseCase extends Mock
+    implements SubmitKycAppealUseCase {}
+
 void main() {
   late GuestController controller;
   late MockCheckAccountStatusUseCase mockCheckAccountStatusUseCase;
   late MockGetGuestAuctionListingsUseCase mockGetGuestAuctionListingsUseCase;
+  late MockSubmitKycAppealUseCase mockSubmitKycAppealUseCase;
 
   setUp(() {
     mockCheckAccountStatusUseCase = MockCheckAccountStatusUseCase();
     mockGetGuestAuctionListingsUseCase = MockGetGuestAuctionListingsUseCase();
+    mockSubmitKycAppealUseCase = MockSubmitKycAppealUseCase();
     controller = GuestController(
       checkAccountStatusUseCase: mockCheckAccountStatusUseCase,
       getGuestAuctionListingsUseCase: mockGetGuestAuctionListingsUseCase,
+      submitKycAppealUseCase: mockSubmitKycAppealUseCase,
     );
   });
 

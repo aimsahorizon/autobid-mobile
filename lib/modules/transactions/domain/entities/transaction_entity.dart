@@ -41,6 +41,14 @@ class TransactionEntity {
   final String? sellerRejectionReason;
   final String? cancelledBy; // 'buyer' or 'seller'
 
+  // Dispute tracking (seller objects to buyer rejection)
+  final String? sellerObjectionReason;
+  final DateTime? sellerObjectedAt;
+  final String?
+  disputeResolution; // 'refund_both', 'penalize_seller', 'penalize_buyer'
+  final DateTime? disputeResolvedAt;
+  final String? disputeAdminNotes;
+
   // Payment method agreed in the transaction
   final String paymentMethod; // 'full_payment' or 'installment'
 
@@ -77,6 +85,11 @@ class TransactionEntity {
     this.buyerRejectionReason,
     this.sellerRejectionReason,
     this.cancelledBy,
+    this.sellerObjectionReason,
+    this.sellerObjectedAt,
+    this.disputeResolution,
+    this.disputeResolvedAt,
+    this.disputeAdminNotes,
     this.paymentMethod = 'full_payment',
     this.allowsInstallment = false,
   });
@@ -113,8 +126,16 @@ class TransactionEntity {
 
   /// Check if deal failed due to rejection
   bool get isDealFailed =>
-      buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected ||
+      (buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected &&
+          status != TransactionStatus.disputed) ||
       status == TransactionStatus.cancelled;
+
+  /// Check if dispute is active (seller objected to buyer rejection)
+  bool get isDisputed => status == TransactionStatus.disputed;
+
+  /// Check if dispute has been resolved by admin
+  bool get isDisputeResolved =>
+      disputeResolution != null && disputeResolvedAt != null;
 
   /// Get the cancellation reason (from whichever party cancelled)
   String? get cancellationReason {
@@ -160,6 +181,11 @@ class TransactionEntity {
     String? cancelledBy,
     String? paymentMethod,
     bool? allowsInstallment,
+    String? sellerObjectionReason,
+    DateTime? sellerObjectedAt,
+    String? disputeResolution,
+    DateTime? disputeResolvedAt,
+    String? disputeAdminNotes,
   }) {
     return TransactionEntity(
       id: id ?? this.id,
@@ -198,6 +224,12 @@ class TransactionEntity {
       cancelledBy: cancelledBy ?? this.cancelledBy,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       allowsInstallment: allowsInstallment ?? this.allowsInstallment,
+      sellerObjectionReason:
+          sellerObjectionReason ?? this.sellerObjectionReason,
+      sellerObjectedAt: sellerObjectedAt ?? this.sellerObjectedAt,
+      disputeResolution: disputeResolution ?? this.disputeResolution,
+      disputeResolvedAt: disputeResolvedAt ?? this.disputeResolvedAt,
+      disputeAdminNotes: disputeAdminNotes ?? this.disputeAdminNotes,
     );
   }
 }

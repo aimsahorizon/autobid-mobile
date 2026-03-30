@@ -1,8 +1,14 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
+import 'package:autobid_mobile/modules/auth/auth_routes.dart';
 import '../../controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import '../../controllers/installment_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
@@ -26,11 +32,33 @@ class ProgressRealtimeTab extends StatefulWidget {
 class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
   static const int _pageSize = 20;
   int _visibleCount = _pageSize;
+  Timer? _deadlineTimer;
 
   TransactionRealtimeController get controller => widget.controller;
   String? get userId => widget.userId;
   InstallmentController? get installmentController =>
       widget.installmentController;
+
+  @override
+  void initState() {
+    super.initState();
+    _deadlineTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final deadline = controller.buyerAcceptanceDeadline;
+      if (deadline != null && mounted) {
+        if (DateTime.now().isAfter(deadline)) {
+          controller.sweepAutoAccept();
+          _deadlineTimer?.cancel();
+        }
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _deadlineTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,10 +79,9 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
         final isBuyer =
             userId != null && controller.getUserRole(userId!) == FormRole.buyer;
 
-        // Check if deal can be cancelled (not yet finalized and not already failed/cancelled)
-        // Both buyer and seller can cancel
+        // Check if deal can be cancelled — available at any active stage
+        // Both buyer and seller can cancel (penalties escalate by stage per policy)
         final canCancelDeal =
-            !transaction.adminApproved &&
             transaction.status != TransactionStatus.cancelled &&
             transaction.status != TransactionStatus.completed;
 
@@ -140,8 +167,9 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
     List<TransactionTimelineEntity> timeline,
     bool isDark,
   ) {
-    final filtered =
-        timeline.where((e) => e.type != TimelineEventType.messageSent).toList();
+    final filtered = timeline
+        .where((e) => e.type != TimelineEventType.messageSent)
+        .toList();
     final visible = filtered.take(_visibleCount).toList();
     final hasMore = filtered.length > _visibleCount;
 
@@ -192,7 +220,7 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            'If you can no longer proceed with this purchase, you can cancel the deal. The seller will be notified and may offer to the next highest bidder.',
+            'Cancelling this deal will result in penalties as per the transaction policy you accepted.',
             style: TextStyle(
               fontSize: 13,
               color: isDark
@@ -237,57 +265,100 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
           children: [
             Icon(Icons.warning_amber_rounded, color: ColorConstants.error),
             const SizedBox(width: 12),
-            const Text('Cancel Deal'),
+            const Expanded(
+              child: Text('Cancel Deal', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Are you sure you want to cancel this deal? This action cannot be undone.',
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Please provide a reason (optional):',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Enter reason for cancellation...',
-                border: OutlineInputBorder(
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Are you sure you want to cancel this deal? This action cannot be undone.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+
+              // Policy reminder
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: ColorConstants.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: ColorConstants.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.policy_rounded,
+                          color: ColorConstants.error,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Cancellation Penalties',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...PolicyConstants.transactionPolicies
+                        .where(
+                          (p) =>
+                              p.contains('cancel') ||
+                              p.contains('deposit') ||
+                              p.contains('penalty') ||
+                              p.contains('Suspension') ||
+                              p.contains('penalties') ||
+                              p.startsWith('  •'),
+                        )
+                        .map(
+                          (policy) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              policy,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: ColorConstants.error.withValues(
+                                  alpha: 0.9,
+                                ),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ColorConstants.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 16),
+
+              const Text(
+                'Reason for cancellation:',
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: ColorConstants.warning,
-                    size: 20,
+              const SizedBox(height: 8),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Enter reason for cancellation...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'The seller will be notified and may offer to the next highest bidder.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -306,33 +377,27 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
     );
 
     if (confirmed == true && context.mounted) {
-      debugPrint(
-        '[ProgressRealtimeTab] User confirmed cancel. Calling controller...',
-      );
-      debugPrint(
-        '[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"',
-      );
-
-      final success = await controller.cancelDeal(
+      final success = await controller.cancelAuctionWithPenalty(
         reason: reasonController.text.trim(),
       );
 
-      debugPrint('[ProgressRealtimeTab] cancelDeal returned: $success');
-
       if (context.mounted) {
         if (success) {
-          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-            const SnackBar(
-              content: Text('Deal cancelled successfully'),
-              backgroundColor: ColorConstants.success,
-            ),
-          );
-          // Navigate back since the deal is cancelled
-          Navigator.pop(context);
+          final suspension = controller.suspensionAfterCancel;
+          if (suspension != null && suspension.isSuspended) {
+            await _showSuspensionAndSignOut(context, suspension);
+          } else {
+            (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Deal cancelled. Penalties applied as per policy.',
+                ),
+                backgroundColor: ColorConstants.success,
+              ),
+            );
+            Navigator.pop(context);
+          }
         } else {
-          debugPrint(
-            '[ProgressRealtimeTab] ❌ Cancel failed. Error: ${controller.errorMessage}',
-          );
           (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(controller.errorMessage ?? 'Failed to cancel deal'),
@@ -1028,6 +1093,53 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
     }
 
     if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
+      // If dispute is active (seller already objected)
+      if (transaction.isDisputed) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            children: [
+              const Icon(Icons.gavel, color: Colors.orange, size: 32),
+              const SizedBox(height: 8),
+              const Text(
+                'Dispute Under Review',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your objection: ${transaction.sellerObjectionReason ?? ""}',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: ColorConstants.textSecondaryLight),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'An admin is reviewing the dispute. You will be notified of the decision.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: ColorConstants.textSecondaryLight,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // If dispute was resolved
+      if (transaction.isDisputeResolved) {
+        return _buildDisputeResolutionView(transaction);
+      }
+
+      // Buyer rejected, seller can object
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -1046,6 +1158,24 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
             const SizedBox(height: 8),
             Text(
               'Reason: ${transaction.buyerRejectionReason ?? "None provided"}',
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'If you believe this rejection is unjustified, you can raise a dispute for admin review.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: controller.isProcessing
+                    ? null
+                    : () => _showSellerObjectionDialog(context),
+                icon: const Icon(Icons.gavel, size: 18),
+                label: const Text('Raise Dispute'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+              ),
             ),
           ],
         ),
@@ -1098,6 +1228,45 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
             "Buyer's Photo Proof",
             transaction.buyerDeliveryPhotoUrl!,
             context,
+          ),
+          const SizedBox(height: 12),
+        ],
+        // Auto-accept countdown for seller
+        if (transaction.deliveryStatus == DeliveryStatus.delivered &&
+            transaction.buyerAcceptanceStatus ==
+                BuyerAcceptanceStatus.pending) ...[
+          _buildAutoAcceptCountdown(context),
+          const SizedBox(height: 8),
+          // Demo mode button: shorten deadline to 3 minutes for testing
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: controller.isProcessing
+                  ? null
+                  : () async {
+                      final success = await controller.enableAutoAcceptDemo();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? 'Demo mode enabled — auto-accept in 3 minutes'
+                                  : 'Failed to enable demo mode',
+                            ),
+                            backgroundColor: success
+                                ? Colors.orange
+                                : ColorConstants.error,
+                          ),
+                        );
+                      }
+                    },
+              icon: const Icon(Icons.speed, size: 16),
+              label: const Text('Demo: Auto-accept in 3 min'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
         ],
@@ -1178,6 +1347,46 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
 
     if (transaction.deliveryStatus == DeliveryStatus.delivered) {
       if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
+        // If dispute is active
+        if (transaction.isDisputed) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.gavel, color: Colors.orange, size: 32),
+                const SizedBox(height: 8),
+                const Text(
+                  'Dispute Under Review',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The seller has objected to your rejection. An admin is reviewing the dispute.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: ColorConstants.textSecondaryLight,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // If dispute was resolved
+        if (transaction.isDisputeResolved) {
+          return _buildDisputeResolutionView(transaction);
+        }
+
         return const Center(
           child: Text(
             'You rejected the delivery.',
@@ -1203,6 +1412,9 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
+          // Auto-accept countdown for buyer
+          _buildAutoAcceptCountdown(context),
+          const SizedBox(height: 12),
           // Show seller's delivery photo
           if (transaction.sellerDeliveryPhotoUrl != null) ...[
             _buildPhotoProofTile(
@@ -1255,7 +1467,7 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
               Expanded(
                 child: FilledButton(
                   onPressed: hasUploadedPhoto && !controller.isProcessing
-                      ? () => controller.respondToDelivery(accepted: true)
+                      ? () => _showAcceptVehicleWarning(context)
                       : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: ColorConstants.success,
@@ -1413,7 +1625,7 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 if (reasonController.text.isEmpty || photos.isEmpty) {
                   (ScaffoldMessenger.of(
                     context,
@@ -1425,11 +1637,21 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
                   return;
                 }
                 Navigator.pop(context);
-                controller.respondToDelivery(
+                final success = await controller.respondToDelivery(
                   accepted: false,
                   rejectionReason: reasonController.text,
                   rejectionPhotos: photos,
                 );
+                if (!success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        controller.errorMessage ?? 'Failed to reject delivery',
+                      ),
+                      backgroundColor: ColorConstants.error,
+                    ),
+                  );
+                }
               },
               style: FilledButton.styleFrom(
                 backgroundColor: ColorConstants.error,
@@ -1440,6 +1662,79 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
         ),
       ),
     );
+  }
+
+  /// Warning dialog before buyer confirms vehicle acceptance.
+  /// This action completes the transaction and cannot be undone.
+  Future<void> _showAcceptVehicleWarning(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Confirm Vehicle Receipt')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'By accepting, you confirm that you have received the vehicle and are satisfied with its condition.',
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ColorConstants.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: ColorConstants.error.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: ColorConstants.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'This action cannot be undone. The transaction will be marked as completed.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Go Back'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.success,
+            ),
+            child: const Text('Accept Vehicle'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      controller.respondToDelivery(accepted: true);
+    }
   }
 
   /// Show photo picker dialog for seller delivery status advancement
@@ -1670,6 +1965,275 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _showSuspensionAndSignOut(
+    BuildContext context,
+    SuspensionStatus suspension,
+  ) async {
+    final message = suspension.isPermanent
+        ? 'Your account has been permanently banned due to repeated policy violations.'
+        : 'Your account has been suspended until ${suspension.endsAt?.toLocal().toString().split('.').first ?? 'unknown'} for violating transaction policies.';
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.block, color: ColorConstants.error),
+            const SizedBox(width: 12),
+            const Text('Account Suspended'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.error,
+            ),
+            child: const Text('I Understand'),
+          ),
+        ],
+      ),
+    );
+
+    if (context.mounted) {
+      await Supabase.instance.client.auth.signOut();
+      if (context.mounted) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AuthRoutes.login, (route) => false);
+      }
+    }
+  }
+
+  /// Dialog for seller to explain their objection to buyer rejection
+  Future<void> _showSellerObjectionDialog(BuildContext context) async {
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.gavel, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Raise Dispute'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Explain why you believe the buyer\'s rejection is unjustified. '
+              'An admin will review the full conversation and evidence.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 4,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'Your objection reason',
+                hintText: 'Describe why the rejection is unfair...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (reasonController.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Submit Dispute'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final success = await controller.raiseSellerObjection(
+        reason: reasonController.text.trim(),
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Dispute raised. An admin will review your case.'
+                  : 'Failed to raise dispute. Please try again.',
+            ),
+            backgroundColor: success ? Colors.orange : ColorConstants.error,
+          ),
+        );
+      }
+    }
+
+    reasonController.dispose();
+  }
+
+  /// Shows dispute resolution result for both parties
+  Widget _buildDisputeResolutionView(TransactionEntity transaction) {
+    final resolution = transaction.disputeResolution;
+    final isRefundBoth = resolution == 'refund_both';
+    final isPenalizeSeller = resolution == 'penalize_seller';
+
+    String title;
+    String description;
+    IconData icon;
+    Color color;
+
+    if (isRefundBoth) {
+      title = 'Dispute Resolved — No Penalty';
+      description = 'Both deposits have been refunded. No party was penalized.';
+      icon = Icons.handshake;
+      color = Colors.blue;
+    } else if (isPenalizeSeller) {
+      title = 'Dispute Resolved — Seller Penalized';
+      description =
+          'The seller was found at fault. Both deposits refunded. The seller\'s account has been suspended.';
+      icon = Icons.warning_amber;
+      color = ColorConstants.error;
+    } else {
+      title = 'Dispute Resolved — Buyer Penalized';
+      description =
+          'The buyer was found at fault. Both deposits refunded. The buyer\'s account has been suspended.';
+      icon = Icons.warning_amber;
+      color = ColorConstants.error;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: ColorConstants.textSecondaryLight,
+              fontSize: 12,
+            ),
+          ),
+          if (transaction.disputeAdminNotes != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Admin notes: ${transaction.disputeAdminNotes}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoAcceptCountdown(BuildContext context) {
+    final deadline = controller.buyerAcceptanceDeadline;
+    if (deadline == null) return const SizedBox.shrink();
+
+    final now = DateTime.now();
+    final remaining = deadline.difference(now);
+    if (remaining.isNegative) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: ColorConstants.success.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: ColorConstants.success.withValues(alpha: 0.3),
+          ),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle, color: ColorConstants.success, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Auto-accepting...',
+              style: TextStyle(
+                color: ColorConstants.success,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final days = remaining.inDays;
+    final hours = remaining.inHours % 24;
+    final minutes = remaining.inMinutes % 60;
+    final seconds = remaining.inSeconds % 60;
+
+    String timeText;
+    if (days > 0) {
+      timeText = '${days}d ${hours}h ${minutes}m';
+    } else if (hours > 0) {
+      timeText = '${hours}h ${minutes}m ${seconds}s';
+    } else {
+      timeText = '${minutes}m ${seconds}s';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ColorConstants.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: ColorConstants.warning.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.timer_outlined,
+            color: ColorConstants.warning,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Auto-accepts in $timeText',
+              style: const TextStyle(
+                color: ColorConstants.warning,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

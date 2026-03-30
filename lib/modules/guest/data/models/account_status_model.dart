@@ -49,6 +49,8 @@ class AccountStatusModel extends AccountStatusEntity {
         return AccountStatus.rejected;
       case 'suspended':
         return AccountStatus.suspended;
+      case 'appeal_pending':
+        return AccountStatus.appealPending;
       default:
         return AccountStatus.pending;
     }
@@ -66,6 +68,8 @@ class AccountStatusModel extends AccountStatusEntity {
         return 'rejected';
       case AccountStatus.suspended:
         return 'suspended';
+      case AccountStatus.appealPending:
+        return 'appeal_pending';
     }
   }
 }

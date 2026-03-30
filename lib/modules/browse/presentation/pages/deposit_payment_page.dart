@@ -8,6 +8,8 @@ import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/deposit_supabase_datasource.dart';
+import '../widgets/payment/virtual_wallet_payment_form.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
 /// Deposit payment page for auction participation
 class DepositPaymentPage extends StatefulWidget {
@@ -89,57 +91,66 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       final fallbackEmail = currentUser?.email ?? '';
       final fallbackPhone = currentUser?.phone ?? '';
 
-      // Try to get name from metadata if available
+      // Auth metadata stores full_name and display_name (not first_name/last_name)
       final metadata = currentUser?.userMetadata;
-      final metaFirstName = metadata?['first_name'] as String? ?? '';
-      final metaLastName = metadata?['last_name'] as String? ?? '';
-      final metaName = '$metaFirstName $metaLastName'.trim();
+      final metaFullName = (metadata?['full_name'] as String? ?? '').trim();
+      final metaDisplayName = (metadata?['display_name'] as String? ?? '')
+          .trim();
+      final metaName = metaFullName.isNotEmpty ? metaFullName : metaDisplayName;
 
       final response = await SupabaseConfig.client
-          .from('profiles')
-          .select()
+          .from('users')
+          .select(
+            'first_name, middle_name, last_name, full_name, display_name, email, phone_number, username',
+          )
           .eq('id', widget.userId)
           .maybeSingle();
 
       if (mounted) {
         setState(() {
-          String firstName = '';
-          String lastName = '';
           String email = fallbackEmail;
           String phone = fallbackPhone;
 
           if (response != null) {
-            firstName = response['first_name'] as String? ?? metaFirstName;
-            lastName = response['last_name'] as String? ?? metaLastName;
-
             // Use profile email if available, otherwise fallback
             if (response['email'] != null &&
                 (response['email'] as String).isNotEmpty) {
               email = response['email'] as String;
             }
 
-            // Check both phone_number (schema) and contact_number (legacy/view)
-            final profilePhone =
-                response['phone_number'] as String? ??
-                response['contact_number'] as String?;
+            // Check phone_number column
+            final profilePhone = response['phone_number'] as String?;
             if (profilePhone != null && profilePhone.isNotEmpty) {
               phone = profilePhone;
             }
           }
 
           if (_nameController.text.isEmpty) {
-            final profileName = '$firstName $lastName'.trim();
-            // Fallback chain: first+last → display_name → full_name → auth metadata
-            final displayName = (response?['display_name'] as String? ?? '')
+            // Build name from first+middle+last
+            final firstName = (response?['first_name'] as String? ?? '').trim();
+            final middleName = (response?['middle_name'] as String? ?? '')
                 .trim();
-            final fullName = (response?['full_name'] as String? ?? '').trim();
-            if (profileName.isNotEmpty) {
-              _nameController.text = profileName;
-            } else if (displayName.isNotEmpty) {
-              _nameController.text = displayName;
-            } else if (fullName.isNotEmpty) {
-              _nameController.text = fullName;
-            } else {
+            final lastName = (response?['last_name'] as String? ?? '').trim();
+            final composedName = middleName.isNotEmpty
+                ? '$firstName $middleName $lastName'.trim()
+                : '$firstName $lastName'.trim();
+
+            // DB full_name / display_name columns
+            final dbFullName = (response?['full_name'] as String? ?? '').trim();
+            final dbDisplayName = (response?['display_name'] as String? ?? '')
+                .trim();
+            final username = (response?['username'] as String? ?? '').trim();
+
+            // Fallback chain: composed → full_name → display_name → username → auth metadata
+            if (composedName.isNotEmpty) {
+              _nameController.text = composedName;
+            } else if (dbFullName.isNotEmpty) {
+              _nameController.text = dbFullName;
+            } else if (dbDisplayName.isNotEmpty) {
+              _nameController.text = dbDisplayName;
+            } else if (username.isNotEmpty) {
+              _nameController.text = username;
+            } else if (metaName.isNotEmpty) {
               _nameController.text = metaName;
             }
           }
@@ -150,26 +161,6 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
             _phoneController.text = phone;
           }
         });
-
-        // If name is still empty, try the users table as final fallback
-        if (_nameController.text.isEmpty) {
-          try {
-            final userResp = await SupabaseConfig.client
-                .from('users')
-                .select('display_name, full_name')
-                .eq('id', widget.userId)
-                .maybeSingle();
-            if (mounted && userResp != null && _nameController.text.isEmpty) {
-              final dn = (userResp['display_name'] as String? ?? '').trim();
-              final fn = (userResp['full_name'] as String? ?? '').trim();
-              if (dn.isNotEmpty || fn.isNotEmpty) {
-                setState(() {
-                  _nameController.text = dn.isNotEmpty ? dn : fn;
-                });
-              }
-            }
-          } catch (_) {}
-        }
       }
     } catch (e) {
       debugPrint('[DepositPaymentPage] Error loading user profile: $e');
@@ -177,7 +168,17 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
       if (mounted) {
         final currentUser = SupabaseConfig.client.auth.currentUser;
         if (currentUser != null) {
+          final metadata = currentUser.userMetadata;
+          final metaFullName = (metadata?['full_name'] as String? ?? '').trim();
+          final metaDisplayName = (metadata?['display_name'] as String? ?? '')
+              .trim();
+          final metaName = metaFullName.isNotEmpty
+              ? metaFullName
+              : metaDisplayName;
           setState(() {
+            if (_nameController.text.isEmpty && metaName.isNotEmpty) {
+              _nameController.text = metaName;
+            }
             if (_emailController.text.isEmpty && currentUser.email != null) {
               _emailController.text = currentUser.email!;
             }
@@ -198,6 +199,50 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
     (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
       const SnackBar(content: Text('Switched to Mock Payment Service (Debug)')),
     );
+  }
+
+  void _payWithWallet() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VirtualWalletPaymentForm(
+          userId: widget.userId,
+          amount: widget.depositAmount,
+          description: 'Auction Deposit',
+          category: WalletTransactionCategory.deposit,
+          referenceId: widget.auctionId,
+          onSuccess: () async {
+            // Record deposit in database
+            try {
+              await _depositDataSource.createDeposit(
+                auctionId: widget.auctionId,
+                userId: widget.userId,
+                amount: widget.depositAmount,
+                paymentIntentId:
+                    'wallet_${DateTime.now().millisecondsSinceEpoch}',
+              );
+              widget.onSuccess();
+            } catch (e) {
+              debugPrint('[DepositPaymentPage] Error recording deposit: $e');
+              if (mounted) {
+                ScaffoldMessenger.of(context)
+                  ..clearSnackBars()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text('Deposit recording failed: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+              }
+            }
+          },
+        ),
+      ),
+    ).then((result) {
+      if (result == true && mounted) {
+        Navigator.pop(context, true);
+      }
+    });
   }
 
   @override
@@ -505,7 +550,56 @@ class _DepositPaymentPageState extends State<DepositPaymentPage> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+
+                // Virtual Wallet Payment Option
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: OutlinedButton.icon(
+                    onPressed: _isProcessing ? null : _payWithWallet,
+                    icon: const Icon(Icons.account_balance_wallet),
+                    label: const Text(
+                      'Pay with Virtual Wallet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1A237E),
+                      side: const BorderSide(
+                        color: Color(0xFF1A237E),
+                        width: 2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    const Expanded(child: Divider()),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'OR PAY WITH CARD',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isDark
+                              ? ColorConstants.textSecondaryDark
+                              : ColorConstants.textSecondaryLight,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const Expanded(child: Divider()),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
 
                 // Billing information
                 Text(

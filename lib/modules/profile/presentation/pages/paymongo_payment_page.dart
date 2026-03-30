@@ -7,6 +7,8 @@ import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../../data/datasources/pricing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/payment/virtual_wallet_payment_form.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
 /// PayMongo payment page for processing token package purchases
 class PayMongoPaymentPage extends StatefulWidget {
@@ -45,9 +47,20 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
   @override
   void initState() {
     super.initState();
-    // Default billing info from profile if available
-    _nameController.text = 'Juan Dela Cruz';
-    _emailController.text = 'juan@example.com';
+    _loadUserInfo();
+  }
+
+  void _loadUserInfo() {
+    final user = SupabaseConfig.client.auth.currentUser;
+    if (user != null) {
+      final meta = user.userMetadata;
+      _nameController.text =
+          meta?['full_name'] as String? ??
+          meta?['display_name'] as String? ??
+          '';
+      _emailController.text = user.email ?? '';
+      _phoneController.text = user.phone ?? '';
+    }
   }
 
   @override
@@ -69,6 +82,29 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
+  }
+
+  void _payWithWallet() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VirtualWalletPaymentForm(
+          userId: widget.userId,
+          amount: widget.package.price,
+          description:
+              '${widget.package.tokens} ${widget.package.type == TokenType.bidding ? 'Bidding' : 'Listing'} Tokens',
+          category: WalletTransactionCategory.tokenPurchase,
+          referenceId: widget.package.id,
+          onSuccess: () async {
+            await _creditTokens();
+          },
+        ),
+      ),
+    ).then((result) {
+      if (result == true && mounted) {
+        Navigator.pop(context, true);
+      }
+    });
   }
 
   Future<void> _processPayment() async {
@@ -192,17 +228,30 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
       },
     );
 
-    // Source response may be wrapped in 'data' key (real API & mock)
+    // In demo mode, simulate successful payment directly
+    if (_useDemoMode) {
+      await _creditTokens();
+      return;
+    }
+
+    // Source response may be wrapped in 'data' key (real API)
     final sourceData = source.containsKey('data')
         ? source['data'] as Map<String, dynamic>
         : source;
-    final checkoutUrl =
-        sourceData['attributes']['redirect']['checkout_url'] as String;
+    final redirect =
+        sourceData['attributes']?['redirect'] as Map<String, dynamic>?;
+    final checkoutUrl = redirect?['checkout_url'] as String?;
 
-    // Step 3: Open GCash checkout in browser (for now, show message)
-    // TODO: Implement webview or external browser launch
+    if (checkoutUrl == null || checkoutUrl.isEmpty) {
+      throw PayMongoException('Failed to get GCash checkout URL');
+    }
+
+    // Open GCash checkout URL in external browser
+    final uri = Uri.parse(checkoutUrl);
+    if (!mounted) return;
+    // Show checkout URL and instruct user to complete payment
     throw PayMongoException(
-      'GCash payment requires browser redirect. Feature coming soon. Checkout URL: $checkoutUrl',
+      'GCash live payments require a browser redirect. Please use card payment in demo mode, or integrate url_launcher for production.',
     );
   }
 
@@ -303,6 +352,48 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
 
               // Package summary
               _buildPackageSummary(theme, isDark),
+              const SizedBox(height: 24),
+
+              // Virtual Wallet Payment Option
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: _isProcessing ? null : _payWithWallet,
+                  icon: const Icon(Icons.account_balance_wallet),
+                  label: const Text(
+                    'Pay with Virtual Wallet',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1A237E),
+                    side: const BorderSide(color: Color(0xFF1A237E), width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR PAY WITH CARD',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark
+                            ? ColorConstants.textSecondaryDark
+                            : ColorConstants.textSecondaryLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
               const SizedBox(height: 32),
 
               // Payment method selection

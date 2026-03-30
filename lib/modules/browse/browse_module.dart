@@ -35,6 +35,8 @@ import 'domain/usecases/lower_hand_usecase.dart';
 import 'domain/usecases/submit_turn_bid_usecase.dart';
 import 'domain/usecases/get_queue_status_usecase.dart';
 import 'domain/usecases/stream_queue_updates_usecase.dart';
+import 'domain/usecases/place_mystery_bid_usecase.dart';
+import 'domain/usecases/get_mystery_bid_status_usecase.dart';
 import 'presentation/controllers/auction_detail_controller.dart';
 import 'presentation/controllers/browse_controller.dart';
 import 'presentation/controllers/buyer_invites_controller.dart';
@@ -89,7 +91,26 @@ Future<void> initBrowseModule() async {
   sl.registerLazySingleton(() => StreamBidUpdatesUseCase(sl()));
   sl.registerLazySingleton(() => StreamQAUpdatesUseCase(sl()));
   sl.registerLazySingleton(() => StreamActiveAuctionsUseCase(sl()));
-  sl.registerLazySingleton(() => SaveAutoBidSettingsUseCase(sl()));
+  sl.registerLazySingleton(
+    () => SaveAutoBidSettingsUseCase(
+      sl(),
+      canUseAutoBid: (userId) async {
+        final response = await sl<SupabaseClient>()
+            .from('user_subscriptions')
+            .select('plan')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .maybeSingle();
+
+        if (response == null) return false;
+        final plan = (response['plan'] as String? ?? '').toLowerCase();
+        return plan == 'gold_monthly' ||
+            plan == 'gold_yearly' ||
+            plan == 'pro_plus_monthly' ||
+            plan == 'pro_plus_yearly';
+      },
+    ),
+  );
   sl.registerLazySingleton(() => GetAutoBidSettingsUseCase(sl()));
   sl.registerLazySingleton(() => DeactivateAutoBidUseCase(sl()));
   sl.registerLazySingleton(() => RaiseHandUseCase(sl()));
@@ -97,6 +118,8 @@ Future<void> initBrowseModule() async {
   sl.registerLazySingleton(() => SubmitTurnBidUseCase(sl()));
   sl.registerLazySingleton(() => GetQueueStatusUseCase(sl()));
   sl.registerLazySingleton(() => StreamQueueUpdatesUseCase(sl()));
+  sl.registerLazySingleton(() => PlaceMysteryBidUseCase(sl()));
+  sl.registerLazySingleton(() => GetMysteryBidStatusUseCase(sl()));
 
   // Buyer Invite Use Cases
   sl.registerLazySingleton(() => ListMyInvitesUseCase(sl()));
@@ -136,6 +159,8 @@ Future<void> initBrowseModule() async {
       submitTurnBidUseCase: sl(),
       getQueueStatusUseCase: sl(),
       streamQueueUpdatesUseCase: sl(),
+      placeMysteryBidUseCase: sl(),
+      getMysteryBidStatusUseCase: sl(),
       userId: sl<SupabaseClient>().auth.currentUser?.id,
     ),
   );

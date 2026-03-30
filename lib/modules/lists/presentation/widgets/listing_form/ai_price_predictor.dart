@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import '../../../../../../core/constants/color_constants.dart';
+import '../../../../../../core/services/price_prediction_service.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 
 class AiPricePredictor extends StatefulWidget {
@@ -23,6 +23,8 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
   double? _predictedPrice;
   double? _minPrice;
   double? _maxPrice;
+  double _confidence = 0;
+  String _method = '';
   String? _error;
 
   @override
@@ -33,48 +35,27 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
 
   Future<void> _predictPrice() async {
     try {
-      // 1. Load Metadata
-      final jsonStr = await rootBundle.loadString('assets/ai/pricing_metadata.json');
-      final Map<String, dynamic> db = json.decode(jsonStr);
+      final service = GetIt.instance<PricePredictionService>();
 
-      final key = '${widget.draft.brand}_${widget.draft.model}'
-          .toLowerCase()
-          .replaceAll(' ', '_');
-      
-      final yearKey = widget.draft.year.toString();
+      final vehicleData = {
+        'brand': widget.draft.brand ?? '',
+        'year': widget.draft.year ?? DateTime.now().year,
+        'mileage': widget.draft.mileage ?? 50000,
+        'condition': widget.draft.condition ?? 'Good',
+        'transmission': widget.draft.transmission ?? 'Automatic',
+      };
 
-      if (!db.containsKey(key) || !db[key].containsKey(yearKey)) {
-        throw Exception('Not enough market data for this specific model.');
-      }
-
-      final stats = db[key][yearKey];
-      double basePrice = (stats['price'] as num).toDouble();
-      
-      // 2. Apply Adjustments (Logic-based AI)
-      
-      // Mileage Adjustment (Avg is ~10k/year)
-      final age = DateTime.now().year - (widget.draft.year ?? 2020);
-      final expectedMileage = age * 10000;
-      final actualMileage = widget.draft.mileage ?? expectedMileage;
-      
-      if (actualMileage > expectedMileage * 1.5) {
-        basePrice *= 0.90; // -10% for high mileage
-      } else if (actualMileage < expectedMileage * 0.5) {
-        basePrice *= 1.05; // +5% for low mileage
-      }
-
-      // Condition Adjustment
-      if (widget.draft.condition == 'Excellent') basePrice *= 1.05;
-      if (widget.draft.condition == 'Fair') basePrice *= 0.90;
-      if (widget.draft.condition == 'Needs Repair') basePrice *= 0.70;
+      final result = await service.predictPrice(vehicleData);
+      final price = (result['predicted_price'] as num).toDouble();
 
       setState(() {
-        _predictedPrice = basePrice;
-        _minPrice = basePrice * 0.95;
-        _maxPrice = basePrice * 1.05;
+        _predictedPrice = price;
+        _minPrice = price * 0.90; // -10% of AI predicted price
+        _maxPrice = price * 1.10; // +10% of AI predicted price
+        _confidence = (result['confidence'] as num).toDouble();
+        _method = result['method'] as String;
         _isLoading = false;
       });
-
     } catch (e) {
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
@@ -117,7 +98,9 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
       decoration: BoxDecoration(
         color: ColorConstants.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColorConstants.primary.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: ColorConstants.primary.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +120,7 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Based on ${widget.draft.year} ${widget.draft.brand} ${widget.draft.model} market data.',
+            'AI-powered valuation using on-device neural network.',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 8),
@@ -149,7 +132,7 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                 children: [
                   const Text('Estimated Range', style: TextStyle(fontSize: 10)),
                   Text(
-                    'Γé▒${(_minPrice! / 1000).toStringAsFixed(0)}k - Γé▒${(_maxPrice! / 1000).toStringAsFixed(0)}k',
+                    '₱${(_minPrice! / 1000).toStringAsFixed(0)}k - ₱${(_maxPrice! / 1000).toStringAsFixed(0)}k',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -159,11 +142,31 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ColorConstants.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Text('Apply Suggested'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                _method == 'ai_tflite' ? Icons.memory : Icons.calculate,
+                size: 14,
+                color: Colors.grey,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _method == 'ai_tflite'
+                    ? 'TFLite Neural Network • ${(_confidence * 100).toInt()}% confidence'
+                    : 'Heuristic Estimate',
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
               ),
             ],
           ),

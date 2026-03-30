@@ -68,6 +68,7 @@ class ListingDetailEntity {
 
   // Step 6: Documentation & Location
   final String? plateNumber;
+  final String? chassisNumber;
   final String? orcrStatus;
   final String? registrationStatus;
   final DateTime? registrationExpiry;
@@ -87,6 +88,7 @@ class ListingDetailEntity {
 
   // Configuration
   final String biddingType;
+  final String? exclusiveTier;
   final double bidIncrement;
   final double minBidIncrement;
   final double depositAmount;
@@ -106,6 +108,9 @@ class ListingDetailEntity {
 
   // Installment
   final bool allowsInstallment;
+
+  // Rejection
+  final String? rejectionReason;
 
   const ListingDetailEntity({
     required this.id,
@@ -159,6 +164,7 @@ class ListingDetailEntity {
     this.warrantyDetails,
     this.usageType,
     this.plateNumber,
+    this.chassisNumber,
     this.orcrStatus,
     this.registrationStatus,
     this.registrationExpiry,
@@ -172,6 +178,7 @@ class ListingDetailEntity {
     this.features,
     this.auctionEndDate,
     this.biddingType = 'public',
+    this.exclusiveTier,
     this.bidIncrement = 100,
     this.minBidIncrement = 100,
     this.depositAmount = 0,
@@ -183,6 +190,7 @@ class ListingDetailEntity {
     this.visibility = 'public',
     this.autoLiveAfterApproval = false,
     this.allowsInstallment = false,
+    this.rejectionReason,
   }) : _storedCoverPhotoUrl = storedCoverPhotoUrl;
 
   /// Get formatted car name

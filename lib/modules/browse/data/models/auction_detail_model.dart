@@ -10,6 +10,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
     required super.minBidIncrement,
     required super.enableIncrementalBidding,
     super.biddingType,
+    super.exclusiveTier,
     super.depositAmount,
     super.reservePrice,
     required super.isReserveMet,
@@ -62,6 +63,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
     super.warrantyDetails,
     super.usageType,
     super.plateNumber,
+    super.chassisNumber,
     super.orcrStatus,
     super.registrationStatus,
     super.registrationExpiry,
@@ -113,7 +115,8 @@ class AuctionDetailModel extends AuctionDetailEntity {
       minimumBid: minimumBidValue.toDouble(),
       minBidIncrement: minBidIncrementValue.toDouble(),
       enableIncrementalBidding: enableIncrementalBiddingValue,
-      biddingType: json['bidding_type'] as String? ?? 'public',
+      biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
       depositAmount: depositAmountValue.toDouble(),
       reservePrice: json['reserve_price'] != null
           ? (json['reserve_price'] as num).toDouble()
@@ -186,6 +189,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       warrantyDetails: json['warranty_details'] as String?,
       usageType: json['usage_type'] as String?,
       plateNumber: json['plate_number'] as String?,
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String?,
       registrationStatus: json['registration_status'] as String?,
       registrationExpiry: json['registration_expiry'] != null
@@ -264,6 +268,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'warranty_details': warrantyDetails,
       'usage_type': usageType,
       'plate_number': plateNumber,
+      'chassis_number': chassisNumber,
       'orcr_status': orcrStatus,
       'registration_status': registrationStatus,
       'registration_expiry': registrationExpiry?.toIso8601String(),

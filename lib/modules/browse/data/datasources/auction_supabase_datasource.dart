@@ -341,15 +341,148 @@ class AuctionSupabaseDataSource {
         'minimum_bid': auctionResponse['starting_price'],
         'end_time': auctionResponse['end_time'],
         'is_reserve_met':
+            auctionConfigResponse['bidding_type'] != 'mystery' &&
             auctionResponse['reserve_price'] != null &&
             auctionResponse['current_price'] >=
                 auctionResponse['reserve_price'],
-        'show_reserve_price': true,
+        'show_reserve_price':
+            auctionConfigResponse['bidding_type'] != 'mystery',
+        'reserve_price': auctionConfigResponse['bidding_type'] == 'mystery'
+            ? null
+            : auctionResponse['reserve_price'],
         'bidders_count': auctionResponse['total_bids'] ?? 0,
         'has_user_deposited': hasUserDeposited,
         'photos': photos,
       });
     } on PostgrestException catch (e) {
+      // Auction not in browse view (ended/in_transaction/sold/deal_failed).
+      // Build a full detail model from direct table queries.
+      try {
+        final auctionCheck = await _supabase
+            .from('auctions')
+            .select(
+              'id, title, description, current_price, starting_price, reserve_price, bid_increment, min_bid_increment, enable_incremental_bidding, deposit_amount, end_time, start_time, total_bids, view_count, is_featured, seller_id, status_id, bidding_type, deed_of_sale_url, created_at',
+            )
+            .eq('id', auctionId)
+            .maybeSingle();
+
+        if (auctionCheck != null) {
+          // Resolve status name from status_id
+          String statusName = 'ended';
+          try {
+            final statusRow = await _supabase
+                .from('auction_statuses')
+                .select('status_name')
+                .eq('id', auctionCheck['status_id'])
+                .single();
+            statusName = statusRow['status_name'] as String? ?? 'ended';
+          } catch (_) {}
+
+          final isEnded = statusName != 'live';
+          if (isEnded) {
+            // Fetch vehicle data
+            Map<String, dynamic>? vehicleData;
+            try {
+              final vResp = await _supabase
+                  .from('auction_vehicles')
+                  .select('brand, model, variant, year')
+                  .eq('auction_id', auctionId)
+                  .maybeSingle();
+              if (vResp != null) vehicleData = Map<String, dynamic>.from(vResp);
+            } catch (_) {}
+
+            // Fetch photos
+            final photos = <String, List<String>>{};
+            try {
+              final pResp = await _supabase
+                  .from('auction_photos')
+                  .select('photo_url, category, display_order')
+                  .eq('auction_id', auctionId)
+                  .order('display_order', ascending: true);
+              if (pResp.isNotEmpty) {
+                for (final photo in pResp) {
+                  final url = photo['photo_url'] as String;
+                  final category = _normalizePhotoCategory(
+                    photo['category'] as String?,
+                  );
+                  photos.putIfAbsent(category, () => []).add(url);
+                }
+                photos['all'] = pResp
+                    .map((p) => p['photo_url'] as String)
+                    .toList();
+              }
+            } catch (_) {}
+
+            // Primary image
+            String primaryImage = '';
+            if (photos['all'] != null && photos['all']!.isNotEmpty) {
+              primaryImage = photos['all']!.first;
+            }
+
+            // Check deposit
+            bool hasUserDeposited = false;
+            if (userId != null) {
+              try {
+                hasUserDeposited = await _depositDatasource.hasUserDeposited(
+                  auctionId: auctionId,
+                  userId: userId,
+                );
+              } catch (_) {}
+            }
+
+            final numBidIncrement =
+                (auctionCheck['min_bid_increment'] as num?) ??
+                (auctionCheck['bid_increment'] as num?) ??
+                100;
+            final biddingType =
+                auctionCheck['bidding_type'] as String? ?? 'standard';
+
+            return AuctionDetailModel.fromJson({
+              'id': auctionCheck['id'],
+              'title': auctionCheck['title'] ?? '',
+              'description': auctionCheck['description'] ?? '',
+              'starting_price': auctionCheck['starting_price'] ?? 0,
+              'current_bid':
+                  auctionCheck['current_price'] ??
+                  auctionCheck['starting_price'] ??
+                  0,
+              'reserve_price': biddingType == 'mystery'
+                  ? null
+                  : auctionCheck['reserve_price'],
+              'bid_increment': auctionCheck['bid_increment'] ?? 0,
+              'min_bid_increment': numBidIncrement,
+              'enable_incremental_bidding':
+                  (auctionCheck['enable_incremental_bidding'] as bool?) ?? true,
+              'deposit_amount': auctionCheck['deposit_amount'] ?? 0,
+              'end_time': auctionCheck['end_time'],
+              'start_time': auctionCheck['start_time'],
+              'total_bids': auctionCheck['total_bids'] ?? 0,
+              'status': 'ended',
+              'bidding_type': biddingType,
+              'deed_of_sale_url': auctionCheck['deed_of_sale_url'],
+              'seller_id': auctionCheck['seller_id'],
+              'car_image_url': primaryImage,
+              'brand': vehicleData?['brand'] ?? '',
+              'make': vehicleData?['brand'] ?? '',
+              'model': vehicleData?['model'] ?? '',
+              'year': vehicleData?['year'] ?? 0,
+              'variant': vehicleData?['variant'],
+              'minimum_bid': auctionCheck['starting_price'] ?? 0,
+              'is_reserve_met':
+                  biddingType != 'mystery' &&
+                  auctionCheck['reserve_price'] != null &&
+                  (auctionCheck['current_price'] ?? 0) >=
+                      auctionCheck['reserve_price'],
+              'show_reserve_price': biddingType != 'mystery',
+              'bidders_count': auctionCheck['total_bids'] ?? 0,
+              'has_user_deposited': hasUserDeposited,
+              'photos': photos,
+            });
+          }
+        }
+      } catch (_) {
+        // Ignore fallback errors — throw original
+      }
       throw Exception('Failed to get auction details: ${e.message}');
     } catch (e) {
       throw Exception('Failed to get auction details: $e');

@@ -63,29 +63,33 @@ class InstallmentSupabaseDatasource {
         'proposed_by': userId,
       };
 
+      // Use upsert to handle case where plan already exists for this transaction
+      // (UNIQUE constraint on transaction_id). On conflict, update all fields.
       final response = await _supabase
           .from('installment_plans')
-          .insert(data)
+          .upsert(data, onConflict: 'transaction_id')
           .select()
           .single();
 
       final plan = InstallmentPlanModel.fromJson(response).toEntity();
 
-      // Generate payment schedule immediately
-      await _generatePaymentSchedule(
-        planId: plan.id,
-        downPayment: plan.downPayment,
-        remaining: plan.remainingAmount,
-        numInstallments: plan.numInstallments,
-        frequency: plan.frequency,
-        startDate: DateTime.now(),
-      );
-
-      // Update transaction payment_method
-      await _supabase
-          .from('auction_transactions')
-          .update({'payment_method': 'installment'})
-          .eq('id', transactionId);
+      // For new plans: payment schedule and payment_method are auto-generated
+      // by the DB trigger (trg_auto_generate_installment_payments).
+      // For existing plans (upsert update): regenerate payments via RPC.
+      // We can detect this by checking if payments already exist.
+      final existingPayments = await getPayments(plan.id);
+      if (existingPayments.isEmpty) {
+        // Trigger should have fired on INSERT, but if it didn't
+        // (e.g., plan was updated via upsert), generate manually
+        await generatePaymentSchedule(
+          planId: plan.id,
+          downPayment: plan.downPayment,
+          remaining: plan.remainingAmount,
+          numInstallments: plan.numInstallments,
+          frequency: plan.frequency,
+          startDate: DateTime.now(),
+        );
+      }
 
       return plan;
     } catch (e) {
@@ -107,12 +111,7 @@ class InstallmentSupabaseDatasource {
       final userId = _supabase.auth.currentUser?.id;
       final remaining = totalAmount - downPayment;
 
-      // Delete old payment schedule
-      await _supabase
-          .from('installment_payments')
-          .delete()
-          .eq('installment_plan_id', planId);
-
+      // Old payments are deleted by the RPC function
       final data = {
         'total_amount': totalAmount,
         'down_payment': downPayment,
@@ -134,7 +133,7 @@ class InstallmentSupabaseDatasource {
       final plan = InstallmentPlanModel.fromJson(response).toEntity();
 
       // Regenerate payment schedule
-      await _generatePaymentSchedule(
+      await generatePaymentSchedule(
         planId: plan.id,
         downPayment: plan.downPayment,
         remaining: plan.remainingAmount,
@@ -150,8 +149,9 @@ class InstallmentSupabaseDatasource {
     }
   }
 
-  /// Generate payment schedule entries (including downpayment as #0)
-  Future<void> _generatePaymentSchedule({
+  /// Generate payment schedule via SECURITY DEFINER RPC
+  /// Returns the generated payments directly from the DB function
+  Future<List<InstallmentPaymentEntity>> generatePaymentSchedule({
     required String planId,
     required double downPayment,
     required double remaining,
@@ -159,80 +159,54 @@ class InstallmentSupabaseDatasource {
     required String frequency,
     required DateTime startDate,
   }) async {
-    final perPayment = (remaining / numInstallments);
-    final payments = <Map<String, dynamic>>[];
+    debugPrint(
+      '[InstallmentDatasource] Calling generate_installment_schedule RPC for plan $planId',
+    );
 
-    // Payment #0: Down payment (3-day grace period from start)
-    if (downPayment > 0) {
-      final dpDueDate = startDate.add(const Duration(days: 3));
-      payments.add({
-        'installment_plan_id': planId,
-        'payment_number': 0,
-        'amount': downPayment,
-        'due_date': dpDueDate.toIso8601String().split('T').first,
-        'status': 'pending',
-      });
-    }
+    final response = await _supabase.rpc(
+      'generate_installment_schedule',
+      params: {
+        'p_plan_id': planId,
+        'p_down_payment': downPayment,
+        'p_remaining': remaining,
+        'p_num_installments': numInstallments,
+        'p_frequency': frequency,
+        'p_start_date': startDate.toIso8601String().split('T').first,
+      },
+    );
 
-    // For no_schedule frequency, use a far-future sentinel date
-    final isNoSchedule = frequency == 'no_schedule';
+    final payments = (response as List)
+        .map(
+          (json) => InstallmentPaymentModel.fromJson(
+            Map<String, dynamic>.from(json as Map),
+          ).toEntity(),
+        )
+        .toList();
 
-    for (int i = 0; i < numInstallments; i++) {
-      DateTime dueDate;
-      if (isNoSchedule) {
-        // Sentinel date indicating no due date
-        dueDate = DateTime(9999, 12, 31);
-      } else {
-        switch (frequency) {
-          case 'weekly':
-            dueDate = startDate.add(Duration(days: 7 * (i + 1)));
-            break;
-          case 'bi-weekly':
-            dueDate = startDate.add(Duration(days: 14 * (i + 1)));
-            break;
-          case 'monthly':
-          default:
-            dueDate = DateTime(
-              startDate.year,
-              startDate.month + (i + 1),
-              startDate.day,
-            );
-            break;
-        }
-      }
-
-      // Last payment gets any rounding remainder
-      final amount = i == numInstallments - 1
-          ? remaining - (perPayment.floorToDouble() * (numInstallments - 1))
-          : perPayment.floorToDouble();
-
-      payments.add({
-        'installment_plan_id': planId,
-        'payment_number': i + 1,
-        'amount': amount,
-        'due_date': dueDate.toIso8601String().split('T').first,
-        'status': 'pending',
-      });
-    }
-
-    await _supabase.from('installment_payments').insert(payments);
+    debugPrint(
+      '[InstallmentDatasource] RPC returned ${payments.length} payments',
+    );
+    return payments;
   }
 
   // =========================================================================
   // Installment Payment Operations
   // =========================================================================
 
-  /// Fetch all payments for a plan
+  /// Fetch all payments for a plan via SECURITY DEFINER RPC
   Future<List<InstallmentPaymentEntity>> getPayments(String planId) async {
     try {
-      final response = await _supabase
-          .from('installment_payments')
-          .select()
-          .eq('installment_plan_id', planId)
-          .order('payment_number');
+      final response = await _supabase.rpc(
+        'get_plan_payments',
+        params: {'p_plan_id': planId},
+      );
 
       return (response as List)
-          .map((json) => InstallmentPaymentModel.fromJson(json).toEntity())
+          .map(
+            (json) => InstallmentPaymentModel.fromJson(
+              Map<String, dynamic>.from(json as Map),
+            ).toEntity(),
+          )
           .toList();
     } catch (e) {
       debugPrint('[InstallmentDatasource] Error fetching payments: $e');
@@ -448,7 +422,7 @@ class InstallmentSupabaseDatasource {
         .from('installment_payments')
         .stream(primaryKey: ['id'])
         .eq('installment_plan_id', planId)
-        .order('payment_number')
+        .order('payment_number', ascending: true)
         .map(
           (list) => list
               .map((json) => InstallmentPaymentModel.fromJson(json).toEntity())

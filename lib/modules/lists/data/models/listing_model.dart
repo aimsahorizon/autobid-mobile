@@ -50,6 +50,7 @@ class ListingModel {
   final String? warrantyDetails;
   final String? usageType;
   final String plateNumber;
+  final String? chassisNumber;
   final String orcrStatus;
   final String registrationStatus;
   final DateTime? registrationExpiry;
@@ -81,8 +82,12 @@ class ListingModel {
   /// Reason for cancellation (if applicable)
   final String? cancellationReason;
 
+  /// Who cancelled the deal ('seller' or 'buyer')
+  final String? cancelledBy;
+
   // Bidding Configuration
   final String biddingType;
+  final String? exclusiveTier;
 
   final double bidIncrement;
   final double minBidIncrement;
@@ -102,6 +107,9 @@ class ListingModel {
 
   // Installment
   final bool allowsInstallment;
+
+  // Review status (for completed transactions)
+  final bool? hasReview;
 
   const ListingModel({
     required this.id,
@@ -150,6 +158,7 @@ class ListingModel {
     this.warrantyDetails,
     this.usageType,
     required this.plateNumber,
+    this.chassisNumber,
     required this.orcrStatus,
     required this.registrationStatus,
     this.registrationExpiry,
@@ -176,7 +185,9 @@ class ListingModel {
     required this.updatedAt,
     this.transactionId,
     this.cancellationReason,
-    this.biddingType = 'public',
+    this.cancelledBy,
+    this.biddingType = 'open',
+    this.exclusiveTier,
     this.bidIncrement = 100,
     this.minBidIncrement = 100,
     this.depositAmount = 0,
@@ -186,8 +197,9 @@ class ListingModel {
     this.snipeGuardThresholdSeconds = 300,
     this.snipeGuardExtendSeconds = 300,
     this.deedOfSaleUrl,
-    this.visibility = 'public',
+    this.visibility = 'open',
     this.allowsInstallment = false,
+    this.hasReview,
   });
 
   /// Convert database row to model
@@ -242,6 +254,7 @@ class ListingModel {
       warrantyDetails: json['warranty_details'] as String?,
       usageType: json['usage_type'] as String?,
       plateNumber: json['plate_number'] as String? ?? '',
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String? ?? '',
       registrationStatus: json['registration_status'] as String? ?? '',
       registrationExpiry: json['registration_expiry'] != null
@@ -284,7 +297,9 @@ class ListingModel {
           : DateTime.now(),
       transactionId: json['transaction_id'] as String?,
       cancellationReason: json['cancellation_reason'] as String?,
-      biddingType: json['bidding_type'] as String? ?? 'public',
+      cancelledBy: json['cancelled_by'] as String?,
+      biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
       bidIncrement: _toDouble(json['bid_increment']) ?? 100,
       minBidIncrement: _toDouble(json['min_bid_increment']) ?? 100,
       depositAmount: _toDouble(json['deposit_amount']) ?? 0,
@@ -300,8 +315,9 @@ class ListingModel {
       visibility:
           json['visibility'] as String? ??
           json['bidding_type'] as String? ??
-          'public',
+          'open',
       allowsInstallment: json['allows_installment'] as bool? ?? false,
+      hasReview: json['has_review'] as bool?,
     );
   }
 
@@ -332,8 +348,11 @@ class ListingModel {
       sellerId: sellerId,
       transactionId: transactionId,
       cancellationReason: cancellationReason,
-      visibility: visibility != 'public' ? visibility : biddingType,
+      cancelledBy: cancelledBy,
+      rejectionReason: rejectionReason,
+      visibility: visibility != 'open' ? visibility : biddingType,
       allowsInstallment: allowsInstallment,
+      hasReview: hasReview,
     );
   }
 
@@ -401,6 +420,7 @@ class ListingModel {
       warrantyDetails: warrantyDetails,
       usageType: usageType,
       plateNumber: plateNumber,
+      chassisNumber: chassisNumber,
       orcrStatus: orcrStatus,
       registrationStatus: registrationStatus,
       registrationExpiry: registrationExpiry,
@@ -414,6 +434,7 @@ class ListingModel {
       features: features,
       auctionEndDate: auctionEndTime,
       biddingType: biddingType,
+      exclusiveTier: exclusiveTier,
       bidIncrement: bidIncrement,
       minBidIncrement: minBidIncrement,
       depositAmount: depositAmount,
@@ -425,6 +446,7 @@ class ListingModel {
       visibility: visibility,
       autoLiveAfterApproval: autoLiveAfterApproval,
       allowsInstallment: allowsInstallment,
+      rejectionReason: rejectionReason,
     );
   }
 
@@ -457,6 +479,8 @@ class ListingModel {
         return ListingStatus.ended;
       case 'cancelled':
         return ListingStatus.cancelled;
+      case 'rejected':
+        return ListingStatus.rejected;
       case 'in_transaction':
         return ListingStatus.inTransaction;
       case 'sold':

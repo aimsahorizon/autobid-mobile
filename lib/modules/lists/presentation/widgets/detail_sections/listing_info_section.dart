@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/listing_detail_entity.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
@@ -15,6 +16,27 @@ class ListingInfoSection extends StatefulWidget {
 class _ListingInfoSectionState extends State<ListingInfoSection>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+
+  static bool _isAssetPath(String url) => url.startsWith('assets/');
+
+  static Widget _buildSmartImage(String url, {BoxFit fit = BoxFit.cover}) {
+    if (_isAssetPath(url)) {
+      return Image.asset(
+        url,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(child: Icon(Icons.image, color: Colors.grey));
+        },
+      );
+    }
+    return Image.network(
+      url,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return const Center(child: Icon(Icons.image, color: Colors.grey));
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -83,29 +105,44 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
   }
 
   Widget _buildConfigTab(bool isDark) {
+    final fmt = NumberFormat('#,##0');
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         _buildSpecGroup('Bidding Settings', [
           _SpecRow(
             'Bidding Type',
-            widget.listing.biddingType == 'public' ? 'Public' : 'Private',
+            widget.listing.biddingType == 'exclusive'
+                ? 'Exclusive'
+                : widget.listing.biddingType == 'mystery'
+                ? 'Mystery'
+                : 'Open',
           ),
+          if (widget.listing.biddingType == 'exclusive' &&
+              widget.listing.exclusiveTier != null)
+            _SpecRow(
+              'Required Tier',
+              widget.listing.exclusiveTier == 'silver'
+                  ? 'Silver Only'
+                  : widget.listing.exclusiveTier == 'gold'
+                  ? 'Gold Only'
+                  : 'Silver & Gold',
+            ),
           _SpecRow(
             'Increment Type',
             widget.listing.enableIncrementalBidding ? 'Dynamic' : 'Fixed',
           ),
           _SpecRow(
             'Bid Increment',
-            '₱${widget.listing.bidIncrement.toStringAsFixed(0)}',
+            '₱${fmt.format(widget.listing.bidIncrement)}',
           ),
           _SpecRow(
             'Min Increment',
-            '₱${widget.listing.minBidIncrement.toStringAsFixed(0)}',
+            '₱${fmt.format(widget.listing.minBidIncrement)}',
           ),
           _SpecRow(
             'Buyer Deposit',
-            '₱${widget.listing.depositAmount.toStringAsFixed(0)}',
+            '₱${fmt.format(widget.listing.depositAmount)}',
           ),
         ], isDark),
         const SizedBox(height: 16),
@@ -129,14 +166,62 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
         _buildSpecGroup('Pricing', [
           _SpecRow(
             'Starting Price',
-            '₱${widget.listing.startingPrice.toStringAsFixed(0)}',
+            '₱${fmt.format(widget.listing.startingPrice)}',
           ),
           if (widget.listing.reservePrice != null)
             _SpecRow(
               'Reserve Price',
-              '₱${widget.listing.reservePrice!.toStringAsFixed(0)}',
+              '₱${fmt.format(widget.listing.reservePrice!)}',
             ),
         ], isDark),
+        if (widget.listing.startTime != null ||
+            widget.listing.endTime != null ||
+            widget.listing.auctionEndDate != null) ...[
+          const SizedBox(height: 16),
+          _buildSpecGroup('Scheduling', [
+            if (widget.listing.startTime != null)
+              _SpecRow(
+                'Start Time',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.startTime!.toLocal()),
+              ),
+            if (widget.listing.endTime != null)
+              _SpecRow(
+                'End Time',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.endTime!.toLocal()),
+              ),
+            if (widget.listing.startTime != null &&
+                widget.listing.endTime != null)
+              _SpecRow(
+                'Duration',
+                _formatDuration(
+                  widget.listing.endTime!.difference(widget.listing.startTime!),
+                ),
+              ),
+            if (widget.listing.auctionEndDate != null &&
+                widget.listing.endTime == null)
+              _SpecRow(
+                'Scheduled End Date',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.auctionEndDate!.toLocal()),
+              ),
+            _SpecRow(
+              'Auto Live After Approval',
+              widget.listing.autoLiveAfterApproval ? 'Yes' : 'No',
+            ),
+          ], isDark),
+        ],
+        if (widget.listing.rejectionReason != null &&
+            widget.listing.rejectionReason!.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildSpecGroup('Admin Feedback', [
+            _SpecRow('Notes', widget.listing.rejectionReason!),
+          ], isDark),
+        ],
       ],
     );
   }
@@ -401,6 +486,15 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
             isDark: isDark,
           ),
         const SizedBox(height: 12),
+        if (widget.listing.chassisNumber != null &&
+            widget.listing.chassisNumber!.isNotEmpty)
+          _InfoCard(
+            icon: Icons.confirmation_number,
+            title: 'Chassis Number (VIN)',
+            value: widget.listing.chassisNumber!,
+            isDark: isDark,
+          ),
+        const SizedBox(height: 12),
         if (widget.listing.orcrStatus != null)
           _InfoCard(
             icon: Icons.description,
@@ -430,8 +524,11 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
           _InfoCard(
             icon: Icons.location_on,
             title: 'Location',
-            value:
-                '${widget.listing.cityMunicipality ?? ''}, ${widget.listing.province}',
+            value: [
+              widget.listing.barangay,
+              widget.listing.cityMunicipality,
+              widget.listing.province,
+            ].where((s) => s != null && s.isNotEmpty).join(', '),
             isDark: isDark,
           ),
       ],
@@ -483,14 +580,9 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
+                      child: _buildSmartImage(
                         urls[photoIndex],
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(Icons.image, color: Colors.grey),
-                          );
-                        },
                       ),
                     ),
                   );
@@ -537,6 +629,17 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
         .where((w) => w.isNotEmpty)
         .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
+  }
+
+  String _formatDuration(Duration d) {
+    if (d.inDays > 0) {
+      final hours = d.inHours % 24;
+      return hours > 0
+          ? '${d.inDays}d ${hours}h'
+          : '${d.inDays} day${d.inDays > 1 ? 's' : ''}';
+    }
+    if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes % 60}m';
+    return '${d.inMinutes}m';
   }
 
   Widget _buildSpecGroup(String title, List<Widget> specs, bool isDark) {

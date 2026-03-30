@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/auction_entity.dart';
 
+bool _isAssetPath(String url) => url.startsWith('assets/');
+
 class AuctionCard extends StatelessWidget {
   final AuctionEntity auction;
   final VoidCallback? onTap;
@@ -77,28 +79,42 @@ class AuctionCard extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    final isPrivate = auction.visibility == 'private';
+    final isExclusive = auction.visibility == 'exclusive';
+    final isMystery = auction.visibility == 'mystery';
 
     return Stack(
       children: [
         AspectRatio(
           aspectRatio: 16 / 9,
-          child: CachedNetworkImage(
-            imageUrl: auction.carImageUrl,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              color: ColorConstants.backgroundSecondaryLight,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              color: ColorConstants.backgroundSecondaryLight,
-              child: const Icon(
-                Icons.directions_car,
-                size: 48,
-                color: ColorConstants.textSecondaryLight,
-              ),
-            ),
-          ),
+          child: _isAssetPath(auction.carImageUrl)
+              ? Image.asset(
+                  auction.carImageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Icon(
+                      Icons.directions_car,
+                      size: 48,
+                      color: ColorConstants.textSecondaryLight,
+                    ),
+                  ),
+                )
+              : CachedNetworkImage(
+                  imageUrl: auction.carImageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Icon(
+                      Icons.directions_car,
+                      size: 48,
+                      color: ColorConstants.textSecondaryLight,
+                    ),
+                  ),
+                ),
         ),
         Positioned(
           top: 8,
@@ -106,8 +122,10 @@ class AuctionCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: isPrivate
+              color: isExclusive
                   ? ColorConstants.warning.withValues(alpha: 0.9)
+                  : isMystery
+                  ? Colors.purple.withValues(alpha: 0.9)
                   : ColorConstants.success.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(6),
             ),
@@ -115,13 +133,21 @@ class AuctionCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  isPrivate ? Icons.lock_outline : Icons.public,
+                  isExclusive
+                      ? Icons.lock_outline
+                      : isMystery
+                      ? Icons.visibility_off
+                      : Icons.public,
                   size: 12,
                   color: Colors.white,
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  isPrivate ? 'Private' : 'Public',
+                  isExclusive
+                      ? 'Exclusive'
+                      : isMystery
+                      ? 'Mystery'
+                      : 'Open',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -194,15 +220,35 @@ class AuctionCard extends StatelessWidget {
   }
 
   Widget _buildCurrentBid(ThemeData theme) {
+    final isMystery = auction.visibility == 'mystery';
+
     return Row(
       children: [
-        Text(
-          '₱${_formatPrice(auction.currentBid)}',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: ColorConstants.primary,
-            fontWeight: FontWeight.bold,
+        if (isMystery) ...[
+          const Icon(Icons.lock_outline, size: 16, color: Colors.deepPurple),
+          const SizedBox(width: 4),
+          Text(
+            'Starting at ',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.deepPurple,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
+          Text(
+            '₱${_formatPrice(auction.currentBid)}',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: Colors.deepPurple,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ] else
+          Text(
+            '₱${_formatPrice(auction.currentBid)}',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: ColorConstants.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         const Spacer(),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -241,6 +287,8 @@ class AuctionCard extends StatelessWidget {
   }
 
   Widget _buildStats(ThemeData theme, bool isDark) {
+    final isMystery = auction.visibility == 'mystery';
+
     return Row(
       children: [
         _buildStatItem(
@@ -250,12 +298,36 @@ class AuctionCard extends StatelessWidget {
           isDark: isDark,
         ),
         const SizedBox(width: 16),
-        _buildStatItem(
-          icon: Icons.gavel_rounded,
-          count: auction.biddersCount,
-          theme: theme,
-          isDark: isDark,
-        ),
+        if (isMystery)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.lock_outline,
+                size: 16,
+                color: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Sealed',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          )
+        else
+          _buildStatItem(
+            icon: Icons.gavel_rounded,
+            count: auction.biddersCount,
+            theme: theme,
+            isDark: isDark,
+          ),
       ],
     );
   }

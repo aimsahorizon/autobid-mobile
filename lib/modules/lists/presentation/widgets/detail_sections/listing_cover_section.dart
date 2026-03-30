@@ -7,6 +7,31 @@ class ListingCoverSection extends StatelessWidget {
 
   const ListingCoverSection({super.key, required this.listing});
 
+  static bool _isAssetPath(String url) => url.startsWith('assets/');
+
+  static Widget _buildSmartImage(String url, {BoxFit fit = BoxFit.cover}) {
+    if (_isAssetPath(url)) {
+      return Image.asset(
+        url,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(
+            child: Icon(Icons.directions_car, size: 64, color: Colors.grey),
+          );
+        },
+      );
+    }
+    return Image.network(
+      url,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return const Center(
+          child: Icon(Icons.directions_car, size: 64, color: Colors.grey),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -20,17 +45,13 @@ class ListingCoverSection extends StatelessWidget {
           width: double.infinity,
           color: isDark ? ColorConstants.surfaceDark : Colors.grey[200],
           child: listing.coverPhotoUrl != null
-              ? Image.network(
-                  listing.coverPhotoUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(
-                      child: Icon(Icons.directions_car, size: 64, color: Colors.grey),
-                    );
-                  },
-                )
+              ? _buildSmartImage(listing.coverPhotoUrl!, fit: BoxFit.cover)
               : const Center(
-                  child: Icon(Icons.directions_car, size: 64, color: Colors.grey),
+                  child: Icon(
+                    Icons.directions_car,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
                 ),
         ),
         // Gradient overlay
@@ -40,10 +61,7 @@ class ListingCoverSection extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.7),
-              ],
+              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
             ),
           ),
         ),
@@ -66,10 +84,7 @@ class ListingCoverSection extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 '${listing.year ?? 'N/A'} • ${listing.mileage != null ? '${listing.mileage!.toStringAsFixed(0)} km' : 'N/A'}',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),

@@ -12,6 +12,7 @@ import '../pages/approved_listing_detail_page.dart';
 import '../pages/draft_listing_detail_page.dart';
 import '../pages/ended_listing_detail_page.dart';
 import '../pages/cancelled_listing_detail_page.dart';
+import '../pages/rejected_listing_detail_page.dart';
 import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
 import '../../../transactions/transactions_module.dart';
 
@@ -64,7 +65,6 @@ class ListingsGrid extends StatelessWidget {
     if (listing.status == ListingStatus.inTransaction ||
         listing.status == ListingStatus.sold ||
         listing.status == ListingStatus.dealFailed) {
-      
       if (onTransactionCardTap != null) {
         await onTransactionCardTap!(context, listing);
         return;
@@ -72,18 +72,14 @@ class ListingsGrid extends StatelessWidget {
 
       // Fallback: open pre-transaction page directly using the ID as transactionId
       if (!context.mounted) return;
-      
+
       // Use Realtime controller for consistent live experience
       final realtimeController = TransactionsModule.instance
           .createRealtimeTransactionController();
 
       final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
       final userName =
-          SupabaseConfig
-              .client
-              .auth
-              .currentUser
-              ?.userMetadata?['full_name'] ??
+          SupabaseConfig.client.auth.currentUser?.userMetadata?['full_name'] ??
           'Seller';
 
       await Navigator.push<void>(
@@ -110,9 +106,9 @@ class ListingsGrid extends StatelessWidget {
     try {
       // Fetch full listing details from Supabase
       final datasource = ListingSupabaseDataSource(SupabaseConfig.client);
-      
+
       ListingDetailEntity detailEntity;
-      
+
       if (listing.status == ListingStatus.draft) {
         // Fetch from listing_drafts table
         final draftModel = await datasource.getDraft(listing.id);
@@ -198,11 +194,18 @@ class ListingsGrid extends StatelessWidget {
             sellerId: sellerId,
           );
           break;
+        case ListingStatus.rejected:
+          detailPage = RejectedListingDetailPage(
+            listing: detailEntity,
+            controller: draftController,
+            sellerId: sellerId,
+          );
+          break;
         case ListingStatus.inTransaction:
         case ListingStatus.sold:
         case ListingStatus.dealFailed:
           // Already handled above
-          return; 
+          return;
       }
 
       if (!context.mounted) return;
@@ -210,7 +213,7 @@ class ListingsGrid extends StatelessWidget {
         context,
         MaterialPageRoute(builder: (context) => detailPage),
       );
-      
+
       onListingUpdated?.call();
     } catch (e) {
       if (context.mounted) {
@@ -262,7 +265,9 @@ class ListingsGrid extends StatelessWidget {
           isSelectionMode: isSelectionMode,
           isSelected: selectedIds.contains(listings[index].id),
           onLongPress: () => onSelectionToggle?.call(listings[index].id),
-          onInviteTap: onInviteTap != null ? () => onInviteTap!(listings[index]) : null,
+          onInviteTap: onInviteTap != null
+              ? () => onInviteTap!(listings[index])
+              : null,
         ),
       );
     }
@@ -284,7 +289,9 @@ class ListingsGrid extends StatelessWidget {
         isSelectionMode: isSelectionMode,
         isSelected: selectedIds.contains(listings[index].id),
         onLongPress: () => onSelectionToggle?.call(listings[index].id),
-        onInviteTap: onInviteTap != null ? () => onInviteTap!(listings[index]) : null,
+        onInviteTap: onInviteTap != null
+            ? () => onInviteTap!(listings[index])
+            : null,
       ),
     );
   }

@@ -47,6 +47,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.warrantyDetails,
     super.usageType,
     super.plateNumber,
+    super.chassisNumber,
     super.orcrStatus,
     super.registrationStatus,
     super.registrationExpiry,
@@ -64,11 +65,15 @@ class ListingDraftModel extends ListingDraftEntity {
     super.reservePrice,
     super.auctionEndDate,
     super.biddingType,
+    super.exclusiveTier,
     super.bidIncrement,
     super.minBidIncrement,
     super.depositAmount,
     super.enableIncrementalBidding,
     super.autoLiveAfterApproval,
+    super.scheduleLiveMode,
+    super.auctionStartDate,
+    super.auctionDurationHours,
     super.snipeGuardEnabled,
     super.snipeGuardThresholdSeconds,
     super.snipeGuardExtendSeconds,
@@ -128,6 +133,7 @@ class ListingDraftModel extends ListingDraftEntity {
       usageType: json['usage_type'] as String?,
       // Step 6: Documentation
       plateNumber: json['plate_number'] as String?,
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String?,
       registrationStatus: json['registration_status'] as String?,
       registrationExpiry: json['registration_expiry'] != null
@@ -157,13 +163,19 @@ class ListingDraftModel extends ListingDraftEntity {
           ? DateTime.parse(json['auction_end_date'] as String)
           : null,
       // Step 8: Bidding Configuration
-      biddingType: json['bidding_type'] as String? ?? 'public',
+      biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
       bidIncrement: _toDouble(json['bid_increment']),
       minBidIncrement: _toDouble(json['min_bid_increment']),
       depositAmount: _toDouble(json['deposit_amount']),
       enableIncrementalBidding:
           json['enable_incremental_bidding'] as bool? ?? true,
       autoLiveAfterApproval: json['auto_live_after_approval'] as bool? ?? false,
+      scheduleLiveMode: json['schedule_live_mode'] as String?,
+      auctionStartDate: json['auction_start_date'] != null
+          ? DateTime.parse(json['auction_start_date'] as String)
+          : null,
+      auctionDurationHours: json['auction_duration_hours'] as int?,
       snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
       snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int?,
       snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int?,
@@ -184,6 +196,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'brand': brand,
       'model': model,
       'variant': variant,
+      'body_type': bodyType,
       'year': year,
       // Step 2
       'engine_type': engineType,
@@ -223,6 +236,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'usage_type': usageType,
       // Step 6
       'plate_number': plateNumber,
+      'chassis_number': chassisNumber,
       'orcr_status': orcrStatus,
       'registration_status': registrationStatus,
       'registration_expiry': registrationExpiry?.toIso8601String(),
@@ -243,11 +257,15 @@ class ListingDraftModel extends ListingDraftEntity {
       'auction_end_date': auctionEndDate?.toIso8601String(),
       // Step 8: Bidding Configuration
       'bidding_type': biddingType,
+      'exclusive_tier': exclusiveTier,
       'bid_increment': bidIncrement,
       'min_bid_increment': minBidIncrement,
       'deposit_amount': depositAmount,
       'enable_incremental_bidding': enableIncrementalBidding,
       'auto_live_after_approval': autoLiveAfterApproval ?? false,
+      'schedule_live_mode': scheduleLiveMode,
+      'auction_start_date': auctionStartDate?.toIso8601String(),
+      'auction_duration_hours': auctionDurationHours,
       'snipe_guard_enabled': snipeGuardEnabled,
       'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
       'snipe_guard_extend_seconds': snipeGuardExtendSeconds,

@@ -142,6 +142,7 @@ class ListsController extends ChangeNotifier {
           if (listing.status == ListingStatus.draft) {
             await _deleteDraftUseCase(listing.id);
           } else if (listing.status == ListingStatus.cancelled ||
+              listing.status == ListingStatus.rejected ||
               listing.status == ListingStatus.ended ||
               listing.status == ListingStatus.sold || // Cleanup old sold
               listing.status == ListingStatus.dealFailed) {

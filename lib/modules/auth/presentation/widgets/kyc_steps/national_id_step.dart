@@ -107,13 +107,13 @@ class _NationalIdStepState extends State<NationalIdStep> {
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(12),
+              LengthLimitingTextInputFormatter(16),
               _NationalIdFormatter(),
             ],
             decoration: const InputDecoration(
-              labelText: 'Philippine National ID (PhilSys ID)',
-              hintText: 'XXXX-XXXX-XXXX',
-              helperText: '12-digit PhilSys ID number',
+              labelText: 'PhilSys Card Number (PCN)',
+              hintText: 'XXXX-XXXX-XXXX-XXXX',
+              helperText: '16-digit PhilSys Card Number (PCN)',
               prefixIcon: Icon(Icons.badge_rounded),
             ),
             validator: (value) {
@@ -121,8 +121,8 @@ class _NationalIdStepState extends State<NationalIdStep> {
                 return 'National ID number is required';
               }
               final digitsOnly = value.replaceAll('-', '');
-              if (digitsOnly.length != 12) {
-                return 'National ID must be 12 digits';
+              if (digitsOnly.length != 16) {
+                return 'PCN must be 16 digits';
               }
               return null;
             },
@@ -179,8 +179,8 @@ class _NationalIdStepState extends State<NationalIdStep> {
   }
 }
 
-/// Formatter for Philippine National ID (PhilSys ID)
-/// Format: XXXX-XXXX-XXXX (12 digits with dashes)
+/// Formatter for Philippine National ID (PhilSys Card Number - PCN)
+/// Format: XXXX-XXXX-XXXX-XXXX (16 digits with dashes)
 /// Note: Formatted for display, but stored without dashes in database
 class _NationalIdFormatter extends TextInputFormatter {
   @override

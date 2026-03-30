@@ -8,10 +8,7 @@ class PricingRepositoryImpl implements PricingRepository {
   final PricingSupabaseDatasource datasource;
   final NetworkInfo networkInfo;
 
-  PricingRepositoryImpl({
-    required this.datasource,
-    required this.networkInfo,
-  });
+  PricingRepositoryImpl({required this.datasource, required this.networkInfo});
 
   @override
   Future<TokenBalanceEntity> getTokenBalance(String userId) async {
@@ -124,44 +121,12 @@ class PricingRepositoryImpl implements PricingRepository {
     if (!await networkInfo.isConnected) {
       throw Exception('No internet connection');
     }
-    final now = DateTime.now();
-    DateTime? endDate;
 
-    // Calculate end date based on plan
-    if (plan != SubscriptionPlan.free) {
-      if (plan.isYearly) {
-        endDate = now.add(const Duration(days: 365));
-      } else {
-        endDate = now.add(const Duration(days: 30));
-      }
-    }
-
-    // Subscribe via datasource
-    final subscription = await datasource.subscribeToPlan(
+    // Use atomic RPC that handles tokens, cooldown, and time logic
+    return await datasource.changeSubscription(
       userId: userId,
       plan: plan.toJson(),
-      startDate: now,
-      endDate: endDate,
     );
-
-    // Add subscription tokens
-    await datasource.addTokens(
-      userId: userId,
-      tokenType: 'bidding',
-      amount: plan.biddingTokens,
-      price: 0,
-      transactionType: 'subscription',
-    );
-
-    await datasource.addTokens(
-      userId: userId,
-      tokenType: 'listing',
-      amount: plan.listingTokens,
-      price: 0,
-      transactionType: 'subscription',
-    );
-
-    return subscription;
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/widgets/user_profile_bottom_sheet.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
@@ -149,7 +150,9 @@ class _SellerFormTabState extends State<SellerFormTab> {
     } else if (mounted) {
       (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
-          content: Text(widget.controller.errorMessage ?? 'Failed to submit seller form'),
+          content: Text(
+            widget.controller.errorMessage ?? 'Failed to submit seller form',
+          ),
           backgroundColor: ColorConstants.error,
         ),
       );
@@ -176,6 +179,60 @@ class _SellerFormTabState extends State<SellerFormTab> {
               children: [
                 // Status Banner
                 if (isSubmitted) _buildSubmittedBanner(isDark),
+
+                // Buyer Profile Link — TEMPORARILY HIDDEN
+                // TODO: Re-enable when profile view is ready
+                if (false)
+                  GestureDetector(
+                    onTap: () {
+                      final transaction = widget.controller.transaction;
+                      if (transaction != null) {
+                        UserProfileBottomSheet.show(
+                          context,
+                          userId: transaction.buyerId,
+                        );
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: ColorConstants.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: ColorConstants.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            size: 18,
+                            color: ColorConstants.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'View Buyer Profile & Stats',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: ColorConstants.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: ColorConstants.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 // Document Preparation Section
                 _buildSectionHeader('Document Preparation', Icons.folder_copy),
@@ -500,12 +557,14 @@ class _SellerFormTabState extends State<SellerFormTab> {
       builder: (context, setState) {
         return CheckboxListTile(
           value: value,
-          onChanged: disabled ? null : (v) {
-            onChanged(v);
-            setState(() {
-              value = v ?? false;
-            });
-          },
+          onChanged: disabled
+              ? null
+              : (v) {
+                  onChanged(v);
+                  setState(() {
+                    value = v ?? false;
+                  });
+                },
           title: Row(
             children: [
               Expanded(
@@ -532,7 +591,7 @@ class _SellerFormTabState extends State<SellerFormTab> {
           contentPadding: EdgeInsets.zero,
           activeColor: ColorConstants.success,
         );
-      }
+      },
     );
   }
 
@@ -547,19 +606,24 @@ class _SellerFormTabState extends State<SellerFormTab> {
       builder: (context, setState) {
         return CheckboxListTile(
           value: value,
-          onChanged: disabled ? null : (v) {
-            onChanged(v);
-            setState(() {
-              value = v ?? false;
-            });
-          },
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+          onChanged: disabled
+              ? null
+              : (v) {
+                  onChanged(v);
+                  setState(() {
+                    value = v ?? false;
+                  });
+                },
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
           subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
           activeColor: ColorConstants.success,
         );
-      }
+      },
     );
   }
 }

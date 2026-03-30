@@ -25,6 +25,9 @@ import '../../domain/usecases/lower_hand_usecase.dart';
 import '../../domain/usecases/submit_turn_bid_usecase.dart';
 import '../../domain/usecases/get_queue_status_usecase.dart';
 import '../../domain/usecases/stream_queue_updates_usecase.dart';
+import '../../domain/usecases/place_mystery_bid_usecase.dart';
+import '../../domain/usecases/get_mystery_bid_status_usecase.dart';
+import '../../domain/entities/mystery_bid_entity.dart';
 import '../../../profile/domain/usecases/consume_bidding_token_usecase.dart';
 
 /// Controller for managing auction detail page state
@@ -58,6 +61,8 @@ class AuctionDetailController extends ChangeNotifier {
   final SubmitTurnBidUseCase _submitTurnBidUseCase;
   final GetQueueStatusUseCase _getQueueStatusUseCase;
   final StreamQueueUpdatesUseCase _streamQueueUpdatesUseCase;
+  final PlaceMysteryBidUseCase _placeMysteryBidUseCase;
+  final GetMysteryBidStatusUseCase _getMysteryBidStatusUseCase;
   final String? _userId;
 
   /// Create controller with UseCases via Dependency Injection
@@ -84,6 +89,8 @@ class AuctionDetailController extends ChangeNotifier {
     required SubmitTurnBidUseCase submitTurnBidUseCase,
     required GetQueueStatusUseCase getQueueStatusUseCase,
     required StreamQueueUpdatesUseCase streamQueueUpdatesUseCase,
+    required PlaceMysteryBidUseCase placeMysteryBidUseCase,
+    required GetMysteryBidStatusUseCase getMysteryBidStatusUseCase,
     String? userId,
   }) : _getAuctionDetailUseCase = getAuctionDetailUseCase,
        _getBidHistoryUseCase = getBidHistoryUseCase,
@@ -107,6 +114,8 @@ class AuctionDetailController extends ChangeNotifier {
        _submitTurnBidUseCase = submitTurnBidUseCase,
        _getQueueStatusUseCase = getQueueStatusUseCase,
        _streamQueueUpdatesUseCase = streamQueueUpdatesUseCase,
+       _placeMysteryBidUseCase = placeMysteryBidUseCase,
+       _getMysteryBidStatusUseCase = getMysteryBidStatusUseCase,
        _userId = userId;
 
   // State properties
@@ -134,6 +143,10 @@ class AuctionDetailController extends ChangeNotifier {
   bool _hasRaisedHand = false;
   Timer? _queuePollTimer;
 
+  // Mystery bid state
+  MysteryBidStatusEntity? _mysteryBidStatus;
+  bool _isLoadingMysteryStatus = false;
+
   // Public getters
   AuctionDetailEntity? get auction => _auction;
   List<BidHistoryEntity> get bidHistory => _bidHistory;
@@ -149,6 +162,21 @@ class AuctionDetailController extends ChangeNotifier {
   double get bidIncrement => _bidIncrement;
   BidQueueCycleEntity get queueStatus => _queueStatus;
   bool get hasRaisedHand => _hasRaisedHand;
+  MysteryBidStatusEntity? get mysteryBidStatus => _mysteryBidStatus;
+  bool get isLoadingMysteryStatus => _isLoadingMysteryStatus;
+  bool get isMysteryAuction => _auction?.biddingType == 'mystery';
+
+  /// Whether the current user won the auction (highest winning bid belongs to them)
+  bool get isCurrentUserWinner {
+    if (_userId == null || _bidHistory.isEmpty) return false;
+    return _bidHistory.any((b) => b.isCurrentUser && b.isWinning);
+  }
+
+  /// Whether the current user placed any bid on this auction
+  bool get hasUserBid {
+    if (_userId == null) return false;
+    return _bidHistory.any((b) => b.isCurrentUser);
+  }
 
   /// Whether it's currently this user's turn to bid (60s window)
   bool get isMyTurn {
@@ -221,11 +249,12 @@ class AuctionDetailController extends ChangeNotifier {
         );
       }
 
-      // Load bid history, Q&A, and auto-bid settings in parallel
+      // Load bid history, Q&A, auto-bid settings, and mystery status in parallel
       await Future.wait([
         _loadBidHistory(id),
         _loadQuestions(id),
         if (!isBackground) _loadAutoBidSettings(id),
+        if (_auction?.biddingType == 'mystery') _loadMysteryBidStatus(id),
       ]);
 
       // Start Realtime Updates only once per auction (not on background reloads)
@@ -233,10 +262,10 @@ class AuctionDetailController extends ChangeNotifier {
         _subscribeToRealtimeUpdates(id);
       }
     } catch (e) {
-      // If background reload fails and auction already ended, mark as ended gracefully
-      if (isBackground &&
-          _auction != null &&
-          _auction!.endTime.isBefore(DateTime.now())) {
+      // If auction was already loaded and has ended, mark as ended gracefully
+      if (_auction != null &&
+          (_auction!.status == 'ended' ||
+              _auction!.endTime.isBefore(DateTime.now()))) {
         _auction = AuctionDetailEntity.copyWithStatus(_auction!, 'ended');
         _errorMessage = null;
       } else {
@@ -270,14 +299,16 @@ class AuctionDetailController extends ChangeNotifier {
         },
         (bids) {
           _bidHistory = bids.map((bid) {
-            // Set isCurrentUser flag based on userId
+            // Set isCurrentUser flag based on bidderId
             return BidHistoryEntity(
               id: bid.id,
               auctionId: bid.auctionId,
+              bidderId: bid.bidderId,
               amount: bid.amount,
               bidderName: bid.bidderName,
+              username: bid.username,
               timestamp: bid.timestamp,
-              isCurrentUser: _userId != null && bid.id.contains(_userId),
+              isCurrentUser: _userId != null && bid.bidderId == _userId,
               isWinning: bid.isWinning,
             );
           }).toList();
@@ -526,6 +557,15 @@ class AuctionDetailController extends ChangeNotifier {
         );
       }
 
+      // Enforce server-side: amount must be at least currentBid + minBidIncrement
+      final current = _auction!.currentBid;
+      final minInc = _auction!.minBidIncrement;
+      if (amount < current + minInc) {
+        _errorMessage =
+            'Bid too low. Minimum increase is ₱${minInc.toStringAsFixed(0)}';
+        return false;
+      }
+
       // Consume bidding token if available
       final hasToken = await _consumeBiddingTokenUsecase.call(
         userId: effectiveUserId,
@@ -535,15 +575,6 @@ class AuctionDetailController extends ChangeNotifier {
       if (!hasToken) {
         _errorMessage =
             'Insufficient bidding tokens. Please purchase more tokens or upgrade your subscription.';
-        return false;
-      }
-
-      // Enforce server-side: amount must be at least currentBid + minBidIncrement
-      final current = _auction!.currentBid;
-      final minInc = _auction!.minBidIncrement;
-      if (amount < current + minInc) {
-        _errorMessage =
-            'Bid too low. Minimum increase is ₱${minInc.toStringAsFixed(0)}';
         return false;
       }
 
@@ -602,9 +633,98 @@ class AuctionDetailController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Mystery Bid Methods ──────────────────────────────────────────────
+
+  Future<void> _loadMysteryBidStatus(String auctionId) async {
+    if (_userId == null) return;
+    _isLoadingMysteryStatus = true;
+    try {
+      final result = await _getMysteryBidStatusUseCase(
+        auctionId: auctionId,
+        userId: _userId!,
+      );
+      result.fold(
+        (failure) {
+          debugPrint('Failed to load mystery bid status: ${failure.message}');
+        },
+        (data) {
+          _mysteryBidStatus = MysteryBidStatusEntity.fromJson(data);
+        },
+      );
+    } catch (e) {
+      debugPrint('Error loading mystery bid status: $e');
+    } finally {
+      _isLoadingMysteryStatus = false;
+    }
+  }
+
+  Future<bool> placeMysteryBid(double amount) async {
+    if (_auction == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final effectiveUserId = _userId;
+      if (effectiveUserId == null) {
+        _errorMessage = 'User not authenticated';
+        return false;
+      }
+
+      if (amount < _auction!.minimumBid) {
+        _errorMessage =
+            'Bid must be at least ₱${_auction!.minimumBid.toStringAsFixed(0)}';
+        return false;
+      }
+
+      // Only consume a token for new bids, not edits
+      final isEditingExistingBid = _mysteryBidStatus?.hasBid == true;
+      if (!isEditingExistingBid) {
+        final hasToken = await _consumeBiddingTokenUsecase.call(
+          userId: effectiveUserId,
+          referenceId: _auction!.id,
+        );
+        if (!hasToken) {
+          _errorMessage =
+              'Insufficient bidding tokens. Please purchase more to continue bidding.';
+          return false;
+        }
+      }
+
+      final result = await _placeMysteryBidUseCase(
+        auctionId: _auction!.id,
+        bidderId: effectiveUserId,
+        amount: amount,
+      );
+
+      return result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+          return false;
+        },
+        (_) {
+          _loadMysteryBidStatus(_auction!.id).then((_) => notifyListeners());
+          return true;
+        },
+      );
+    } catch (e) {
+      _errorMessage = 'Failed to place mystery bid: $e';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Refreshes mystery bid status (used after auction ends for reveal)
+  Future<void> refreshMysteryBidStatus() async {
+    if (_auction == null) return;
+    await _loadMysteryBidStatus(_auction!.id);
+    notifyListeners();
+  }
+
+  // ── Queue-based Bidding Methods ──────────────────────────────────────
+
   /// Raises hand in the bid queue (queue-only — no bid amount).
-  /// The user joins the queue. When it's their turn, they get 60 seconds
-  /// to manually place a bid via [submitTurnBid].
   Future<bool> raiseHand() async {
     if (_auction == null) return false;
 

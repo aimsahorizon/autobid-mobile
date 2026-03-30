@@ -22,6 +22,9 @@ class QAEntity {
   /// ID of the auction this question belongs to
   final String auctionId;
 
+  /// User ID of the person who asked (used for alias generation)
+  final String? userId;
+
   /// Category of the question (General, Mechanical, History, etc.)
   final String category;
 
@@ -46,6 +49,7 @@ class QAEntity {
   const QAEntity({
     required this.id,
     required this.auctionId,
+    this.userId,
     required this.category,
     required this.question,
     required this.askedBy,

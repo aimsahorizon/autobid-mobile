@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 
+bool _isAssetPath(String url) => url.startsWith('assets/');
+
 class AuctionCoverPhoto extends StatelessWidget {
   final String imageUrl;
   final String carName;
@@ -33,18 +35,27 @@ class AuctionCoverPhoto extends StatelessWidget {
       children: [
         AspectRatio(
           aspectRatio: 16 / 10,
-          child: CachedNetworkImage(
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              color: ColorConstants.backgroundSecondaryLight,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              color: ColorConstants.backgroundSecondaryLight,
-              child: const Icon(Icons.directions_car, size: 64),
-            ),
-          ),
+          child: _isAssetPath(imageUrl)
+              ? Image.asset(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Icon(Icons.directions_car, size: 64),
+                  ),
+                )
+              : CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: ColorConstants.backgroundSecondaryLight,
+                    child: const Icon(Icons.directions_car, size: 64),
+                  ),
+                ),
         ),
         Positioned(
           bottom: 0,
@@ -76,7 +87,10 @@ class AuctionCoverPhoto extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _statusColor,
                     borderRadius: BorderRadius.circular(20),

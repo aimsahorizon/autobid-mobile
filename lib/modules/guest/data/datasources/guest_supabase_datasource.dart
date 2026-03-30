@@ -141,6 +141,8 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
         return AccountStatus.rejected;
       case 'suspended':
         return AccountStatus.suspended;
+      case 'appeal_pending':
+        return AccountStatus.appealPending;
       default:
         return AccountStatus.pending;
     }
@@ -256,6 +258,30 @@ class GuestSupabaseDataSource implements GuestRemoteDataSource {
     } catch (e) {
       debugPrint('[GuestDataSource] Unexpected error: $e');
       throw Exception('Failed to fetch auctions: $e');
+    }
+  }
+
+  @override
+  Future<void> submitKycAppeal(String userId, String appealReason) async {
+    try {
+      debugPrint('[GuestDataSource] Submitting KYC appeal for user: $userId');
+
+      final result = await _supabase.rpc(
+        'submit_kyc_appeal',
+        params: {'p_user_id': userId, 'p_appeal_reason': appealReason},
+      );
+
+      if (result is Map && result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to submit appeal');
+      }
+
+      debugPrint('[GuestDataSource] Appeal submitted successfully');
+    } on PostgrestException catch (e) {
+      debugPrint('[GuestDataSource] PostgrestException: ${e.message}');
+      throw Exception('Failed to submit appeal: ${e.message}');
+    } catch (e) {
+      debugPrint('[GuestDataSource] Unexpected error: $e');
+      throw Exception('Failed to submit appeal: $e');
     }
   }
 }

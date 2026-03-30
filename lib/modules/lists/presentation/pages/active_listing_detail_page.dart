@@ -31,6 +31,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
   List<Map<String, dynamic>> _bids = [];
   bool _isLoading = false;
   bool _isLoadingBids = false;
+  bool _showEndAuction = false; // Hidden by default, revealed by demo button
 
   @override
   void initState() {
@@ -42,12 +43,13 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
   void _showInviteManagement(BuildContext context) {
     final controller = GetIt.instance<ListsController>();
 
-    showDialog(
-      context: context,
-      builder: (context) => InviteManagementDialog(
-        controller: controller,
-        auctionId: _listing.id,
-        carName: _listing.carName,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => InviteManagementDialog(
+          controller: controller,
+          auctionId: _listing.id,
+          carName: _listing.carName,
+        ),
       ),
     );
   }
@@ -97,6 +99,75 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _updateEndTime(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate:
+          _listing.endTime ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+    );
+
+    if (picked == null || !context.mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+        _listing.endTime ?? DateTime.now().add(const Duration(hours: 1)),
+      ),
+    );
+
+    if (pickedTime == null || !context.mounted) return;
+
+    final localDateTime = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      pickedTime.hour,
+      pickedTime.minute,
+      59,
+    );
+
+    final newEndTime = localDateTime.toUtc();
+
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      await _datasource.updateAuctionEndTime(_listing.id, newEndTime);
+
+      if (context.mounted) {
+        navigator.pop(); // Close loading
+        navigator.pop(true); // Return to refresh
+
+        (messenger..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Auction end time updated successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        navigator.pop(); // Close loading
+        (messenger..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update end time: $e'),
+            backgroundColor: ColorConstants.error,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
   }
@@ -224,41 +295,87 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
           ],
         ),
         child: SafeArea(
-          child: SizedBox(
-            height: 48,
-            child: Row(
-              children: [
-                if (_listing.visibility == 'private') ...[
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showInviteManagement(context),
-                      icon: const Icon(Icons.person_add),
-                      label: const Text('Invite'),
-                      style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
-                    ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Update End Time button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _updateEndTime(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  flex: 2,
-                  child: FilledButton.icon(
-                    onPressed: () => _endAuction(context),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: ColorConstants.warning,
-                      foregroundColor: Colors.white,
-                    ),
-                    icon: const Icon(Icons.flag),
-                    label: const Text(
-                      'End Auction',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  icon: const Icon(Icons.access_time),
+                  label: const Text(
+                    'Update End Time',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 48,
+                child: Row(
+                  children: [
+                    if (_listing.visibility == 'private') ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showInviteManagement(context),
+                          icon: const Icon(Icons.person_add),
+                          label: const Text('Invite'),
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    // Demo toggle for End Auction
+                    if (!_showEndAuction)
+                      Expanded(
+                        flex: 2,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() => _showEndAuction = true);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.purple,
+                            side: const BorderSide(color: Colors.purple),
+                          ),
+                          icon: const Icon(Icons.science, size: 18),
+                          label: const Text(
+                            '\ud83e\uddea Demo: End Auction',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (_showEndAuction)
+                      Expanded(
+                        flex: 2,
+                        child: FilledButton.icon(
+                          onPressed: () => _endAuction(context),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: ColorConstants.warning,
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: const Icon(Icons.flag),
+                          label: const Text(
+                            'End Auction',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

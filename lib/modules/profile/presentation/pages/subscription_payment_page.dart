@@ -6,6 +6,8 @@ import 'package:autobid_mobile/core/services/paymongo_service.dart';
 import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import '../../domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/payment/virtual_wallet_payment_form.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
 /// Subscription payment page for processing plan subscriptions
 class SubscriptionPaymentPage extends StatefulWidget {
@@ -21,7 +23,8 @@ class SubscriptionPaymentPage extends StatefulWidget {
   });
 
   @override
-  State<SubscriptionPaymentPage> createState() => _SubscriptionPaymentPageState();
+  State<SubscriptionPaymentPage> createState() =>
+      _SubscriptionPaymentPageState();
 }
 
 class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
@@ -89,10 +92,34 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
   }
 
   String _formatPrice(double price) {
-    return price.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+  }
+
+  void _payWithWallet() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VirtualWalletPaymentForm(
+          userId: widget.userId,
+          amount: widget.plan.price,
+          description: 'Subscription: ${widget.plan.name}',
+          category: WalletTransactionCategory.subscription,
+          referenceId: widget.plan.name,
+          onSuccess: () {
+            widget.onSuccess();
+          },
+        ),
+      ),
+    ).then((result) {
+      if (result == true && mounted) {
+        Navigator.pop(context, true);
+      }
+    });
   }
 
   Future<void> _processPayment() async {
@@ -101,7 +128,9 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
     setState(() => _isProcessing = true);
 
     // Use Mock service if in demo mode
-    final IPayMongoService service = _useDemoMode ? PayMongoMockService() : _payMongoService;
+    final IPayMongoService service = _useDemoMode
+        ? PayMongoMockService()
+        : _payMongoService;
 
     try {
       // Step 1: Create payment intent
@@ -192,7 +221,10 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
               // Demo mode toggle
               Container(
                 margin: const EdgeInsets.only(bottom: 24),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: _useDemoMode
                       ? Colors.orange.withValues(alpha: 0.1)
@@ -270,7 +302,9 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                widget.plan.isYearly ? 'Yearly Plan' : 'Monthly Plan',
+                                widget.plan.isYearly
+                                    ? 'Yearly Plan'
+                                    : 'Monthly Plan',
                                 style: theme.textTheme.bodySmall,
                               ),
                             ],
@@ -288,6 +322,49 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
                   ],
                 ),
               ),
+              const SizedBox(height: 32),
+
+              // Virtual Wallet Payment Option
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: _isProcessing ? null : _payWithWallet,
+                  icon: const Icon(Icons.account_balance_wallet),
+                  label: const Text(
+                    'Pay with Virtual Wallet',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1A237E),
+                    side: const BorderSide(color: Color(0xFF1A237E), width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'OR PAY WITH CARD',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark
+                            ? ColorConstants.textSecondaryDark
+                            : ColorConstants.textSecondaryLight,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+
               const SizedBox(height: 32),
 
               // Billing information
@@ -540,7 +617,10 @@ class _SubscriptionPaymentPageState extends State<SubscriptionPaymentPage> {
                   children: [
                     const Icon(Icons.lock_outline, size: 16),
                     const SizedBox(width: 8),
-                    Text('Secured by PayMongo', style: theme.textTheme.bodySmall),
+                    Text(
+                      'Secured by PayMongo',
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),

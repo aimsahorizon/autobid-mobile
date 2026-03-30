@@ -12,6 +12,7 @@ class AuctionDetailEntity {
   final double minBidIncrement;
   final bool enableIncrementalBidding;
   final String biddingType;
+  final String? exclusiveTier;
   final double depositAmount;
   final int watchersCount;
   final int biddersCount;
@@ -82,6 +83,7 @@ class AuctionDetailEntity {
 
   // Step 6: Documentation & Location
   final String? plateNumber;
+  final String? chassisNumber;
   final String? orcrStatus;
   final String? registrationStatus;
   final DateTime? registrationExpiry;
@@ -100,7 +102,8 @@ class AuctionDetailEntity {
     required this.minimumBid,
     required this.minBidIncrement,
     required this.enableIncrementalBidding,
-    this.biddingType = 'public',
+    this.biddingType = 'open',
+    this.exclusiveTier,
     this.depositAmount = 0,
     this.reservePrice,
     required this.isReserveMet,
@@ -153,6 +156,7 @@ class AuctionDetailEntity {
     this.warrantyDetails,
     this.usageType,
     this.plateNumber,
+    this.chassisNumber,
     this.orcrStatus,
     this.registrationStatus,
     this.registrationExpiry,
@@ -194,6 +198,7 @@ class AuctionDetailEntity {
       minBidIncrement: source.minBidIncrement,
       enableIncrementalBidding: source.enableIncrementalBidding,
       biddingType: source.biddingType,
+      exclusiveTier: source.exclusiveTier,
       depositAmount: source.depositAmount,
       reservePrice: source.reservePrice,
       isReserveMet: source.isReserveMet,
@@ -246,6 +251,7 @@ class AuctionDetailEntity {
       warrantyDetails: source.warrantyDetails,
       usageType: source.usageType,
       plateNumber: source.plateNumber,
+      chassisNumber: source.chassisNumber,
       orcrStatus: source.orcrStatus,
       registrationStatus: source.registrationStatus,
       registrationExpiry: source.registrationExpiry,
