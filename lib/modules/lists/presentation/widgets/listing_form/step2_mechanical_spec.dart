@@ -4,8 +4,6 @@ import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
 import 'combo_box_widget.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step2MechanicalSpec extends StatefulWidget {
   final ListingDraftController controller;
@@ -31,9 +29,15 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
   void initState() {
     super.initState();
     final draft = widget.controller.currentDraft!;
-    _displacementController = TextEditingController(text: draft.engineDisplacement?.toString());
-    _cylinderController = TextEditingController(text: draft.cylinderCount?.toString());
-    _horsepowerController = TextEditingController(text: draft.horsepower?.toString());
+    _displacementController = TextEditingController(
+      text: draft.engineDisplacement?.toString(),
+    );
+    _cylinderController = TextEditingController(
+      text: draft.cylinderCount?.toString(),
+    );
+    _horsepowerController = TextEditingController(
+      text: draft.horsepower?.toString(),
+    );
     _torqueController = TextEditingController(text: draft.torque?.toString());
     _engineType = draft.engineType;
     _transmission = draft.transmission;
@@ -68,10 +72,18 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
         variant: draft.variant,
         year: draft.year,
         engineType: _engineType,
-        engineDisplacement: _displacementController.text.isEmpty ? null : double.tryParse(_displacementController.text),
-        cylinderCount: _cylinderController.text.isEmpty ? null : int.tryParse(_cylinderController.text),
-        horsepower: _horsepowerController.text.isEmpty ? null : int.tryParse(_horsepowerController.text),
-        torque: _torqueController.text.isEmpty ? null : int.tryParse(_torqueController.text),
+        engineDisplacement: _displacementController.text.isEmpty
+            ? null
+            : double.tryParse(_displacementController.text),
+        cylinderCount: _cylinderController.text.isEmpty
+            ? null
+            : int.tryParse(_cylinderController.text),
+        horsepower: _horsepowerController.text.isEmpty
+            ? null
+            : int.tryParse(_horsepowerController.text),
+        torque: _torqueController.text.isEmpty
+            ? null
+            : int.tryParse(_torqueController.text),
         transmission: _transmission,
         fuelType: _fuelType,
         driveType: _driveType,
@@ -116,37 +128,27 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
     );
   }
 
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(2);
-    setState(() {
-      _engineType = demoData['engineType'];
-      _displacementController.text = demoData['engineDisplacement'].toString();
-      _cylinderController.text = demoData['cylinderCount'].toString();
-      _horsepowerController.text = demoData['horsepower'].toString();
-      _torqueController.text = demoData['torque'].toString();
-      _transmission = demoData['transmission'];
-      _fuelType = demoData['fuelType'];
-      _driveType = demoData['driveType'];
-    });
-    _updateDraft();
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 2: Mechanical Specification',
+          'Step 3: Mechanical Specification',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         ComboBoxWidget(
           label: 'Engine Type *',
           value: _engineType,
-          items: const ['Inline-4', 'V6', 'V8', 'Flat-4', 'Inline-3', 'Electric'],
+          items: const [
+            'Inline-4',
+            'V6',
+            'V8',
+            'Flat-4',
+            'Inline-3',
+            'Electric',
+          ],
           onChanged: (v) {
             setState(() => _engineType = v);
             _updateDraft();
@@ -159,7 +161,15 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           label: 'Engine Displacement (L)',
           hint: 'e.g., 2.0',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+          ],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null;
+            final val = double.tryParse(v);
+            if (val == null || val <= 0) return 'Must be a positive number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -167,6 +177,12 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           label: 'Cylinder Count',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null;
+            final val = int.tryParse(v);
+            if (val == null || val <= 0) return 'Must be a positive number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -174,6 +190,12 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           label: 'Horsepower (HP)',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null;
+            final val = int.tryParse(v);
+            if (val == null || val <= 0) return 'Must be a positive number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -181,6 +203,12 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           label: 'Torque (Nm)',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null;
+            final val = int.tryParse(v);
+            if (val == null || val <= 0) return 'Must be a positive number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         ComboBoxWidget(
@@ -197,7 +225,13 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
         ComboBoxWidget(
           label: 'Fuel Type *',
           value: _fuelType,
-          items: const ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'Plug-in Hybrid'],
+          items: const [
+            'Gasoline',
+            'Diesel',
+            'Electric',
+            'Hybrid',
+            'Plug-in Hybrid',
+          ],
           onChanged: (v) {
             setState(() => _fuelType = v);
             _updateDraft();

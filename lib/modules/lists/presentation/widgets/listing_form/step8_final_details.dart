@@ -1,11 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
 import 'ai_price_predictor.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step8FinalDetails extends StatefulWidget {
   final ListingDraftController controller;
@@ -23,12 +23,19 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   late TextEditingController _startingPriceController;
   late TextEditingController _reservePriceController;
   late TextEditingController _bidIncrementController;
-  late TextEditingController _depositAmountController;
 
   List<String> _features = [];
-  DateTime? _auctionEndDate;
-  String _biddingType = 'public'; // 'public' or 'private'
+  String _biddingType = 'open'; // 'open', 'exclusive', or 'mystery'
+  String? _exclusiveTier; // 'silver', 'gold', or 'silver_gold'
   bool _enableIncrementalBidding = true;
+  String _scheduleLiveMode = 'manual'; // 'auto_live', 'manual', 'auto_schedule'
+  bool _allowsInstallment = false;
+  String _endTimeMode = 'date'; // 'date' or 'duration'
+  DateTime? _auctionEndDate;
+  DateTime? _auctionStartDate;
+  int? _auctionDurationHours;
+  String? _scheduleError;
+  bool _demoMode = false; // Bypasses 24hr validation for testing
 
   @override
   void initState() {
@@ -40,28 +47,40 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _issuesController = TextEditingController(text: draft?.knownIssues);
     _featureController = TextEditingController();
     _startingPriceController = TextEditingController(
-      text: draft?.startingPrice?.toString(),
+      text: _formatDouble(draft?.startingPrice),
     );
     _reservePriceController = TextEditingController(
-      text: draft?.reservePrice?.toString(),
+      text: _formatDouble(draft?.reservePrice),
     );
     _bidIncrementController = TextEditingController(
-      text: (draft?.bidIncrement ?? draft?.minBidIncrement ?? 1000).toString(),
-    );
-    _depositAmountController = TextEditingController(
-      text: (draft?.depositAmount ?? 50000).toString(),
+      text: _formatDouble(draft?.bidIncrement ?? draft?.minBidIncrement ?? 100),
     );
     _features = draft?.features ?? [];
-    _auctionEndDate = draft?.auctionEndDate;
-    _biddingType = draft?.biddingType ?? 'public';
+    _biddingType = draft?.biddingType ?? 'open';
+    _exclusiveTier = draft?.exclusiveTier;
     _enableIncrementalBidding = draft?.enableIncrementalBidding ?? true;
+    _scheduleLiveMode = draft?.scheduleLiveMode ?? 'manual';
+    _allowsInstallment = draft?.allowsInstallment ?? false;
+    _auctionEndDate = draft?.auctionEndDate?.toLocal();
+    _auctionStartDate = draft?.auctionStartDate?.toLocal();
+    _auctionDurationHours = draft?.auctionDurationHours;
+    _endTimeMode = (_auctionDurationHours != null && _auctionEndDate == null)
+        ? 'duration'
+        : 'date';
 
     _descriptionController.addListener(_updateDraft);
     _issuesController.addListener(_updateDraft);
     _startingPriceController.addListener(_updateDraft);
     _reservePriceController.addListener(_updateDraft);
     _bidIncrementController.addListener(_updateDraft);
-    _depositAmountController.addListener(_updateDraft);
+  }
+
+  String? _formatDouble(double? value) {
+    if (value == null) return null;
+    if (value == value.truncateToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toString();
   }
 
   @override
@@ -72,7 +91,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _startingPriceController.dispose();
     _reservePriceController.dispose();
     _bidIncrementController.dispose();
-    _depositAmountController.dispose();
     super.dispose();
   }
 
@@ -81,54 +99,8 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     if (draft == null) return; // Guard against null draft
 
     widget.controller.updateDraft(
-      ListingDraftEntity(
-        id: draft.id,
-        sellerId: draft.sellerId,
-        currentStep: draft.currentStep,
+      draft.copyWith(
         lastSaved: DateTime.now(),
-        brand: draft.brand,
-        model: draft.model,
-        variant: draft.variant,
-        year: draft.year,
-        engineType: draft.engineType,
-        engineDisplacement: draft.engineDisplacement,
-        cylinderCount: draft.cylinderCount,
-        horsepower: draft.horsepower,
-        torque: draft.torque,
-        transmission: draft.transmission,
-        fuelType: draft.fuelType,
-        driveType: draft.driveType,
-        length: draft.length,
-        width: draft.width,
-        height: draft.height,
-        wheelbase: draft.wheelbase,
-        groundClearance: draft.groundClearance,
-        seatingCapacity: draft.seatingCapacity,
-        doorCount: draft.doorCount,
-        fuelTankCapacity: draft.fuelTankCapacity,
-        curbWeight: draft.curbWeight,
-        grossWeight: draft.grossWeight,
-        exteriorColor: draft.exteriorColor,
-        paintType: draft.paintType,
-        rimType: draft.rimType,
-        rimSize: draft.rimSize,
-        tireSize: draft.tireSize,
-        tireBrand: draft.tireBrand,
-        condition: draft.condition,
-        mileage: draft.mileage,
-        previousOwners: draft.previousOwners,
-        hasModifications: draft.hasModifications,
-        modificationsDetails: draft.modificationsDetails,
-        hasWarranty: draft.hasWarranty,
-        warrantyDetails: draft.warrantyDetails,
-        usageType: draft.usageType,
-        plateNumber: draft.plateNumber,
-        orcrStatus: draft.orcrStatus,
-        registrationStatus: draft.registrationStatus,
-        registrationExpiry: draft.registrationExpiry,
-        province: draft.province,
-        cityMunicipality: draft.cityMunicipality,
-        photoUrls: draft.photoUrls,
         description: _descriptionController.text.isEmpty
             ? null
             : _descriptionController.text,
@@ -146,9 +118,19 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           final parsed = double.tryParse(_reservePriceController.text);
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
-        auctionEndDate: _auctionEndDate,
+        auctionEndDate: _auctionEndDate?.toUtc(),
+        // Scheduling
+        scheduleLiveMode: _scheduleLiveMode,
+        autoLiveAfterApproval: _scheduleLiveMode == 'auto_live',
+        auctionStartDate: _auctionStartDate?.toUtc(),
+        auctionDurationHours: _auctionDurationHours,
+        // Snipe guard is always enabled
+        snipeGuardEnabled: true,
+        snipeGuardThresholdSeconds: draft.snipeGuardThresholdSeconds,
+        snipeGuardExtendSeconds: draft.snipeGuardExtendSeconds,
         // Bidding Configuration
         biddingType: _biddingType,
+        exclusiveTier: _biddingType == 'exclusive' ? _exclusiveTier : null,
         bidIncrement: () {
           if (_bidIncrementController.text.isEmpty) return null;
           final parsed = double.tryParse(_bidIncrementController.text);
@@ -159,14 +141,20 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           final parsed = double.tryParse(_bidIncrementController.text);
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
-        depositAmount: () {
-          if (_depositAmountController.text.isEmpty) return null;
-          final parsed = double.tryParse(_depositAmountController.text);
-          return (parsed != null && parsed > 0) ? parsed : null;
-        }(),
+        depositAmount: _calculateDeposit(
+          double.tryParse(_startingPriceController.text),
+        ),
         enableIncrementalBidding: _enableIncrementalBidding,
+        allowsInstallment: _allowsInstallment,
       ),
     );
+  }
+
+  /// Auto-calculate deposit based on starting price.
+  /// Flat 1% of starting price for all price ranges.
+  static double _calculateDeposit(double? startingPrice) {
+    if (startingPrice == null || startingPrice <= 0) return 0;
+    return startingPrice * 0.01;
   }
 
   void _addFeature() {
@@ -181,21 +169,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   void _removeFeature(int index) {
     setState(() {
       _features.removeAt(index);
-    });
-    _updateDraft();
-  }
-
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(8);
-    setState(() {
-      _descriptionController.text = demoData['description'];
-      _issuesController.text = demoData['knownIssues'] ?? '';
-      _features = List<String>.from(demoData['features'] ?? []);
-      _startingPriceController.text = demoData['startingPrice'].toString();
-      _reservePriceController.text = demoData['reservePrice']?.toString() ?? '';
-      _auctionEndDate = demoData['auctionEndDate'];
-      _bidIncrementController.text = '5000';
-      _depositAmountController.text = '50000';
     });
     _updateDraft();
   }
@@ -218,9 +191,110 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           'Step 8: Final Details & Bidding Configuration',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
+
+        // ===== DEED OF SALE PREVIEW =====
+        if (draft.deedOfSaleUrl != null && draft.deedOfSaleUrl!.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.description,
+                      color: Colors.green,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Deed of Sale',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Uploaded',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: draft.deedOfSaleUrl!.toLowerCase().endsWith('.pdf')
+                      ? Container(
+                          height: 120,
+                          width: double.infinity,
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.picture_as_pdf,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'PDF Document',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : GestureDetector(
+                          onTap: () =>
+                              _showDeedFullImage(context, draft.deedOfSaleUrl!),
+                          child: Image.network(
+                            draft.deedOfSaleUrl!,
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              height: 120,
+                              color: Colors.grey.withValues(alpha: 0.1),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                  size: 40,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
 
         // ===== DESCRIPTION & DETAILS SECTION =====
         const Text(
@@ -230,8 +304,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _descriptionController,
-          label: 'Description *',
-          hint: 'Describe your vehicle in detail...',
+          label: 'Tell me more about the car *',
+          hint:
+              'Share the story, condition highlights, upgrades, and anything buyers should know...',
           maxLines: 5,
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
@@ -296,32 +371,53 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         // ===== PRICING SECTION =====
         const SizedBox(height: 16),
         const Text(
-          'Pricing & Auction Duration',
+          'Pricing',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
+
+        // AI Price Predictor
         AiPricePredictor(
-          brand: draft.brand,
-          model: draft.model,
-          year: draft.year,
-          mileage: draft.mileage,
-          condition: draft.condition,
-          onAccept: (startingPrice) {
-            final reservePrice = startingPrice * 1.1;
+          draft: draft,
+          onApplyPrice: (price) {
+            final reserve = price * 1.1; // Default reserve 10% higher
             setState(() {
-              _startingPriceController.text = startingPrice.toStringAsFixed(0);
-              _reservePriceController.text = reservePrice.toStringAsFixed(0);
+              _startingPriceController.text = price.toStringAsFixed(0);
+              _reservePriceController.text = reserve.toStringAsFixed(0);
             });
             _updateDraft();
+
+            (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Applied suggested price: ₱${price.toStringAsFixed(0)}',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
           },
         ),
+
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _startingPriceController,
           label: 'Starting Price (₱) *',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            final start = double.tryParse(v!);
+            if (start == null) return 'Invalid price';
+            if (start % 100 != 0) return 'Must be a multiple of ₱100';
+
+            if (_reservePriceController.text.isNotEmpty) {
+              final reserve = double.tryParse(_reservePriceController.text);
+              if (reserve != null && start >= reserve) {
+                return 'Must be lower than reserve price';
+              }
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -330,50 +426,20 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           hint: 'Optional minimum acceptable price',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        ),
-        const SizedBox(height: 16),
-        InkWell(
-          onTap: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate:
-                  _auctionEndDate ??
-                  DateTime.now().add(const Duration(days: 7)),
-              firstDate: DateTime.now().add(const Duration(days: 1)),
-              lastDate: DateTime.now().add(const Duration(days: 90)),
-            );
-            if (picked != null) {
-              final endOfDay = DateTime(
-                picked.year,
-                picked.month,
-                picked.day,
-                23,
-                59,
-                59,
-              );
-              setState(() => _auctionEndDate = endOfDay);
-              _updateDraft();
+          validator: (v) {
+            if (v == null || v.isEmpty) return null; // Optional
+            final reserve = double.tryParse(v);
+            if (reserve == null) return 'Invalid price';
+            if (reserve % 100 != 0) return 'Must be a multiple of ₱100';
+
+            if (_startingPriceController.text.isNotEmpty) {
+              final start = double.tryParse(_startingPriceController.text);
+              if (start != null && reserve <= start) {
+                return 'Must be higher than starting price';
+              }
             }
+            return null;
           },
-          child: InputDecorator(
-            decoration: InputDecoration(
-              labelText: 'Auction End Date *',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _auctionEndDate != null
-                      ? '${_auctionEndDate!.month}/${_auctionEndDate!.day}/${_auctionEndDate!.year}'
-                      : 'Select date',
-                ),
-                const Icon(Icons.calendar_today, size: 20),
-              ],
-            ),
-          ),
         ),
         const SizedBox(height: 32),
         const Divider(),
@@ -391,6 +457,132 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 16),
 
+        Card(
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Launch Mode *',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              RadioListTile<String>(
+                title: const Text('Manual'),
+                subtitle: const Text(
+                  'After approval, you choose when to go live or schedule',
+                  style: TextStyle(fontSize: 12),
+                ),
+                secondary: const Icon(Icons.touch_app, color: Colors.grey),
+                value: 'manual',
+                groupValue: _scheduleLiveMode,
+                onChanged: (v) {
+                  setState(() {
+                    _scheduleLiveMode = v!;
+                    _auctionStartDate = null;
+                    _scheduleError = null;
+                  });
+                  _updateDraft();
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Auto-Live After Approval'),
+                subtitle: const Text(
+                  'Auction goes live immediately when approved',
+                  style: TextStyle(fontSize: 12),
+                ),
+                secondary: const Icon(Icons.flash_on, color: Colors.orange),
+                value: 'auto_live',
+                groupValue: _scheduleLiveMode,
+                onChanged: (v) {
+                  setState(() {
+                    _scheduleLiveMode = v!;
+                    _auctionStartDate = null;
+                    _scheduleError = null;
+                  });
+                  _updateDraft();
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('Auto-Schedule'),
+                subtitle: Text(
+                  _demoMode
+                      ? 'Set a start date/time (demo: no restrictions)'
+                      : 'Set a start date/time (must be ≥24h from now for approval)',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                secondary: const Icon(Icons.schedule_send, color: Colors.blue),
+                value: 'auto_schedule',
+                groupValue: _scheduleLiveMode,
+                onChanged: (v) {
+                  setState(() {
+                    _scheduleLiveMode = v!;
+                    _scheduleError = null;
+                  });
+                  _updateDraft();
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Demo mode toggle
+        Card(
+          color: _demoMode ? Colors.amber.withValues(alpha: 0.15) : null,
+          child: SwitchListTile(
+            title: const Text('🧪 Demo Mode'),
+            subtitle: Text(
+              _demoMode
+                  ? 'Validation bypassed — any time allowed'
+                  : 'Enable to skip 24hr scheduling restrictions',
+              style: const TextStyle(fontSize: 12),
+            ),
+            value: _demoMode,
+            onChanged: (v) {
+              setState(() {
+                _demoMode = v;
+                _scheduleError = null;
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Start Date picker (auto_schedule only)
+        if (_scheduleLiveMode == 'auto_schedule') ...[
+          _buildStartDatePicker(context),
+          const SizedBox(height: 16),
+        ],
+
+        // End Date / Duration picker (all modes)
+        _buildEndTimeSection(context),
+        if (_scheduleError != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error_outline, size: 16, color: Colors.red),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _scheduleError!,
+                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
+
         // Bidding Type Selection
         const Text(
           'Bidding Type *',
@@ -402,33 +594,38 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             Expanded(
               child: SegmentedButton<String>(
                 style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith<Color>(
-                    (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Theme.of(context).colorScheme.primary;
-                      }
-                      return Colors.transparent;
-                    },
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith<Color>(
-                    (Set<WidgetState> states) {
-                      if (states.contains(WidgetState.selected)) {
-                        return Colors.white;
-                      }
-                      return Theme.of(context).colorScheme.onSurface;
-                    },
-                  ),
+                  backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                    Set<WidgetState> states,
+                  ) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Theme.of(context).colorScheme.primary;
+                    }
+                    return Colors.transparent;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                    Set<WidgetState> states,
+                  ) {
+                    if (states.contains(WidgetState.selected)) {
+                      return Colors.white;
+                    }
+                    return Theme.of(context).colorScheme.onSurface;
+                  }),
                 ),
                 segments: const <ButtonSegment<String>>[
                   ButtonSegment<String>(
-                    value: 'public',
-                    label: Text('Public'),
+                    value: 'open',
+                    label: Text('Open'),
                     icon: Icon(Icons.public),
                   ),
                   ButtonSegment<String>(
-                    value: 'private',
-                    label: Text('Private'),
+                    value: 'exclusive',
+                    label: Text('Exclusive'),
                     icon: Icon(Icons.lock),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'mystery',
+                    label: Text('Mystery'),
+                    icon: Icon(Icons.visibility_off),
                   ),
                 ],
                 selected: <String>{_biddingType},
@@ -446,14 +643,156 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(0.1),
+            color: Colors.blue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            _biddingType == 'public'
+            _biddingType == 'open'
                 ? 'Any buyer can see and bid on your auction'
-                : 'Only invited buyers can see and bid on your auction',
+                : _biddingType == 'exclusive'
+                ? 'Only invited buyers can see and bid on your auction'
+                : 'Bids are hidden until the auction ends. Highest bidder wins. Ties go to the earliest bid.',
             style: const TextStyle(fontSize: 12, color: Colors.blue),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Exclusive Tier Selector (only shown when bidding type is 'exclusive')
+        if (_biddingType == 'exclusive') ...[
+          const Text(
+            'Required Subscription Tier *',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<String>(
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith<Color>((
+                      Set<WidgetState> states,
+                    ) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Theme.of(context).colorScheme.primary;
+                      }
+                      return Colors.transparent;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith<Color>((
+                      Set<WidgetState> states,
+                    ) {
+                      if (states.contains(WidgetState.selected)) {
+                        return Colors.white;
+                      }
+                      return Theme.of(context).colorScheme.onSurface;
+                    }),
+                  ),
+                  segments: const <ButtonSegment<String>>[
+                    ButtonSegment<String>(
+                      value: 'silver',
+                      label: Text('Silver'),
+                      icon: Icon(Icons.workspace_premium),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'gold',
+                      label: Text('Gold'),
+                      icon: Icon(Icons.star),
+                    ),
+                    ButtonSegment<String>(
+                      value: 'silver_gold',
+                      label: Text('Both'),
+                      icon: Icon(Icons.people),
+                    ),
+                  ],
+                  selected: <String>{_exclusiveTier ?? 'silver_gold'},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setState(() {
+                      _exclusiveTier = newSelection.first;
+                    });
+                    _updateDraft();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _exclusiveTier == 'silver'
+                  ? 'Only Silver subscribers can be invited to this auction'
+                  : _exclusiveTier == 'gold'
+                  ? 'Only Gold subscribers can be invited to this auction'
+                  : 'Both Silver and Gold subscribers can be invited',
+              style: const TextStyle(fontSize: 12, color: Colors.orange),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // Anti-Sniping Configuration
+        const Text(
+          'Anti-Sniping Protection',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Extend auction if bids are placed in the final minutes',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          key: ValueKey(draft.snipeGuardThresholdSeconds),
+          decoration: InputDecoration(
+            labelText: 'Trigger Window',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          // Ensure initial value is valid
+          initialValue: (draft.snipeGuardThresholdSeconds ?? 1800),
+          items: [
+            DropdownMenuItem(value: 300, child: Text('Last 5 minutes')),
+            DropdownMenuItem(value: 600, child: Text('Last 10 minutes')),
+            DropdownMenuItem(value: 1200, child: Text('Last 20 minutes')),
+            DropdownMenuItem(value: 1800, child: Text('Last 30 minutes')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              widget.controller.updateDraft(
+                draft.copyWith(
+                  lastSaved: DateTime.now(),
+                  snipeGuardEnabled: true,
+                  snipeGuardThresholdSeconds: value,
+                  snipeGuardExtendSeconds: 300, // Fixed 5 min extension
+                ),
+              );
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.purple.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.timer_outlined, size: 16, color: Colors.purple),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'If a bid is placed in the last ${(draft.snipeGuardThresholdSeconds ?? 1800) ~/ 60} minutes, the auction will automatically extend by 5 minutes.',
+                  style: const TextStyle(fontSize: 11, color: Colors.purple),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 24),
@@ -465,20 +804,22 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Each bid must be at least this amount higher than the previous bid',
+          'Minimum gap between bids (must be in multiples of ₱100)',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 8),
         FormFieldWidget(
           controller: _bidIncrementController,
           label: 'Bid Increment',
-          hint: 'e.g., 1000, 5000, 10000',
+          hint: 'e.g., 100, 500, 1000',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
             final value = double.tryParse(v!);
-            if (value == null || value <= 0) return 'Must be greater than 0';
+            if (value == null) return 'Invalid amount';
+            if (value < 100) return 'Minimum increment is ₱100';
+            if (value % 100 != 0) return 'Must be a multiple of ₱100';
             return null;
           },
         ),
@@ -486,94 +827,77 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         _buildIncrementSuggestions(startingPrice),
         const SizedBox(height: 24),
 
-        // Enable Incremental Bidding
+        // Deposit Amount (auto-calculated)
         const Text(
-          'Incremental Bidding',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _enableIncrementalBidding,
-                      onChanged: (value) {
-                        setState(() {
-                          _enableIncrementalBidding = value ?? true;
-                        });
-                        _updateDraft();
-                      },
-                    ),
-                    Expanded(
-                      child: Text(
-                        _enableIncrementalBidding
-                            ? 'Enable dynamic increments based on price'
-                            : 'Use fixed increment for all bids',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    _enableIncrementalBidding
-                        ? 'Example: ₱0-500k: ₱1k, ₱500k-1M: ₱5k, ₱1M+: ₱10k increments'
-                        : 'All bids will require a ${_bidIncrementController.text.isNotEmpty ? '₱${_bidIncrementController.text}' : 'fixed'} increment',
-                    style: const TextStyle(fontSize: 11, color: Colors.orange),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        // Deposit Amount
-        const Text(
-          'Buyer Deposit Amount (₱) *',
+          'Buyer Deposit Amount',
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 4),
         const Text(
-          'Amount buyers must deposit before they can place a bid',
+          'Auto-calculated: 1% of starting price',
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 8),
-        FormFieldWidget(
-          controller: _depositAmountController,
-          label: 'Deposit Amount',
-          hint: 'e.g., 50000, 100000',
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) {
-            if (v?.isEmpty ?? true) return 'Required';
-            final value = double.tryParse(v!);
-            if (value == null || value <= 0) return 'Must be greater than 0';
-            return null;
-          },
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.grey.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Deposit', style: TextStyle(fontSize: 14)),
+              Text(
+                '₱${_calculateDeposit(startingPrice > 0 ? startingPrice : null).toStringAsFixed(0)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Allow Installment Payments
+        const Text(
+          'Installment Payments',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
-        _buildDepositSuggestions(startingPrice),
+        Card(
+          child: SwitchListTile(
+            title: const Text('Allow Installment Payments'),
+            subtitle: Text(
+              _allowsInstallment
+                  ? 'Buyers can propose installment plans during the transaction'
+                  : 'Only one-time full payment accepted',
+              style: const TextStyle(fontSize: 12),
+            ),
+            secondary: Icon(
+              _allowsInstallment ? Icons.calendar_month : Icons.payment,
+              color: _allowsInstallment ? Colors.green : Colors.grey,
+            ),
+            value: _allowsInstallment,
+            onChanged: (value) {
+              setState(() {
+                _allowsInstallment = value;
+              });
+              _updateDraft();
+            },
+          ),
+        ),
         const SizedBox(height: 24),
 
         // Summary Box
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
+            color: Colors.green.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.withOpacity(0.3)),
+            border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -592,11 +916,392 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     );
   }
 
+  Widget _buildStartDatePicker(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.play_circle_outline, color: Colors.blue),
+        title: const Text('Scheduled Start Date *'),
+        subtitle: Text(
+          _auctionStartDate != null
+              ? _formatDateTime(_auctionStartDate!)
+              : _demoMode
+              ? 'Tap to select (demo: no restrictions)'
+              : 'Tap to select (must be ≥24h from now)',
+          style: TextStyle(
+            fontSize: 12,
+            color: _auctionStartDate != null ? Colors.blue : Colors.grey,
+          ),
+        ),
+        trailing: const Icon(Icons.calendar_today, size: 20),
+        onTap: () => _pickStartDate(context),
+      ),
+    );
+  }
+
+  Widget _buildEndTimeSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Auction End Time *',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'How long should the auction run?',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        SegmentedButton<String>(
+          style: ButtonStyle(
+            backgroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return Theme.of(context).colorScheme.primary;
+              }
+              return Colors.transparent;
+            }),
+            foregroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return Colors.white;
+              }
+              return Theme.of(context).colorScheme.onSurface;
+            }),
+          ),
+          segments: const [
+            ButtonSegment(
+              value: 'duration',
+              label: Text('Duration'),
+              icon: Icon(Icons.timer),
+            ),
+            ButtonSegment(
+              value: 'date',
+              label: Text('End Date'),
+              icon: Icon(Icons.calendar_today),
+            ),
+          ],
+          selected: {_endTimeMode},
+          onSelectionChanged: (v) {
+            setState(() {
+              _endTimeMode = v.first;
+              // Clear the other mode's data
+              if (_endTimeMode == 'duration') {
+                _auctionEndDate = null;
+              } else {
+                _auctionDurationHours = null;
+              }
+              _scheduleError = null;
+            });
+            _updateDraft();
+          },
+        ),
+        const SizedBox(height: 12),
+        if (_endTimeMode == 'duration') _buildDurationPicker(),
+        if (_endTimeMode == 'date') _buildEndDatePicker(context),
+      ],
+    );
+  }
+
+  Widget _buildDurationPicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final durations = [
+      (24, '1 Day'),
+      (48, '2 Days'),
+      (72, '3 Days'),
+      (120, '5 Days'),
+      (168, '7 Days'),
+      (336, '14 Days'),
+      (-1, 'Custom'),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: durations.map((d) {
+            final isSelected = d.$1 == -1
+                ? _auctionDurationHours != null &&
+                      ![
+                        24,
+                        48,
+                        72,
+                        120,
+                        168,
+                        336,
+                      ].contains(_auctionDurationHours)
+                : _auctionDurationHours == d.$1;
+            return ChoiceChip(
+              label: Text(
+                d.$2,
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : isDark
+                      ? ColorConstants.textPrimaryDark
+                      : ColorConstants.textPrimaryLight,
+                ),
+              ),
+              selected: isSelected,
+              selectedColor: ColorConstants.primary,
+              backgroundColor: isDark ? ColorConstants.surfaceDark : null,
+              side: BorderSide(
+                color: isSelected
+                    ? ColorConstants.primary
+                    : isDark
+                    ? ColorConstants.borderDark
+                    : ColorConstants.borderLight,
+              ),
+              onSelected: (selected) async {
+                if (d.$1 == -1 && selected) {
+                  // Custom duration dialog
+                  final hours = await _showCustomDurationDialog(context);
+                  if (hours == null) return;
+                  setState(() {
+                    _auctionDurationHours = hours;
+                    _auctionEndDate = null;
+                    _scheduleError = null;
+                  });
+                } else {
+                  setState(() {
+                    _auctionDurationHours = selected ? d.$1 : null;
+                    _auctionEndDate = null;
+                    _scheduleError = null;
+                  });
+                }
+                _validateSchedule();
+                _updateDraft();
+              },
+            );
+          }).toList(),
+        ),
+        if (_auctionDurationHours != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, size: 16, color: Colors.green),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Auction will run for ${_auctionDurationHours! ~/ 24} day(s) (${_auctionDurationHours}h) from when it goes live.',
+                    style: const TextStyle(fontSize: 11, color: Colors.green),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<int?> _showCustomDurationDialog(BuildContext context) async {
+    final daysController = TextEditingController();
+    final hoursController = TextEditingController();
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Custom Duration'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: daysController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Days',
+                hintText: 'e.g., 4',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: hoursController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Hours (optional)',
+                hintText: 'e.g., 6',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final days = int.tryParse(daysController.text) ?? 0;
+              final hours = int.tryParse(hoursController.text) ?? 0;
+              final total = days * 24 + hours;
+              if (total < 1) {
+                Navigator.pop(ctx);
+                return;
+              }
+              Navigator.pop(ctx, total);
+            },
+            child: const Text('Set'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEndDatePicker(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.event, color: Colors.deepPurple),
+        title: const Text('End Date & Time'),
+        subtitle: Text(
+          _auctionEndDate != null
+              ? _formatDateTime(_auctionEndDate!)
+              : _demoMode
+              ? 'Tap to select (demo: no restrictions)'
+              : 'Tap to select (must be ≥24h after start)',
+          style: TextStyle(
+            fontSize: 12,
+            color: _auctionEndDate != null ? Colors.deepPurple : Colors.grey,
+          ),
+        ),
+        trailing: const Icon(Icons.calendar_month, size: 20),
+        onTap: () => _pickEndDate(context),
+      ),
+    );
+  }
+
+  Future<void> _pickStartDate(BuildContext context) async {
+    final now = DateTime.now();
+    final minStart = _demoMode ? now : now.add(const Duration(hours: 24));
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _auctionStartDate ?? minStart,
+      firstDate: _demoMode ? now : minStart,
+      lastDate: now.add(const Duration(days: 90)),
+    );
+    if (picked == null || !context.mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_auctionStartDate ?? minStart),
+    );
+    if (time == null) return;
+
+    final startDate = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      time.hour,
+      time.minute,
+    );
+
+    if (!_demoMode && startDate.isBefore(minStart)) {
+      setState(
+        () => _scheduleError =
+            'Start date must be at least 24 hours from now (approval window).',
+      );
+      return;
+    }
+
+    setState(() {
+      _auctionStartDate = startDate;
+      _scheduleError = null;
+    });
+    _validateSchedule();
+    _updateDraft();
+  }
+
+  Future<void> _pickEndDate(BuildContext context) async {
+    final now = DateTime.now();
+    final minEnd = _demoMode ? now : now.add(const Duration(hours: 25));
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _auctionEndDate ?? minEnd,
+      firstDate: _demoMode ? now : minEnd,
+      lastDate: now.add(const Duration(days: 180)),
+    );
+    if (picked == null || !context.mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_auctionEndDate ?? minEnd),
+    );
+    if (time == null) return;
+
+    final endDate = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      time.hour,
+      time.minute,
+    );
+
+    setState(() {
+      _auctionEndDate = endDate;
+      _auctionDurationHours = null;
+      _scheduleError = null;
+    });
+    _validateSchedule();
+    _updateDraft();
+  }
+
+  void _validateSchedule() {
+    if (_demoMode) {
+      setState(() => _scheduleError = null);
+      return;
+    }
+
+    final now = DateTime.now();
+    String? error;
+
+    if (_scheduleLiveMode == 'auto_schedule' && _auctionStartDate != null) {
+      if (_auctionStartDate!.isBefore(now.add(const Duration(hours: 24)))) {
+        error =
+            'Start date must be at least 24 hours from now (approval window).';
+      }
+    }
+
+    if (error == null && _auctionEndDate != null) {
+      if (_auctionEndDate!.isBefore(now.add(const Duration(hours: 24)))) {
+        error = 'End date must be at least 24 hours from now.';
+      }
+      if (error == null &&
+          _scheduleLiveMode == 'auto_schedule' &&
+          _auctionStartDate != null) {
+        if (_auctionEndDate!.isBefore(
+          _auctionStartDate!.add(const Duration(hours: 24)),
+        )) {
+          error = 'End date must be at least 24 hours after the start date.';
+        }
+      }
+    }
+
+    setState(() => _scheduleError = error);
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final suffix = dt.hour >= 12 ? 'PM' : 'AM';
+    return '${dt.month}/${dt.day}/${dt.year} at $hour:$minute $suffix';
+  }
+
   Widget _buildIncrementSuggestions(double startingPrice) {
     final suggestions = <(String, String)>[
-      ('₱1,000', 'Lower-priced vehicles'),
-      ('₱5,000', 'Mid-range vehicles'),
-      ('₱10,000', 'Luxury vehicles'),
+      ('₱100', 'Fine'),
+      ('₱500', 'Standard'),
+      ('₱1,000', 'Regular'),
+      ('₱2,000', 'Accelerated'),
+      ('₱5,000', 'High value'),
     ];
 
     return Wrap(
@@ -618,29 +1323,28 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     );
   }
 
-  Widget _buildDepositSuggestions(double startingPrice) {
-    final suggestions = <(String, String)>[
-      ('₱25,000', '5% of typical starting price'),
-      ('₱50,000', 'Standard deposit'),
-      ('₱100,000', 'Premium deposit'),
-    ];
-
-    return Wrap(
-      spacing: 8,
-      children: suggestions.map((suggestion) {
-        return ActionChip(
-          label: Text(suggestion.$1),
-          onPressed: () {
-            setState(() {
-              _depositAmountController.text = suggestion.$1.replaceAll(
-                RegExp(r'[^0-9]'),
-                '',
-              );
-            });
-            _updateDraft();
-          },
-        );
-      }).toList(),
+  void _showDeedFullImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              child: Image.network(imageUrl, fit: BoxFit.contain),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -649,7 +1353,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
       children: [
         _summaryRow(
           'Bidding Type',
-          _biddingType == 'public' ? '🌐 Public' : '🔒 Private',
+          _biddingType == 'open'
+              ? '🌐 Open'
+              : _biddingType == 'exclusive'
+              ? '🔒 Exclusive'
+              : '🎭 Mystery',
         ),
         const Divider(),
         _summaryRow(
@@ -658,16 +1366,42 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const Divider(),
         _summaryRow(
-          'Bidding Mode',
-          _enableIncrementalBidding
-              ? '📊 Dynamic Increments'
-              : '📝 Fixed Increment',
+          'Anti-Sniping',
+          '⏱️ ${(widget.controller.currentDraft?.snipeGuardThresholdSeconds ?? 1800) ~/ 60}m Window',
         ),
         const Divider(),
         _summaryRow(
           'Buyer Deposit',
-          '₱${_depositAmountController.text.isNotEmpty ? _depositAmountController.text : '0'}',
+          '₱${_calculateDeposit(double.tryParse(_startingPriceController.text)).toStringAsFixed(0)}',
         ),
+        const Divider(),
+        _summaryRow(
+          'Installment',
+          _allowsInstallment ? '✅ Allowed' : '❌ Not Allowed',
+        ),
+        const Divider(),
+        _summaryRow(
+          'Launch Mode',
+          _scheduleLiveMode == 'auto_live'
+              ? '🚀 Auto-Live'
+              : _scheduleLiveMode == 'auto_schedule'
+              ? '📅 Scheduled'
+              : '✋ Manual',
+        ),
+        const Divider(),
+        _summaryRow(
+          'End Time',
+          _auctionEndDate != null
+              ? _formatDateTime(_auctionEndDate!)
+              : _auctionDurationHours != null
+              ? '${_auctionDurationHours! ~/ 24} day(s)'
+              : 'Not set',
+        ),
+        if (_scheduleLiveMode == 'auto_schedule' &&
+            _auctionStartDate != null) ...[
+          const Divider(),
+          _summaryRow('Start Date', _formatDateTime(_auctionStartDate!)),
+        ],
       ],
     );
   }

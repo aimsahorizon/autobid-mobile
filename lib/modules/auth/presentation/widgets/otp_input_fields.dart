@@ -28,7 +28,7 @@ class OtpInputFields extends StatelessWidget {
           child: TextField(
             controller: controllers[index],
             focusNode: focusNodes[index],
-            keyboardType: TextInputType.number,
+            keyboardType: TextInputType.phone,
             textAlign: TextAlign.center,
             maxLength: 1,
             style: theme.textTheme.headlineMedium,

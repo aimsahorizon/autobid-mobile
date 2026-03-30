@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'data/datasources/admin_supabase_datasource.dart';
 import 'data/datasources/kyc_supabase_datasource.dart';
 import 'data/datasources/auction_monitor_supabase_datasource.dart';
@@ -29,7 +31,7 @@ Future<void> initAdminModule() async {
 
   // Repositories
   sl.registerLazySingleton<KycRepository>(
-    () => KycRepositoryImpl(sl()),
+    () => KycRepositoryImpl(sl(), sl()),
   );
 
   // Use Cases
@@ -99,7 +101,10 @@ class AdminModule {
     _transactionDataSource = AdminTransactionDataSource(_supabase);
 
     // Initialize repositories
-    _kycRepository = KycRepositoryImpl(_kycDataSource!);
+    _kycRepository = KycRepositoryImpl(
+      _kycDataSource!,
+      NetworkInfoImpl(Connectivity()),
+    );
 
     // Initialize use cases
     _getKycStatsUseCase = GetKycStatsUseCase(_kycRepository!);

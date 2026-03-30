@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../../domain/entities/buyer_transaction_entity.dart' as buyer;
 import 'transaction_remote_datasource.dart';
@@ -38,7 +39,7 @@ class TransactionCompositeSupabaseDataSource
       );
       return _mapSellerJsonToTransactionEntity(sellerData);
     } catch (e) {
-      print('[TransactionCompositeDS] Error fetching transaction: $e');
+      debugPrint('[TransactionCompositeDS] Error fetching transaction: $e');
       return null;
     }
   }
@@ -173,46 +174,67 @@ class TransactionCompositeSupabaseDataSource
 
   @override
   Future<bool> submitForm(TransactionFormEntity form) async {
-    if (form.role == FormRole.seller) {
-      await sellerDataSource.submitSellerForm(
-        transactionId: form.transactionId,
-        agreedPrice: form.agreedPrice,
-        paymentMethod: '',
-        deliveryDate: form.preferredDate,
-        deliveryLocation: form.handoverLocation,
-        orcrVerified: form.orCrOriginalAvailable,
-        deedsOfSaleReady: form.deedOfSaleReady,
-        plateNumberConfirmed: true,
-        registrationValid: form.registrationValid,
-        noOutstandingLoans: form.noLiensEncumbrances,
-        mechanicalInspectionDone: form.conditionMatchesListing,
+    try {
+      // Fetch transaction details to get agreed price and context
+      // We use sellerDataSource because it fetches the transaction with buyer profile
+      final transactionMap = await sellerDataSource.getTransactionDetail(
+        form.transactionId,
       );
-    } else {
-      // Need to map TransactionFormEntity to BuyerTransactionFormEntity
-      // This is hard because they have different fields.
-      // Assuming buyer form is passed as TransactionFormEntity but contains buyer data.
-      final buyerForm = buyer.BuyerTransactionFormEntity(
-        id: form.id,
-        transactionId: form.transactionId,
-        role: buyer.FormRole.buyer,
-        fullName: '', // Missing in TransactionFormEntity?
-        email: '',
-        phone: form.contactNumber,
-        address: '',
-        city: '',
-        province: '',
-        zipCode: '',
-        idType: '',
-        idNumber: '',
-        paymentMethod: form.paymentMethod,
-        deliveryMethod: form.pickupOrDelivery,
-        deliveryAddress: form.deliveryAddress,
-        agreedToTerms: form.understoodAuctionTerms, // Approximation
-        isConfirmed: false,
-      );
-      await buyerDataSource.submitForm(buyerForm);
+      final agreedPrice =
+          (transactionMap['agreed_price'] as num?)?.toDouble() ?? 0.0;
+
+      if (form.role == FormRole.seller) {
+        await sellerDataSource.submitSellerForm(
+          transactionId: form.transactionId,
+          agreedPrice: agreedPrice,
+          paymentMethod: form.paymentMethod,
+          deliveryDate: form.preferredDate,
+          deliveryLocation: form.handoverLocation,
+          orcrVerified: form.orCrOriginalAvailable,
+          deedsOfSaleReady: form.deedOfSaleReady,
+          plateNumberConfirmed: true,
+          registrationValid: form.registrationValid,
+          noOutstandingLoans: form.noLiensEncumbrances,
+          mechanicalInspectionDone: form.conditionMatchesListing,
+          additionalTerms: form.additionalNotes,
+        );
+      } else {
+        // Map Buyer Profile Data
+        // transactionMap has 'user_profiles' which corresponds to the buyer
+        final buyerProfile =
+            transactionMap['user_profiles'] as Map<String, dynamic>?;
+
+        final buyerName = buyerProfile?['full_name'] as String? ?? '';
+        final buyerEmail = buyerProfile?['email'] as String? ?? '';
+        final buyerPhone =
+            buyerProfile?['contact_number'] as String? ?? form.contactNumber;
+
+        final buyerForm = buyer.BuyerTransactionFormEntity(
+          id: form.id,
+          transactionId: form.transactionId,
+          role: buyer.FormRole.buyer,
+          fullName: buyerName,
+          email: buyerEmail,
+          phone: buyerPhone,
+          address: form.deliveryAddress ?? '',
+          city: '', // Not collected in simplified form
+          province: '', // Not collected in simplified form
+          zipCode: '', // Not collected in simplified form
+          idType: '', // Not collected in simplified form
+          idNumber: '', // Not collected in simplified form
+          paymentMethod: form.paymentMethod,
+          deliveryMethod: form.pickupOrDelivery,
+          deliveryAddress: form.deliveryAddress,
+          agreedToTerms: form.understoodAuctionTerms,
+          isConfirmed: false,
+        );
+        await buyerDataSource.submitForm(buyerForm);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionCompositeDS] Error submitting form: $e');
+      return false;
     }
-    return true;
   }
 
   @override
@@ -269,6 +291,49 @@ class TransactionCompositeSupabaseDataSource
     String reason,
   ) async {
     return await buyerDataSource.rejectVehicle(transactionId, buyerId, reason);
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getNextEligibleWinner(String transactionId) {
+    return transactionDataSource.getNextEligibleWinner(transactionId);
+  }
+
+  @override
+  Future<int> countEligibleNextBidders(String transactionId) {
+    return transactionDataSource.countEligibleNextBidders(transactionId);
+  }
+
+  @override
+  Future<bool> cancelAuctionWithPenalty(String transactionId, String reason) {
+    return transactionDataSource.cancelAuctionWithPenalty(
+      transactionId,
+      reason,
+    );
+  }
+
+  @override
+  Future<bool> autoReselectNextWinner(String transactionId) {
+    return transactionDataSource.autoReselectNextWinner(transactionId);
+  }
+
+  @override
+  Future<bool> restartAuctionBidding(String transactionId) {
+    return transactionDataSource.restartAuctionBidding(transactionId);
+  }
+
+  @override
+  Future<DateTime?> getBuyerAcceptanceDeadline(String transactionId) {
+    return buyerDataSource.getBuyerAcceptanceDeadline(transactionId);
+  }
+
+  @override
+  Future<int> checkAndAutoAccept() {
+    return buyerDataSource.checkAndAutoAccept();
+  }
+
+  @override
+  Future<bool> enableAutoAcceptDemo(String transactionId) {
+    return buyerDataSource.enableAutoAcceptDemo(transactionId);
   }
 
   // Helpers

@@ -36,7 +36,7 @@ class ProgressTab extends StatelessWidget {
     if (confirmed == true && context.mounted) {
       final success = await controller.submitToAdmin();
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(content: Text('Submitted to admin for approval')),
         );
       }
@@ -509,6 +509,41 @@ class ProgressTab extends StatelessWidget {
             ),
           ],
 
+          // Show auto-accept deadline
+          if (acceptanceStatus == BuyerAcceptanceStatus.pending &&
+              controller.buyerAcceptanceDeadline != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.timer_outlined,
+                    color: Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Auto-accepts on ${_formatTimestamp(controller.buyerAcceptanceDeadline!)}',
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Show acceptance timestamp
           if (acceptanceStatus != BuyerAcceptanceStatus.pending &&
               transaction.buyerAcceptedAt != null) ...[
@@ -637,69 +672,6 @@ class ProgressTab extends StatelessWidget {
     }
   }
 
-  Widget _buildDeliveryStep(
-    String title,
-    String subtitle,
-    bool isCompleted,
-    bool isActive,
-    IconData icon,
-    bool isDark,
-  ) {
-    return Row(
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isCompleted
-                ? ColorConstants.success
-                : (isActive
-                      ? ColorConstants.primary
-                      : (isDark
-                            ? ColorConstants.backgroundDark
-                            : Colors.grey[200])),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            isCompleted ? Icons.check : icon,
-            color: isCompleted || isActive
-                ? Colors.white
-                : (isDark ? Colors.grey[600] : Colors.grey[400]),
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isCompleted || isActive
-                      ? (isDark
-                            ? ColorConstants.textPrimaryDark
-                            : ColorConstants.textPrimaryLight)
-                      : (isDark ? Colors.grey[600] : Colors.grey[400]),
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark
-                      ? ColorConstants.textSecondaryDark
-                      : ColorConstants.textSecondaryLight,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildDeliveryConnector(bool isCompleted, bool isDark) {
     return Container(
       margin: const EdgeInsets.only(left: 19, top: 4, bottom: 4),
@@ -749,7 +721,7 @@ class ProgressTab extends StatelessWidget {
                 nextStatus!,
               );
               if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                   SnackBar(
                     content: Text(
                       'Updated to: ${_getDeliveryStatusLabel(nextStatus)}',

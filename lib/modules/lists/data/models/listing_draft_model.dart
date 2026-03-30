@@ -12,6 +12,7 @@ class ListingDraftModel extends ListingDraftEntity {
     super.brand,
     super.model,
     super.variant,
+    super.bodyType,
     super.year,
     super.engineType,
     super.engineDisplacement,
@@ -46,12 +47,15 @@ class ListingDraftModel extends ListingDraftEntity {
     super.warrantyDetails,
     super.usageType,
     super.plateNumber,
+    super.chassisNumber,
     super.orcrStatus,
     super.registrationStatus,
     super.registrationExpiry,
     super.province,
     super.cityMunicipality,
+    super.barangay,
     super.photoUrls,
+    super.coverPhotoUrl,
     super.tags,
     super.deedOfSaleUrl,
     super.description,
@@ -61,10 +65,20 @@ class ListingDraftModel extends ListingDraftEntity {
     super.reservePrice,
     super.auctionEndDate,
     super.biddingType,
+    super.exclusiveTier,
     super.bidIncrement,
     super.minBidIncrement,
     super.depositAmount,
     super.enableIncrementalBidding,
+    super.autoLiveAfterApproval,
+    super.scheduleLiveMode,
+    super.auctionStartDate,
+    super.auctionDurationHours,
+    super.snipeGuardEnabled,
+    super.snipeGuardThresholdSeconds,
+    super.snipeGuardExtendSeconds,
+    super.allowsInstallment,
+    super.isPlateValid,
   });
 
   /// Convert database row to model
@@ -79,6 +93,7 @@ class ListingDraftModel extends ListingDraftEntity {
       brand: json['brand'] as String?,
       model: json['model'] as String?,
       variant: json['variant'] as String?,
+      bodyType: json['body_type'] as String?,
       year: json['year'] as int?,
       // Step 2: Mechanical
       engineType: json['engine_type'] as String?,
@@ -118,6 +133,7 @@ class ListingDraftModel extends ListingDraftEntity {
       usageType: json['usage_type'] as String?,
       // Step 6: Documentation
       plateNumber: json['plate_number'] as String?,
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String?,
       registrationStatus: json['registration_status'] as String?,
       registrationExpiry: json['registration_expiry'] != null
@@ -125,10 +141,12 @@ class ListingDraftModel extends ListingDraftEntity {
           : null,
       province: json['province'] as String?,
       cityMunicipality: json['city_municipality'] as String?,
+      barangay: json['barangay'] as String?,
       // Step 7: Photos (JSONB) & Documents
       photoUrls: json['photo_urls'] != null
           ? _parsePhotoUrls(json['photo_urls'] as Map<String, dynamic>)
           : null,
+      coverPhotoUrl: json['cover_photo_url'] as String?,
       tags: json['tags'] != null
           ? List<String>.from(json['tags'] as List)
           : null,
@@ -145,12 +163,24 @@ class ListingDraftModel extends ListingDraftEntity {
           ? DateTime.parse(json['auction_end_date'] as String)
           : null,
       // Step 8: Bidding Configuration
-      biddingType: json['bidding_type'] as String? ?? 'public',
+      biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
       bidIncrement: _toDouble(json['bid_increment']),
       minBidIncrement: _toDouble(json['min_bid_increment']),
       depositAmount: _toDouble(json['deposit_amount']),
       enableIncrementalBidding:
           json['enable_incremental_bidding'] as bool? ?? true,
+      autoLiveAfterApproval: json['auto_live_after_approval'] as bool? ?? false,
+      scheduleLiveMode: json['schedule_live_mode'] as String?,
+      auctionStartDate: json['auction_start_date'] != null
+          ? DateTime.parse(json['auction_start_date'] as String)
+          : null,
+      auctionDurationHours: json['auction_duration_hours'] as int?,
+      snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
+      snipeGuardThresholdSeconds: json['snipe_guard_threshold_seconds'] as int?,
+      snipeGuardExtendSeconds: json['snipe_guard_extend_seconds'] as int?,
+      allowsInstallment: json['allows_installment'] as bool? ?? false,
+      isPlateValid: json['is_plate_valid'] as bool? ?? false,
     );
   }
 
@@ -166,6 +196,7 @@ class ListingDraftModel extends ListingDraftEntity {
       'brand': brand,
       'model': model,
       'variant': variant,
+      'body_type': bodyType,
       'year': year,
       // Step 2
       'engine_type': engineType,
@@ -205,32 +236,42 @@ class ListingDraftModel extends ListingDraftEntity {
       'usage_type': usageType,
       // Step 6
       'plate_number': plateNumber,
+      'chassis_number': chassisNumber,
       'orcr_status': orcrStatus,
       'registration_status': registrationStatus,
       'registration_expiry': registrationExpiry?.toIso8601String(),
       'province': province,
       'city_municipality': cityMunicipality,
+      'barangay': barangay,
       // Step 7 (JSONB & Documents)
       'photo_urls': photoUrls,
+      'cover_photo_url': coverPhotoUrl,
       'tags': tags,
       'deed_of_sale_url': deedOfSaleUrl,
       // Step 8
       'description': description,
       'known_issues': knownIssues,
       'features': features,
-      'starting_price': (startingPrice != null && startingPrice! > 0)
-          ? startingPrice
-          : null,
-      'reserve_price': (reservePrice != null && reservePrice! > 0)
-          ? reservePrice
-          : null,
+      'starting_price': startingPrice,
+      'reserve_price': reservePrice,
       'auction_end_date': auctionEndDate?.toIso8601String(),
       // Step 8: Bidding Configuration
       'bidding_type': biddingType,
+      'exclusive_tier': exclusiveTier,
       'bid_increment': bidIncrement,
       'min_bid_increment': minBidIncrement,
       'deposit_amount': depositAmount,
       'enable_incremental_bidding': enableIncrementalBidding,
+      'auto_live_after_approval': autoLiveAfterApproval ?? false,
+      'schedule_live_mode': scheduleLiveMode,
+      'auction_start_date': auctionStartDate?.toIso8601String(),
+      'auction_duration_hours': auctionDurationHours,
+      'snipe_guard_enabled': snipeGuardEnabled,
+      'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
+      'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
+      'allows_installment': allowsInstallment ?? false,
+      // TODO: Uncomment after migration 00073 is applied to production DB
+      // 'is_plate_valid': isPlateValid,
     };
   }
 

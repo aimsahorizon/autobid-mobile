@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
 import 'package:autobid_mobile/modules/profile/data/repositories/profile_repository_supabase_impl.dart';
 import 'package:autobid_mobile/modules/profile/data/datasources/profile_supabase_datasource.dart';
 import 'package:autobid_mobile/modules/profile/data/models/user_profile_model.dart';
@@ -12,21 +13,24 @@ import 'package:autobid_mobile/core/error/failures.dart';
 class MockProfileSupabaseDataSource extends Mock
     implements ProfileSupabaseDataSource {}
 
+class MockNetworkInfo extends Mock implements NetworkInfo {}
+
 class FakeFile extends Fake implements File {}
 
 void main() {
   late ProfileRepositorySupabaseImpl repository;
   late MockProfileSupabaseDataSource mockDataSource;
+  late MockNetworkInfo mockNetworkInfo;
 
   const testUserId = 'test-user-123';
   const testEmail = 'test@example.com';
 
+  // ... (existing test data) ...
   final testProfileModel = UserProfileModel(
     id: testUserId,
     email: testEmail,
     fullName: 'Test User',
     username: 'testuser',
-    contactNumber: '09171234567',
     profilePhotoUrl: 'https://example.com/photo.jpg',
     coverPhotoUrl: 'https://example.com/cover.jpg',
   );
@@ -36,14 +40,15 @@ void main() {
     email: testEmail,
     fullName: 'Test User',
     username: 'testuser',
-    contactNumber: '09171234567',
     profilePhotoUrl: 'https://example.com/photo.jpg',
     coverPhotoUrl: 'https://example.com/cover.jpg',
   );
 
   setUp(() {
     mockDataSource = MockProfileSupabaseDataSource();
-    repository = ProfileRepositorySupabaseImpl(mockDataSource);
+    mockNetworkInfo = MockNetworkInfo();
+    when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => true);
+    repository = ProfileRepositorySupabaseImpl(mockDataSource, mockNetworkInfo);
 
     // Register fallback values
     registerFallbackValue(FakeFile());
@@ -51,9 +56,17 @@ void main() {
 
   group('ProfileRepositorySupabaseImpl', () {
     group('getUserProfile', () {
-      // Note: getUserProfile() relies on SupabaseConfig.currentUser which cannot
-      // be easily mocked in unit tests. This method is better tested via integration
-      // tests or through the UseCases that call it.
+      test('should return NetworkFailure when offline', () async {
+        // Arrange
+        when(() => mockNetworkInfo.isConnected).thenAnswer((_) async => false);
+
+        // Act
+        final result = await repository.getUserProfile();
+
+        // Assert
+        expect(result, const Left(NetworkFailure('No internet connection')));
+        verifyZeroInteractions(mockDataSource);
+      });
 
       test('should call datasource getUserProfile', () async {
         // This test documents that the repository calls the datasource,
@@ -82,7 +95,6 @@ void main() {
             email: testEmail,
             fullName: 'Updated Name',
             username: 'updateduser',
-            contactNumber: testProfileModel.contactNumber,
             profilePhotoUrl: testProfileModel.profilePhotoUrl,
             coverPhotoUrl: testProfileModel.coverPhotoUrl,
           );
@@ -103,7 +115,6 @@ void main() {
             email: testEmail,
             fullName: 'Updated Name',
             username: 'updateduser',
-            contactNumber: testProfileEntity.contactNumber,
             profilePhotoUrl: testProfileEntity.profilePhotoUrl,
             coverPhotoUrl: testProfileEntity.coverPhotoUrl,
           );

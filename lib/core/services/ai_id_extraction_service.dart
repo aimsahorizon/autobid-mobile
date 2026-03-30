@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import '../utils/id_parser_util.dart';
 
 /// Data extracted from ID documents by AI
 class ExtractedIdData {
@@ -34,90 +36,49 @@ class ExtractedIdData {
       lastName != null ||
       dateOfBirth != null ||
       sex != null ||
-      address != null;
+      address != null ||
+      idNumber != null;
 }
 
 /// Abstract interface for ID extraction service
-/// Allows switching between mock and real AI implementation
 abstract class IAiIdExtractionService {
-  /// Extract data from National ID
   Future<ExtractedIdData> extractFromNationalId({
     required File frontImage,
     File? backImage,
   });
 
-  /// Extract data from Secondary ID and National ID combined
-  /// This is the comprehensive extraction that autofills all fields
   Future<ExtractedIdData> extractFromSecondaryId({
     required File secondaryIdFront,
     File? secondaryIdBack,
     required File nationalIdFront,
     File? nationalIdBack,
   });
+  
+  void dispose();
 }
 
-/// Mock implementation of AI ID extraction service
-/// Simulates AI extraction with realistic delays and mock data
-class MockAiIdExtractionService implements IAiIdExtractionService {
-  @override
-  Future<ExtractedIdData> extractFromNationalId({
-    required File frontImage,
-    File? backImage,
-  }) async {
-    // Simulate AI processing time
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Return mock data - minimal extraction from national ID only
-    return const ExtractedIdData(
-      firstName: 'Juan',
-      middleName: 'Dela',
-      lastName: 'Cruz',
-      dateOfBirth: null, // Not extracted yet
-      sex: null,
-      idNumber: '1234-5678-9012',
-    );
-  }
-
-  @override
-  Future<ExtractedIdData> extractFromSecondaryId({
-    required File secondaryIdFront,
-    File? secondaryIdBack,
-    required File nationalIdFront,
-    File? nationalIdBack,
-  }) async {
-    // Simulate comprehensive AI processing time
-    await Future.delayed(const Duration(seconds: 3));
-
-    // Return comprehensive mock data
-    return ExtractedIdData(
-      firstName: 'Juan',
-      middleName: 'Dela',
-      lastName: 'Cruz',
-      dateOfBirth: DateTime(1990, 5, 15),
-      sex: 'Male',
-      address: '123 Sampaguita Street',
-      province: 'Metro Manila',
-      city: 'Quezon City',
-      barangay: 'Barangay Commonwealth',
-      zipCode: '1121',
-      idNumber: '1234-5678-9012',
-    );
-  }
-}
-
-/// Production AI implementation placeholder
-/// Replace with actual AI model integration when ready
+/// Production AI implementation using Google ML Kit with Spatial Analysis
 class ProductionAiIdExtractionService implements IAiIdExtractionService {
-  // TODO: Integrate with actual AI model (e.g., TensorFlow Lite, ML Kit, or cloud API)
+  final _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
   @override
   Future<ExtractedIdData> extractFromNationalId({
     required File frontImage,
     File? backImage,
   }) async {
-    // TODO: Implement actual AI extraction
-    // Example: Call OCR API, process with ML model, etc.
-    throw UnimplementedError('Production AI not yet implemented');
+    final inputImage = InputImage.fromFile(frontImage);
+    final recognizedText = await _textRecognizer.processImage(inputImage);
+    
+    // Delegate parsing to Utility
+    final parsedData = IdParserUtil.parse(recognizedText);
+    
+    return ExtractedIdData(
+      firstName: parsedData['firstName'],
+      middleName: parsedData['middleName'],
+      lastName: parsedData['lastName'],
+      idNumber: parsedData['idNumber'],
+      dateOfBirth: _parseDate(parsedData['dateOfBirth']),
+    );
   }
 
   @override
@@ -127,8 +88,32 @@ class ProductionAiIdExtractionService implements IAiIdExtractionService {
     required File nationalIdFront,
     File? nationalIdBack,
   }) async {
-    // TODO: Implement comprehensive AI extraction
-    // Should analyze both IDs for cross-verification
-    throw UnimplementedError('Production AI not yet implemented');
+    // Process National ID first (Primary source of truth)
+    final nationalInput = InputImage.fromFile(nationalIdFront);
+    final nationalResult = await _textRecognizer.processImage(nationalInput);
+    final nationalData = IdParserUtil.parse(nationalResult);
+
+    return ExtractedIdData(
+      firstName: nationalData['firstName'],
+      middleName: nationalData['middleName'],
+      lastName: nationalData['lastName'],
+      idNumber: nationalData['idNumber'],
+      dateOfBirth: _parseDate(nationalData['dateOfBirth']),
+    );
+  }
+
+  DateTime? _parseDate(String? dateStr) {
+    if (dateStr == null) return null;
+    try {
+      final clean = dateStr.replaceAll(RegExp(r'[-/]'), '-');
+      return DateTime.tryParse(clean);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _textRecognizer.close();
   }
 }

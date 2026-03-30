@@ -1,54 +1,138 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/error/exceptions.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/entities/kyc_registration_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
+import '../datasources/auth_local_datasource.dart';
 import '../models/kyc_registration_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
+  final NetworkInfo networkInfo;
+  final AuthLocalDataSource localDataSource;
 
-  AuthRepositoryImpl(this.remoteDataSource);
+  AuthRepositoryImpl(
+    this.remoteDataSource,
+    this.networkInfo,
+    this.localDataSource,
+  );
 
   @override
-  Future<Either<Failure, UserEntity?>> getCurrentUser() async {
+  Future<Either<Failure, void>> cacheRememberMe(bool value) async {
     try {
-      final user = await remoteDataSource.getCurrentUser();
-      return Right(user);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      await localDataSource.cacheRememberMe(value);
+      return const Right(null);
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return const Left(CacheFailure('Failed to cache Remember Me preference'));
     }
   }
 
   @override
-  Future<Either<Failure, UserEntity>> signInWithUsername(String username, String password) async {
+  Future<Either<Failure, bool>> getRememberMe() async {
     try {
-      final user = await remoteDataSource.signInWithUsername(username, password);
-      return Right(user);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(e.message));
+      final result = await localDataSource.getRememberMe();
+      return Right(result);
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return const Left(CacheFailure('Failed to get Remember Me preference'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> cacheUsername(String username) async {
+    try {
+      await localDataSource.cacheUsername(username);
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to cache username'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String?>> getCachedUsername() async {
+    try {
+      final result = await localDataSource.getCachedUsername();
+      return Right(result);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to get cached username'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> clearCachedUsername() async {
+    try {
+      await localDataSource.clearCachedUsername();
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to clear cached username'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> cacheOnboardingCompleted() async {
+    try {
+      await localDataSource.cacheOnboardingCompleted();
+      return const Right(null);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to cache onboarding status'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> getOnboardingCompleted() async {
+    try {
+      final result = await localDataSource.getOnboardingCompleted();
+      return Right(result);
+    } catch (e) {
+      return const Left(CacheFailure('Failed to get onboarding status'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity?>> getCurrentUser() async {
+    try {
+      if (!await networkInfo.isConnected) {
+        // Allow cached user check? Or fail?
+        // Supabase might have local session.
+      }
+      final user = await remoteDataSource.getCurrentUser();
+      return Right(user);
+    } catch (e) {
+      return Left(_handleError(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> signInWithUsername(
+    String username,
+    String password,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final user = await remoteDataSource.signInWithUsername(
+        username,
+        password,
+      );
+      return Right(user);
+    } catch (e) {
+      return Left(_handleError(e));
     }
   }
 
   @override
   Future<Either<Failure, UserEntity>> signInWithGoogle() async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final user = await remoteDataSource.signInWithGoogle();
       return Right(user);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
@@ -57,119 +141,142 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await remoteDataSource.signOut();
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
-  Future<Either<Failure, void>> sendPasswordResetRequest(String username) async {
+  Future<Either<Failure, void>> sendPasswordResetRequest(
+    String username,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.sendPasswordResetRequest(username);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
   Future<Either<Failure, bool>> verifyOtp(String username, String otp) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.verifyOtp(username, otp);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
-  Future<Either<Failure, void>> resetPassword(String username, String newPassword) async {
+  Future<Either<Failure, void>> resetPassword(
+    String username,
+    String newPassword,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.resetPassword(username, newPassword);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
-  Future<Either<Failure, UserEntity>> signUp(String email, String password, {String? username}) async {
+  Future<Either<Failure, UserEntity>> signUp(
+    String email,
+    String password, {
+    String? username,
+  }) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
-      final user = await remoteDataSource.signUp(email, password, username: username);
+      final user = await remoteDataSource.signUp(
+        email,
+        password,
+        username: username,
+      );
       return Right(user);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
-    } on AuthException catch (e) {
-      return Left(AuthFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
   Future<Either<Failure, void>> sendEmailOtp(String email) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.sendEmailOtp(email);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
   Future<Either<Failure, void>> sendPhoneOtp(String phoneNumber) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       await remoteDataSource.sendPhoneOtp(phoneNumber);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
   Future<Either<Failure, bool>> verifyEmailOtp(String email, String otp) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.verifyEmailOtp(email, otp);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
-  Future<Either<Failure, bool>> verifyPhoneOtp(String phoneNumber, String otp) async {
+  Future<Either<Failure, bool>> verifyPhoneOtp(
+    String phoneNumber,
+    String otp,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.verifyPhoneOtp(phoneNumber, otp);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
-  Future<Either<Failure, void>> submitKycRegistration(KycRegistrationEntity kycData) async {
+  Future<Either<Failure, void>> submitKycRegistration(
+    KycRegistrationEntity kycData,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
-      // Convert entity to model for data layer
       final kycModel = KycRegistrationModel(
         id: kycData.id,
         email: kycData.email,
-        phoneNumber: kycData.phoneNumber,
         username: kycData.username,
         firstName: kycData.firstName,
         lastName: kycData.lastName,
@@ -205,34 +312,125 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       await remoteDataSource.submitKycRegistration(kycModel);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
-  Future<Either<Failure, KycRegistrationEntity?>> getKycRegistrationStatus(String userId) async {
+  Future<Either<Failure, KycRegistrationEntity?>> getKycRegistrationStatus(
+    String userId,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.getKycRegistrationStatus(userId);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
   }
 
   @override
   Future<Either<Failure, bool>> checkUsernameAvailable(String username) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
     try {
       final result = await remoteDataSource.checkUsernameAvailable(username);
       return Right(result);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
     } catch (e) {
-      return Left(GeneralFailure(e.toString()));
+      return Left(_handleError(e));
     }
+  }
+
+  @override
+  Future<Either<Failure, bool>> checkEmailAvailable(String email) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.checkEmailAvailable(email);
+      return Right(result);
+    } catch (e) {
+      return Left(_handleError(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> checkNationalIdExists(String idNumber) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.checkNationalIdExists(idNumber);
+      return Right(result);
+    } catch (e) {
+      return Left(_handleError(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> checkSecondaryIdExists(
+    String idNumber,
+    String type,
+  ) async {
+    if (!await networkInfo.isConnected) {
+      return const Left(NetworkFailure('No internet connection'));
+    }
+    try {
+      final result = await remoteDataSource.checkSecondaryIdExists(
+        idNumber,
+        type,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(_handleError(e));
+    }
+  }
+
+  Failure _handleError(dynamic error) {
+    if (error is AuthException) {
+      final msg = error.message.toLowerCase();
+      
+      // DataSource throws "Username not found" when lookup fails
+      if (msg.contains('username not found')) {
+        return const AuthFailure('Username not found.');
+      }
+
+      // DataSource throws this specific string for password failures
+      if (msg.contains('invalid username or password')) {
+        return const AuthFailure('Incorrect password.');
+      }
+      
+      if (msg.contains('invalid login credentials')) {
+        return const AuthFailure('Incorrect password.');
+      }
+
+      if (msg.contains('user not found') || msg.contains('not found')) {
+        return const AuthFailure('Account does not exist.');
+      }
+      
+      if (msg.contains('email not confirmed')) {
+        return const AuthFailure('Please verify your email address.');
+      }
+      
+      if (msg.contains('rate limit')) {
+        return const AuthFailure('Too many attempts. Please try again later.');
+      }
+      
+      return AuthFailure(error.message);
+    }
+    
+    if (error is ServerException) {
+      return ServerFailure(error.message);
+    }
+    
+    if (error is Exception) {
+      return GeneralFailure(error.toString());
+    }
+    
+    return GeneralFailure(error.toString());
   }
 }

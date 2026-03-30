@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../domain/entities/bid_queue_entity.dart';
 
 /// Supabase datasource for bid operations
 /// Handles placing bids, getting bid history, and managing deposits
@@ -8,8 +12,7 @@ class BidSupabaseDataSource {
   BidSupabaseDataSource(this._supabase);
 
   /// Place a bid on an auction/listing
-  /// Inserts new bid into bids table
-  /// Automatically updates listing's current_bid and total_bids via trigger
+  /// Uses server-side RPC 'place_bid' to ensure concurrency control and auto-bids
   Future<void> placeBid({
     required String auctionId,
     required String bidderId,
@@ -19,35 +22,22 @@ class BidSupabaseDataSource {
     double? autoBidIncrement,
   }) async {
     try {
-      // Get status ID for 'active' bid status
-      final statusResponse = await _supabase
-          .from('bid_statuses')
-          .select('id')
-          .eq('status_name', 'active')
-          .single();
+      // Call RPC — auto-bid settings are saved separately via saveAutoBidSettings()
+      final response = await _supabase.rpc(
+        'place_bid',
+        params: {
+          'p_auction_id': auctionId,
+          'p_bidder_id': bidderId,
+          'p_amount': amount,
+          'p_is_auto_bid': isAutoBid,
+        },
+      );
 
-      final statusId = statusResponse['id'] as String;
-
-      // Insert new bid
-      await _supabase.from('bids').insert({
-        'auction_id': auctionId,
-        'bidder_id': bidderId,
-        'status_id': statusId,
-        'bid_amount': amount,
-        'is_auto_bid': isAutoBid,
-      });
-
-      // If auto-bid is enabled, create/update auto_bid_settings
-      if (isAutoBid && maxAutoBid != null) {
-        await _supabase.from('auto_bid_settings').upsert({
-          'auction_id': auctionId,
-          'user_id': bidderId,
-          'max_bid_amount': maxAutoBid,
-          'is_active': true,
-        });
+      // Parse response
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to place bid');
       }
-
-      await _maybeApplySnipeGuard(auctionId);
     } on PostgrestException catch (e) {
       throw Exception('Failed to place bid: ${e.message}');
     } catch (e) {
@@ -55,83 +45,133 @@ class BidSupabaseDataSource {
     }
   }
 
-  /// Extend auction end time by 5 minutes on every bid
-  Future<void> _maybeApplySnipeGuard(String auctionId) async {
+  /// Save or update auto-bid settings via server-side RPC
+  /// This persists the user's max bid and increment on the server
+  Future<void> saveAutoBidSettings({
+    required String auctionId,
+    required String userId,
+    required double maxBidAmount,
+    double? bidIncrement,
+    bool isActive = true,
+  }) async {
     try {
-      print('[SnipeGuard] 🔍 Adding 5 minutes to auction $auctionId');
+      final response = await _supabase.rpc(
+        'upsert_auto_bid_settings',
+        params: {
+          'p_auction_id': auctionId,
+          'p_user_id': userId,
+          'p_max_bid_amount': maxBidAmount,
+          'p_bid_increment': bidIncrement,
+          'p_is_active': isActive,
+        },
+      );
 
-      final auction = await _supabase
-          .from('auctions')
-          .select('end_time')
-          .eq('id', auctionId)
-          .maybeSingle();
-
-      if (auction == null) {
-        print('[SnipeGuard] ❌ Auction not found');
-        return;
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to save auto-bid settings');
       }
-
-      final endTimeRaw = auction['end_time'] as String?;
-      if (endTimeRaw == null) {
-        print('[SnipeGuard] ❌ No end_time found');
-        return;
-      }
-
-      final endTime = DateTime.parse(endTimeRaw).toUtc();
-      final now = DateTime.now().toUtc();
-      final newEndTime = endTime.add(const Duration(minutes: 5));
-
-      print('[SnipeGuard] Old end: $endTime');
-      print('[SnipeGuard] New end: $newEndTime (+ 5 minutes)');
-
-      await _supabase
-          .from('auctions')
-          .update({
-            'end_time': newEndTime.toIso8601String(),
-            'snipe_guard_last_applied_at': now.toIso8601String(),
-          })
-          .eq('id', auctionId);
-
-      print('[SnipeGuard] ✅ Added 5 minutes successfully!');
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to save auto-bid settings: ${e.message}');
     } catch (e) {
-      // Non-fatal; bid already placed. Log and continue.
-      print('[SnipeGuard] ❌ Failed to add time: $e');
+      throw Exception('Failed to save auto-bid settings: $e');
     }
+  }
+
+  /// Get auto-bid settings for a user on a specific auction
+  Future<Map<String, dynamic>?> getAutoBidSettings({
+    required String auctionId,
+    required String userId,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_auto_bid_settings',
+        params: {'p_auction_id': auctionId, 'p_user_id': userId},
+      );
+
+      final result = response as Map<String, dynamic>;
+      if (result['exists'] == true) {
+        return result;
+      }
+      return null;
+    } on PostgrestException catch (e) {
+      debugPrint('Failed to get auto-bid settings: ${e.message}');
+      return null;
+    } catch (e) {
+      debugPrint('Failed to get auto-bid settings: $e');
+      return null;
+    }
+  }
+
+  /// Deactivate auto-bid settings for a user on a specific auction
+  Future<void> deactivateAutoBid({
+    required String auctionId,
+    required String userId,
+  }) async {
+    try {
+      await _supabase
+          .from('auto_bid_settings')
+          .update({
+            'is_active': false,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('auction_id', auctionId)
+          .eq('user_id', userId);
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to deactivate auto-bid: ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to deactivate auto-bid: $e');
+    }
+  }
+
+  /// Stream notification updates for a user (for outbid alerts)
+  /// @deprecated Use NotificationSupabaseDataSource.streamNotifications instead.
+  /// Notifications are now handled by the centralized notification module
+  /// with database triggers (migration 00106).
+  @Deprecated('Use NotificationSupabaseDataSource.streamNotifications instead')
+  Stream<List<Map<String, dynamic>>> streamNotifications(String userId) {
+    return _supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .limit(20);
   }
 
   /// Get bid history for a listing/auction
   /// Joins with users table to get bidder info (LEFT JOIN to handle missing users)
   Future<List<Map<String, dynamic>>> getBidHistory(String auctionId) async {
     try {
-      print(
+      debugPrint(
         'DEBUG [BidDataSource]: Fetching bid history for auction_id: $auctionId',
       );
 
-      // Query bids with users join to get bidder username/display_name
+      // Query bids with users join to get bidder name info
       final response = await _supabase
           .from('bids')
           .select(
-            'id, bid_amount, is_auto_bid, created_at, bidder_id, bidder:users!bidder_id(username, display_name)',
+            'id, bid_amount, is_auto_bid, created_at, bidder_id, bidder:users!bidder_id(username, first_name, last_name)',
           )
           .eq('auction_id', auctionId)
           .order('bid_amount', ascending: false);
 
-      print(
+      debugPrint(
         'DEBUG [BidDataSource]: Query response type: ${response.runtimeType}',
       );
-      print('DEBUG [BidDataSource]: Response data: $response');
+      debugPrint('DEBUG [BidDataSource]: Response data: $response');
 
       final result = List<Map<String, dynamic>>.from(response);
-      print('DEBUG [BidDataSource]: Returning ${result.length} bids');
+      debugPrint('DEBUG [BidDataSource]: Returning ${result.length} bids');
 
       return result;
     } on PostgrestException catch (e) {
-      print('ERROR [BidDataSource]: PostgrestException - ${e.message}');
-      print('ERROR [BidDataSource]: Code: ${e.code}, Details: ${e.details}');
+      debugPrint('ERROR [BidDataSource]: PostgrestException - ${e.message}');
+      debugPrint(
+        'ERROR [BidDataSource]: Code: ${e.code}, Details: ${e.details}',
+      );
       throw Exception('Failed to get bid history: ${e.message}');
     } catch (e, stackTrace) {
-      print('ERROR [BidDataSource]: Exception - $e');
-      print('ERROR [BidDataSource]: Stack trace: $stackTrace');
+      debugPrint('ERROR [BidDataSource]: Exception - $e');
+      debugPrint('ERROR [BidDataSource]: Stack trace: $stackTrace');
       throw Exception('Failed to get bid history: $e');
     }
   }
@@ -260,5 +300,225 @@ class BidSupabaseDataSource {
     } catch (e) {
       throw Exception('Failed to get deposit: $e');
     }
+  }
+
+  /// Stream bid updates for a specific auction
+  /// Listens to changes in the 'bids' table
+  Stream<List<Map<String, dynamic>>> streamBidUpdates(String auctionId) {
+    return _supabase
+        .from('bids')
+        .stream(primaryKey: ['id'])
+        .eq('auction_id', auctionId)
+        .order('created_at', ascending: false);
+  }
+
+  // ==========================================================================
+  // MYSTERY BIDDING SYSTEM
+  // ==========================================================================
+
+  /// Place a sealed bid on a mystery auction (one bid per user)
+  Future<void> placeMysteryBid({
+    required String auctionId,
+    required String bidderId,
+    required double amount,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'place_mystery_bid',
+        params: {
+          'p_auction_id': auctionId,
+          'p_bidder_id': bidderId,
+          'p_amount': amount,
+        },
+      );
+
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to place sealed bid');
+      }
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to place sealed bid: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to place sealed bid: $e');
+    }
+  }
+
+  /// Get mystery bid status for a user on an auction
+  Future<Map<String, dynamic>> getMysteryBidStatus({
+    required String auctionId,
+    required String userId,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_mystery_bid_status',
+        params: {'p_auction_id': auctionId, 'p_user_id': userId},
+      );
+
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to get mystery bid status');
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to get mystery bid status: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to get mystery bid status: $e');
+    }
+  }
+
+  // ==========================================================================
+  // RAISE HAND QUEUE SYSTEM
+  // ==========================================================================
+
+  /// Raise hand in the bid queue (queue-only — no bid amount).
+  /// Calls the server-side `raise_hand` RPC which validates the auction state,
+  /// creates/reuses a cycle, and inserts the user into the queue.
+  /// The user will bid manually when it's their turn (60s window).
+  Future<Map<String, dynamic>> raiseHand({
+    required String auctionId,
+    required String bidderId,
+  }) async {
+    try {
+      final params = <String, dynamic>{
+        'p_auction_id': auctionId,
+        'p_bidder_id': bidderId,
+      };
+      final response = await _supabase.rpc('raise_hand', params: params);
+
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to raise hand');
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to raise hand: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to raise hand: $e');
+    }
+  }
+
+  /// Submit a bid during the user's active turn (60s window).
+  /// Calls the server-side `submit_turn_bid` RPC.
+  Future<Map<String, dynamic>> submitTurnBid({
+    required String auctionId,
+    required String bidderId,
+    required double bidAmount,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'submit_turn_bid',
+        params: {
+          'p_auction_id': auctionId,
+          'p_bidder_id': bidderId,
+          'p_bid_amount': bidAmount,
+        },
+      );
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to submit bid');
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to submit bid: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to submit bid: $e');
+    }
+  }
+
+  /// Lower hand — withdraw from the bid queue.
+  /// Calls the server-side `lower_hand` RPC.
+  Future<Map<String, dynamic>> lowerHand({
+    required String auctionId,
+    required String bidderId,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'lower_hand',
+        params: {'p_auction_id': auctionId, 'p_bidder_id': bidderId},
+      );
+      final result = response as Map<String, dynamic>;
+      if (result['success'] != true) {
+        throw Exception(result['error'] ?? 'Failed to lower hand');
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to lower hand: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to lower hand: $e');
+    }
+  }
+
+  /// Get current queue status for an auction.
+  /// Returns the cycle state, queue entries, and remaining grace period.
+  Future<BidQueueCycleEntity> getQueueStatus(String auctionId) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_queue_status',
+        params: {'p_auction_id': auctionId},
+      );
+
+      final result = response as Map<String, dynamic>;
+      return BidQueueCycleEntity.fromJson(result);
+    } on PostgrestException catch (e) {
+      debugPrint('Failed to get queue status: ${e.message}');
+      return BidQueueCycleEntity.idle();
+    } catch (e) {
+      debugPrint('Failed to get queue status: $e');
+      return BidQueueCycleEntity.idle();
+    }
+  }
+
+  /// Stream real-time queue updates for an auction.
+  /// Listens to changes on BOTH `bid_queue_cycles` (cycle state transitions)
+  /// AND `bid_queue` (new entries, status changes like active_turn/expired)
+  /// and re-fetches full status on each change.
+  Stream<BidQueueCycleEntity> streamQueueUpdates(String auctionId) {
+    final controller = StreamController<BidQueueCycleEntity>.broadcast();
+    StreamSubscription? sub1;
+    StreamSubscription? sub2;
+    Timer? debounce;
+
+    void onChange(dynamic _) {
+      // Debounce rapid-fire events (e.g., auto-bidder execution changes
+      // both bid_queue and bid_queue_cycles in quick succession)
+      debounce?.cancel();
+      debounce = Timer(const Duration(milliseconds: 300), () async {
+        if (controller.isClosed) return;
+        try {
+          final status = await getQueueStatus(auctionId);
+          if (!controller.isClosed) controller.add(status);
+        } catch (e) {
+          debugPrint('streamQueueUpdates fetch error: $e');
+        }
+      });
+    }
+
+    // Listen to cycle state changes (open → processing → complete)
+    sub1 = _supabase
+        .from('bid_queue_cycles')
+        .stream(primaryKey: ['id'])
+        .eq('auction_id', auctionId)
+        .listen(onChange);
+
+    // Listen to queue entry changes (new raises, turn assignments, withdrawals)
+    sub2 = _supabase
+        .from('bid_queue')
+        .stream(primaryKey: ['id'])
+        .eq('auction_id', auctionId)
+        .listen(onChange);
+
+    controller.onCancel = () {
+      debounce?.cancel();
+      sub1?.cancel();
+      sub2?.cancel();
+      controller.close();
+    };
+
+    return controller.stream;
   }
 }

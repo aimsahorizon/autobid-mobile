@@ -1,17 +1,25 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../domain/entities/auction_entity.dart';
 import '../../domain/entities/auction_filter.dart';
 import '../../domain/repositories/auction_repository.dart';
+import '../../domain/usecases/stream_active_auctions_usecase.dart';
 
 class BrowseController extends ChangeNotifier {
   final AuctionRepository _repository;
+  final StreamActiveAuctionsUseCase _streamActiveAuctionsUseCase;
 
-  BrowseController(this._repository);
+  BrowseController(this._repository, this._streamActiveAuctionsUseCase) {
+    _subscribeToUpdates();
+    _startRefreshTimer();
+  }
 
   List<AuctionEntity> _auctions = [];
   bool _isLoading = false;
   String? _errorMessage;
   AuctionFilter _currentFilter = const AuctionFilter();
+  StreamSubscription? _updatesSubscription;
+  Timer? _refreshTimer;
 
   List<AuctionEntity> get auctions => _auctions;
   bool get isLoading => _isLoading;
@@ -21,20 +29,64 @@ class BrowseController extends ChangeNotifier {
   bool get hasActiveFilters => _currentFilter.hasActiveFilters;
   int get activeFilterCount => _currentFilter.activeFilterCount;
 
-  Future<void> loadAuctions() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  void _subscribeToUpdates() {
+    _updatesSubscription?.cancel();
+    // Skip the first emission since Supabase .stream() always emits initial data
+    _updatesSubscription = _streamActiveAuctionsUseCase()
+        .skip(1)
+        .listen(
+          (_) {
+            // Reload auctions quietly when update signal is received
+            // We check isLoading to avoid overlapping loads if user triggered manual refresh
+            if (!_isLoading) {
+              loadAuctions(isBackground: true);
+            }
+          },
+          onError: (e) {
+            debugPrint('Error in browse stream: $e');
+          },
+        );
+  }
+
+  void _startRefreshTimer() {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      // Trigger UI rebuild to update time remaining on cards
+      if (_auctions.isNotEmpty) {
+        notifyListeners();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _updatesSubscription?.cancel();
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> loadAuctions({bool isBackground = false}) async {
+    if (!isBackground) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
       _auctions = await _repository.getActiveAuctions(filter: _currentFilter);
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Failed to load auctions';
-      _auctions = [];
+      // Don't clear auctions on background error to keep showing stale data
+      if (!isBackground) {
+        _auctions = [];
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!isBackground) {
+        _isLoading = false;
+        notifyListeners();
+      } else {
+        notifyListeners();
+      }
     }
   }
 
@@ -62,6 +114,7 @@ class BrowseController extends ChangeNotifier {
     String? province,
     String? city,
     bool? endingSoon,
+    String? visibility,
   }) async {
     _currentFilter = _currentFilter.copyWith(
       searchQuery: searchQuery,
@@ -80,6 +133,7 @@ class BrowseController extends ChangeNotifier {
       province: province,
       city: city,
       endingSoon: endingSoon,
+      visibility: visibility,
     );
     await loadAuctions();
   }

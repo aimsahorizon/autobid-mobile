@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/image_helper.dart';
 import '../../controllers/kyc_registration_controller.dart';
 import '../image_picker_card.dart';
 
@@ -25,7 +27,9 @@ class _NationalIdStepState extends State<NationalIdStep> {
       _idNumberController.text = widget.controller.nationalIdNumber!;
     }
     _idNumberController.addListener(() {
-      widget.controller.setNationalIdNumber(_idNumberController.text);
+      // Strip formatting (dashes) before saving to controller
+      final rawNumber = _idNumberController.text.replaceAll('-', '');
+      widget.controller.setNationalIdNumber(rawNumber);
     });
   }
 
@@ -45,7 +49,20 @@ class _NationalIdStepState extends State<NationalIdStep> {
       );
 
       if (image != null) {
-        final File imageFile = File(image.path);
+        File imageFile = File(image.path);
+
+        // Crop the image
+        try {
+          final croppedFile = await ImageHelper.cropImage(
+            file: imageFile,
+            title: type == 'front' ? 'Crop Front of ID' : 'Crop Back of ID',
+          );
+          if (croppedFile == null) return; // User cancelled cropping
+          imageFile = croppedFile;
+        } catch (_) {
+          // Fallback to uncropped image
+        }
+
         if (type == 'front') {
           widget.controller.setNationalIdFront(imageFile);
         } else {
@@ -54,9 +71,9 @@ class _NationalIdStepState extends State<NationalIdStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
       }
     }
   }
@@ -88,11 +105,27 @@ class _NationalIdStepState extends State<NationalIdStep> {
           TextFormField(
             controller: _idNumberController,
             keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(16),
+              _NationalIdFormatter(),
+            ],
             decoration: const InputDecoration(
-              labelText: 'National ID Number',
-              hintText: 'Enter your 12-digit National ID number',
+              labelText: 'PhilSys Card Number (PCN)',
+              hintText: 'XXXX-XXXX-XXXX-XXXX',
+              helperText: '16-digit PhilSys Card Number (PCN)',
               prefixIcon: Icon(Icons.badge_rounded),
             ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'National ID number is required';
+              }
+              final digitsOnly = value.replaceAll('-', '');
+              if (digitsOnly.length != 16) {
+                return 'PCN must be 16 digits';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 24),
           ImagePickerCard(
@@ -142,6 +175,37 @@ class _NationalIdStepState extends State<NationalIdStep> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Formatter for Philippine National ID (PhilSys Card Number - PCN)
+/// Format: XXXX-XXXX-XXXX-XXXX (16 digits with dashes)
+/// Note: Formatted for display, but stored without dashes in database
+class _NationalIdFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length; i++) {
+      buffer.write(text[i]);
+      final nonZeroIndex = i + 1;
+      if (nonZeroIndex % 4 == 0 && nonZeroIndex != text.length) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

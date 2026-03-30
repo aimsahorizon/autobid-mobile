@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../browse/data/datasources/invites_supabase_datasource.dart';
 
@@ -27,9 +27,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   @override
   void initState() {
     super.initState();
-    _invitesDataSource = InvitesSupabaseDatasource(
-      supabase: Supabase.instance.client,
-    );
+    _invitesDataSource = GetIt.instance<InvitesSupabaseDatasource>();
   }
 
   @override
@@ -60,7 +58,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
       if (!mounted) return;
 
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Invite sent to $identifier'),
           backgroundColor: ColorConstants.success,
@@ -85,7 +83,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: ColorConstants.primary.withOpacity(0.1),
+              color: ColorConstants.primary.withAlpha((0.1 * 255).toInt()),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.person_add, color: ColorConstants.primary),
@@ -109,9 +107,11 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: ColorConstants.info.withOpacity(0.1),
+                color: ColorConstants.info.withAlpha((0.1 * 255).toInt()),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: ColorConstants.info.withOpacity(0.3)),
+                border: Border.all(
+                  color: ColorConstants.info.withAlpha((0.3 * 255).toInt()),
+                ),
               ),
               child: Row(
                 children: [
@@ -215,10 +215,10 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: ColorConstants.error.withOpacity(0.1),
+                  color: ColorConstants.error.withAlpha((0.1 * 255).toInt()),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: ColorConstants.error.withOpacity(0.3),
+                    color: ColorConstants.error.withAlpha((0.3 * 255).toInt()),
                   ),
                 ),
                 child: Row(

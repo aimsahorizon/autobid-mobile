@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
-import 'form_field_widget.dart';
 import 'combo_box_widget.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
+import 'form_field_widget.dart';
 
 class Step5Condition extends StatefulWidget {
   final ListingDraftController controller;
@@ -32,8 +30,12 @@ class _Step5ConditionState extends State<Step5Condition> {
     super.initState();
     final draft = widget.controller.currentDraft!;
     _mileageController = TextEditingController(text: draft.mileage?.toString());
-    _ownersController = TextEditingController(text: draft.previousOwners?.toString());
-    _modificationsController = TextEditingController(text: draft.modificationsDetails);
+    _ownersController = TextEditingController(
+      text: draft.previousOwners?.toString(),
+    );
+    _modificationsController = TextEditingController(
+      text: draft.modificationsDetails,
+    );
     _warrantyController = TextEditingController(text: draft.warrantyDetails);
     _condition = draft.condition;
     _hasModifications = draft.hasModifications ?? false;
@@ -92,12 +94,20 @@ class _Step5ConditionState extends State<Step5Condition> {
         tireSize: draft.tireSize,
         tireBrand: draft.tireBrand,
         condition: _condition,
-        mileage: _mileageController.text.isEmpty ? null : int.tryParse(_mileageController.text),
-        previousOwners: _ownersController.text.isEmpty ? null : int.tryParse(_ownersController.text),
+        mileage: _mileageController.text.isEmpty
+            ? null
+            : int.tryParse(_mileageController.text),
+        previousOwners: _ownersController.text.isEmpty
+            ? null
+            : int.tryParse(_ownersController.text),
         hasModifications: _hasModifications,
-        modificationsDetails: _modificationsController.text.isEmpty ? null : _modificationsController.text,
+        modificationsDetails: _modificationsController.text.isEmpty
+            ? null
+            : _modificationsController.text,
         hasWarranty: _hasWarranty,
-        warrantyDetails: _warrantyController.text.isEmpty ? null : _warrantyController.text,
+        warrantyDetails: _warrantyController.text.isEmpty
+            ? null
+            : _warrantyController.text,
         usageType: _usageType,
         plateNumber: draft.plateNumber,
         orcrStatus: draft.orcrStatus,
@@ -116,32 +126,15 @@ class _Step5ConditionState extends State<Step5Condition> {
     );
   }
 
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(5);
-    setState(() {
-      _condition = demoData['condition'];
-      _mileageController.text = demoData['mileage'].toString();
-      _ownersController.text = demoData['previousOwners'].toString();
-      _hasModifications = demoData['hasModifications'];
-      _modificationsController.text = demoData['modificationsDetails'] ?? '';
-      _hasWarranty = demoData['hasWarranty'];
-      _warrantyController.text = demoData['warrantyDetails'] ?? '';
-      _usageType = demoData['usageType'];
-    });
-    _updateDraft();
-  }
-
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 5: Condition & History',
+          'Step 6: Condition & History',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         ComboBoxWidget(
           label: 'Condition *',
@@ -159,7 +152,12 @@ class _Step5ConditionState extends State<Step5Condition> {
           label: 'Mileage (km) *',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            final val = int.tryParse(v!);
+            if (val == null || val < 0) return 'Must be a non-negative number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -167,7 +165,12 @@ class _Step5ConditionState extends State<Step5Condition> {
           label: 'Previous Owners *',
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            final val = int.tryParse(v!);
+            if (val == null || val < 0) return 'Must be a non-negative number';
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         SwitchListTile(

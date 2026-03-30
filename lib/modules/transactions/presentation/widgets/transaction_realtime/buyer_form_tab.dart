@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/widgets/user_profile_bottom_sheet.dart';
 import '../../controllers/transaction_realtime_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
@@ -105,7 +106,7 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_areAcknowledgmentsComplete) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Please complete all acknowledgment checkboxes'),
           backgroundColor: ColorConstants.error,
@@ -150,10 +151,19 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
 
     final success = await widget.controller.submitForm(form);
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Buyer form submitted successfully!'),
           backgroundColor: ColorConstants.success,
+        ),
+      );
+    } else if (mounted) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.controller.errorMessage ?? 'Failed to submit buyer form',
+          ),
+          backgroundColor: ColorConstants.error,
         ),
       );
     }
@@ -180,6 +190,56 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
               children: [
                 // Status Banner
                 if (isSubmitted) _buildSubmittedBanner(isDark),
+
+                // Seller Profile Link — TEMPORARILY HIDDEN
+                // TODO: Re-enable when profile view is ready
+                if (false && transaction != null) ...[
+                  GestureDetector(
+                    onTap: () => UserProfileBottomSheet.show(
+                      context,
+                      userId: transaction.sellerId,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: ColorConstants.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: ColorConstants.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person,
+                            size: 18,
+                            color: ColorConstants.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'View Seller Profile & Stats',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: ColorConstants.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: ColorConstants.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // Transaction Summary
                 if (transaction != null) ...[
@@ -287,6 +347,34 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
                   onSelectionChanged: isSubmitted
                       ? null
                       : (v) => setState(() => _pickupOrDelivery = v.first),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return ColorConstants.primary.withValues(alpha: 0.2);
+                      }
+                      return isDark
+                          ? ColorConstants.surfaceDark
+                          : ColorConstants.surfaceLight;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return ColorConstants.primary;
+                      }
+                      return isDark
+                          ? ColorConstants.textPrimaryDark
+                          : ColorConstants.textPrimaryLight;
+                    }),
+                    side: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return BorderSide(color: ColorConstants.primary);
+                      }
+                      return BorderSide(
+                        color: isDark
+                            ? ColorConstants.borderDark
+                            : ColorConstants.borderLight,
+                      );
+                    }),
+                  ),
                 ),
 
                 if (_pickupOrDelivery == 'Delivery') ...[
@@ -594,34 +682,45 @@ class _BuyerFormTabState extends State<BuyerFormTab> {
     ValueChanged<bool?> onChanged,
     bool disabled,
   ) {
-    return CheckboxListTile(
-      value: value,
-      onChanged: disabled ? null : onChanged,
-      title: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return CheckboxListTile(
+          value: value,
+          onChanged: disabled
+              ? null
+              : (v) {
+                  onChanged(v);
+                  setState(() {
+                    value = v ?? false;
+                  });
+                },
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: ColorConstants.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Required',
+                  style: TextStyle(fontSize: 10, color: ColorConstants.error),
+                ),
+              ),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: ColorConstants.error.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              'Required',
-              style: TextStyle(fontSize: 10, color: ColorConstants.error),
-            ),
-          ),
-        ],
-      ),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      controlAffinity: ListTileControlAffinity.leading,
-      contentPadding: EdgeInsets.zero,
-      activeColor: ColorConstants.success,
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+          activeColor: ColorConstants.success,
+        );
+      },
     );
   }
 }

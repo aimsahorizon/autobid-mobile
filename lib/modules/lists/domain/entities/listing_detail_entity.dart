@@ -23,6 +23,7 @@ class ListingDetailEntity {
   final String? brand;
   final String? model;
   final String? variant;
+  final String? bodyType; // Added field
   final int? year;
 
   // Step 2: Mechanical Specification
@@ -67,20 +68,49 @@ class ListingDetailEntity {
 
   // Step 6: Documentation & Location
   final String? plateNumber;
+  final String? chassisNumber;
   final String? orcrStatus;
   final String? registrationStatus;
   final DateTime? registrationExpiry;
   final String? province;
   final String? cityMunicipality;
+  final String? barangay;
 
   // Step 7: Photos
   final Map<String, List<String>>? photoUrls;
+  final String? _storedCoverPhotoUrl;
 
   // Step 8: Final Details
   final String? description;
   final String? knownIssues;
   final List<String>? features;
   final DateTime? auctionEndDate;
+
+  // Configuration
+  final String biddingType;
+  final String? exclusiveTier;
+  final double bidIncrement;
+  final double minBidIncrement;
+  final double depositAmount;
+  final bool enableIncrementalBidding;
+  final bool snipeGuardEnabled;
+  final int snipeGuardThresholdSeconds;
+  final int snipeGuardExtendSeconds;
+
+  // Documents
+  final String? deedOfSaleUrl;
+
+  // Visibility
+  final String visibility;
+
+  // Listing activation preference
+  final bool autoLiveAfterApproval;
+
+  // Installment
+  final bool allowsInstallment;
+
+  // Rejection
+  final String? rejectionReason;
 
   const ListingDetailEntity({
     required this.id,
@@ -99,6 +129,7 @@ class ListingDetailEntity {
     this.brand,
     this.model,
     this.variant,
+    this.bodyType,
     this.year,
     this.engineType,
     this.engineDisplacement,
@@ -133,23 +164,43 @@ class ListingDetailEntity {
     this.warrantyDetails,
     this.usageType,
     this.plateNumber,
+    this.chassisNumber,
     this.orcrStatus,
     this.registrationStatus,
     this.registrationExpiry,
     this.province,
     this.cityMunicipality,
+    this.barangay,
     this.photoUrls,
+    String? storedCoverPhotoUrl,
     this.description,
     this.knownIssues,
     this.features,
     this.auctionEndDate,
-  });
+    this.biddingType = 'public',
+    this.exclusiveTier,
+    this.bidIncrement = 100,
+    this.minBidIncrement = 100,
+    this.depositAmount = 0,
+    this.enableIncrementalBidding = true,
+    this.snipeGuardEnabled = true,
+    this.snipeGuardThresholdSeconds = 300,
+    this.snipeGuardExtendSeconds = 300,
+    this.deedOfSaleUrl,
+    this.visibility = 'public',
+    this.autoLiveAfterApproval = false,
+    this.allowsInstallment = false,
+    this.rejectionReason,
+  }) : _storedCoverPhotoUrl = storedCoverPhotoUrl;
 
   /// Get formatted car name
-  String get carName => '$year $brand $model';
+  String get carName => '$year $brand $model ${variant ?? ''}'.trim();
 
-  /// Get cover photo URL (first photo from any category)
+  /// Get cover photo URL (stored selection, or first photo as fallback)
   String? get coverPhotoUrl {
+    if (_storedCoverPhotoUrl != null && _storedCoverPhotoUrl!.isNotEmpty) {
+      return _storedCoverPhotoUrl;
+    }
     if (photoUrls == null || photoUrls!.isEmpty) return null;
     for (final urls in photoUrls!.values) {
       if (urls.isNotEmpty) return urls.first;
@@ -159,15 +210,15 @@ class ListingDetailEntity {
 
   /// Check if reserve price has been met
   bool get isReserveMet =>
-      reservePrice != null && currentBid != null && currentBid! >= reservePrice!;
+      reservePrice != null &&
+      currentBid != null &&
+      currentBid! >= reservePrice!;
 
   /// Get time remaining (for active listings)
-  Duration? get timeRemaining =>
-      endTime?.difference(DateTime.now());
+  Duration? get timeRemaining => endTime?.difference(DateTime.now());
 
-    /// Time until auction starts (for scheduled listings)
-    Duration? get timeUntilStart =>
-      startTime?.difference(DateTime.now());
+  /// Time until auction starts (for scheduled listings)
+  Duration? get timeUntilStart => startTime?.difference(DateTime.now());
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);

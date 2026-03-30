@@ -134,9 +134,15 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Any')),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Any'),
+                          ),
                           ...FilterOptions.makes.map((make) {
-                            return DropdownMenuItem(value: make, child: Text(make));
+                            return DropdownMenuItem(
+                              value: make,
+                              child: Text(make),
+                            );
                           }),
                         ],
                         onChanged: (value) {
@@ -160,9 +166,15 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                                 border: OutlineInputBorder(),
                               ),
                               items: [
-                                const DropdownMenuItem(value: null, child: Text('Any')),
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text('Any'),
+                                ),
                                 ...FilterOptions.years.map((year) {
-                                  return DropdownMenuItem(value: year, child: Text('$year'));
+                                  return DropdownMenuItem(
+                                    value: year,
+                                    child: Text('$year'),
+                                  );
                                 }),
                               ],
                               onChanged: (value) {
@@ -181,9 +193,15 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                                 border: OutlineInputBorder(),
                               ),
                               items: [
-                                const DropdownMenuItem(value: null, child: Text('Any')),
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text('Any'),
+                                ),
                                 ...FilterOptions.years.map((year) {
-                                  return DropdownMenuItem(value: year, child: Text('$year'));
+                                  return DropdownMenuItem(
+                                    value: year,
+                                    child: Text('$year'),
+                                  );
                                 }),
                               ],
                               onChanged: (value) {
@@ -206,7 +224,9 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                             child: TextField(
                               controller: _priceMinController,
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               decoration: const InputDecoration(
                                 labelText: 'Min Price',
                                 prefixText: '₱ ',
@@ -225,7 +245,9 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                             child: TextField(
                               controller: _priceMaxController,
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               decoration: const InputDecoration(
                                 labelText: 'Max Price',
                                 prefixText: '₱ ',
@@ -253,14 +275,22 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Any')),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Any'),
+                          ),
                           ...FilterOptions.transmissions.map((trans) {
-                            return DropdownMenuItem(value: trans, child: Text(trans));
+                            return DropdownMenuItem(
+                              value: trans,
+                              child: Text(trans),
+                            );
                           }),
                         ],
                         onChanged: (value) {
                           setState(() {
-                            _filter = _filter.copyWith(transmission: value ?? '');
+                            _filter = _filter.copyWith(
+                              transmission: value ?? '',
+                            );
                           });
                         },
                       ),
@@ -276,9 +306,15 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Any')),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Any'),
+                          ),
                           ...FilterOptions.fuelTypes.map((fuel) {
-                            return DropdownMenuItem(value: fuel, child: Text(fuel));
+                            return DropdownMenuItem(
+                              value: fuel,
+                              child: Text(fuel),
+                            );
                           }),
                         ],
                         onChanged: (value) {
@@ -299,9 +335,15 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Any')),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Any'),
+                          ),
                           ...FilterOptions.driveTypes.map((drive) {
-                            return DropdownMenuItem(value: drive, child: Text(drive));
+                            return DropdownMenuItem(
+                              value: drive,
+                              child: Text(drive),
+                            );
                           }),
                         ],
                         onChanged: (value) {
@@ -322,9 +364,15 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Any')),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Any'),
+                          ),
                           ...FilterOptions.conditions.map((cond) {
-                            return DropdownMenuItem(value: cond, child: Text(cond));
+                            return DropdownMenuItem(
+                              value: cond,
+                              child: Text(cond),
+                            );
                           }),
                         ],
                         onChanged: (value) {
@@ -341,7 +389,9 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                       child: TextField(
                         controller: _mileageController,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         decoration: const InputDecoration(
                           hintText: 'Enter max mileage',
                           suffixText: 'km',
@@ -366,14 +416,22 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Any')),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Any'),
+                          ),
                           ...FilterOptions.colors.map((color) {
-                            return DropdownMenuItem(value: color, child: Text(color));
+                            return DropdownMenuItem(
+                              value: color,
+                              child: Text(color),
+                            );
                           }),
                         ],
                         onChanged: (value) {
                           setState(() {
-                            _filter = _filter.copyWith(exteriorColor: value ?? '');
+                            _filter = _filter.copyWith(
+                              exteriorColor: value ?? '',
+                            );
                           });
                         },
                       ),
@@ -389,14 +447,49 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
                           border: OutlineInputBorder(),
                         ),
                         items: [
-                          const DropdownMenuItem(value: null, child: Text('Any')),
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Any'),
+                          ),
                           ...FilterOptions.regions.map((region) {
-                            return DropdownMenuItem(value: region, child: Text(region));
+                            return DropdownMenuItem(
+                              value: region,
+                              child: Text(region),
+                            );
                           }),
                         ],
                         onChanged: (value) {
                           setState(() {
                             _filter = _filter.copyWith(province: value ?? '');
+                          });
+                        },
+                      ),
+                    ),
+
+                    // Auction Visibility
+                    _buildSection(
+                      title: 'Auction Type',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _filter.visibility,
+                        decoration: const InputDecoration(
+                          hintText: 'Select auction type',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: '', child: Text('Any')),
+                          DropdownMenuItem(value: 'open', child: Text('Open')),
+                          DropdownMenuItem(
+                            value: 'exclusive',
+                            child: Text('Exclusive'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'mystery',
+                            child: Text('Mystery'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _filter = _filter.copyWith(visibility: value ?? '');
                           });
                         },
                       ),
@@ -463,10 +556,7 @@ class _AuctionFilterSheetState extends State<AuctionFilterSheet> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           child,

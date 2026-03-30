@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/auction_alias_generator.dart';
 import '../../../domain/entities/bid_history_entity.dart';
 
 /// Displays chronological bid history for an auction
@@ -14,11 +15,15 @@ import '../../../domain/entities/bid_history_entity.dart';
 class BidHistoryTab extends StatelessWidget {
   final List<BidHistoryEntity> bidHistory;
   final bool isLoading;
+  final bool isMystery;
+  final bool isMysteryEnded;
 
   const BidHistoryTab({
     super.key,
     this.bidHistory = const [],
     this.isLoading = false,
+    this.isMystery = false,
+    this.isMysteryEnded = false,
   });
 
   @override
@@ -26,6 +31,11 @@ class BidHistoryTab extends StatelessWidget {
     // Show loading spinner while fetching bid history
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    // Mystery auction: bids are sealed until ended
+    if (isMystery && !isMysteryEnded) {
+      return _buildSealedState(context);
     }
 
     // Show empty state if no bids have been placed
@@ -41,6 +51,46 @@ class BidHistoryTab extends StatelessWidget {
       itemBuilder: (context, index) => _BidHistoryCard(
         bid: bidHistory[index],
         isLatest: index == 0, // First item is the latest/highest bid
+      ),
+    );
+  }
+
+  /// Sealed state for mystery auctions (bids hidden until end)
+  Widget _buildSealedState(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.lock_outline,
+              size: 64,
+              color: Colors.deepPurple.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Bids Are Sealed',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: Colors.deepPurple,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'All bids will be revealed when the auction ends.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -91,10 +141,19 @@ class _BidHistoryCard extends StatelessWidget {
   final BidHistoryEntity bid;
   final bool isLatest;
 
-  const _BidHistoryCard({
-    required this.bid,
-    required this.isLatest,
-  });
+  const _BidHistoryCard({required this.bid, required this.isLatest});
+
+  /// Get display name: alias for other users, real name for current user
+  String get _displayName {
+    if (bid.isCurrentUser) return bid.bidderName;
+    if (bid.bidderId != null) {
+      return AuctionAliasGenerator.generate(bid.auctionId, bid.bidderId!);
+    }
+    return 'Anonymous';
+  }
+
+  /// Only show username for current user
+  bool get _showUsername => bid.isCurrentUser;
 
   @override
   Widget build(BuildContext context) {
@@ -104,38 +163,47 @@ class _BidHistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           // Highlight current user's bids with primary color border
           color: bid.isCurrentUser
               ? ColorConstants.primary
-              : (isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+              : (isDark
+                    ? ColorConstants.borderDark
+                    : ColorConstants.borderLight),
           width: bid.isCurrentUser ? 1.5 : 1,
         ),
       ),
       child: Row(
         children: [
-          // Bidder avatar/icon
+          // Bid rank indicator
           Container(
-            width: 40,
-            height: 40,
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: bid.isCurrentUser
-                  ? ColorConstants.primary.withValues(alpha: 0.1)
-                  : (isDark
-                      ? ColorConstants.backgroundSecondaryDark
-                      : ColorConstants.backgroundSecondaryLight),
-              shape: BoxShape.circle,
+              color: isLatest
+                  ? ColorConstants.success.withValues(alpha: 0.1)
+                  : (bid.isCurrentUser
+                        ? ColorConstants.primary.withValues(alpha: 0.1)
+                        : (isDark
+                              ? ColorConstants.backgroundSecondaryDark
+                              : ColorConstants.backgroundSecondaryLight)),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              Icons.person,
-              size: 20,
-              color: bid.isCurrentUser
-                  ? ColorConstants.primary
-                  : (isDark
-                      ? ColorConstants.textSecondaryDark
-                      : ColorConstants.textSecondaryLight),
+              isLatest ? Icons.emoji_events : Icons.gavel,
+              size: 16,
+              color: isLatest
+                  ? ColorConstants.success
+                  : (bid.isCurrentUser
+                        ? ColorConstants.primary
+                        : (isDark
+                              ? ColorConstants.textSecondaryDark
+                              : ColorConstants.textSecondaryLight)),
             ),
           ),
           const SizedBox(width: 12),
@@ -147,18 +215,26 @@ class _BidHistoryCard extends StatelessWidget {
                 Row(
                   children: [
                     // Bidder name
-                    Text(
-                      bid.bidderName,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: bid.isCurrentUser ? ColorConstants.primary : null,
+                    Flexible(
+                      child: Text(
+                        _displayName,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: bid.isCurrentUser
+                              ? ColorConstants.primary
+                              : null,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     // "You" badge for current user
                     if (bid.isCurrentUser) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: ColorConstants.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
@@ -175,13 +251,26 @@ class _BidHistoryCard extends StatelessWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 4),
+                if (_showUsername &&
+                    bid.username != null &&
+                    bid.username != bid.bidderName)
+                  Text(
+                    '@${bid.username}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark
+                          ? ColorConstants.textSecondaryDark
+                          : ColorConstants.textSecondaryLight,
+                      fontSize: 11,
+                    ),
+                  ),
+                const SizedBox(height: 2),
                 Text(
                   _formatTimestamp(bid.timestamp),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: isDark
                         ? ColorConstants.textSecondaryDark
                         : ColorConstants.textSecondaryLight,
+                    fontSize: 10,
                   ),
                 ),
               ],
@@ -202,7 +291,10 @@ class _BidHistoryCard extends StatelessWidget {
               if (isLatest) ...[
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: ColorConstants.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -235,12 +327,11 @@ class _BidHistoryCard extends StatelessWidget {
     );
   }
 
-  /// Formats amount with comma separators or K/M suffix
+  /// Formats amount with comma separators
   String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(2)}M';
-    }
-    return amount.toStringAsFixed(0).replaceAllMapped(
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]},',
         );

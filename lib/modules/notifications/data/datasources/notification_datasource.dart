@@ -14,4 +14,13 @@ abstract class INotificationDataSource {
   Future<List<NotificationEntity>> getUnreadNotifications({
     required String userId,
   });
+  Future<void> respondToInvite({
+    required String inviteId,
+    required String decision, // 'accepted' or 'rejected'
+  });
+
+  /// Stream real-time notification updates for a user
+  Stream<List<Map<String, dynamic>>> streamNotifications({
+    required String userId,
+  });
 }

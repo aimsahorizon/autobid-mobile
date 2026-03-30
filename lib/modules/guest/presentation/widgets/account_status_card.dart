@@ -4,11 +4,9 @@ import '../../domain/entities/account_status_entity.dart';
 
 class AccountStatusCard extends StatelessWidget {
   final AccountStatusEntity status;
+  final VoidCallback? onAppeal;
 
-  const AccountStatusCard({
-    super.key,
-    required this.status,
-  });
+  const AccountStatusCard({super.key, required this.status, this.onAppeal});
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +41,11 @@ class AccountStatusCard extends StatelessWidget {
             if (_shouldShowNextSteps()) ...[
               const SizedBox(height: 16),
               _buildNextSteps(theme, isDark),
+            ],
+            if (status.status == AccountStatus.rejected &&
+                onAppeal != null) ...[
+              const SizedBox(height: 20),
+              _buildAppealButton(theme),
             ],
           ],
         ),
@@ -79,9 +82,7 @@ class AccountStatusCard extends StatelessWidget {
               ),
               Text(
                 status.userEmail,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey,
-                ),
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
               ),
             ],
           ),
@@ -154,8 +155,8 @@ class AccountStatusCard extends StatelessWidget {
           ),
         if (status.reviewedAt != null &&
             (status.status == AccountStatus.approved ||
-             status.status == AccountStatus.rejected ||
-             status.status == AccountStatus.suspended))
+                status.status == AccountStatus.rejected ||
+                status.status == AccountStatus.suspended))
           _buildTimelineItem(
             theme,
             isDark,
@@ -169,10 +170,26 @@ class AccountStatusCard extends StatelessWidget {
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
-    final period = date.hour >= 12 ? 'PM' : 'AM';
-    return '${months[date.month - 1]} ${date.day}, ${date.year} - ${hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')} $period';
+    final local = date.toLocal();
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final hour = local.hour > 12
+        ? local.hour - 12
+        : (local.hour == 0 ? 12 : local.hour);
+    final period = local.hour >= 12 ? 'PM' : 'AM';
+    return '${months[local.month - 1]} ${local.day}, ${local.year} - ${hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')} $period';
   }
 
   Widget _buildTimelineItem(
@@ -225,28 +242,22 @@ class AccountStatusCard extends StatelessWidget {
     final noteColor = status.status == AccountStatus.rejected
         ? ColorConstants.error
         : (status.status == AccountStatus.suspended
-            ? Colors.grey
-            : ColorConstants.warning);
+              ? Colors.grey
+              : ColorConstants.warning);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: noteColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: noteColor.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: noteColor.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                _getReviewNotesIcon(),
-                color: noteColor,
-                size: 18,
-              ),
+              Icon(_getReviewNotesIcon(), color: noteColor, size: 18),
               const SizedBox(width: 8),
               Text(
                 _getReviewNotesTitle(),
@@ -260,9 +271,7 @@ class AccountStatusCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             status.reviewNotes!,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: noteColor,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: noteColor),
           ),
         ],
       ),
@@ -275,9 +284,7 @@ class AccountStatusCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: ColorConstants.info.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: ColorConstants.info.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: ColorConstants.info.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -310,7 +317,8 @@ class AccountStatusCard extends StatelessWidget {
   bool _shouldShowNextSteps() {
     return status.status == AccountStatus.pending ||
         status.status == AccountStatus.underReview ||
-        status.status == AccountStatus.approved;
+        status.status == AccountStatus.approved ||
+        status.status == AccountStatus.appealPending;
   }
 
   String _getNextStepsMessage() {
@@ -321,6 +329,8 @@ class AccountStatusCard extends StatelessWidget {
         return 'Your KYC documents are currently being reviewed. This typically takes 1-3 business days.';
       case AccountStatus.approved:
         return 'Your account has been approved! You can now log in and access all features.';
+      case AccountStatus.appealPending:
+        return 'Your appeal has been submitted. Our team will re-review your application.';
       case AccountStatus.rejected:
       case AccountStatus.suspended:
         return '';
@@ -387,6 +397,8 @@ class AccountStatusCard extends StatelessWidget {
         return ColorConstants.error;
       case AccountStatus.suspended:
         return Colors.grey;
+      case AccountStatus.appealPending:
+        return ColorConstants.warning;
     }
   }
 
@@ -402,6 +414,27 @@ class AccountStatusCard extends StatelessWidget {
         return Icons.cancel_rounded;
       case AccountStatus.suspended:
         return Icons.block_rounded;
+      case AccountStatus.appealPending:
+        return Icons.gavel_rounded;
     }
+  }
+
+  Widget _buildAppealButton(ThemeData theme) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: onAppeal,
+        icon: const Icon(Icons.gavel_rounded, size: 18),
+        label: const Text('Submit Appeal'),
+        style: FilledButton.styleFrom(
+          backgroundColor: ColorConstants.warning,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
   }
 }

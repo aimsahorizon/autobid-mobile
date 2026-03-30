@@ -147,6 +147,8 @@ class _UserBidCardState extends State<UserBidCard> {
         return ColorConstants.error.withValues(alpha: 0.5);
       case UserBidStatus.cancelled:
         return Colors.grey.withValues(alpha: 0.5);
+      case UserBidStatus.standby:
+        return ColorConstants.warning.withValues(alpha: 0.5);
     }
   }
 }
@@ -309,11 +311,8 @@ class _BidAmountRow extends StatelessWidget {
     );
   }
 
-  /// Formats amount with K/M suffix or comma separators
+  /// Formats amount with comma separators (full display)
   String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(2)}M';
-    }
     return amount
         .toStringAsFixed(0)
         .replaceAllMapped(
@@ -382,8 +381,11 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isWon = status == UserBidStatus.won;
+    final isStandby = status == UserBidStatus.standby;
     final isAwaiting = isWon && awaitingSeller;
-    final color = isWon
+    final color = isStandby
+        ? ColorConstants.warning
+        : isWon
         ? (isAwaiting ? ColorConstants.warning : ColorConstants.success)
         : ColorConstants.error;
 
@@ -397,7 +399,9 @@ class _StatusChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isAwaiting
+            isStandby
+                ? Icons.hourglass_empty_rounded
+                : isAwaiting
                 ? Icons.hourglass_bottom
                 : (isWon ? Icons.emoji_events : Icons.close),
             size: 14,
@@ -405,7 +409,11 @@ class _StatusChip extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            isWon ? (isAwaiting ? 'Awaiting seller' : 'Won') : 'Lost',
+            isStandby
+                ? 'Standby'
+                : isWon
+                ? (isAwaiting ? 'Awaiting seller' : 'Won')
+                : 'Lost',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,

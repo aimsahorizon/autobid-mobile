@@ -444,6 +444,43 @@ RLS Policies:
 
 --------------------------------------------------------------------------------
 
+TABLE: auction_invites
+Purpose: Manage invitations for private auctions (actual implementation table)
+  Used by invite_user_to_auction, respond_to_auction_invite, list_my_auction_invites RPCs
+Columns:
+  - id: uuid PRIMARY KEY DEFAULT gen_random_uuid()
+  - auction_id: uuid NOT NULL REFERENCES auctions(id) ON DELETE CASCADE
+  - inviter_id: uuid NOT NULL REFERENCES auth.users(id)
+  - invitee_id: uuid REFERENCES auth.users(id)
+  - invitee_email: text
+  - invitee_username: text
+  - status: text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected'))
+  - created_at: timestamptz DEFAULT now()
+  - updated_at: timestamptz DEFAULT now()
+
+Constraints:
+  - UNIQUE(auction_id, invitee_id) — one invite per user per auction
+
+Indexes:
+  - idx_auction_invites_auction ON (auction_id)
+  - idx_auction_invites_invitee ON (invitee_id)
+  - idx_auction_invites_status ON (status)
+
+RLS Policies:
+  - Invitees can read/update own invites (respond)
+  - Sellers (inviters) can read/insert/delete invites for own auctions
+  - Admins can read all
+
+RPCs:
+  - invite_user_to_auction(p_auction_id, p_invitee_identifier, p_identifier_type)
+  - respond_to_auction_invite(p_invite_id, p_decision)
+  - list_my_auction_invites() — returns pending invites with auction details
+
+Realtime: Enabled via supabase_realtime publication (migration 00107)
+  - REPLICA IDENTITY FULL for proper UPDATE/DELETE detection
+
+--------------------------------------------------------------------------------
+
 TABLE: bids
 Purpose: All bid records with auto-bidding support
 Columns:

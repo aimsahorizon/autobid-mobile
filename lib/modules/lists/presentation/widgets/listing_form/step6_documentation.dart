@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
+import '../../../domain/usecases/validate_plate_number_usecase.dart';
 import 'form_field_widget.dart';
 import 'province_city_picker.dart';
-import '../../../data/datasources/demo_listing_data.dart';
-import 'demo_autofill_button.dart';
 
 class Step6Documentation extends StatefulWidget {
   final ListingDraftController controller;
@@ -16,106 +18,218 @@ class Step6Documentation extends StatefulWidget {
 }
 
 class _Step6DocumentationState extends State<Step6Documentation> {
-  late TextEditingController _plateController;
+  late TextEditingController _plateLetterController;
+  late TextEditingController _plateNumberController;
+  late TextEditingController _chassisNumberController;
+  final _plateLetterFocus = FocusNode();
+  final _plateNumberFocus = FocusNode();
+  final _validatePlateUseCase = GetIt.I<ValidatePlateNumberUseCase>();
 
   String? _province;
   String? _city;
+  String? _barangay;
   String? _orcrStatus;
   String? _registrationStatus;
   DateTime? _registrationExpiry;
+
+  // Validation State
+  Timer? _debounce;
+  String? _plateError;
+  bool _isValidatingPlate = false;
+  bool _isPlateValid = false;
 
   @override
   void initState() {
     super.initState();
     final draft = widget.controller.currentDraft!;
-    _plateController = TextEditingController(text: draft.plateNumber);
+
+    // Parse existing plate number into letter and number parts
+    final existingPlate = draft.plateNumber ?? '';
+    final parts = existingPlate.split(' ');
+    _plateLetterController = TextEditingController(
+      text: parts.isNotEmpty ? parts[0] : '',
+    );
+    _plateNumberController = TextEditingController(
+      text: parts.length > 1 ? parts[1] : '',
+    );
+    _chassisNumberController = TextEditingController(
+      text: draft.chassisNumber ?? '',
+    );
+
     _province = draft.province;
     _city = draft.cityMunicipality;
+    _barangay = draft.barangay;
+
     _orcrStatus = draft.orcrStatus;
     _registrationStatus = draft.registrationStatus;
     _registrationExpiry = draft.registrationExpiry;
 
-    _plateController.addListener(_updateDraft);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateDraft();
+    });
+
+    _plateLetterController.addListener(_onPlateChanged);
+    _plateNumberController.addListener(_onPlateChanged);
+    _chassisNumberController.addListener(_updateDraft);
+    widget.controller.addListener(_onControllerChanged);
+
+    // Initial validation if existing value
+    if (_combinedPlate.isNotEmpty) {
+      _validatePlate(_combinedPlate);
+    }
+  }
+
+  void _onControllerChanged() {
+    if (!mounted) return;
+    final draft = widget.controller.currentDraft;
+    if (draft == null) return;
+
+    if (_province != draft.province ||
+        _city != draft.cityMunicipality ||
+        _barangay != draft.barangay ||
+        _orcrStatus != draft.orcrStatus ||
+        _registrationStatus != draft.registrationStatus ||
+        _registrationExpiry != draft.registrationExpiry) {
+      setState(() {
+        _province = draft.province;
+        _city = draft.cityMunicipality;
+        _barangay = draft.barangay;
+        _orcrStatus = draft.orcrStatus;
+        _registrationStatus = draft.registrationStatus;
+        _registrationExpiry = draft.registrationExpiry;
+      });
+    }
+
+    // Sync plate number
+    final existingPlate = draft.plateNumber ?? '';
+    final parts = existingPlate.split(' ');
+    final newLetters = parts.isNotEmpty ? parts[0] : '';
+    final newNumbers = parts.length > 1 ? parts[1] : '';
+    if (_plateLetterController.text != newLetters ||
+        _plateNumberController.text != newNumbers) {
+      _plateLetterController.removeListener(_onPlateChanged);
+      _plateNumberController.removeListener(_onPlateChanged);
+      _plateLetterController.text = newLetters;
+      _plateNumberController.text = newNumbers;
+      _plateLetterController.addListener(_onPlateChanged);
+      _plateNumberController.addListener(_onPlateChanged);
+    }
+
+    // Sync chassis number
+    final newChassis = draft.chassisNumber ?? '';
+    if (_chassisNumberController.text != newChassis) {
+      _chassisNumberController.text = newChassis;
+    }
+  }
+
+  String get _combinedPlate {
+    final letters = _plateLetterController.text.trim().toUpperCase();
+    final numbers = _plateNumberController.text.trim();
+    if (letters.isEmpty && numbers.isEmpty) return '';
+    return '$letters $numbers';
   }
 
   @override
   void dispose() {
-    _plateController.dispose();
+    _debounce?.cancel();
+    widget.controller.removeListener(_onControllerChanged);
+    _plateLetterController.removeListener(_onPlateChanged);
+    _plateNumberController.removeListener(_onPlateChanged);
+    _chassisNumberController.removeListener(_updateDraft);
+    _plateLetterController.dispose();
+    _plateNumberController.dispose();
+    _chassisNumberController.dispose();
+    _plateLetterFocus.dispose();
+    _plateNumberFocus.dispose();
     super.dispose();
+  }
+
+  void _onPlateChanged() {
+    // Force uppercase for letters
+    final letterText = _plateLetterController.text.toUpperCase();
+    if (letterText != _plateLetterController.text) {
+      _plateLetterController.value = _plateLetterController.value.copyWith(
+        text: letterText,
+        selection: TextSelection.collapsed(offset: letterText.length),
+      );
+      return;
+    }
+
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      final combined = _combinedPlate;
+      if (combined.trim().isNotEmpty) {
+        _validatePlate(combined);
+      } else {
+        setState(() {
+          _plateError = null;
+          _isPlateValid = false;
+          _isValidatingPlate = false;
+        });
+      }
+    });
+
+    // Update draft immediately for simple text change
+    _updateDraft();
+  }
+
+  Future<void> _validatePlate(String value) async {
+    if (value.isEmpty) {
+      setState(() {
+        _plateError = null;
+        _isPlateValid = false;
+        _isValidatingPlate = false;
+      });
+      return;
+    }
+
+    setState(() => _isValidatingPlate = true);
+
+    final error = await _validatePlateUseCase(
+      value,
+      widget.controller.currentDraft!.sellerId,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isValidatingPlate = false;
+        _plateError = error;
+        _isPlateValid = error == null;
+      });
+
+      // If validation fails, update draft to clear invalid plate?
+      // Or keep it but block submission later?
+      // For now, we update draft anyway so typed value persists,
+      // but UI shows error.
+      _updateDraft();
+    }
+  }
+
+  void _unfocusPlateFields() {
+    _plateLetterFocus.unfocus();
+    _plateNumberFocus.unfocus();
   }
 
   void _updateDraft() {
     final draft = widget.controller.currentDraft!;
     widget.controller.updateDraft(
-      ListingDraftEntity(
-        id: draft.id,
-        sellerId: draft.sellerId,
-        currentStep: draft.currentStep,
+      draft.copyWith(
         lastSaved: DateTime.now(),
-        brand: draft.brand,
-        model: draft.model,
-        variant: draft.variant,
-        year: draft.year,
-        engineType: draft.engineType,
-        engineDisplacement: draft.engineDisplacement,
-        cylinderCount: draft.cylinderCount,
-        horsepower: draft.horsepower,
-        torque: draft.torque,
-        transmission: draft.transmission,
-        fuelType: draft.fuelType,
-        driveType: draft.driveType,
-        length: draft.length,
-        width: draft.width,
-        height: draft.height,
-        wheelbase: draft.wheelbase,
-        groundClearance: draft.groundClearance,
-        seatingCapacity: draft.seatingCapacity,
-        doorCount: draft.doorCount,
-        fuelTankCapacity: draft.fuelTankCapacity,
-        curbWeight: draft.curbWeight,
-        grossWeight: draft.grossWeight,
-        exteriorColor: draft.exteriorColor,
-        paintType: draft.paintType,
-        rimType: draft.rimType,
-        rimSize: draft.rimSize,
-        tireSize: draft.tireSize,
-        tireBrand: draft.tireBrand,
-        condition: draft.condition,
-        mileage: draft.mileage,
-        previousOwners: draft.previousOwners,
-        hasModifications: draft.hasModifications,
-        modificationsDetails: draft.modificationsDetails,
-        hasWarranty: draft.hasWarranty,
-        warrantyDetails: draft.warrantyDetails,
-        usageType: draft.usageType,
-        plateNumber: _plateController.text.isEmpty ? null : _plateController.text,
+        plateNumber: _combinedPlate.isEmpty ? null : _combinedPlate,
+        chassisNumber: _chassisNumberController.text.trim().isEmpty
+            ? null
+            : _chassisNumberController.text.trim().toUpperCase(),
         orcrStatus: _orcrStatus,
         registrationStatus: _registrationStatus,
         registrationExpiry: _registrationExpiry,
         province: _province,
         cityMunicipality: _city,
-        photoUrls: draft.photoUrls,
-        description: draft.description,
-        knownIssues: draft.knownIssues,
-        features: draft.features,
-        startingPrice: draft.startingPrice,
-        reservePrice: draft.reservePrice,
-        auctionEndDate: draft.auctionEndDate,
+        barangay: _barangay,
+        isPlateValid: _isPlateValid,
+        isComplete: draft.isComplete && _isPlateValid,
       ),
     );
-  }
-
-  void _autofillDemoData() {
-    final demoData = DemoListingData.getDemoDataForStep(6);
-    setState(() {
-      _plateController.text = demoData['plateNumber'];
-      _orcrStatus = demoData['orcrStatus'];
-      _registrationStatus = demoData['registrationStatus'];
-      _registrationExpiry = demoData['registrationExpiry'];
-      _province = demoData['province'];
-      _city = demoData['cityMunicipality'];
-    });
-    _updateDraft();
   }
 
   @override
@@ -124,17 +238,76 @@ class _Step6DocumentationState extends State<Step6Documentation> {
       padding: const EdgeInsets.all(16),
       children: [
         const Text(
-          'Step 6: Documentation & Location',
+          'Step 7: Documentation & Locations',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 16),
-        DemoAutofillButton(onPressed: _autofillDemoData),
         const SizedBox(height: 24),
         FormFieldWidget(
-          controller: _plateController,
+          controller: _plateLetterController,
+          focusNode: _plateLetterFocus,
+          label: 'Plate Letters *',
+          hint: 'e.g., ABC',
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z]')),
+            LengthLimitingTextInputFormatter(3),
+          ],
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            if (v!.length != 3) return 'Must be exactly 3 letters';
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        FormFieldWidget(
+          controller: _plateNumberController,
+          focusNode: _plateNumberFocus,
           label: 'Plate Number *',
-          hint: 'e.g., ABC 1234',
-          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          hint: 'e.g., 1234',
+          errorText: _plateError,
+          suffix: _isValidatingPlate
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : (_isPlateValid && _plateNumberController.text.isNotEmpty)
+              ? const Icon(Icons.check_circle, color: Colors.green)
+              : null,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(4),
+          ],
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            if (v!.length != 4) return 'Must be exactly 4 digits';
+            return _plateError;
+          },
+        ),
+        const SizedBox(height: 16),
+        FormFieldWidget(
+          controller: _chassisNumberController,
+          label: 'Chassis Number (VIN)',
+          hint: 'e.g., 1HGBH41JXMN109186',
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(
+              RegExp(r'[A-HJ-NPR-Za-hj-npr-z0-9]'),
+            ),
+            LengthLimitingTextInputFormatter(17),
+            TextInputFormatter.withFunction((oldValue, newValue) {
+              return newValue.copyWith(text: newValue.text.toUpperCase());
+            }),
+          ],
+          validator: (v) {
+            if (v == null || v.isEmpty) return null; // Optional field
+            if (v.length != 17) return 'VIN must be exactly 17 characters';
+            if (!RegExp(r'^[A-HJ-NPR-Z0-9]{17}$').hasMatch(v)) {
+              return 'Invalid VIN format';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         FormDropdownWidget(
@@ -142,6 +315,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           value: _orcrStatus,
           items: const ['Available', 'In Process', 'Lost', 'Not Available'],
           onChanged: (v) {
+            _unfocusPlateFields();
             setState(() => _orcrStatus = v);
             _updateDraft();
           },
@@ -153,18 +327,53 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           value: _registrationStatus,
           items: const ['Current', 'Expired', 'Renewal Pending'],
           onChanged: (v) {
-            setState(() => _registrationStatus = v);
+            _unfocusPlateFields();
+            setState(() {
+              _registrationStatus = v;
+              // Clear expiry if status changed so user picks a valid date
+              _registrationExpiry = null;
+            });
             _updateDraft();
           },
         ),
         const SizedBox(height: 16),
         InkWell(
           onTap: () async {
+            _unfocusPlateFields();
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+            final yesterday = today.subtract(const Duration(days: 1));
+
+            DateTime initialDate;
+            DateTime firstDate;
+            DateTime lastDate;
+
+            if (_registrationStatus == 'Current') {
+              // Must not accept date before today
+              firstDate = today;
+              lastDate = today.add(const Duration(days: 365 * 5));
+              initialDate =
+                  _registrationExpiry ?? today.add(const Duration(days: 365));
+              if (initialDate.isBefore(firstDate)) initialDate = firstDate;
+            } else if (_registrationStatus == 'Expired') {
+              // Must not accept date from today onward, only yesterday and before
+              firstDate = DateTime(2000);
+              lastDate = yesterday;
+              initialDate = _registrationExpiry ?? yesterday;
+              if (initialDate.isAfter(lastDate)) initialDate = lastDate;
+            } else {
+              // Renewal Pending or null — any date
+              firstDate = DateTime(2000);
+              lastDate = today.add(const Duration(days: 365 * 5));
+              initialDate =
+                  _registrationExpiry ?? today.add(const Duration(days: 365));
+            }
+
             final picked = await showDatePicker(
               context: context,
-              initialDate: _registrationExpiry ?? DateTime.now().add(const Duration(days: 365)),
-              firstDate: DateTime.now(),
-              lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+              initialDate: initialDate,
+              firstDate: firstDate,
+              lastDate: lastDate,
             );
             if (picked != null) {
               setState(() => _registrationExpiry = picked);
@@ -174,31 +383,42 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           child: InputDecorator(
             decoration: InputDecoration(
               labelText: 'Registration Expiry',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(_registrationExpiry != null
-                    ? '${_registrationExpiry!.month}/${_registrationExpiry!.day}/${_registrationExpiry!.year}'
-                    : 'Select date'),
+                Text(
+                  _registrationExpiry != null
+                      ? '${_registrationExpiry!.month}/${_registrationExpiry!.day}/${_registrationExpiry!.year}'
+                      : 'Select date',
+                ),
                 const Icon(Icons.calendar_today, size: 20),
               ],
             ),
           ),
         ),
         const SizedBox(height: 16),
-        ProvinceCityPicker(
+
+        // Location Picker
+        LocationPicker(
           province: _province,
           city: _city,
-          onChanged: (province, city) {
+          barangay: _barangay,
+          onChanged: (province, city, barangay) {
+            _unfocusPlateFields();
             setState(() {
               _province = province;
               _city = city;
+              _barangay = barangay;
             });
             _updateDraft();
           },
-          provinceValidator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+          provinceValidator: (v) => v == null ? 'Required' : null,
+          cityValidator: (v) => v == null ? 'Required' : null,
+          barangayValidator: (v) => v == null ? 'Required' : null,
         ),
       ],
     );

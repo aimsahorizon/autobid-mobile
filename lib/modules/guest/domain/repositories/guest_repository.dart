@@ -4,10 +4,10 @@ import '../entities/account_status_entity.dart';
 
 /// Repository interface for guest mode operations
 abstract class GuestRepository {
-  /// Check account status by email
+  /// Check account status by email or username
   /// Returns status if user exists and has submitted KYC
   Future<Either<Failure, AccountStatusEntity?>> checkAccountStatus(
-    String email,
+    String identifier,
   );
 
   /// Get limited auction listings for guest browse
@@ -16,4 +16,10 @@ abstract class GuestRepository {
     int limit = 20,
     int offset = 0,
   });
+
+  /// Submit a KYC appeal for a rejected user
+  Future<Either<Failure, void>> submitKycAppeal(
+    String userId,
+    String appealReason,
+  );
 }

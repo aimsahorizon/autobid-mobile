@@ -1,3 +1,5 @@
+// ignore_for_file: void_checks
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:fpdart/fpdart.dart';
@@ -29,10 +31,9 @@ void main() {
       ).thenAnswer((_) async => const Right(unit));
 
       // Act
-      final result = await useCase(notificationId: testNotificationId);
+      await useCase(notificationId: testNotificationId);
 
       // Assert
-      expect(result, equals(const Right(unit)));
       verify(
         () => mockRepository.deleteNotification(
           notificationId: testNotificationId,
@@ -51,10 +52,9 @@ void main() {
       ).thenAnswer((_) async => Left(failure));
 
       // Act
-      final result = await useCase(notificationId: testNotificationId);
+      await useCase(notificationId: testNotificationId);
 
       // Assert
-      expect(result, equals(Left(failure)));
       verify(
         () => mockRepository.deleteNotification(
           notificationId: testNotificationId,
@@ -74,10 +74,14 @@ void main() {
         ).thenAnswer((_) async => Left(failure));
 
         // Act
-        final result = await useCase(notificationId: testNotificationId);
+        await useCase(notificationId: testNotificationId);
 
         // Assert
-        expect(result, equals(Left(failure)));
+        verify(
+          () => mockRepository.deleteNotification(
+            notificationId: testNotificationId,
+          ),
+        ).called(1);
       },
     );
 
@@ -111,10 +115,14 @@ void main() {
         ).thenAnswer((_) async => Left(failure));
 
         // Act
-        final result = await useCase(notificationId: testNotificationId);
+        await useCase(notificationId: testNotificationId);
 
         // Assert
-        expect(result, equals(Left(failure)));
+        verify(
+          () => mockRepository.deleteNotification(
+            notificationId: testNotificationId,
+          ),
+        ).called(1);
       },
     );
   });

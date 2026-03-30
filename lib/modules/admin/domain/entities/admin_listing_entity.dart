@@ -19,6 +19,16 @@ class AdminListingEntity {
   final String? variant;
   final int mileage;
   final String condition;
+  final String transmission;
+  final String fuelType;
+  final String? engineType;
+  final double? engineDisplacement;
+  final String exteriorColor;
+  final String province;
+  final String cityMunicipality;
+  final String description;
+  final String visibility;
+  final double depositAmount;
 
   // Admin metadata
   final String? reviewNotes;
@@ -43,6 +53,16 @@ class AdminListingEntity {
     this.variant,
     required this.mileage,
     required this.condition,
+    required this.transmission,
+    required this.fuelType,
+    this.engineType,
+    this.engineDisplacement,
+    required this.exteriorColor,
+    required this.province,
+    required this.cityMunicipality,
+    required this.description,
+    this.visibility = 'public',
+    this.depositAmount = 0,
     this.reviewNotes,
     this.reviewedAt,
     this.reviewedBy,

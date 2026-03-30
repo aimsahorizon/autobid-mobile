@@ -3,6 +3,9 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
+import '../widgets/detail_sections/seller_bid_history_section.dart';
+import '../widgets/detail_sections/listing_info_section.dart';
+import 'package:intl/intl.dart';
 
 /// Detail page for ended auctions awaiting seller decision
 /// Seller can choose to proceed to transaction or cancel the auction
@@ -18,11 +21,40 @@ class EndedListingDetailPage extends StatefulWidget {
 class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   bool _isProcessing = false;
   late final ListingSupabaseDataSource _datasource;
+  List<Map<String, dynamic>> _bids = [];
+  bool _isLoadingBids = false;
 
   @override
   void initState() {
     super.initState();
     _datasource = ListingSupabaseDataSource(SupabaseConfig.client);
+    _loadBids();
+  }
+
+  Future<void> _loadBids() async {
+    setState(() => _isLoadingBids = true);
+    try {
+      final bids = await _datasource.getBids(widget.listing.id);
+      if (mounted) {
+        setState(() {
+          _bids = bids;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading bids: $e');
+      if (mounted) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load bid history: $e'),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingBids = false);
+      }
+    }
   }
 
   Future<void> _reauction() async {
@@ -60,7 +92,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
       if (!mounted) return;
 
       // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Listing reauctions. Check the Pending tab.'),
           backgroundColor: ColorConstants.success,
@@ -72,7 +104,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
           backgroundColor: ColorConstants.error,
@@ -120,7 +152,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
       if (!mounted) return;
 
       // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auction cancelled successfully.'),
           backgroundColor: ColorConstants.warning,
@@ -132,7 +164,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
           backgroundColor: ColorConstants.error,
@@ -189,7 +221,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
       if (!transactionPrepared) {
         // No bids found or transaction couldn't be prepared.
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text(
               'No winning bid found. You can Reauction or Cancel this listing.',
@@ -209,7 +241,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
       if (!mounted) return;
 
       // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text(
             'Moved to Transactions tab. Go there to communicate with the winner.',
@@ -223,7 +255,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
           backgroundColor: ColorConstants.error,
@@ -254,14 +286,13 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Listing Image
-                  if (widget.listing.photoUrls != null &&
-                      widget.listing.photoUrls!.isNotEmpty)
+                  if (widget.listing.coverPhotoUrl != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: AspectRatio(
                         aspectRatio: 16 / 9,
                         child: Image.network(
-                          widget.listing.photoUrls!.values.first.first,
+                          widget.listing.coverPhotoUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
@@ -305,6 +336,17 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
                   _buildGuidanceCard(isReserveMet),
                   const SizedBox(height: 24),
 
+                  // Full listing info including categorized photos
+                  ListingInfoSection(listing: widget.listing),
+                  const SizedBox(height: 24),
+
+                  // Bid History (Added)
+                  SellerBidHistorySection(
+                    bids: _bids,
+                    isLoading: _isLoadingBids,
+                  ),
+                  const SizedBox(height: 24),
+
                   // Bid Statistics
                   _buildBidStats(),
                   const SizedBox(height: 32),
@@ -320,8 +362,8 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   Widget _buildResultCard(bool isReserveMet, bool hasReservePrice) {
     return Card(
       color: isReserveMet
-          ? ColorConstants.success.withOpacity(0.1)
-          : ColorConstants.warning.withOpacity(0.1),
+          ? ColorConstants.success.withAlpha((0.1 * 255).toInt())
+          : ColorConstants.warning.withAlpha((0.1 * 255).toInt()),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -383,7 +425,7 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
           ),
         ),
         Text(
-          '₱${price.toStringAsFixed(2)}',
+          '₱${NumberFormat('#,##0.00').format(price)}',
           style: TextStyle(
             fontSize: isHighlight ? 18 : 16,
             fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
@@ -396,8 +438,8 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
   Widget _buildGuidanceCard(bool isReserveMet) {
     return Card(
       color: isReserveMet
-          ? ColorConstants.success.withOpacity(0.1)
-          : ColorConstants.warning.withOpacity(0.1),
+          ? ColorConstants.success.withAlpha((0.1 * 255).toInt())
+          : ColorConstants.warning.withAlpha((0.1 * 255).toInt()),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -445,7 +487,9 @@ class _EndedListingDetailPageState extends State<EndedListingDetailPage> {
                 color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withAlpha((0.5 * 255).toInt()),
                 ),
               ),
               child: Column(

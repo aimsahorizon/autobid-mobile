@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import '../../core/controllers/theme_controller.dart';
 import '../presentation/pages/home_page.dart';
+import '../presentation/pages/splash_page.dart';
 import '../../modules/auth/auth_module.dart';
 import '../../modules/auth/auth_routes.dart';
 import '../../modules/auth/presentation/pages/forgot_password_page.dart';
 import '../../modules/auth/presentation/pages/login_page.dart';
 import '../../modules/auth/presentation/pages/onboarding_page.dart';
 import '../../modules/auth/presentation/pages/registration_page.dart';
-import '../../modules/guest/guest_module.dart';
+import '../../modules/browse/browse_routes.dart';
+import '../../modules/browse/presentation/pages/buyer_invites_page.dart';
 import '../../modules/guest/guest_routes.dart';
+import '../../modules/guest/presentation/controllers/guest_controller.dart';
 import '../../modules/guest/presentation/pages/guest_page.dart';
 
 class AppRouter {
@@ -18,6 +22,8 @@ class AppRouter {
   }) {
     switch (settings.name) {
       case '/':
+        return MaterialPageRoute(builder: (_) => const SplashPage());
+
       case AuthRoutes.onboarding:
         return MaterialPageRoute(
           builder: (_) => OnboardingPage(themeController: themeController),
@@ -44,7 +50,7 @@ class AppRouter {
       case GuestRoutes.main:
         return MaterialPageRoute(
           builder: (_) => GuestPage(
-            controller: GuestModule.instance.createGuestController(),
+            controller: GetIt.instance<GuestController>(),
             themeController: themeController,
           ),
         );
@@ -53,6 +59,9 @@ class AppRouter {
         return MaterialPageRoute(
           builder: (_) => HomePage(themeController: themeController),
         );
+
+      case BrowseRoutes.buyerInvites:
+        return MaterialPageRoute(builder: (_) => const BuyerInvitesPage());
 
       default:
         return MaterialPageRoute(

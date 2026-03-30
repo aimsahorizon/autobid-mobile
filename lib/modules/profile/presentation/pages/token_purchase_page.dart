@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/pricing_entity.dart';
 import '../controllers/pricing_controller.dart';
-import 'stripe_payment_page.dart';
+import 'paymongo_payment_page.dart';
 
 class TokenPurchasePage extends StatefulWidget {
   final String userId;
@@ -28,11 +28,11 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
   }
 
   Future<void> _purchasePackage(TokenPackageEntity package) async {
-    // Navigate to Stripe payment page
+    // Navigate to PayMongo payment page
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => StripePaymentPage(
+        builder: (context) => PayMongoPaymentPage(
           package: package,
           userId: widget.userId,
           onSuccess: () {
@@ -45,7 +45,7 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
 
     // If payment was successful, show success message
     if (result == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Successfully purchased ${package.description}'),
           backgroundColor: ColorConstants.success,

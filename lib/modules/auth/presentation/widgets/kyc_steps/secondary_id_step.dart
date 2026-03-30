@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/image_helper.dart';
 import '../../controllers/kyc_registration_controller.dart';
 import '../image_picker_card.dart';
 
@@ -42,7 +44,12 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       _idNumberController.text = widget.controller.secondaryIdNumber!;
     }
     _idNumberController.addListener(() {
-      widget.controller.setSecondaryIdNumber(_idNumberController.text);
+      // Strip formatting (dashes, spaces) before saving to controller
+      final rawNumber = _idNumberController.text.replaceAll(
+        RegExp(r'[-\s]'),
+        '',
+      );
+      widget.controller.setSecondaryIdNumber(rawNumber);
     });
   }
 
@@ -64,7 +71,19 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       );
 
       if (image != null) {
-        final File imageFile = File(image.path);
+        File imageFile = File(image.path);
+
+        // Crop the image
+        try {
+          final croppedFile = await ImageHelper.cropImage(
+            file: imageFile,
+            title: type == 'front' ? 'Crop Front of ID' : 'Crop Back of ID',
+          );
+          if (croppedFile == null) return; // User cancelled cropping
+          imageFile = croppedFile;
+        } catch (_) {
+          // Fallback to uncropped image
+        }
 
         // Set the image in controller
         if (type == 'front') {
@@ -75,14 +94,15 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
       }
     }
   }
 
   // Public method to trigger AI extraction (called from parent when Next is pressed)
+  // DEPRECATED: AI auto-fill temporarily disabled. Directly proceeding to manual entry.
   void triggerAiExtraction() async {
     // Check if required images exist
     if (widget.controller.secondaryIdFront == null ||
@@ -90,10 +110,17 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
       return;
     }
 
-    await _showAiExtractionDialog();
+    // Skip AI dialog and proceed directly
+    if (mounted && widget.onRequestAiExtraction != null) {
+      widget.onRequestAiExtraction!();
+    }
+
+    // await _showAiExtractionDialog();
   }
 
   // Shows AI extraction dialog with mock processing
+  // DEPRECATED: Temporarily disabled
+  // ignore: unused_element
   Future<void> _showAiExtractionDialog() async {
     final useAI = await showDialog<bool>(
       context: context,
@@ -208,7 +235,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
           Navigator.pop(context); // Close processing dialog
 
           // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(
                 'Successfully extracted ${_getExtractedFieldCount(extractedData)} fields from your IDs!',
@@ -222,7 +249,7 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
         if (mounted) {
           Navigator.pop(context); // Close processing dialog
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text('Failed to extract data: $e'),
               backgroundColor: ColorConstants.error,
@@ -296,11 +323,25 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _idNumberController,
-            decoration: const InputDecoration(
-              labelText: 'ID Number',
-              hintText: 'Enter your ID number',
-              prefixIcon: Icon(Icons.numbers_rounded),
+            keyboardType: _getKeyboardType(widget.controller.secondaryIdType),
+            inputFormatters: _getInputFormatters(
+              widget.controller.secondaryIdType,
             ),
+            decoration: InputDecoration(
+              labelText: 'ID Number',
+              hintText: _getHintText(widget.controller.secondaryIdType),
+              helperText: _getHelperText(widget.controller.secondaryIdType),
+              prefixIcon: const Icon(Icons.numbers_rounded),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'ID number is required';
+              }
+              return _validateIdFormat(
+                value,
+                widget.controller.secondaryIdType,
+              );
+            },
           ),
           const SizedBox(height: 24),
           ImagePickerCard(
@@ -350,6 +391,367 @@ class SecondaryIdStepState extends State<SecondaryIdStep> {
           ),
         ],
       ),
+    );
+  }
+
+  // Get keyboard type based on ID type
+  TextInputType _getKeyboardType(String? idType) {
+    if (idType == 'Passport') {
+      return TextInputType.text; // Alphanumeric
+    }
+    return TextInputType.number;
+  }
+
+  // Get input formatters based on ID type
+  List<TextInputFormatter> _getInputFormatters(String? idType) {
+    switch (idType) {
+      case 'Driver\'s License':
+        return [
+          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9-]')),
+          LengthLimitingTextInputFormatter(13),
+          _DriverLicenseFormatter(),
+        ];
+      case 'Passport':
+        return [
+          FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+          LengthLimitingTextInputFormatter(9),
+          TextInputFormatter.withFunction((oldValue, newValue) {
+            return TextEditingValue(
+              text: newValue.text.toUpperCase(),
+              selection: newValue.selection,
+            );
+          }),
+        ];
+      case 'SSS ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+          _SSSIdFormatter(),
+        ];
+      case 'UMID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(12),
+          _UMIDFormatter(),
+        ];
+      case 'PRC ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(7),
+        ];
+      case 'Voter\'s ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(12),
+          _VotersIdFormatter(),
+        ];
+      case 'Postal ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(11),
+          _PostalIdFormatter(),
+        ];
+      case 'PWD ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(13),
+          _PWDSeniorFormatter(),
+        ];
+      case 'Senior Citizen ID':
+        return [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(13),
+          _PWDSeniorFormatter(),
+        ];
+      default:
+        return [
+          FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9-]')),
+          LengthLimitingTextInputFormatter(20),
+        ];
+    }
+  }
+
+  // Get hint text based on ID type
+  String _getHintText(String? idType) {
+    switch (idType) {
+      case 'Driver\'s License':
+        return 'N00-00-000000';
+      case 'Passport':
+        return 'PP1234567 or P1234567A';
+      case 'SSS ID':
+        return '00-0000000-0';
+      case 'UMID':
+        return '0000-0000000-0';
+      case 'PRC ID':
+        return '0000000';
+      case 'Voter\'s ID':
+        return '0000-0000-0000';
+      case 'Postal ID':
+        return '00-00-0000000';
+      case 'PWD ID':
+        return '00-00-00-0000000';
+      case 'Senior Citizen ID':
+        return '00-00-00-0000000';
+      default:
+        return 'Enter your ID number';
+    }
+  }
+
+  // Get helper text based on ID type
+  // Note: Formatting is for display only. Numbers are stored without dashes in database.
+  String? _getHelperText(String? idType) {
+    switch (idType) {
+      case 'Driver\'s License':
+        return 'Format: N00-00-000000';
+      case 'Passport':
+        return 'Format: 2 letters + 7 digits or letter + 7 digits + letter';
+      case 'SSS ID':
+        return 'Format: 00-0000000-0';
+      case 'UMID':
+        return 'Format: 0000-0000000-0';
+      case 'PRC ID':
+        return '7-digit PRC number';
+      case 'Voter\'s ID':
+        return 'Format: 0000-0000-0000';
+      case 'Postal ID':
+        return 'Format: 00-00-0000000';
+      case 'PWD ID':
+        return 'Format: 00-00-00-0000000';
+      case 'Senior Citizen ID':
+        return 'Format: 00-00-00-0000000';
+      default:
+        return null;
+    }
+  }
+
+  // Validate ID format
+  String? _validateIdFormat(String value, String? idType) {
+    switch (idType) {
+      case 'Driver\'s License':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 11) {
+          return 'Driver\'s License must be 11 characters';
+        }
+        break;
+      case 'Passport':
+        if (value.length != 9) {
+          return 'Passport must be 9 characters';
+        }
+        if (!RegExp(r'^[A-Z]{2}[0-9]{7}$').hasMatch(value) &&
+            !RegExp(r'^[A-Z][0-9]{7}[A-Z]$').hasMatch(value)) {
+          return 'Invalid passport format';
+        }
+        break;
+      case 'SSS ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 10) {
+          return 'SSS ID must be 10 digits';
+        }
+        break;
+      case 'UMID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 12) {
+          return 'UMID must be 12 digits';
+        }
+        break;
+      case 'PRC ID':
+        if (value.length != 7) {
+          return 'PRC ID must be 7 digits';
+        }
+        break;
+      case 'Voter\'s ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 12) {
+          return 'Voter\'s ID must be 12 digits';
+        }
+        break;
+      case 'Postal ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length != 11) {
+          return 'Postal ID must be 11 digits';
+        }
+        break;
+      case 'PWD ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length < 11 || digits.length > 13) {
+          return 'PWD ID must be 11-13 digits';
+        }
+        break;
+      case 'Senior Citizen ID':
+        final digits = value.replaceAll('-', '');
+        if (digits.length < 11 || digits.length > 13) {
+          return 'Senior Citizen ID must be 11-13 digits';
+        }
+        break;
+    }
+    return null;
+  }
+}
+
+/// Formatter for Philippine Driver's License
+/// Format: N00-00-000000 (Letter + 2 digits + dash + 2 digits + dash + 6 digits)
+class _DriverLicenseFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '').toUpperCase();
+    if (text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 11; i++) {
+      buffer.write(text[i]);
+      if (i == 2 || i == 4) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for SSS ID
+/// Format: 00-0000000-0 (2 digits + dash + 7 digits + dash + 1 digit)
+class _SSSIdFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 10; i++) {
+      buffer.write(text[i]);
+      if (i == 1 || i == 8) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for UMID
+/// Format: 0000-0000000-0 (4 digits + dash + 7 digits + dash + 1 digit)
+class _UMIDFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 12; i++) {
+      buffer.write(text[i]);
+      if (i == 3 || i == 10) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for Voter's ID (COMELEC)
+/// Format: 0000-0000-0000 (12 digits grouped by 4)
+class _VotersIdFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) return newValue.copyWith(text: '');
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 12; i++) {
+      buffer.write(text[i]);
+      if ((i + 1) % 4 == 0 && i + 1 != text.length) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for Postal ID
+/// Format: 00-00-0000000 (2+2+7 digits)
+class _PostalIdFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) return newValue.copyWith(text: '');
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 11; i++) {
+      buffer.write(text[i]);
+      if (i == 1 || i == 3) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// Formatter for PWD ID and Senior Citizen ID
+/// Format: 00-00-00-0000000 (2+2+2+7 digits)
+class _PWDSeniorFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final text = newValue.text.replaceAll('-', '');
+    if (text.isEmpty) return newValue.copyWith(text: '');
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < text.length && i < 13; i++) {
+      buffer.write(text[i]);
+      if (i == 1 || i == 3 || i == 5) {
+        buffer.write('-');
+      }
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

@@ -24,10 +24,14 @@ class PricingSection extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+          color: isDark
+              ? ColorConstants.borderDark
+              : ColorConstants.borderLight,
         ),
       ),
       child: Column(
@@ -67,7 +71,10 @@ class PricingSection extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [ColorConstants.primary, ColorConstants.secondary],
+                        colors: [
+                          ColorConstants.primary,
+                          ColorConstants.secondary,
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -81,7 +88,11 @@ class PricingSection extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.gavel, color: Colors.white70, size: 16),
+                                  const Icon(
+                                    Icons.gavel,
+                                    color: Colors.white70,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Bidding',
@@ -102,11 +113,7 @@ class PricingSection extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Container(
-                          width: 1,
-                          height: 40,
-                          color: Colors.white24,
-                        ),
+                        Container(width: 1, height: 40, color: Colors.white24),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -114,7 +121,11 @@ class PricingSection extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.format_list_bulleted, color: Colors.white70, size: 16),
+                                  const Icon(
+                                    Icons.format_list_bulleted,
+                                    color: Colors.white70,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Listing',
@@ -151,7 +162,9 @@ class PricingSection extends StatelessWidget {
                       border: Border.all(
                         color: pricingController.hasActivePlan
                             ? ColorConstants.primary.withValues(alpha: 0.3)
-                            : (isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+                            : (isDark
+                                  ? ColorConstants.borderDark
+                                  : ColorConstants.borderLight),
                       ),
                     ),
                     child: Row(
@@ -162,7 +175,9 @@ class PricingSection extends StatelessWidget {
                               : Icons.card_membership_outlined,
                           color: pricingController.hasActivePlan
                               ? ColorConstants.primary
-                              : (isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight),
+                              : (isDark
+                                    ? ColorConstants.textSecondaryDark
+                                    : ColorConstants.textSecondaryLight),
                           size: 20,
                         ),
                         const SizedBox(width: 12),
@@ -186,15 +201,31 @@ class PricingSection extends StatelessWidget {
                                         : ColorConstants.textSecondaryLight,
                                   ),
                                 ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  pricingController.currentPlan.includesAutoBid
+                                      ? 'Auto-bid enabled plan'
+                                      : 'Manual bidding plan',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: isDark
+                                        ? ColorConstants.textSecondaryDark
+                                        : ColorConstants.textSecondaryLight,
+                                  ),
+                                ),
                               ],
                             ],
                           ),
                         ),
                         if (pricingController.hasActivePlan)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: ColorConstants.success.withValues(alpha: 0.1),
+                              color: ColorConstants.success.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(

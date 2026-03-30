@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/listing_detail_entity.dart';
+import '../../../domain/entities/listing_draft_entity.dart';
 
 class ListingInfoSection extends StatefulWidget {
   final ListingDetailEntity listing;
@@ -15,10 +17,31 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  static bool _isAssetPath(String url) => url.startsWith('assets/');
+
+  static Widget _buildSmartImage(String url, {BoxFit fit = BoxFit.cover}) {
+    if (_isAssetPath(url)) {
+      return Image.asset(
+        url,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(child: Icon(Icons.image, color: Colors.grey));
+        },
+      );
+    }
+    return Image.network(
+      url,
+      fit: fit,
+      errorBuilder: (context, error, stackTrace) {
+        return const Center(child: Icon(Icons.image, color: Colors.grey));
+      },
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -59,6 +82,7 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
               Tab(text: 'Condition'),
               Tab(text: 'Documents'),
               Tab(text: 'Photos'),
+              Tab(text: 'Config'),
             ],
           ),
           SizedBox(
@@ -71,11 +95,134 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
                 _buildConditionTab(isDark),
                 _buildDocumentsTab(isDark),
                 _buildPhotosTab(isDark),
+                _buildConfigTab(isDark),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildConfigTab(bool isDark) {
+    final fmt = NumberFormat('#,##0');
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSpecGroup('Bidding Settings', [
+          _SpecRow(
+            'Bidding Type',
+            widget.listing.biddingType == 'exclusive'
+                ? 'Exclusive'
+                : widget.listing.biddingType == 'mystery'
+                ? 'Mystery'
+                : 'Open',
+          ),
+          if (widget.listing.biddingType == 'exclusive' &&
+              widget.listing.exclusiveTier != null)
+            _SpecRow(
+              'Required Tier',
+              widget.listing.exclusiveTier == 'silver'
+                  ? 'Silver Only'
+                  : widget.listing.exclusiveTier == 'gold'
+                  ? 'Gold Only'
+                  : 'Silver & Gold',
+            ),
+          _SpecRow(
+            'Increment Type',
+            widget.listing.enableIncrementalBidding ? 'Dynamic' : 'Fixed',
+          ),
+          _SpecRow(
+            'Bid Increment',
+            '₱${fmt.format(widget.listing.bidIncrement)}',
+          ),
+          _SpecRow(
+            'Min Increment',
+            '₱${fmt.format(widget.listing.minBidIncrement)}',
+          ),
+          _SpecRow(
+            'Buyer Deposit',
+            '₱${fmt.format(widget.listing.depositAmount)}',
+          ),
+        ], isDark),
+        const SizedBox(height: 16),
+        _buildSpecGroup('Snipe Guard', [
+          _SpecRow(
+            'Status',
+            widget.listing.snipeGuardEnabled ? 'Enabled' : 'Disabled',
+          ),
+          if (widget.listing.snipeGuardEnabled) ...[
+            _SpecRow(
+              'Threshold',
+              '${widget.listing.snipeGuardThresholdSeconds}s',
+            ),
+            _SpecRow(
+              'Extension',
+              '+${widget.listing.snipeGuardExtendSeconds}s',
+            ),
+          ],
+        ], isDark),
+        const SizedBox(height: 16),
+        _buildSpecGroup('Pricing', [
+          _SpecRow(
+            'Starting Price',
+            '₱${fmt.format(widget.listing.startingPrice)}',
+          ),
+          if (widget.listing.reservePrice != null)
+            _SpecRow(
+              'Reserve Price',
+              '₱${fmt.format(widget.listing.reservePrice!)}',
+            ),
+        ], isDark),
+        if (widget.listing.startTime != null ||
+            widget.listing.endTime != null ||
+            widget.listing.auctionEndDate != null) ...[
+          const SizedBox(height: 16),
+          _buildSpecGroup('Scheduling', [
+            if (widget.listing.startTime != null)
+              _SpecRow(
+                'Start Time',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.startTime!.toLocal()),
+              ),
+            if (widget.listing.endTime != null)
+              _SpecRow(
+                'End Time',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.endTime!.toLocal()),
+              ),
+            if (widget.listing.startTime != null &&
+                widget.listing.endTime != null)
+              _SpecRow(
+                'Duration',
+                _formatDuration(
+                  widget.listing.endTime!.difference(widget.listing.startTime!),
+                ),
+              ),
+            if (widget.listing.auctionEndDate != null &&
+                widget.listing.endTime == null)
+              _SpecRow(
+                'Scheduled End Date',
+                DateFormat(
+                  'MMM d, yyyy – h:mm a',
+                ).format(widget.listing.auctionEndDate!.toLocal()),
+              ),
+            _SpecRow(
+              'Auto Live After Approval',
+              widget.listing.autoLiveAfterApproval ? 'Yes' : 'No',
+            ),
+          ], isDark),
+        ],
+        if (widget.listing.rejectionReason != null &&
+            widget.listing.rejectionReason!.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildSpecGroup('Admin Feedback', [
+            _SpecRow('Notes', widget.listing.rejectionReason!),
+          ], isDark),
+        ],
+      ],
     );
   }
 
@@ -100,7 +247,8 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
           ),
           const SizedBox(height: 20),
         ],
-        if (widget.listing.features != null && widget.listing.features!.isNotEmpty) ...[
+        if (widget.listing.features != null &&
+            widget.listing.features!.isNotEmpty) ...[
           Text(
             'Features',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -111,7 +259,10 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
             runSpacing: 8,
             children: widget.listing.features!.map((feature) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: ColorConstants.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -165,68 +316,59 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSpecGroup(
-          'Engine & Performance',
-          [
-            if (widget.listing.engineType != null)
-              _SpecRow('Engine Type', widget.listing.engineType!),
-            if (widget.listing.engineDisplacement != null)
-              _SpecRow('Displacement', '${widget.listing.engineDisplacement}L'),
-            if (widget.listing.cylinderCount != null)
-              _SpecRow('Cylinders', '${widget.listing.cylinderCount}'),
-            if (widget.listing.horsepower != null)
-              _SpecRow('Horsepower', '${widget.listing.horsepower} hp'),
-            if (widget.listing.torque != null)
-              _SpecRow('Torque', '${widget.listing.torque} Nm'),
-            if (widget.listing.transmission != null)
-              _SpecRow('Transmission', widget.listing.transmission!),
-            if (widget.listing.fuelType != null)
-              _SpecRow('Fuel Type', widget.listing.fuelType!),
-            if (widget.listing.driveType != null)
-              _SpecRow('Drive Type', widget.listing.driveType!),
-          ],
-          isDark,
-        ),
+        _buildSpecGroup('Engine & Performance', [
+          if (widget.listing.engineType != null)
+            _SpecRow('Engine Type', widget.listing.engineType!),
+          if (widget.listing.engineDisplacement != null)
+            _SpecRow('Displacement', '${widget.listing.engineDisplacement}L'),
+          if (widget.listing.cylinderCount != null)
+            _SpecRow('Cylinders', '${widget.listing.cylinderCount}'),
+          if (widget.listing.horsepower != null)
+            _SpecRow('Horsepower', '${widget.listing.horsepower} hp'),
+          if (widget.listing.torque != null)
+            _SpecRow('Torque', '${widget.listing.torque} Nm'),
+          if (widget.listing.transmission != null)
+            _SpecRow('Transmission', widget.listing.transmission!),
+          if (widget.listing.fuelType != null)
+            _SpecRow('Fuel Type', widget.listing.fuelType!),
+          if (widget.listing.driveType != null)
+            _SpecRow('Drive Type', widget.listing.driveType!),
+        ], isDark),
         const SizedBox(height: 16),
-        _buildSpecGroup(
-          'Dimensions',
-          [
-            if (widget.listing.length != null)
-              _SpecRow('Length', '${widget.listing.length} mm'),
-            if (widget.listing.width != null)
-              _SpecRow('Width', '${widget.listing.width} mm'),
-            if (widget.listing.height != null)
-              _SpecRow('Height', '${widget.listing.height} mm'),
-            if (widget.listing.wheelbase != null)
-              _SpecRow('Wheelbase', '${widget.listing.wheelbase} mm'),
-            if (widget.listing.groundClearance != null)
-              _SpecRow('Ground Clearance', '${widget.listing.groundClearance} mm'),
-            if (widget.listing.seatingCapacity != null)
-              _SpecRow('Seating', '${widget.listing.seatingCapacity} seats'),
-            if (widget.listing.doorCount != null)
-              _SpecRow('Doors', '${widget.listing.doorCount}'),
-          ],
-          isDark,
-        ),
+        _buildSpecGroup('Dimensions', [
+          if (widget.listing.length != null)
+            _SpecRow('Length', '${widget.listing.length} mm'),
+          if (widget.listing.width != null)
+            _SpecRow('Width', '${widget.listing.width} mm'),
+          if (widget.listing.height != null)
+            _SpecRow('Height', '${widget.listing.height} mm'),
+          if (widget.listing.wheelbase != null)
+            _SpecRow('Wheelbase', '${widget.listing.wheelbase} mm'),
+          if (widget.listing.groundClearance != null)
+            _SpecRow(
+              'Ground Clearance',
+              '${widget.listing.groundClearance} mm',
+            ),
+          if (widget.listing.seatingCapacity != null)
+            _SpecRow('Seating', '${widget.listing.seatingCapacity} seats'),
+          if (widget.listing.doorCount != null)
+            _SpecRow('Doors', '${widget.listing.doorCount}'),
+        ], isDark),
         const SizedBox(height: 16),
-        _buildSpecGroup(
-          'Exterior',
-          [
-            if (widget.listing.exteriorColor != null)
-              _SpecRow('Color', widget.listing.exteriorColor!),
-            if (widget.listing.paintType != null)
-              _SpecRow('Paint Type', widget.listing.paintType!),
-            if (widget.listing.rimType != null)
-              _SpecRow('Rim Type', widget.listing.rimType!),
-            if (widget.listing.rimSize != null)
-              _SpecRow('Rim Size', widget.listing.rimSize!),
-            if (widget.listing.tireSize != null)
-              _SpecRow('Tire Size', widget.listing.tireSize!),
-            if (widget.listing.tireBrand != null)
-              _SpecRow('Tire Brand', widget.listing.tireBrand!),
-          ],
-          isDark,
-        ),
+        _buildSpecGroup('Exterior', [
+          if (widget.listing.exteriorColor != null)
+            _SpecRow('Color', widget.listing.exteriorColor!),
+          if (widget.listing.paintType != null)
+            _SpecRow('Paint Type', widget.listing.paintType!),
+          if (widget.listing.rimType != null)
+            _SpecRow('Rim Type', widget.listing.rimType!),
+          if (widget.listing.rimSize != null)
+            _SpecRow('Rim Size', widget.listing.rimSize!),
+          if (widget.listing.tireSize != null)
+            _SpecRow('Tire Size', widget.listing.tireSize!),
+          if (widget.listing.tireBrand != null)
+            _SpecRow('Tire Brand', widget.listing.tireBrand!),
+        ], isDark),
       ],
     );
   }
@@ -294,11 +436,62 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (widget.listing.deedOfSaleUrl != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.verified, color: Colors.green),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Deed of Sale',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Document Uploaded',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark
+                              ? ColorConstants.textSecondaryDark
+                              : ColorConstants.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.check_circle, color: Colors.green, size: 20),
+              ],
+            ),
+          ),
         if (widget.listing.plateNumber != null)
           _InfoCard(
             icon: Icons.pin,
             title: 'Plate Number',
             value: widget.listing.plateNumber!,
+            isDark: isDark,
+          ),
+        const SizedBox(height: 12),
+        if (widget.listing.chassisNumber != null &&
+            widget.listing.chassisNumber!.isNotEmpty)
+          _InfoCard(
+            icon: Icons.confirmation_number,
+            title: 'Chassis Number (VIN)',
+            value: widget.listing.chassisNumber!,
             isDark: isDark,
           ),
         const SizedBox(height: 12),
@@ -331,8 +524,11 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
           _InfoCard(
             icon: Icons.location_on,
             title: 'Location',
-            value:
-                '${widget.listing.cityMunicipality ?? ''}, ${widget.listing.province}',
+            value: [
+              widget.listing.barangay,
+              widget.listing.cityMunicipality,
+              widget.listing.province,
+            ].where((s) => s != null && s.isNotEmpty).join(', '),
             isDark: isDark,
           ),
       ],
@@ -345,11 +541,13 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
       return const Center(child: Text('No photos available'));
     }
 
+    final orderedCategories = _orderedPhotoCategories(photoUrls);
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: photoUrls.keys.length,
+      itemCount: orderedCategories.length,
       itemBuilder: (context, index) {
-        final category = photoUrls.keys.elementAt(index);
+        final category = orderedCategories[index];
         final urls = photoUrls[category]!;
 
         return Column(
@@ -358,7 +556,7 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
-                category,
+                _formatPhotoCategoryLabel(category),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -375,19 +573,16 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
                     width: 160,
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: isDark ? ColorConstants.surfaceLight : Colors.grey[200],
+                      color: isDark
+                          ? ColorConstants.surfaceLight
+                          : Colors.grey[200],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
+                      child: _buildSmartImage(
                         urls[photoIndex],
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(Icons.image, color: Colors.grey),
-                          );
-                        },
                       ),
                     ),
                   );
@@ -399,6 +594,52 @@ class _ListingInfoSectionState extends State<ListingInfoSection>
         );
       },
     );
+  }
+
+  List<String> _orderedPhotoCategories(Map<String, List<String>> photoUrls) {
+    // Order by the canonical PhotoCategories order
+    final allCategoryKeys = PhotoCategories.all
+        .map((c) => PhotoCategories.toKey(c))
+        .toList();
+    final keys = photoUrls.keys.toList();
+    keys.sort((a, b) {
+      final aIndex = allCategoryKeys.indexOf(a);
+      final bIndex = allCategoryKeys.indexOf(b);
+      final normalizedA = aIndex == -1 ? 9999 : aIndex;
+      final normalizedB = bIndex == -1 ? 9999 : bIndex;
+      if (normalizedA != normalizedB) {
+        return normalizedA.compareTo(normalizedB);
+      }
+      return a.compareTo(b);
+    });
+    return keys;
+  }
+
+  String _formatPhotoCategoryLabel(String category) {
+    // Look up the display name from PhotoCategories
+    for (final displayName in PhotoCategories.all) {
+      if (PhotoCategories.toKey(displayName) == category) {
+        return displayName;
+      }
+    }
+    // Fallback: convert snake_case to Title Case
+    return category
+        .replaceAll('_', ' ')
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
+  }
+
+  String _formatDuration(Duration d) {
+    if (d.inDays > 0) {
+      final hours = d.inHours % 24;
+      return hours > 0
+          ? '${d.inDays}d ${hours}h'
+          : '${d.inDays} day${d.inDays > 1 ? 's' : ''}';
+    }
+    if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes % 60}m';
+    return '${d.inMinutes}m';
   }
 
   Widget _buildSpecGroup(String title, List<Widget> specs, bool isDark) {
@@ -462,10 +703,7 @@ class _SpecRow extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ],
       ),

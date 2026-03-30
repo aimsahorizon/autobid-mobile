@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../lists/data/models/listing_model.dart';
 
@@ -24,7 +25,10 @@ class TransactionSupabaseDataSource {
           .select('''
             id,
             auction_id,
-            auctions(
+            status,
+            seller_rejection_reason,
+            buyer_rejection_reason,
+            auctions!inner(
               *,
               auction_statuses(status_name),
               auction_vehicles(
@@ -102,14 +106,21 @@ class TransactionSupabaseDataSource {
       // Extract auction data from transaction records
       final transactions = (response as List);
       if (transactions.isEmpty) {
-        print(
+        debugPrint(
           '[TransactionSupabaseDataSource] No transactions found for status: $status',
         );
         return [];
       }
 
-      print(
+      debugPrint(
         '[TransactionSupabaseDataSource] Found ${transactions.length} transactions for status: $status',
+      );
+
+      final accurateBidCounts = await _getAccurateBidCounts(
+        transactions
+            .map((txn) => txn['auction_id'] as String?)
+            .whereType<String>()
+            .toList(),
       );
 
       // Map transaction -> auction data to ListingModel
@@ -123,10 +134,29 @@ class TransactionSupabaseDataSource {
         // This ensures navigation to PreTransactionRealtimePage works correctly
         final transactionId = txn['id'] as String;
         final auctionId = txn['auction_id'] as String?;
-        print(
+        debugPrint(
           '[TransactionSupabaseDataSource] Transaction ID: $transactionId, Auction ID: $auctionId',
         );
         auctionData['id'] = transactionId; // Use transaction ID for navigation
+        auctionData['transaction_id'] = transactionId;
+        if (auctionId != null && auctionId.isNotEmpty) {
+          auctionData['total_bids'] = accurateBidCounts[auctionId] ?? 0;
+        }
+
+        // Determine cancellation reason
+        String? cancellationReason;
+        String? cancelledBy;
+        final sellerReason = txn['seller_rejection_reason'] as String?;
+        final buyerReason = txn['buyer_rejection_reason'] as String?;
+        if (sellerReason != null && sellerReason.isNotEmpty) {
+          cancellationReason = sellerReason;
+          cancelledBy = 'seller';
+        } else if (buyerReason != null && buyerReason.isNotEmpty) {
+          cancellationReason = buyerReason;
+          cancelledBy = 'buyer';
+        }
+        auctionData['cancellation_reason'] = cancellationReason;
+        auctionData['cancelled_by'] = cancelledBy;
 
         // Prefer transaction status, otherwise use joined auction_statuses.status_name
         final txnStatus = txn['status'] as String?;
@@ -160,7 +190,8 @@ class TransactionSupabaseDataSource {
 
   /// Get completed transactions (sold status)
   Future<List<ListingModel>> getCompletedTransactions(String userId) async {
-    return getTransactionsByStatus(userId, 'sold');
+    final listings = await getTransactionsByStatus(userId, 'sold');
+    return _attachReviewStatus(listings, userId);
   }
 
   /// Get failed transactions (deal_failed status)
@@ -181,8 +212,11 @@ class TransactionSupabaseDataSource {
           .select('''
             id,
             auction_id,
+            status,
             seller_id,
-            auctions(
+            seller_rejection_reason,
+            buyer_rejection_reason,
+            auctions!inner(
               *,
               auction_statuses(status_name),
               auction_vehicles(
@@ -213,6 +247,13 @@ class TransactionSupabaseDataSource {
       final transactions = (response as List);
       if (transactions.isEmpty) return [];
 
+      final accurateBidCounts = await _getAccurateBidCounts(
+        transactions
+            .map((txn) => txn['auction_id'] as String?)
+            .whereType<String>()
+            .toList(),
+      );
+
       return transactions.map((txn) {
         final auctionData = Map<String, dynamic>.from(
           txn['auctions'] as Map<String, dynamic>,
@@ -221,6 +262,26 @@ class TransactionSupabaseDataSource {
         // IMPORTANT: Override the auction's id with the TRANSACTION id
         final transactionId = txn['id'] as String;
         auctionData['id'] = transactionId;
+        auctionData['transaction_id'] = transactionId;
+        final auctionId = txn['auction_id'] as String?;
+        if (auctionId != null && auctionId.isNotEmpty) {
+          auctionData['total_bids'] = accurateBidCounts[auctionId] ?? 0;
+        }
+
+        // Determine cancellation reason
+        String? cancellationReason;
+        String? cancelledBy;
+        final sellerReason = txn['seller_rejection_reason'] as String?;
+        final buyerReason = txn['buyer_rejection_reason'] as String?;
+        if (sellerReason != null && sellerReason.isNotEmpty) {
+          cancellationReason = sellerReason;
+          cancelledBy = 'seller';
+        } else if (buyerReason != null && buyerReason.isNotEmpty) {
+          cancellationReason = buyerReason;
+          cancelledBy = 'buyer';
+        }
+        auctionData['cancellation_reason'] = cancellationReason;
+        auctionData['cancelled_by'] = cancelledBy;
 
         final txnStatus = txn['status'] as String?;
         final joinedStatus = auctionData['auction_statuses'] is Map
@@ -250,12 +311,135 @@ class TransactionSupabaseDataSource {
   Future<List<ListingModel>> getCompletedBuyerTransactions(
     String userId,
   ) async {
-    return getBuyerTransactionsByStatus(userId, 'sold');
+    final listings = await getBuyerTransactionsByStatus(userId, 'sold');
+    return _attachReviewStatus(listings, userId);
   }
 
   /// Get failed buyer transactions (deal_failed status)
   Future<List<ListingModel>> getFailedBuyerTransactions(String userId) async {
     return getBuyerTransactionsByStatus(userId, 'deal_failed');
+  }
+
+  /// Attach review status to completed transaction listings
+  Future<List<ListingModel>> _attachReviewStatus(
+    List<ListingModel> listings,
+    String userId,
+  ) async {
+    if (listings.isEmpty) return listings;
+
+    try {
+      final transactionIds = listings.map((l) => l.id).toList();
+      final reviews = await _supabase
+          .from('transaction_reviews')
+          .select('transaction_id')
+          .inFilter('transaction_id', transactionIds)
+          .eq('reviewer_id', userId);
+
+      final reviewedIds = <String>{};
+      for (final row in (reviews as List)) {
+        final txnId = row['transaction_id'] as String?;
+        if (txnId != null) reviewedIds.add(txnId);
+      }
+
+      return listings.map((listing) {
+        // Copy existing listing but with has_review set
+        return ListingModel(
+          id: listing.id,
+          sellerId: listing.sellerId,
+          status: listing.status,
+          adminStatus: listing.adminStatus,
+          rejectionReason: listing.rejectionReason,
+          reviewedAt: listing.reviewedAt,
+          reviewedBy: listing.reviewedBy,
+          madeLiveAt: listing.madeLiveAt,
+          brand: listing.brand,
+          model: listing.model,
+          variant: listing.variant,
+          bodyType: listing.bodyType,
+          year: listing.year,
+          engineType: listing.engineType,
+          engineDisplacement: listing.engineDisplacement,
+          cylinderCount: listing.cylinderCount,
+          horsepower: listing.horsepower,
+          torque: listing.torque,
+          transmission: listing.transmission,
+          fuelType: listing.fuelType,
+          driveType: listing.driveType,
+          length: listing.length,
+          width: listing.width,
+          height: listing.height,
+          wheelbase: listing.wheelbase,
+          groundClearance: listing.groundClearance,
+          seatingCapacity: listing.seatingCapacity,
+          doorCount: listing.doorCount,
+          fuelTankCapacity: listing.fuelTankCapacity,
+          curbWeight: listing.curbWeight,
+          grossWeight: listing.grossWeight,
+          exteriorColor: listing.exteriorColor,
+          paintType: listing.paintType,
+          rimType: listing.rimType,
+          rimSize: listing.rimSize,
+          tireSize: listing.tireSize,
+          tireBrand: listing.tireBrand,
+          condition: listing.condition,
+          mileage: listing.mileage,
+          previousOwners: listing.previousOwners,
+          hasModifications: listing.hasModifications,
+          modificationsDetails: listing.modificationsDetails,
+          hasWarranty: listing.hasWarranty,
+          warrantyDetails: listing.warrantyDetails,
+          usageType: listing.usageType,
+          plateNumber: listing.plateNumber,
+          chassisNumber: listing.chassisNumber,
+          orcrStatus: listing.orcrStatus,
+          registrationStatus: listing.registrationStatus,
+          registrationExpiry: listing.registrationExpiry,
+          province: listing.province,
+          cityMunicipality: listing.cityMunicipality,
+          barangay: listing.barangay,
+          photoUrls: listing.photoUrls,
+          coverPhotoUrl: listing.coverPhotoUrl,
+          description: listing.description,
+          knownIssues: listing.knownIssues,
+          features: listing.features,
+          startingPrice: listing.startingPrice,
+          currentBid: listing.currentBid,
+          reservePrice: listing.reservePrice,
+          auctionStartTime: listing.auctionStartTime,
+          auctionEndTime: listing.auctionEndTime,
+          totalBids: listing.totalBids,
+          watchersCount: listing.watchersCount,
+          viewsCount: listing.viewsCount,
+          winnerId: listing.winnerId,
+          soldPrice: listing.soldPrice,
+          soldAt: listing.soldAt,
+          createdAt: listing.createdAt,
+          updatedAt: listing.updatedAt,
+          transactionId: listing.transactionId,
+          cancellationReason: listing.cancellationReason,
+          cancelledBy: listing.cancelledBy,
+          biddingType: listing.biddingType,
+          exclusiveTier: listing.exclusiveTier,
+          bidIncrement: listing.bidIncrement,
+          minBidIncrement: listing.minBidIncrement,
+          depositAmount: listing.depositAmount,
+          enableIncrementalBidding: listing.enableIncrementalBidding,
+          autoLiveAfterApproval: listing.autoLiveAfterApproval,
+          snipeGuardEnabled: listing.snipeGuardEnabled,
+          snipeGuardThresholdSeconds: listing.snipeGuardThresholdSeconds,
+          snipeGuardExtendSeconds: listing.snipeGuardExtendSeconds,
+          deedOfSaleUrl: listing.deedOfSaleUrl,
+          visibility: listing.visibility,
+          allowsInstallment: listing.allowsInstallment,
+          hasReview: reviewedIds.contains(listing.id),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint(
+        '[TransactionSupabaseDataSource] Error attaching review status: $e',
+      );
+      return listings;
+    }
   }
 
   /// Helper: Merge auction data with nested vehicle and photo data
@@ -362,6 +546,134 @@ class TransactionSupabaseDataSource {
       return ListingModel.fromJson(mergedJson);
     } catch (e) {
       throw Exception('Failed to merge transaction data: $e');
+    }
+  }
+
+  Future<Map<String, int>> _getAccurateBidCounts(
+    List<String> auctionIds,
+  ) async {
+    final uniqueAuctionIds = auctionIds.toSet().toList();
+    if (uniqueAuctionIds.isEmpty) {
+      return {};
+    }
+
+    try {
+      final bids = await _supabase
+          .from('bids')
+          .select('auction_id')
+          .inFilter('auction_id', uniqueAuctionIds);
+
+      final counts = <String, int>{};
+      for (final row in (bids as List)) {
+        if (row is Map<String, dynamic>) {
+          final auctionId = row['auction_id'] as String?;
+          if (auctionId != null && auctionId.isNotEmpty) {
+            counts[auctionId] = (counts[auctionId] ?? 0) + 1;
+          }
+        }
+      }
+      return counts;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Submit a report for a transaction
+  Future<void> submitReport({
+    required String transactionId,
+    required String reporterId,
+    required String reportedUserId,
+    required String reason,
+    required String description,
+  }) async {
+    await _supabase.from('transaction_reports').insert({
+      'transaction_id': transactionId,
+      'reporter_id': reporterId,
+      'reported_user_id': reportedUserId,
+      'reason': reason,
+      'description': description,
+    });
+  }
+
+  /// Get the next eligible winner for an auction after the current buyer cancels.
+  /// Excludes all bids from the previous winning bidder.
+  /// Returns null if no eligible next winner exists (e.g. only 1 unique bidder).
+  Future<Map<String, dynamic>?> getNextEligibleWinner(
+    String transactionId,
+  ) async {
+    try {
+      final result = await _supabase.rpc(
+        'get_top_next_winner',
+        params: {'p_transaction_id': transactionId},
+      );
+
+      final rows = result as List?;
+      if (rows == null || rows.isEmpty) return null;
+
+      return Map<String, dynamic>.from(rows.first as Map);
+    } catch (e) {
+      debugPrint('[TransactionDS] Error getting next eligible winner: $e');
+      return null;
+    }
+  }
+
+  /// Count unique eligible bidders that could be the next winner.
+  /// Returns 0 if only the cancelled buyer has bid.
+  Future<int> countEligibleNextBidders(String transactionId) async {
+    try {
+      final result = await _supabase.rpc(
+        'count_eligible_next_bidders',
+        params: {'p_transaction_id': transactionId},
+      );
+      return (result as int?) ?? 0;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error counting eligible bidders: $e');
+      return 0;
+    }
+  }
+
+  /// Cancel the auction with penalty recorded for the cancelling party.
+  Future<bool> cancelAuctionWithPenalty(
+    String transactionId,
+    String reason,
+  ) async {
+    try {
+      await _supabase.rpc(
+        'cancel_auction_with_penalty',
+        params: {'p_transaction_id': transactionId, 'p_reason': reason},
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error cancelling with penalty: $e');
+      return false;
+    }
+  }
+
+  /// Automatically reselect the next highest eligible bidder.
+  Future<bool> autoReselectNextWinner(String transactionId) async {
+    try {
+      final result = await _supabase.rpc(
+        'auto_reselect_next_winner',
+        params: {'p_transaction_id': transactionId},
+      );
+      return result == true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error auto-reselecting winner: $e');
+      return false;
+    }
+  }
+
+  /// Restart auction bidding from scratch (relist).
+  Future<bool> restartAuctionBidding(String transactionId) async {
+    try {
+      await _supabase.rpc(
+        'restart_auction_bidding',
+        params: {'p_transaction_id': transactionId},
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[TransactionDS] Error restarting auction: $e');
+      return false;
     }
   }
 }

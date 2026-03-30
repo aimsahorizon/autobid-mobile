@@ -10,6 +10,7 @@ class UserBidModel extends UserBidEntity {
     required super.year,
     required super.make,
     required super.model,
+    super.variant,
     required super.userBidAmount,
     required super.currentHighestBid,
     required super.endTime,
@@ -19,6 +20,8 @@ class UserBidModel extends UserBidEntity {
     required super.userBidCount,
     required super.canAccess,
     super.transactionStatus,
+    super.sellerId,
+    super.standbyNote,
   });
 
   /// Create model from JSON (Supabase response)
@@ -31,6 +34,7 @@ class UserBidModel extends UserBidEntity {
     required bool hasEnded,
     required bool hasTransaction,
     String? transactionStatus,
+    String? sellerId,
   }) {
     final status = !hasEnded
         ? UserBidStatus.active
@@ -43,6 +47,7 @@ class UserBidModel extends UserBidEntity {
       year: auction['year'] as int? ?? 0,
       make: auction['brand'] as String? ?? '',
       model: auction['model'] as String? ?? '',
+      variant: auction['variant'] as String?,
       userBidAmount: userMaxBid,
       currentHighestBid: (auction['current_bid'] as num?)?.toDouble() ?? 0.0,
       endTime: DateTime.parse(auction['auction_end_time'] as String),
@@ -52,6 +57,33 @@ class UserBidModel extends UserBidEntity {
       userBidCount: userBidCount,
       canAccess: status != UserBidStatus.won || hasTransaction,
       transactionStatus: transactionStatus,
+      sellerId: sellerId,
+    );
+  }
+
+  /// Create a standby bid model from standby queue data + auction data
+  factory UserBidModel.fromStandby({
+    required Map<String, dynamic> auction,
+    required Map<String, dynamic> standby,
+  }) {
+    return UserBidModel(
+      id: standby['id'] as String? ?? '',
+      auctionId: auction['id'] as String? ?? '',
+      carImageUrl: auction['cover_photo_url'] as String? ?? '',
+      year: auction['year'] as int? ?? 0,
+      make: auction['brand'] as String? ?? '',
+      model: auction['model'] as String? ?? '',
+      variant: auction['variant'] as String?,
+      userBidAmount: (standby['bid_amount'] as num?)?.toDouble() ?? 0.0,
+      currentHighestBid: (auction['current_bid'] as num?)?.toDouble() ?? 0.0,
+      endTime: DateTime.parse(auction['auction_end_time'] as String),
+      status: UserBidStatus.standby,
+      hasDeposited: true,
+      isHighestBidder: false,
+      userBidCount: 0,
+      canAccess: false,
+      sellerId: auction['seller_id'] as String?,
+      standbyNote: standby['note'] as String?,
     );
   }
 
@@ -74,6 +106,7 @@ class UserBidModel extends UserBidEntity {
       year: entity.year,
       make: entity.make,
       model: entity.model,
+      variant: entity.variant,
       userBidAmount: entity.userBidAmount,
       currentHighestBid: entity.currentHighestBid,
       endTime: entity.endTime,
@@ -83,6 +116,8 @@ class UserBidModel extends UserBidEntity {
       userBidCount: entity.userBidCount,
       canAccess: entity.canAccess,
       transactionStatus: entity.transactionStatus,
+      sellerId: entity.sellerId,
+      standbyNote: entity.standbyNote,
     );
   }
 }

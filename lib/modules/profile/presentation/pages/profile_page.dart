@@ -1,39 +1,43 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import 'package:autobid_mobile/core/utils/dev_admin_auth.dart';
-import '../../../admin/admin_module.dart';
-import '../../../admin/presentation/pages/admin_main_page.dart';
 import '../controllers/pricing_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../controllers/review_controller.dart';
 import '../widgets/pricing_section.dart';
+import '../widgets/virtual_wallet_section.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_section.dart';
+import '../widgets/reviews_section.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/account_settings_section.dart';
 import '../widgets/support_section.dart';
 import 'subscription_page.dart';
 import 'token_purchase_page.dart';
 import 'update_email_page.dart';
-import 'update_phone_page.dart';
+import 'change_password_page.dart';
 import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
-import 'notifications_page.dart';
+import 'user_reviews_page.dart';
+import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 
 class ProfilePage extends StatefulWidget {
   final ProfileController controller;
   final PricingController pricingController;
   final ThemeController themeController;
+  final ReviewController reviewController;
 
   const ProfilePage({
     super.key,
     required this.controller,
     required this.pricingController,
     required this.themeController,
+    required this.reviewController,
   });
 
   @override
@@ -48,10 +52,11 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     widget.controller.loadProfile();
 
-    // Load pricing data
+    // Load pricing data and reviews
     final userId = SupabaseConfig.client.auth.currentUser?.id;
     if (userId != null) {
       widget.pricingController.loadUserPricing(userId);
+      widget.reviewController.loadReviews(userId);
     }
   }
 
@@ -154,7 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (!mounted) return;
         Navigator.pop(context); // Close loading
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text(
               '${isCover ? 'Cover' : 'Profile'} photo updated successfully',
@@ -166,7 +171,7 @@ class _ProfilePageState extends State<ProfilePage> {
         if (!mounted) return;
         Navigator.pop(context); // Close loading
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to upload: $e'),
             backgroundColor: ColorConstants.error,
@@ -175,7 +180,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to pick image: $e'),
             backgroundColor: ColorConstants.error,
@@ -192,25 +197,16 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UpdateEmailPage(
-          currentEmail: profile.email,
-          currentPhone: profile.contactNumber,
-        ),
+        builder: (context) => UpdateEmailPage(currentEmail: profile.email),
       ),
     );
   }
 
-  void _navigateToUpdatePhone() {
-    final profile = widget.controller.profile;
-    if (profile == null) return;
-
+  void _navigateToChangePassword() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UpdatePhonePage(
-          currentEmail: profile.email,
-          currentPhone: profile.contactNumber,
-        ),
+        builder: (context) => ChangePasswordPage(controller: widget.controller),
       ),
     );
   }
@@ -261,45 +257,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _navigateToAdminDashboard() async {
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    // Quick admin login
-    final success = await DevAdminAuth.quickAdminLogin();
-
-    if (!mounted) return;
-
-    Navigator.pop(context); // Close loading
-
-    if (success) {
-      // Initialize admin module
-      AdminModule.instance.initialize();
-
-      // Navigate to admin dashboard
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AdminMainPage(
-            controller: AdminModule.instance.controller,
-            kycController: AdminModule.instance.kycController,
-          ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to access admin dashboard'),
-          backgroundColor: ColorConstants.error,
-        ),
-      );
-    }
-  }
-
   void _navigateToSubscription() {
     final userId = SupabaseConfig.client.auth.currentUser?.id;
     if (userId == null) return;
@@ -315,10 +272,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _navigateToNotifications() {
+  void _navigateToReviews() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const NotificationsPage()),
+      MaterialPageRoute(
+        builder: (_) =>
+            UserReviewsPage(reviewController: widget.reviewController),
+      ),
     );
   }
 
@@ -354,143 +314,119 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: _navigateToNotifications,
-            tooltip: 'Notifications',
-          ),
-        ],
-      ),
-      extendBodyBehindAppBar: true,
-      body: ListenableBuilder(
-        listenable: widget.controller,
-        builder: (context, _) {
-          if (widget.controller.isLoading &&
-              widget.controller.profile == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-          if (widget.controller.hasError && widget.controller.profile == null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.controller.errorMessage ?? 'Error loading profile',
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    onPressed: widget.controller.loadProfile,
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text('Retry'),
-                  ),
-                ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value:
+          (isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+              .copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          actions: [const NotificationBellWidget()],
+        ),
+        extendBodyBehindAppBar: true,
+        body: ListenableBuilder(
+          listenable: widget.controller,
+          builder: (context, _) {
+            if (widget.controller.isLoading &&
+                widget.controller.profile == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (widget.controller.hasError &&
+                widget.controller.profile == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.controller.errorMessage ?? 'Error loading profile',
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: widget.controller.loadProfile,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry'),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: _handleSignOut,
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Sign Out'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: ColorConstants.error,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            final profile = widget.controller.profile;
+            if (profile == null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return RefreshIndicator(
+              onRefresh: widget.controller.loadProfile,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    ProfileHeader(
+                      coverPhotoUrl: profile.coverPhotoUrl,
+                      profilePhotoUrl: profile.profilePhotoUrl,
+                      onCoverPhotoTap: _handleCoverPhotoTap,
+                      onProfilePhotoTap: _handleProfilePhotoTap,
+                    ),
+                    const SizedBox(height: 60),
+                    ProfileInfoSection(
+                      fullName: profile.fullName,
+                      username: profile.username,
+                      email: profile.email,
+                    ),
+                    const SizedBox(height: 16),
+                    ReviewsSummarySection(
+                      reviewController: widget.reviewController,
+                      onViewAll: _navigateToReviews,
+                    ),
+                    const SizedBox(height: 16),
+                    PricingSection(
+                      pricingController: widget.pricingController,
+                      onManageTokens: _navigateToTokenPurchase,
+                      onManageSubscription: _navigateToSubscription,
+                    ),
+                    const SizedBox(height: 16),
+                    const VirtualWalletSection(),
+                    const SizedBox(height: 16),
+                    AccountSettingsSection(
+                      email: profile.email,
+                      onUpdateEmail: _navigateToUpdateEmail,
+                      onChangePassword: _navigateToChangePassword,
+                    ),
+                    const SizedBox(height: 16),
+                    SupportSection(
+                      onCustomerSupport: _navigateToCustomerSupport,
+                      onFAQ: _navigateToFAQ,
+                      onTermsConditions: _navigateToTerms,
+                      onPrivacyPolicy: _navigateToPrivacy,
+                    ),
+                    const SizedBox(height: 16),
+                    SettingsSection(
+                      themeController: widget.themeController,
+                      onSignOut: _handleSignOut,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             );
-          }
-
-          final profile = widget.controller.profile!;
-
-          return RefreshIndicator(
-            onRefresh: widget.controller.loadProfile,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  ProfileHeader(
-                    coverPhotoUrl: profile.coverPhotoUrl,
-                    profilePhotoUrl: profile.profilePhotoUrl,
-                    onCoverPhotoTap: _handleCoverPhotoTap,
-                    onProfilePhotoTap: _handleProfilePhotoTap,
-                  ),
-                  const SizedBox(height: 60),
-                  ProfileInfoSection(
-                    fullName: profile.fullName,
-                    username: profile.username,
-                    contactNumber: profile.contactNumber,
-                    email: profile.email,
-                  ),
-                  const SizedBox(height: 16),
-                  PricingSection(
-                    pricingController: widget.pricingController,
-                    onManageTokens: _navigateToTokenPurchase,
-                    onManageSubscription: _navigateToSubscription,
-                  ),
-                  const SizedBox(height: 16),
-                  AccountSettingsSection(
-                    email: profile.email,
-                    phone: profile.contactNumber,
-                    onUpdateEmail: _navigateToUpdateEmail,
-                    onUpdatePhone: _navigateToUpdatePhone,
-                  ),
-                  const SizedBox(height: 16),
-                  SupportSection(
-                    onCustomerSupport: _navigateToCustomerSupport,
-                    onFAQ: _navigateToFAQ,
-                    onTermsConditions: _navigateToTerms,
-                    onPrivacyPolicy: _navigateToPrivacy,
-                  ),
-                  const SizedBox(height: 16),
-                  // DEV ONLY: Admin Quick Access
-                  _buildAdminQuickAccess(),
-                  const SizedBox(height: 16),
-                  SettingsSection(
-                    themeController: widget.themeController,
-                    onSignOut: _handleSignOut,
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// DEV ONLY: Admin quick access button
-  Widget _buildAdminQuickAccess() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: ColorConstants.warning.withValues(alpha: 0.1),
-        border: Border.all(color: ColorConstants.warning, width: 2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: ColorConstants.warning,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(
-            Icons.admin_panel_settings,
-            color: Colors.white,
-            size: 24,
-          ),
+          },
         ),
-        title: const Text(
-          'Admin Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        subtitle: Text(
-          'DEV ONLY: Quick Access',
-          style: TextStyle(
-            color: ColorConstants.warning,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: _navigateToAdminDashboard,
       ),
     );
   }

@@ -1,7 +1,6 @@
 class KycRegistrationEntity {
   final String id; // auth.users id
   final String email;
-  final String phoneNumber;
   final String username;
 
   // Personal Information
@@ -31,7 +30,8 @@ class KycRegistrationEntity {
   final String secondaryGovIdBackUrl;
 
   // Proof of Address
-  final String proofOfAddressType; // utility_bill, bank_statement, government_issued_document, barangay_certificate
+  final String
+  proofOfAddressType; // utility_bill, bank_statement, government_issued_document, barangay_certificate
   final String proofOfAddressUrl;
 
   // Selfie with ID
@@ -56,7 +56,6 @@ class KycRegistrationEntity {
   const KycRegistrationEntity({
     required this.id,
     required this.email,
-    required this.phoneNumber,
     required this.username,
     required this.firstName,
     required this.lastName,

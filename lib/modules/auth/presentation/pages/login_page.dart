@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
-import 'package:autobid_mobile/core/utils/dev_admin_auth.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
 import '../../auth_routes.dart';
-import '../../../admin/presentation/pages/admin_main_page.dart';
-import '../../../admin/presentation/controllers/admin_controller.dart';
-import '../../../admin/presentation/controllers/kyc_controller.dart';
 import '../../../guest/guest_routes.dart';
 import '../controllers/login_controller.dart';
 import '../controllers/login_otp_controller.dart';
@@ -39,14 +35,25 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _otpController = sl<LoginOtpController>();
+    widget.controller.addListener(_onControllerUpdate);
+    widget.controller.loadCachedCredentials();
   }
 
   @override
   void dispose() {
+    widget.controller.removeListener(_onControllerUpdate);
     _usernameController.dispose();
     _passwordController.dispose();
     _otpController.dispose();
     super.dispose();
+  }
+
+  void _onControllerUpdate() {
+    if (widget.controller.cachedUsername != null &&
+        _usernameController.text.isEmpty &&
+        widget.controller.rememberMe) {
+      _usernameController.text = widget.controller.cachedUsername!;
+    }
   }
 
   void _handleLogin() async {
@@ -56,10 +63,22 @@ class _LoginPageState extends State<LoginPage> {
         _passwordController.text,
       );
 
-      if (mounted &&
-          success &&
-          widget.controller.currentStep == LoginStep.otpVerification) {
-        _navigateToOtpPage();
+      if (mounted && success) {
+        if (widget.controller.currentStep == LoginStep.otpVerification) {
+          _navigateToOtpPage();
+        } else if (widget.controller.currentStep == LoginStep.completed) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/home', (route) => false);
+        }
+      }
+
+      // Handle pending verification - redirect to guest mode account status
+      if (mounted && widget.controller.isPendingVerification) {
+        widget.controller.clearPendingVerification();
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(GuestRoutes.main, (route) => false);
       }
     }
   }
@@ -69,7 +88,6 @@ class _LoginPageState extends State<LoginPage> {
       MaterialPageRoute(
         builder: (context) => LoginOtpPage(
           email: widget.controller.userEmail!,
-          phoneNumber: widget.controller.userPhoneNumber!,
           otpController: _otpController,
           loginController: widget.controller,
         ),
@@ -99,14 +117,20 @@ class _LoginPageState extends State<LoginPage> {
                 _buildUsernameField(),
                 const SizedBox(height: 20),
                 _buildPasswordField(),
-                const SizedBox(height: 16),
-                _buildForgotPasswordLink(),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildRememberMeCheckbox(),
+                    _buildForgotPasswordLink(),
+                  ],
+                ),
                 const SizedBox(height: 24),
                 _buildLoginButton(),
                 const SizedBox(height: 32),
                 _buildGuestModeLink(theme, isDark),
-                const SizedBox(height: 24),
-                _buildAdminQuickAccess(),
+                const SizedBox(height: 16),
+                _buildDevModeToggle(theme, isDark),
                 const SizedBox(height: 24),
                 _buildSignUpPrompt(theme),
               ],
@@ -196,14 +220,32 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildForgotPasswordLink() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: () {
-          Navigator.of(context).pushNamed(AuthRoutes.forgotPassword);
-        },
-        child: const Text('Forgot Password?'),
-      ),
+    return TextButton(
+      onPressed: () {
+        Navigator.of(context).pushNamed(AuthRoutes.forgotPassword);
+      },
+      child: const Text('Forgot Password?'),
+    );
+  }
+
+  Widget _buildRememberMeCheckbox() {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Checkbox(
+              value: widget.controller.rememberMe,
+              onChanged: (value) {
+                widget.controller.toggleRememberMe(value ?? false);
+              },
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            const Text('Remember Me'),
+          ],
+        );
+      },
     );
   }
 
@@ -260,78 +302,45 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  /// DEV ONLY: Admin quick access
-  void _navigateToAdminDashboard() async {
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
-
-    // Quick admin login
-    final success = await DevAdminAuth.quickAdminLogin();
-
-    if (!mounted) return;
-
-    Navigator.pop(context); // Close loading
-
-    if (success) {
-      // Navigate to admin dashboard
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AdminMainPage(
-            controller: sl<AdminController>(),
-            kycController: sl<KycController>(),
-          ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to access admin dashboard'),
-          backgroundColor: ColorConstants.error,
-        ),
-      );
-    }
-  }
-
-  Widget _buildAdminQuickAccess() {
-    return Container(
-      decoration: BoxDecoration(
-        color: ColorConstants.warning.withValues(alpha: 0.1),
-        border: Border.all(color: ColorConstants.warning, width: 2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
+  Widget _buildDevModeToggle(ThemeData theme, bool isDark) {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        return Container(
           decoration: BoxDecoration(
-            color: ColorConstants.warning,
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.purple.withValues(alpha: 0.1),
+            border: Border.all(color: Colors.purple, width: 1),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(
-            Icons.admin_panel_settings,
-            color: Colors.white,
-            size: 20,
+          child: SwitchListTile(
+            title: const Text(
+              'Dev Mode: Bypass OTP',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            subtitle: const Text(
+              'Skip verification step after login',
+              style: TextStyle(fontSize: 11),
+            ),
+            value: widget.controller.devModeBypassOtp,
+            activeThumbColor: Colors.purple,
+            onChanged: (value) {
+              widget.controller.toggleDevModeBypassOtp(value);
+            },
+            secondary: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.purple,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.developer_mode,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
           ),
-        ),
-        title: const Text(
-          'Admin Dashboard',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        subtitle: Text(
-          'DEV ONLY: Quick Access',
-          style: TextStyle(
-            color: ColorConstants.warning,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-        onTap: _navigateToAdminDashboard,
-      ),
+        );
+      },
     );
   }
 }

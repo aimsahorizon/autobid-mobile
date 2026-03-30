@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:get_it/get_it.dart';
 import '../../domain/entities/listing_detail_entity.dart';
 import '../widgets/detail_sections/listing_cover_section.dart';
 import '../widgets/detail_sections/listing_info_section.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../data/datasources/listing_supabase_datasource.dart';
 import '../../domain/entities/seller_listing_entity.dart';
+import '../widgets/invite_management_dialog.dart';
+import '../controllers/lists_controller.dart';
 
 class ApprovedListingDetailPage extends StatelessWidget {
   final ListingDetailEntity listing;
@@ -17,6 +20,167 @@ class ApprovedListingDetailPage extends StatelessWidget {
   static final Set<String> _autoStartTriggered = {};
 
   ApprovedListingDetailPage({super.key, required this.listing});
+
+  void _showInviteManagement(BuildContext context) {
+    // Resolve a fresh controller for the dialog since this page is stateless
+    // and doesn't own the main ListsController.
+    // The dialog needs a controller instance to manage state.
+    final controller = GetIt.instance<ListsController>();
+
+    showDialog(
+      context: context,
+      builder: (context) => InviteManagementDialog(
+        controller: controller,
+        auctionId: listing.id,
+        carName: listing.carName,
+      ),
+    );
+  }
+
+  Future<void> _updateEndTime(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate:
+          listing.endTime ?? DateTime.now().add(const Duration(days: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+    );
+
+    if (picked == null || !context.mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+        listing.endTime ?? DateTime.now().add(const Duration(hours: 1)),
+      ),
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              dayPeriodColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary.withValues(alpha: 0.2);
+                }
+                return Colors.transparent;
+              }),
+              dayPeriodTextColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary;
+                }
+                return isDark ? Colors.white70 : Colors.black87;
+              }),
+              hourMinuteColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary.withValues(alpha: 0.2);
+                }
+                return isDark ? const Color(0xFF2A0D3D) : Colors.grey.shade200;
+              }),
+              hourMinuteTextColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary;
+                }
+                return isDark ? Colors.white : Colors.black87;
+              }),
+              dialHandColor: ColorConstants.primary,
+              dialBackgroundColor: isDark
+                  ? const Color(0xFF2A0D3D)
+                  : Colors.grey.shade50,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: ColorConstants.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null || !context.mounted) return;
+
+    final localDateTime = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      pickedTime.hour,
+      pickedTime.minute,
+      59,
+    );
+
+    // Store as UTC for database consistency
+    final newEndTime = localDateTime.toUtc();
+
+    // Capture references before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      await _datasource.updateAuctionEndTime(listing.id, newEndTime);
+
+      if (context.mounted) {
+        navigator.pop(); // Close loading
+        navigator.pop(true); // Return to refresh
+
+        (messenger..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Auction end time updated successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        navigator.pop(); // Close loading
+        _handleError(context, e);
+      }
+    }
+  }
+
+  void _handleError(BuildContext context, dynamic error) {
+    String message = error.toString();
+
+    // Parse common database constraints to user-friendly messages
+    if (message.contains('auction_time_range_check')) {
+      message =
+          'The auction end time must be later than the start time. Please adjust your selection.';
+    } else if (message.contains('starting_price_check')) {
+      message = 'Starting price must be greater than zero.';
+    } else if (message.contains('reserve_price_check')) {
+      message =
+          'Reserve price must be equal to or greater than the starting price.';
+    } else if (message.contains('bid_increment_check')) {
+      message = 'Bid increment must be a positive amount.';
+    } else if (message.contains('Exception: ')) {
+      message = message.replaceFirst('Exception: ', '');
+    }
+
+    if (context.mounted) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: ColorConstants.error,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Dismiss',
+            textColor: Colors.white,
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
+    }
+  }
 
   Future<void> _makeListingLive(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -42,6 +206,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
     if (confirmed != true) return;
     if (!context.mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -49,13 +217,12 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
 
     try {
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
       final currentEnd = listing.endTime;
       // Ensure end_time stays after start_time to satisfy constraint
-      final safeEnd =
-          (currentEnd != null && currentEnd.isAfter(now))
-              ? currentEnd
-              : now.add(const Duration(days: 7));
+      final safeEnd = (currentEnd != null && currentEnd.isAfter(now))
+          ? currentEnd
+          : now.add(const Duration(days: 7));
 
       // Update listing status to live with aligned start/end
       await _datasource.updateListingStatusByName(
@@ -68,13 +235,10 @@ class ApprovedListingDetailPage extends StatelessWidget {
       );
 
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading dialog
-      Navigator.pop(
-        context,
-        true,
-      ); // Return true to trigger reload in ListingsGrid
+      navigator.pop(); // Close loading dialog
+      navigator.pop(true); // Return true to trigger reload in ListingsGrid
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Auction is now live!'),
           backgroundColor: ColorConstants.success,
@@ -83,15 +247,8 @@ class ApprovedListingDetailPage extends StatelessWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading dialog
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to go live: $e'),
-          backgroundColor: ColorConstants.error,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      navigator.pop(); // Close loading dialog
+      _handleError(context, e);
     }
   }
 
@@ -99,7 +256,9 @@ class ApprovedListingDetailPage extends StatelessWidget {
     final now = DateTime.now();
     // Clamp initial picker value to be >= today to avoid showDatePicker assertion
     final baseRaw = listing.startTime ?? now.add(const Duration(hours: 1));
-    final base = baseRaw.isBefore(now) ? now.add(const Duration(hours: 1)) : baseRaw;
+    final base = baseRaw.isBefore(now)
+        ? now.add(const Duration(hours: 1))
+        : baseRaw;
 
     // Step 1: choose date
     final pickedDate = await showDatePicker(
@@ -110,15 +269,64 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
 
     if (pickedDate == null) return;
+    if (!context.mounted) return;
 
     // Step 2: choose time
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(base),
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              dayPeriodColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary.withValues(alpha: 0.2);
+                }
+                return Colors.transparent;
+              }),
+              dayPeriodTextColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary;
+                }
+                return isDark ? Colors.white70 : Colors.black87;
+              }),
+              hourMinuteColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary.withValues(alpha: 0.2);
+                }
+                return isDark ? const Color(0xFF2A0D3D) : Colors.grey.shade200;
+              }),
+              hourMinuteTextColor: WidgetStateColor.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return ColorConstants.primary;
+                }
+                return isDark ? Colors.white : Colors.black87;
+              }),
+              dialHandColor: ColorConstants.primary,
+              dialBackgroundColor: isDark
+                  ? const Color(0xFF2A0D3D)
+                  : Colors.grey.shade50,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: ColorConstants.primary,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (pickedTime == null) return;
     if (!context.mounted) return;
+
+    // Format time string before async operations
+    final formattedTime = pickedTime.format(context);
+    final formattedDate =
+        '${pickedDate.month}/${pickedDate.day}/${pickedDate.year}';
 
     final scheduledStart = DateTime(
       pickedDate.year,
@@ -130,18 +338,20 @@ class ApprovedListingDetailPage extends StatelessWidget {
 
     // Ensure end_time remains after the new start_time
     final currentEnd = listing.endTime;
+    // Default to 7 days if not set or invalid
     final safeEnd = (currentEnd != null && currentEnd.isAfter(scheduledStart))
         ? currentEnd
         : scheduledStart.add(const Duration(days: 7));
+
+    // Capture references before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Schedule for Later'),
-        content: Text(
-          'Start auction on ${pickedDate.month}/${pickedDate.day}/${pickedDate.year} '
-          'at ${pickedTime.format(context)}?',
-        ),
+        content: Text('Start auction on $formattedDate at $formattedTime?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -176,16 +386,13 @@ class ApprovedListingDetailPage extends StatelessWidget {
       );
 
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading dialog
-      Navigator.pop(
-        context,
-        true,
-      ); // Return true to trigger reload in ListingsGrid
+      navigator.pop(); // Close loading dialog
+      navigator.pop(true); // Return true to trigger reload in ListingsGrid
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text(
-            'Auction scheduled for ${pickedDate.month}/${pickedDate.day}/${pickedDate.year} at ${pickedTime.format(context)}',
+            'Auction scheduled for $formattedDate at $formattedTime',
           ),
           backgroundColor: ColorConstants.info,
           duration: const Duration(seconds: 3),
@@ -193,15 +400,8 @@ class ApprovedListingDetailPage extends StatelessWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context); // Close loading dialog
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to schedule: $e'),
-          backgroundColor: ColorConstants.error,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      navigator.pop(); // Close loading dialog
+      _handleError(context, e);
     }
   }
 
@@ -212,7 +412,8 @@ class ApprovedListingDetailPage extends StatelessWidget {
     final isScheduled = listing.status == ListingStatus.scheduled;
 
     // Auto-start if scheduled time already passed
-    final shouldAutoStart = isScheduled &&
+    final shouldAutoStart =
+        isScheduled &&
         listing.startTime != null &&
         listing.startTime!.isBefore(DateTime.now()) &&
         !_autoStartTriggered.contains(listing.id);
@@ -267,10 +468,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: gradientColors),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: accentColor.withValues(alpha: 0.4),
-          width: 2,
-        ),
+        border: Border.all(color: accentColor.withValues(alpha: 0.4), width: 2),
       ),
       child: Column(
         children: [
@@ -290,6 +488,18 @@ class ApprovedListingDetailPage extends StatelessWidget {
           Text(
             isScheduled ? 'Auction Scheduled' : 'Listing Approved!',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            listing.autoLiveAfterApproval
+                ? 'Auto-live preference: Enabled'
+                : 'Auto-live preference: Manual launch',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: accentColor,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           if (isScheduled && startTime != null) ...[
@@ -315,8 +525,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
                     : ColorConstants.textSecondaryLight,
               ),
             ),
-          ]
-          else
+          ] else
             Text(
               'Your listing has been approved! Choose to go live now or schedule for later.',
               textAlign: TextAlign.center,
@@ -327,6 +536,55 @@ class ApprovedListingDetailPage extends StatelessWidget {
                     : ColorConstants.textSecondaryLight,
               ),
             ),
+          if (listing.rejectionReason != null &&
+              listing.rejectionReason!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ColorConstants.surfaceLight.withValues(alpha: 0.3)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: ColorConstants.success.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.rate_review,
+                        size: 18,
+                        color: ColorConstants.success,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Admin Feedback',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    listing.rejectionReason!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark
+                          ? ColorConstants.textPrimaryDark
+                          : ColorConstants.textPrimaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           Row(
             children: [
@@ -399,11 +657,7 @@ class ApprovedListingDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomBar(
-    BuildContext context,
-    bool isDark,
-    bool isScheduled,
-  ) {
+  Widget _buildBottomBar(BuildContext context, bool isDark, bool isScheduled) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -419,45 +673,96 @@ class ApprovedListingDetailPage extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: SizedBox(
-                height: 48,
+            // Invite Users button (only for private auctions)
+            if (listing.visibility == 'private') ...[
+              SizedBox(
+                width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => _scheduleListingLater(context),
+                  onPressed: () => _showInviteManagement(context),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: isScheduled ? Colors.purple : ColorConstants.info,
-                    side: const BorderSide(
-                      color: ColorConstants.info,
-                      width: 2,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  icon: Icon(isScheduled ? Icons.edit_calendar : Icons.schedule),
-                  label: Text(
-                    isScheduled ? 'Reschedule' : 'Schedule',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  icon: const Icon(Icons.person_add),
+                  label: const Text(
+                    'Manage Invites',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            // Update End Time button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _updateEndTime(context),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.access_time),
+                label: const Text(
+                  'Update End Time',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: FilledButton.icon(
-                  onPressed: () => _makeListingLive(context),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: isScheduled ? Colors.deepPurple : ColorConstants.success,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.rocket_launch),
-                  label: Text(
-                    isScheduled ? 'Start Now' : 'Go Live',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _scheduleListingLater(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: isScheduled
+                            ? Colors.purple
+                            : ColorConstants.info,
+                        side: const BorderSide(
+                          color: ColorConstants.info,
+                          width: 2,
+                        ),
+                      ),
+                      icon: Icon(
+                        isScheduled ? Icons.edit_calendar : Icons.schedule,
+                      ),
+                      label: Text(
+                        isScheduled ? 'Reschedule' : 'Schedule',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: FilledButton.icon(
+                      onPressed: () => _makeListingLive(context),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: isScheduled
+                            ? Colors.deepPurple
+                            : ColorConstants.success,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.rocket_launch),
+                      label: Text(
+                        isScheduled ? 'Start Now' : 'Go Live',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

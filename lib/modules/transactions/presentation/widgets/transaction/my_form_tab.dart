@@ -107,7 +107,7 @@ class _MyFormTabState extends State<MyFormTab> {
 
     final success = await widget.controller.submitForm(form);
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('Form submitted successfully')),
       );
     }

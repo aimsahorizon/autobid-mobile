@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
 import '../controllers/kyc_registration_controller.dart';
+import '../../auth_routes.dart';
 import '../widgets/kyc_steps/national_id_step.dart';
 import '../widgets/kyc_steps/selfie_with_id_step.dart';
 import '../widgets/kyc_steps/secondary_id_step.dart';
@@ -23,12 +24,66 @@ class RegistrationPage extends StatefulWidget {
 class _RegistrationPageState extends State<RegistrationPage> {
   late final KYCRegistrationController _controller;
   final GlobalKey<SecondaryIdStepState> _secondaryIdKey = GlobalKey();
+  int _rebuildKey = 0;
 
   @override
   void initState() {
     super.initState();
     // Use GetIt to create controller
     _controller = sl<KYCRegistrationController>();
+
+    // Check for saved draft
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForDraft();
+    });
+  }
+
+  Future<void> _checkForDraft() async {
+    final hasDraft = await _controller.hasSavedDraft();
+    if (!hasDraft || !mounted) return;
+
+    final resume = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Resume Registration?'),
+        content: const Text(
+          'We found a saved draft of your registration. Would you like to continue where you left off?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Start Fresh'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Resume'),
+          ),
+        ],
+      ),
+    );
+
+    if (resume == true) {
+      // Show loading
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      await _controller.loadDraft();
+
+      if (mounted) {
+        Navigator.pop(context); // Remove loading
+        setState(() {
+          _rebuildKey++; // Force step widgets to rebuild with loaded data
+        });
+      }
+    } else {
+      _controller.clearAllData(); // Clear draft if starting fresh
+    }
   }
 
   @override
@@ -60,43 +115,24 @@ class _RegistrationPageState extends State<RegistrationPage> {
     }
   }
 
-  bool _canProceed() {
-    switch (_controller.currentStep) {
-      case KYCStep.accountInfo:
-        return _controller.validateAccountInfoStep();
-      case KYCStep.otpVerification:
-        return _controller.validateOtpStep();
-      case KYCStep.nationalId:
-        return _controller.validateNationalIdStep();
-      case KYCStep.selfieWithId:
-        return _controller.validateSelfieStep();
-      case KYCStep.secondaryId:
-        return _controller.validateSecondaryIdStep();
-      case KYCStep.personalInfo:
-        return _controller.validatePersonalInfoStep();
-      case KYCStep.address:
-        return _controller.validateAddressStep();
-      case KYCStep.proofOfAddress:
-        return _controller.validateProofOfAddressStep();
-      case KYCStep.review:
-        return true;
-    }
-  }
-
   void _handleNext() {
-    if (_canProceed()) {
-      // Trigger AI extraction for secondary ID step before proceeding
-      if (_controller.currentStep == KYCStep.secondaryId) {
-        _secondaryIdKey.currentState?.triggerAiExtraction();
-        return; // AI dialog will handle next step
-      }
+    // Validation is already checked via isCurrentStepValid for button state
+    // But we trigger one last check with error reporting enabled to show any hidden errors if needed
+    // or just proceed.
+    // Since button is disabled if invalid, we can assume it's valid here.
+    // However, some async checks (like secondary ID AI) might need explicit trigger.
 
-      if (_controller.currentStep == KYCStep.review) {
-        _handleSubmit();
-      } else {
-        _controller.nextStep();
-        setState(() {});
-      }
+    // Trigger AI extraction for secondary ID step before proceeding
+    if (_controller.currentStep == KYCStep.secondaryId) {
+      _secondaryIdKey.currentState?.triggerAiExtraction();
+      return; // AI dialog will handle next step
+    }
+
+    if (_controller.currentStep == KYCStep.review) {
+      _handleSubmit();
+    } else {
+      _controller.nextStep();
+      setState(() {});
     }
   }
 
@@ -106,12 +142,73 @@ class _RegistrationPageState extends State<RegistrationPage> {
     setState(() {});
   }
 
-  void _handleBack() {
+  void _handlePreviousStep() {
     if (_controller.currentStepIndex > 0) {
       _controller.previousStep();
       setState(() {});
-    } else {
-      Navigator.of(context).pop();
+    }
+  }
+
+  void _handleExit() {
+    _showExitConfirmationDialog();
+  }
+
+  Future<void> _showExitConfirmationDialog() async {
+    // Check if user has entered any data
+    final hasData = _controller.hasAnyDataEntered();
+
+    if (!hasData) {
+      // No data entered, just go back to login
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+      }
+      return;
+    }
+
+    // Show dialog asking to save or discard
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save Your Progress?'),
+        content: const Text(
+          'You have entered some registration information. Would you like to save it for later or discard it?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'discard'),
+            child: const Text('Discard', style: TextStyle(color: Colors.red)),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context, 'save'),
+            child: const Text('Save Draft'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result == 'save') {
+      // Save draft and show confirmation
+      await _controller.saveDraft();
+      if (mounted) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Registration progress saved. You can continue later.',
+            ),
+            backgroundColor: ColorConstants.success,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+      }
+    } else if (result == 'discard') {
+      // Clear data and go back
+      _controller.clearAllData();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
+      }
     }
   }
 
@@ -142,10 +239,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
       Navigator.of(context).pop();
 
       if (_controller.errorMessage == null) {
+        _controller.clearAllData();
+        if (!mounted) return;
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => AlertDialog(
+          builder: (dialogContext) => AlertDialog(
             title: const Row(
               children: [
                 Icon(Icons.check_circle, color: ColorConstants.success),
@@ -159,8 +258,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
             actions: [
               FilledButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop();
+                  Navigator.of(dialogContext).pop();
+                  Navigator.of(context).pushReplacementNamed(AuthRoutes.login);
                 },
                 child: const Text('Done'),
               ),
@@ -173,86 +272,61 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_getStepTitle()),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: _handleBack,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_awesome, color: ColorConstants.warning),
-            tooltip: 'Auto-fill Demo Data',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Row(
-                    children: [
-                      Icon(Icons.auto_awesome, color: ColorConstants.warning),
-                      SizedBox(width: 12),
-                      Text('Auto-fill Demo Data'),
-                    ],
-                  ),
-                  content: const Text(
-                    'This will automatically fill all fields with randomized demo data.\n\nNote: Email, phone number, and document uploads must still be filled manually.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _controller.autoFillDemoData();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Demo data auto-filled successfully!'),
-                            backgroundColor: ColorConstants.success,
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      child: const Text('Auto-fill'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: ListenableBuilder(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        _handleExit();
+      },
+      child: ListenableBuilder(
         listenable: _controller,
         builder: (context, _) {
-          return Column(
-            children: [
-              _buildProgressIndicator(),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      if (_controller.errorMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: AuthErrorMessage(
-                            message: _controller.errorMessage!,
-                            onDismiss: _controller.clearError,
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(_getStepTitle()),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: _handleExit,
+              ),
+              actions: [
+                if (_controller.editingFromReview &&
+                    _controller.currentStep != KYCStep.review)
+                  TextButton.icon(
+                    onPressed: () {
+                      _controller.returnToReview();
+                      setState(() {});
+                    },
+                    icon: const Icon(Icons.rate_review_rounded, size: 18),
+                    label: const Text('Review'),
+                  ),
+              ],
+            ),
+            body: Column(
+              children: [
+                _buildProgressIndicator(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      children: [
+                        if (_controller.errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: AuthErrorMessage(
+                              message: _controller.errorMessage!,
+                              onDismiss: _controller.clearError,
+                            ),
                           ),
-                        ),
-                      _buildCurrentStep(),
-                    ],
+                        _buildCurrentStep(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              _buildNavigationButtons(),
-            ],
+                _buildNavigationButtons(),
+              ],
+            ),
           );
         },
       ),
@@ -260,7 +334,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }
 
   Widget _buildProgressIndicator() {
-    final progress = (_controller.currentStepIndex + 1) / _controller.totalSteps;
+    final progress =
+        (_controller.currentStepIndex + 1) / _controller.totalSteps;
 
     return Column(
       children: [
@@ -275,9 +350,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
               ),
               Text(
                 '${(progress * 100).toInt()}%',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -285,7 +360,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
         LinearProgressIndicator(
           value: progress,
           backgroundColor: ColorConstants.primary.withValues(alpha: 0.2),
-          valueColor: const AlwaysStoppedAnimation<Color>(ColorConstants.primary),
+          valueColor: const AlwaysStoppedAnimation<Color>(
+            ColorConstants.primary,
+          ),
         ),
       ],
     );
@@ -294,13 +371,25 @@ class _RegistrationPageState extends State<RegistrationPage> {
   Widget _buildCurrentStep() {
     switch (_controller.currentStep) {
       case KYCStep.accountInfo:
-        return AccountInfoStep(controller: _controller);
+        return AccountInfoStep(
+          key: ValueKey('account_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.otpVerification:
-        return OtpVerificationStep(controller: _controller);
+        return OtpVerificationStep(
+          key: ValueKey('otp_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.nationalId:
-        return NationalIdStep(controller: _controller);
+        return NationalIdStep(
+          key: ValueKey('natid_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.selfieWithId:
-        return SelfieWithIdStep(controller: _controller);
+        return SelfieWithIdStep(
+          key: ValueKey('selfie_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.secondaryId:
         return SecondaryIdStep(
           key: _secondaryIdKey,
@@ -308,13 +397,23 @@ class _RegistrationPageState extends State<RegistrationPage> {
           onRequestAiExtraction: _proceedToNextStep,
         );
       case KYCStep.personalInfo:
-        return PersonalInfoStep(controller: _controller);
+        return PersonalInfoStep(
+          key: ValueKey('personal_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.address:
-        return AddressStep(controller: _controller);
+        return AddressStep(
+          key: ValueKey('address_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.proofOfAddress:
-        return ProofOfAddressStep(controller: _controller);
+        return ProofOfAddressStep(
+          key: ValueKey('proof_$_rebuildKey'),
+          controller: _controller,
+        );
       case KYCStep.review:
         return ReviewStep(
+          key: ValueKey('review_$_rebuildKey'),
           controller: _controller,
           onEditStep: (step) {
             _controller.goToStep(step);
@@ -339,25 +438,60 @@ class _RegistrationPageState extends State<RegistrationPage> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (_controller.currentStepIndex > 0)
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _handleBack,
-                child: const Text('Back'),
+          Row(
+            children: [
+              if (_controller.currentStepIndex > 0)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _handlePreviousStep,
+                    child: const Text('Back'),
+                  ),
+                ),
+              if (_controller.currentStepIndex > 0) const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  onPressed: _controller.isCurrentStepValid
+                      ? _handleNext
+                      : null,
+                  child: Text(
+                    _controller.currentStep == KYCStep.review
+                        ? 'Submit'
+                        : 'Next',
+                  ),
+                ),
               ),
-            ),
-          if (_controller.currentStepIndex > 0) const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: FilledButton(
-              onPressed: _handleNext,
-              child: Text(
-                _controller.currentStep == KYCStep.review ? 'Submit' : 'Next',
-              ),
-            ),
+            ],
           ),
+          if (_controller.currentStepIndex == 0) ...[
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Already have an account? ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(
+                      context,
+                    ).pushReplacementNamed(AuthRoutes.login);
+                  },
+                  child: const Text(
+                    'Sign In',
+                    style: TextStyle(
+                      color: ColorConstants.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

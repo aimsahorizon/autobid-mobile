@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS user_token_balances (
 CREATE TABLE IF NOT EXISTS user_subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  plan TEXT NOT NULL CHECK (plan IN ('free', 'pro_basic_monthly', 'pro_plus_monthly', 'pro_basic_yearly', 'pro_plus_yearly')),
+  plan TEXT NOT NULL CHECK (plan IN ('free', 'silver_monthly', 'silver_yearly', 'gold_monthly', 'gold_yearly')),
   start_date TIMESTAMPTZ,
   end_date TIMESTAMPTZ,
   is_active BOOLEAN DEFAULT TRUE,
@@ -191,6 +191,11 @@ RETURNS BOOLEAN AS $$
 DECLARE
   v_current_balance INT;
 BEGIN
+  -- Ensure balance row exists (defensive against missed triggers/backfill gaps)
+  INSERT INTO user_token_balances (user_id, bidding_tokens, listing_tokens)
+  VALUES (p_user_id, 10, 1)
+  ON CONFLICT (user_id) DO NOTHING;
+
   -- Get current balance (with row lock to prevent race conditions)
   SELECT listing_tokens INTO v_current_balance
   FROM user_token_balances
@@ -233,6 +238,11 @@ RETURNS BOOLEAN AS $$
 DECLARE
   v_current_balance INT;
 BEGIN
+  -- Ensure balance row exists (defensive against missed triggers/backfill gaps)
+  INSERT INTO user_token_balances (user_id, bidding_tokens, listing_tokens)
+  VALUES (p_user_id, 10, 1)
+  ON CONFLICT (user_id) DO NOTHING;
+
   -- Get current balance (with row lock)
   SELECT bidding_tokens INTO v_current_balance
   FROM user_token_balances
@@ -281,6 +291,11 @@ BEGIN
     RETURN FALSE;
   END IF;
 
+  -- Ensure balance row exists so updates always affect a real record
+  INSERT INTO user_token_balances (user_id, bidding_tokens, listing_tokens)
+  VALUES (p_user_id, 10, 1)
+  ON CONFLICT (user_id) DO NOTHING;
+
   -- Update balance based on token type
   IF p_token_type = 'bidding' THEN
     UPDATE user_token_balances
@@ -327,10 +342,10 @@ BEGIN
   LOOP
     -- Determine token amounts based on plan
     CASE v_subscription.plan
-      WHEN 'pro_basic_monthly', 'pro_basic_yearly' THEN
-        v_bidding_tokens := 50;
+      WHEN 'silver_monthly', 'silver_yearly' THEN
+        v_bidding_tokens := 60;
         v_listing_tokens := 3;
-      WHEN 'pro_plus_monthly', 'pro_plus_yearly' THEN
+      WHEN 'gold_monthly', 'gold_yearly' THEN
         v_bidding_tokens := 250;
         v_listing_tokens := 10;
       ELSE

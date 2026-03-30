@@ -2,18 +2,22 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/account_status_entity.dart';
 import '../../domain/usecases/check_account_status_usecase.dart';
 import '../../domain/usecases/get_guest_auction_listings_usecase.dart';
+import '../../domain/usecases/submit_kyc_appeal_usecase.dart';
 
 /// Controller for guest mode operations
 /// Refactored to use Clean Architecture with UseCases
 class GuestController extends ChangeNotifier {
   final CheckAccountStatusUseCase _checkAccountStatusUseCase;
   final GetGuestAuctionListingsUseCase _getGuestAuctionListingsUseCase;
+  final SubmitKycAppealUseCase _submitKycAppealUseCase;
 
   GuestController({
     required CheckAccountStatusUseCase checkAccountStatusUseCase,
     required GetGuestAuctionListingsUseCase getGuestAuctionListingsUseCase,
+    required SubmitKycAppealUseCase submitKycAppealUseCase,
   }) : _checkAccountStatusUseCase = checkAccountStatusUseCase,
-       _getGuestAuctionListingsUseCase = getGuestAuctionListingsUseCase;
+       _getGuestAuctionListingsUseCase = getGuestAuctionListingsUseCase,
+       _submitKycAppealUseCase = submitKycAppealUseCase;
 
   int _currentTabIndex = 0;
   bool _isLoadingStatus = false;
@@ -22,6 +26,8 @@ class GuestController extends ChangeNotifier {
   List<Map<String, dynamic>> _auctions = [];
   String? _errorMessage;
   String? _statusEmail;
+  bool _isSubmittingAppeal = false;
+  bool _appealSubmitted = false;
 
   int get currentTabIndex => _currentTabIndex;
   bool get isLoadingStatus => _isLoadingStatus;
@@ -30,21 +36,23 @@ class GuestController extends ChangeNotifier {
   List<Map<String, dynamic>> get auctions => _auctions;
   String? get errorMessage => _errorMessage;
   String? get statusEmail => _statusEmail;
+  bool get isSubmittingAppeal => _isSubmittingAppeal;
+  bool get appealSubmitted => _appealSubmitted;
 
   void setTabIndex(int index) {
     _currentTabIndex = index;
     notifyListeners();
   }
 
-  Future<void> checkAccountStatus(String email) async {
+  Future<void> checkAccountStatus(String identifier) async {
     _isLoadingStatus = true;
     _errorMessage = null;
-    _statusEmail = email;
+    _statusEmail = identifier;
     notifyListeners();
 
     try {
       // Use UseCase to check account status
-      final result = await _checkAccountStatusUseCase(email);
+      final result = await _checkAccountStatusUseCase(identifier);
 
       result.fold(
         (failure) {
@@ -70,7 +78,7 @@ class GuestController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print('DEBUG [GuestController]: Loading guest auction listings');
+      debugPrint('DEBUG [GuestController]: Loading guest auction listings');
 
       // Use UseCase to get auction listings
       final result = await _getGuestAuctionListingsUseCase();
@@ -83,7 +91,9 @@ class GuestController extends ChangeNotifier {
         (auctions) {
           _auctions = auctions;
           _errorMessage = null;
-          print('DEBUG [GuestController]: Loaded ${auctions.length} auctions');
+          debugPrint(
+            'DEBUG [GuestController]: Loaded ${auctions.length} auctions',
+          );
         },
       );
     } catch (e) {
@@ -103,6 +113,46 @@ class GuestController extends ChangeNotifier {
   void clearAccountStatus() {
     _accountStatus = null;
     _statusEmail = null;
+    _appealSubmitted = false;
     notifyListeners();
+  }
+
+  Future<void> submitAppeal(String appealReason) async {
+    if (_accountStatus == null) return;
+
+    _isSubmittingAppeal = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _submitKycAppealUseCase(
+        _accountStatus!.userId,
+        appealReason,
+      );
+
+      result.fold(
+        (failure) {
+          _errorMessage = failure.message;
+        },
+        (_) {
+          _appealSubmitted = true;
+          // Update local status to reflect appeal
+          _accountStatus = AccountStatusEntity(
+            userId: _accountStatus!.userId,
+            status: AccountStatus.appealPending,
+            submittedAt: _accountStatus!.submittedAt,
+            reviewedAt: _accountStatus!.reviewedAt,
+            reviewNotes: _accountStatus!.reviewNotes,
+            userEmail: _accountStatus!.userEmail,
+            userName: _accountStatus!.userName,
+          );
+        },
+      );
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isSubmittingAppeal = false;
+      notifyListeners();
+    }
   }
 }

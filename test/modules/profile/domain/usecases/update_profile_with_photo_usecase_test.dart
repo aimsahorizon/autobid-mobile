@@ -33,7 +33,6 @@ void main() {
       email: 'test@example.com',
       fullName: 'Test User',
       username: 'testuser',
-      contactNumber: '+1234567890',
       profilePhotoUrl: 'old-profile.jpg',
       coverPhotoUrl: 'old-cover.jpg',
     );
@@ -45,7 +44,6 @@ void main() {
         email: existingProfile.email,
         fullName: existingProfile.fullName,
         username: existingProfile.username,
-        contactNumber: existingProfile.contactNumber,
         profilePhotoUrl: testProfileUrl,
         coverPhotoUrl: existingProfile.coverPhotoUrl,
       );
@@ -76,7 +74,6 @@ void main() {
         email: existingProfile.email,
         fullName: existingProfile.fullName,
         username: existingProfile.username,
-        contactNumber: existingProfile.contactNumber,
         profilePhotoUrl: existingProfile.profilePhotoUrl,
         coverPhotoUrl: testCoverUrl,
       );
@@ -106,7 +103,6 @@ void main() {
         email: existingProfile.email,
         fullName: existingProfile.fullName,
         username: existingProfile.username,
-        contactNumber: existingProfile.contactNumber,
         profilePhotoUrl: testProfileUrl,
         coverPhotoUrl: testCoverUrl,
       );

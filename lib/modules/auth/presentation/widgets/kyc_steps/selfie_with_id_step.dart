@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/image_helper.dart';
 import '../../controllers/kyc_registration_controller.dart';
 import '../image_picker_card.dart';
 
@@ -27,15 +28,27 @@ class _SelfieWithIdStepState extends State<SelfieWithIdStep> {
       );
 
       if (image != null) {
-        final File imageFile = File(image.path);
+        File imageFile = File(image.path);
+
+        // Crop the image
+        try {
+          final croppedFile = await ImageHelper.cropImage(
+            file: imageFile,
+            title: 'Crop Selfie with ID',
+          );
+          if (croppedFile == null) return; // User cancelled cropping
+          imageFile = croppedFile;
+        } catch (_) {
+          // Fallback to uncropped image
+        }
+
         widget.controller.setSelfieWithId(imageFile);
-        // No AI autofill here - it happens after secondary ID upload
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
       }
     }
   }

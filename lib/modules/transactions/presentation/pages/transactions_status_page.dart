@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import '../../domain/entities/transaction_status_entity.dart';
@@ -8,6 +9,7 @@ import '../pages/pre_transaction_realtime_page.dart';
 import '../../../lists/presentation/widgets/listings_grid.dart';
 import '../../../lists/domain/entities/seller_listing_entity.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
+import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 
 /// Page for status-based transactions with buyer/seller perspective
 /// Displays in the Transactions bottom nav tab
@@ -26,12 +28,15 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
   late TabController _mainTabController; // Buyer/Seller tabs
   late TabController _statusTabController; // Status tabs
   bool _initialized = false;
+  bool _isGridView = false;
 
   static const _statusTabs = [
     TransactionStatus.inTransaction,
     TransactionStatus.sold,
     TransactionStatus.dealFailed,
   ];
+
+  static const _prefKey = 'transactions_main_tab_index';
 
   @override
   void initState() {
@@ -42,12 +47,33 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       vsync: this,
     );
 
+    _mainTabController.addListener(_onMainTabChanged);
+
+    _restoreTabIndex();
     widget.controller.loadTransactions();
     _initialized = true;
   }
 
+  Future<void> _restoreTabIndex() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedIndex = prefs.getInt(_prefKey) ?? 0;
+    if (mounted && savedIndex >= 0 && savedIndex < 2) {
+      _mainTabController.index = savedIndex;
+    }
+  }
+
+  void _onMainTabChanged() {
+    if (!_mainTabController.indexIsChanging) {
+      _statusTabController.index = 0;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setInt(_prefKey, _mainTabController.index);
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _mainTabController.removeListener(_onMainTabChanged);
     _mainTabController.dispose();
     _statusTabController.dispose();
     widget.controller.dispose();
@@ -65,10 +91,29 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         automaticallyImplyLeading: false,
         title: const Text('Transactions'),
         actions: [
+          const NotificationBellWidget(),
+          ListenableBuilder(
+            listenable: widget.controller,
+            builder: (context, _) => IconButton(
+              icon: widget.controller.isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              onPressed: widget.controller.isLoading
+                  ? null
+                  : () => widget.controller.loadTransactions(),
+              tooltip: 'Refresh transactions',
+            ),
+          ),
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: widget.controller.isLoading ? null : widget.controller.refresh,
-            tooltip: 'Refresh transactions',
+            icon: Icon(
+              _isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+            ),
+            onPressed: () => setState(() => _isGridView = !_isGridView),
+            tooltip: _isGridView ? 'List view' : 'Grid view',
           ),
         ],
         bottom: TabBar(
@@ -77,9 +122,6 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
             Tab(text: 'As a Buyer'),
             Tab(text: 'As a Seller'),
           ],
-          onTap: (_) {
-            _statusTabController.index = 0;
-          },
         ),
       ),
       body: ListenableBuilder(
@@ -166,9 +208,8 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           return ListenableBuilder(
             listenable: widget.controller,
             builder: (context, _) {
-              final transactions = widget.controller.getBuyerTransactionsByStatus(
-                status,
-              );
+              final transactions = widget.controller
+                  .getBuyerTransactionsByStatus(status);
 
               if (transactions.isEmpty) {
                 return Center(
@@ -205,7 +246,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                 onRefresh: widget.controller.refresh,
                 child: ListingsGrid(
                   listings: transactions,
-                  isGridView: false,
+                  isGridView: _isGridView,
                   isLoading: false,
                   emptyTitle: _getEmptyBuyerTitle(status),
                   emptySubtitle: _getEmptyBuyerSubtitle(status),
@@ -249,9 +290,8 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           return ListenableBuilder(
             listenable: widget.controller,
             builder: (context, _) {
-              final transactions = widget.controller.getSellerTransactionsByStatus(
-                status,
-              );
+              final transactions = widget.controller
+                  .getSellerTransactionsByStatus(status);
 
               if (transactions.isEmpty) {
                 return Center(
@@ -288,7 +328,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
                 onRefresh: widget.controller.refresh,
                 child: ListingsGrid(
                   listings: transactions,
-                  isGridView: false,
+                  isGridView: _isGridView,
                   isLoading: false,
                   emptyTitle: _getEmptySellerTitle(status),
                   emptySubtitle: _getEmptySellerSubtitle(status),
@@ -309,10 +349,10 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     BuildContext context,
     SellerListingEntity listing,
   ) async {
-    print('[DEBUG] _handleBuyerTransactionTap called');
-    print('[DEBUG] Listing ID: ${listing.id}');
-    print('[DEBUG] Listing status: ${listing.status}');
-    print('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
+    debugPrint('[DEBUG] _handleBuyerTransactionTap called');
+    debugPrint('[DEBUG] Listing ID: ${listing.id}');
+    debugPrint('[DEBUG] Listing status: ${listing.status}');
+    debugPrint('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
 
     final transactionController = sl<TransactionRealtimeController>();
     final userId = SupabaseConfig.client.auth.currentUser?.id ?? '';
@@ -321,9 +361,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
         'Buyer';
 
-    print('[DEBUG] User ID: $userId');
-    print('[DEBUG] User name: $userName');
-    print('[DEBUG] Navigating to PreTransactionRealtimePage...');
+    debugPrint('[DEBUG] User ID: $userId');
+    debugPrint('[DEBUG] User name: $userName');
+    debugPrint('[DEBUG] Navigating to PreTransactionRealtimePage...');
 
     await Navigator.push<void>(
       context,
@@ -337,7 +377,7 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
       ),
     );
 
-    print('[DEBUG] Returned from PreTransactionRealtimePage');
+    debugPrint('[DEBUG] Returned from PreTransactionRealtimePage');
     await widget.controller.refresh();
   }
 
@@ -346,20 +386,10 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
     BuildContext context,
     SellerListingEntity listing,
   ) async {
-    print('[DEBUG] _handleSellerTransactionTap called');
-    print('[DEBUG] Listing ID: ${listing.id}');
-    print('[DEBUG] Listing status: ${listing.status}');
-    print('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
-
-    // Show debug snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Opening: ${listing.id.substring(0, 8)}... status=${listing.status}',
-        ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    debugPrint('[DEBUG] _handleSellerTransactionTap called');
+    debugPrint('[DEBUG] Listing ID: ${listing.id}');
+    debugPrint('[DEBUG] Listing status: ${listing.status}');
+    debugPrint('[DEBUG] Listing make/model: ${listing.make} ${listing.model}');
 
     final transactionController = sl<TransactionRealtimeController>();
 
@@ -369,9 +399,9 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
         SupabaseConfig.client.auth.currentUser?.userMetadata?['display_name'] ??
         'Seller';
 
-    print('[DEBUG] User ID: $userId');
-    print('[DEBUG] User name: $userName');
-    print('[DEBUG] Navigating to PreTransactionRealtimePage...');
+    debugPrint('[DEBUG] User ID: $userId');
+    debugPrint('[DEBUG] User name: $userName');
+    debugPrint('[DEBUG] Navigating to PreTransactionRealtimePage...');
 
     try {
       await Navigator.push<void>(
@@ -385,12 +415,12 @@ class _TransactionsStatusPageState extends State<TransactionsStatusPage>
           ),
         ),
       );
-      print('[DEBUG] Returned from PreTransactionRealtimePage normally');
+      debugPrint('[DEBUG] Returned from PreTransactionRealtimePage normally');
     } catch (e, stack) {
-      print('[DEBUG] ❌ Navigation error: $e');
-      print('[DEBUG] Stack: $stack');
+      debugPrint('[DEBUG] ❌ Navigation error: $e');
+      debugPrint('[DEBUG] Stack: $stack');
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
             backgroundColor: Colors.red,

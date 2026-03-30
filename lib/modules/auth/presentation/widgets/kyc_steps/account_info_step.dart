@@ -1,15 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import '../../../../profile/presentation/pages/legal_page.dart';
 import '../../controllers/kyc_registration_controller.dart';
 
 class AccountInfoStep extends StatefulWidget {
   final KYCRegistrationController controller;
 
-  const AccountInfoStep({
-    super.key,
-    required this.controller,
-  });
+  const AccountInfoStep({super.key, required this.controller});
 
   @override
   State<AccountInfoStep> createState() => _AccountInfoStepState();
@@ -25,7 +23,8 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isCheckingUsername = false;
-  bool? _isUsernameAvailable;
+  Timer? _emailDebounce;
+  Timer? _usernameDebounce;
 
   @override
   void initState() {
@@ -36,12 +35,11 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     if (widget.controller.email != null) {
       _emailController.text = widget.controller.email!;
     }
-    if (widget.controller.phoneNumber != null) {
-      _phoneController.text = widget.controller.phoneNumber!;
-    }
     if (widget.controller.password != null) {
       _passwordController.text = widget.controller.password!;
-      _confirmPasswordController.text = widget.controller.password!;
+    }
+    if (widget.controller.confirmPassword != null) {
+      _confirmPasswordController.text = widget.controller.confirmPassword!;
     }
 
     _usernameController.addListener(() {
@@ -51,11 +49,13 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     _emailController.addListener(() {
       widget.controller.setEmail(_emailController.text);
     });
-    _phoneController.addListener(() {
-      widget.controller.setPhoneNumber(_phoneController.text);
-    });
     _passwordController.addListener(() {
       widget.controller.setPassword(_passwordController.text);
+      if (mounted) setState(() {});
+    });
+    _confirmPasswordController.addListener(() {
+      widget.controller.setConfirmPassword(_confirmPasswordController.text);
+      if (mounted) setState(() {});
     });
   }
 
@@ -66,35 +66,49 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _emailDebounce?.cancel();
+    _usernameDebounce?.cancel();
     super.dispose();
   }
 
-  // Check username availability in database
-  void _checkUsernameAvailability() async {
+  // Check username availability in database with debounce
+  void _checkUsernameAvailability() {
+    _usernameDebounce?.cancel();
+
     final username = _usernameController.text.trim();
 
     // Only check if username has at least 3 characters
     if (username.length < 3) {
-      setState(() {
-        _isUsernameAvailable = null;
-        _isCheckingUsername = false;
-      });
       return;
     }
 
-    setState(() {
-      _isCheckingUsername = true;
-      _isUsernameAvailable = null;
+    setState(() => _isCheckingUsername = true);
+
+    _usernameDebounce = Timer(const Duration(milliseconds: 600), () async {
+      // Verify the username hasn't changed during the debounce period
+      final currentUsername = _usernameController.text.trim();
+      if (currentUsername != username) return;
+
+      await widget.controller.checkUsernameAvailability(username);
+      // Verify it still matches after the async call completes
+      if (mounted && _usernameController.text.trim() == username) {
+        setState(() => _isCheckingUsername = false);
+      }
     });
+  }
 
-    // TODO: Call checkUsernameAvailable usecase
-    // For now, simulate API call
-    await Future.delayed(const Duration(milliseconds: 500));
+  // Check email availability in database
+  void _checkEmailAvailability() {
+    if (_emailDebounce?.isActive ?? false) _emailDebounce!.cancel();
 
-    setState(() {
-      _isCheckingUsername = false;
-      // Mock: username available if doesn't contain 'admin' or 'test'
-      _isUsernameAvailable = !username.contains('admin') && !username.contains('test');
+    final email = _emailController.text.trim();
+    if (email.isEmpty ||
+        !RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+').hasMatch(email)) {
+      return;
+    }
+
+    _emailDebounce = Timer(const Duration(milliseconds: 800), () async {
+      await widget.controller.checkEmailAvailability(email);
     });
   }
 
@@ -103,245 +117,341 @@ class _AccountInfoStepState extends State<AccountInfoStep> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Account Information',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create your account credentials',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDark
-                  ? ColorConstants.textSecondaryDark
-                  : ColorConstants.textSecondaryLight,
-            ),
-          ),
-          const SizedBox(height: 32),
-          TextFormField(
-            controller: _usernameController,
-            decoration: InputDecoration(
-              labelText: 'Username',
-              hintText: 'Choose a unique username',
-              prefixIcon: const Icon(Icons.person_outline),
-              suffixIcon: _isCheckingUsername
-                  ? const Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : _isUsernameAvailable == null
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        final isUsernameAvailable = widget.controller.isUsernameAvailable;
+        final isEmailAvailable = widget.controller.isEmailAvailable;
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Account Information',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Create your account credentials',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                ),
+              ),
+              const SizedBox(height: 32),
+              TextFormField(
+                controller: _usernameController,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  hintText: 'Choose a unique username',
+                  prefixIcon: const Icon(Icons.person_outline),
+                  suffixIcon: _isCheckingUsername
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : isUsernameAvailable == null
                       ? null
                       : Icon(
-                          _isUsernameAvailable!
+                          isUsernameAvailable
                               ? Icons.check_circle
                               : Icons.cancel,
-                          color: _isUsernameAvailable!
+                          color: isUsernameAvailable
                               ? ColorConstants.success
                               : ColorConstants.error,
                         ),
-              helperText: _isUsernameAvailable == false
-                  ? 'Username is already taken'
-                  : _isUsernameAvailable == true
+                  helperText: isUsernameAvailable == false
+                      ? 'Username is already taken or invalid'
+                      : isUsernameAvailable == true
                       ? 'Username is available'
                       : null,
-              helperStyle: TextStyle(
-                color: _isUsernameAvailable == false
-                    ? ColorConstants.error
-                    : ColorConstants.success,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'Email Address',
-              hintText: 'your.email@example.com',
-              prefixIcon: Icon(Icons.email_outlined),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Phone Number',
-              hintText: '9XX XXX XXXX',
-              prefixIcon: Icon(Icons.phone_outlined),
-              prefixText: '+63 ',
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              hintText: 'Enter a strong password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _confirmPasswordController,
-            obscureText: _obscureConfirmPassword,
-            decoration: InputDecoration(
-              labelText: 'Confirm Password',
-              hintText: 'Re-enter your password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureConfirmPassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                  });
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          CheckboxListTile(
-            value: widget.controller.termsAccepted,
-            onChanged: (value) {
-              widget.controller.setTermsAccepted(value ?? false);
-              setState(() {});
-            },
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: Row(
-              children: [
-                const Text('I agree to the '),
-                GestureDetector(
-                  onTap: () {
-                    // Show terms & conditions
-                  },
-                  child: const Text(
-                    'Terms & Conditions',
-                    style: TextStyle(
-                      color: ColorConstants.primary,
-                      decoration: TextDecoration.underline,
-                    ),
+                  helperStyle: TextStyle(
+                    color: isUsernameAvailable == false
+                        ? ColorConstants.error
+                        : ColorConstants.success,
                   ),
                 ),
-              ],
-            ),
-          ),
-          CheckboxListTile(
-            value: widget.controller.privacyAccepted,
-            onChanged: (value) {
-              widget.controller.setPrivacyAccepted(value ?? false);
-              setState(() {});
-            },
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            title: Row(
-              children: [
-                const Text('I agree to the '),
-                GestureDetector(
-                  onTap: () {
-                    // Show privacy policy
-                  },
-                  child: const Text(
-                    'Privacy Policy',
-                    style: TextStyle(
-                      color: ColorConstants.primary,
-                      decoration: TextDecoration.underline,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                onChanged: (_) => _checkEmailAvailability(),
+                decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  hintText: 'your.email@example.com',
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  suffixIcon: isEmailAvailable == null
+                      ? null
+                      : Icon(
+                          isEmailAvailable ? Icons.check_circle : Icons.cancel,
+                          color: isEmailAvailable
+                              ? ColorConstants.success
+                              : ColorConstants.error,
+                        ),
+                  helperText: isEmailAvailable == false
+                      ? 'Email is already registered'
+                      : null,
+                  helperStyle: TextStyle(color: ColorConstants.error),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter a strong password',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
                     ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: ColorConstants.info.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: ColorConstants.info.withValues(alpha: 0.3),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              if (_passwordController.text.isNotEmpty) ...[
+                const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Icon(
-                      Icons.security_rounded,
-                      color: ColorConstants.info,
-                      size: 20,
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: widget.controller.passwordStrength,
+                          backgroundColor: (isDark
+                              ? Colors.grey[800]
+                              : Colors.grey[200]),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            widget.controller.passwordStrengthColor,
+                          ),
+                          minHeight: 6,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'Password Requirements',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: ColorConstants.info,
-                        fontWeight: FontWeight.w600,
+                      widget.controller.passwordStrengthText,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: widget.controller.passwordStrengthColor,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                _buildRequirement('At least 8 characters'),
-                const SizedBox(height: 4),
-                _buildRequirement('At least one uppercase letter'),
-                const SizedBox(height: 4),
-                _buildRequirement('At least one lowercase letter'),
-                const SizedBox(height: 4),
-                _buildRequirement('At least one number'),
               ],
-            ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  labelText: 'Confirm Password',
+                  hintText: 'Re-enter your password',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_confirmPasswordController.text.isNotEmpty &&
+                          _passwordController.text.isNotEmpty)
+                        Icon(
+                          _passwordController.text ==
+                                  _confirmPasswordController.text
+                              ? Icons.check_circle
+                              : Icons.cancel,
+                          color:
+                              _passwordController.text ==
+                                  _confirmPasswordController.text
+                              ? ColorConstants.success
+                              : ColorConstants.error,
+                        ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscureConfirmPassword = !_obscureConfirmPassword;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  helperText:
+                      _confirmPasswordController.text.isNotEmpty &&
+                          _passwordController.text.isNotEmpty &&
+                          _passwordController.text !=
+                              _confirmPasswordController.text
+                      ? 'Passwords do not match'
+                      : null,
+                  helperStyle: const TextStyle(color: ColorConstants.error),
+                ),
+              ),
+              const SizedBox(height: 24),
+              CheckboxListTile(
+                value: widget.controller.termsAccepted,
+                onChanged: (value) {
+                  widget.controller.setTermsAccepted(value ?? false);
+                  // No local setState needed as ListenableBuilder handles rebuild
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                title: Row(
+                  children: [
+                    const Text('I agree to the '),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LegalPage(
+                              title: 'Terms & Conditions',
+                              type: 'terms',
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Terms & Conditions',
+                        style: TextStyle(
+                          color: ColorConstants.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              CheckboxListTile(
+                value: widget.controller.privacyAccepted,
+                onChanged: (value) {
+                  widget.controller.setPrivacyAccepted(value ?? false);
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                title: Row(
+                  children: [
+                    const Text('I agree to the '),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LegalPage(
+                              title: 'Privacy Policy',
+                              type: 'privacy',
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Privacy Policy',
+                        style: TextStyle(
+                          color: ColorConstants.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: ColorConstants.info.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: ColorConstants.info.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.security_rounded,
+                          color: ColorConstants.info,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Password Requirements',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: ColorConstants.info,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildRequirement(
+                      'At least 8 characters',
+                      widget.controller.hasMinLength,
+                    ),
+                    const SizedBox(height: 4),
+                    _buildRequirement(
+                      'At least one uppercase letter',
+                      widget.controller.hasUppercase,
+                    ),
+                    const SizedBox(height: 4),
+                    _buildRequirement(
+                      'At least one lowercase letter',
+                      widget.controller.hasLowercase,
+                    ),
+                    const SizedBox(height: 4),
+                    _buildRequirement(
+                      'At least one number',
+                      widget.controller.hasDigits,
+                    ),
+                    const SizedBox(height: 4),
+                    _buildRequirement(
+                      'At least one special character',
+                      widget.controller.hasSpecialCharacters,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildRequirement(String text) {
+  Widget _buildRequirement(String text, bool isMet) {
     return Row(
       children: [
-        const Icon(
-          Icons.check_circle_outline,
-          color: ColorConstants.info,
+        Icon(
+          isMet ? Icons.check_circle : Icons.radio_button_unchecked,
+          color: isMet ? ColorConstants.success : ColorConstants.info,
           size: 14,
         ),
         const SizedBox(width: 8),
         Text(
           text,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: ColorConstants.info,
-              ),
+            color: isMet ? ColorConstants.success : ColorConstants.info,
+            fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+          ),
         ),
       ],
     );

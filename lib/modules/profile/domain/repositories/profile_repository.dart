@@ -35,4 +35,9 @@ abstract class ProfileRepository {
 
   /// Sign out user
   Future<Either<Failure, void>> signOut();
+
+  Future<Either<Failure, void>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  });
 }

@@ -11,6 +11,8 @@ class FormFieldWidget extends StatelessWidget {
   final int maxLines;
   final Widget? suffix;
   final bool enabled;
+  final String? errorText;
+  final FocusNode? focusNode;
 
   const FormFieldWidget({
     super.key,
@@ -23,6 +25,8 @@ class FormFieldWidget extends StatelessWidget {
     this.maxLines = 1,
     this.suffix,
     this.enabled = true,
+    this.errorText,
+    this.focusNode,
   });
 
   @override
@@ -30,17 +34,20 @@ class FormFieldWidget extends StatelessWidget {
     return TextFormField(
       controller: controller,
       enabled: enabled,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,
       maxLines: maxLines,
+      autovalidateMode: validator != null
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
         suffix: suffix,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        errorText: errorText,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -68,11 +75,12 @@ class FormDropdownWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       initialValue: value,
+      autovalidateMode: validator != null
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       items: items.map((item) {
         return DropdownMenuItem(value: item, child: Text(item));

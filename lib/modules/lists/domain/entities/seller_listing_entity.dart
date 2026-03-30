@@ -16,6 +16,9 @@ class SellerListingEntity {
   /// Car model (e.g., Supra, M4)
   final String model;
 
+  /// Car variant (e.g., 3.0 Premium, Competition)
+  final String? variant;
+
   /// Current status of the listing
   final ListingStatus status;
 
@@ -59,12 +62,31 @@ class SellerListingEntity {
   /// Used for cancelled listings that came from failed transactions
   final String? transactionId;
 
+  /// Reason for cancellation (if status is dealFailed or cancelled)
+  final String? cancellationReason;
+
+  /// Who cancelled the deal ('seller' or 'buyer')
+  final String? cancelledBy;
+
+  /// Reason for rejection by admin (if status is rejected)
+  final String? rejectionReason;
+
+  /// Visibility of the auction (open, exclusive, or mystery)
+  final String visibility;
+
+  /// Whether seller accepts installment payments
+  final bool allowsInstallment;
+
+  /// Whether the current user has reviewed this transaction
+  final bool? hasReview;
+
   const SellerListingEntity({
     required this.id,
     required this.imageUrl,
     required this.year,
     required this.make,
     required this.model,
+    this.variant,
     required this.status,
     required this.startingPrice,
     this.startTime,
@@ -79,10 +101,16 @@ class SellerListingEntity {
     this.soldPrice,
     this.sellerId,
     this.transactionId,
+    this.cancellationReason,
+    this.cancelledBy,
+    this.rejectionReason,
+    this.visibility = 'open',
+    this.allowsInstallment = false,
+    this.hasReview,
   });
 
   /// Get formatted car name
-  String get carName => '$year $make $model';
+  String get carName => '$year $make $model ${variant ?? ''}'.trim();
 
   /// Check if reserve price has been met
   bool get isReserveMet =>
@@ -91,12 +119,10 @@ class SellerListingEntity {
       currentBid! >= reservePrice!;
 
   /// Get time remaining (for active listings)
-  Duration? get timeRemaining =>
-      endTime?.difference(DateTime.now());
+  Duration? get timeRemaining => endTime?.difference(DateTime.now());
 
   /// Time until auction starts (for scheduled listings)
-  Duration? get timeUntilStart =>
-      startTime?.difference(DateTime.now());
+  Duration? get timeUntilStart => startTime?.difference(DateTime.now());
 
   /// Check if auction has ended
   bool get hasEnded => endTime != null && DateTime.now().isAfter(endTime!);
@@ -121,6 +147,9 @@ enum ListingStatus {
 
   /// Listing saved but not submitted
   draft,
+
+  /// Listing was rejected by admin during review
+  rejected,
 
   /// Listing was cancelled by seller or admin (pre-auction or post-auction)
   cancelled,
@@ -152,6 +181,8 @@ extension ListingStatusExtension on ListingStatus {
         return 'Ended';
       case ListingStatus.draft:
         return 'Draft';
+      case ListingStatus.rejected:
+        return 'Rejected';
       case ListingStatus.cancelled:
         return 'Cancelled';
       case ListingStatus.inTransaction:
@@ -178,6 +209,8 @@ extension ListingStatusExtension on ListingStatus {
         return 'Ended';
       case ListingStatus.draft:
         return 'Drafts';
+      case ListingStatus.rejected:
+        return 'Rejected';
       case ListingStatus.cancelled:
         return 'Cancelled';
       case ListingStatus.inTransaction:

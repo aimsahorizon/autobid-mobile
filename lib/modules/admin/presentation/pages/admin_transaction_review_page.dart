@@ -824,13 +824,14 @@ class _AdminTransactionReviewPageState
           FilledButton(
             onPressed: () async {
               Navigator.pop(context);
+              final messenger = ScaffoldMessenger.of(this.context);
               final success = await widget.controller.approveTransaction(
                 notes: _notesController.text.isNotEmpty
                     ? _notesController.text
                     : null,
               );
               if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                (messenger..clearSnackBars()).showSnackBar(
                   const SnackBar(
                     content: Text('Transaction approved successfully'),
                     backgroundColor: Colors.green,
@@ -879,7 +880,7 @@ class _AdminTransactionReviewPageState
           FilledButton(
             onPressed: () async {
               if (reasonController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
                   const SnackBar(
                     content: Text('Please provide a reason'),
                     backgroundColor: Colors.orange,
@@ -889,17 +890,19 @@ class _AdminTransactionReviewPageState
               }
 
               Navigator.pop(context);
+              final messenger = ScaffoldMessenger.of(this.context);
+              final navigator = Navigator.of(this.context);
               final success = await widget.controller.rejectTransaction(
                 reason: reasonController.text,
               );
               if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+                (messenger..clearSnackBars()).showSnackBar(
                   const SnackBar(
                     content: Text('Transaction rejected'),
                     backgroundColor: Colors.red,
                   ),
                 );
-                Navigator.pop(context);
+                navigator.pop();
               }
             },
             style: FilledButton.styleFrom(

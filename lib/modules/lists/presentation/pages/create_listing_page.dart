@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart'; // Add for kDebugMode
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/services/car_detection_service.dart';
 import '../controllers/listing_draft_controller.dart';
+import '../../domain/entities/listing_draft_entity.dart';
 import '../widgets/listing_form/step1_basic_info.dart';
 import '../widgets/listing_form/step2_mechanical_spec.dart';
 import '../widgets/listing_form/step3_dimensions.dart';
@@ -29,6 +34,8 @@ class CreateListingPage extends StatefulWidget {
 }
 
 class _CreateListingPageState extends State<CreateListingPage> {
+  final _carDetectionService = CarDetectionService();
+
   @override
   void initState() {
     super.initState();
@@ -57,13 +64,17 @@ class _CreateListingPageState extends State<CreateListingPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () async {
+              await widget.controller.discardDraft();
+              if (mounted) Navigator.pop(context, true);
+            },
             child: const Text('Discard'),
           ),
           TextButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
               await widget.controller.saveDraft();
-              if (mounted) Navigator.pop(context, true);
+              if (mounted) navigator.pop(true);
             },
             child: const Text('Save & Exit'),
           ),
@@ -83,22 +94,690 @@ class _CreateListingPageState extends State<CreateListingPage> {
   }
 
   void _showSuccessModal() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ListingSuccessModal(
-        onCreateAnother: () {
-          Navigator.pop(context); // Close modal
+    // Use addPostFrameCallback to ensure navigation happens after current frame
+    // This prevents errors from controller state changes during navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      // Use push instead of pushReplacement so we can handle the result
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ListingSuccessScreen(
+            onCreateAnother: () {
+              // Pop the success screen
+              Navigator.pop(context, {'action': 'create_another'});
+            },
+            onViewListing: () {
+              // Pop with navigation data
+              Navigator.pop(context, {
+                'success': true,
+                'navigateTo': 'pending',
+              });
+            },
+            onGoBack: () {
+              // Simply pop back
+              Navigator.pop(context, {'action': 'go_back'});
+            },
+          ),
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (result != null && result is Map) {
+        if (result['navigateTo'] == 'pending') {
+          // Pass the result back to ListsPage
+          Navigator.pop(context, result);
+        } else if (result['action'] == 'create_another') {
+          // Reset for new draft
           widget.controller.createNewDraft(widget.sellerId);
-        },
-        onViewListing: () {
-          Navigator.pop(context); // Close modal
-          // Return with 'pending' to navigate to Pending tab
-          Navigator.pop(context, {'success': true, 'navigateTo': 'pending'});
-        },
+        } else if (result['action'] == 'go_back') {
+          // Simply go back to listings
+          Navigator.pop(context);
+        }
+      }
+    });
+  }
+
+  /// AI Detection: Auto-fill car details from uploaded photo
+  Future<void> _detectCarAndAutoFill(BuildContext context) async {
+    final photoUrls = widget.controller.currentDraft?.photoUrls;
+    if (photoUrls == null || photoUrls.isEmpty) return;
+
+    // Get first uploaded photo for detection
+    // Try to find a photo in any category
+    String? firstPhoto;
+    for (var urls in photoUrls.values) {
+      if (urls.isNotEmpty) {
+        firstPhoto = urls.first;
+        break;
+      }
+    }
+
+    if (firstPhoto == null) return;
+
+    // Capture navigator before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Show loading
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Detecting car details...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    try {
+      // Call AI detection service
+      final detectedData = await _carDetectionService.detectCarFromImageReal(
+        firstPhoto,
+      );
+
+      if (!mounted) return;
+      navigator.pop(); // Close loading
+
+      // Update draft with detected data
+      final specs = detectedData['specs'] as Map<String, dynamic>? ?? {};
+      final currentDraft = widget.controller.currentDraft!;
+      final updatedDraft = ListingDraftEntity(
+        id: currentDraft.id,
+        sellerId: currentDraft.sellerId,
+        currentStep: currentDraft.currentStep,
+        lastSaved: DateTime.now(),
+        isComplete: currentDraft.isComplete,
+        // AI-detected fields
+        brand: detectedData['brand'] as String?,
+        model: detectedData['model'] as String?,
+        variant: '${detectedData['bodyType']} ${detectedData['transmission']}',
+        bodyType: detectedData['bodyType'] as String?, // Added bodyType
+        year: detectedData['year'] as int?,
+        transmission: specs['transmission'] as String?,
+        exteriorColor: detectedData['color'] as String?,
+        fuelType: specs['fuelType'] as String?,
+        seatingCapacity: specs['seatingCapacity'] as int?,
+        engineDisplacement: (specs['engineDisplacement'] as num?)?.toDouble(),
+        doorCount: specs['doorCount'] as int?,
+        driveType: specs['driveType'] as String?,
+        features: (specs['features'] as List<dynamic>?)
+            ?.cast<String>(), // Auto-fill features
+        tags:
+            (detectedData['tags'] as List<dynamic>?)?.cast<String>() ??
+            currentDraft.tags,
+        // Preserve existing data
+        engineType: currentDraft.engineType,
+        cylinderCount: currentDraft.cylinderCount,
+        horsepower: currentDraft.horsepower,
+        torque: currentDraft.torque,
+        length: currentDraft.length,
+        width: currentDraft.width,
+        height: currentDraft.height,
+        wheelbase: currentDraft.wheelbase,
+        groundClearance: currentDraft.groundClearance,
+        fuelTankCapacity: currentDraft.fuelTankCapacity,
+        curbWeight: currentDraft.curbWeight,
+        grossWeight: currentDraft.grossWeight,
+        paintType: currentDraft.paintType,
+        rimType: currentDraft.rimType,
+        rimSize: currentDraft.rimSize,
+        tireSize: currentDraft.tireSize,
+        tireBrand: currentDraft.tireBrand,
+        condition: currentDraft.condition,
+        mileage: currentDraft.mileage,
+        previousOwners: currentDraft.previousOwners,
+        hasModifications: currentDraft.hasModifications,
+        modificationsDetails: currentDraft.modificationsDetails,
+        hasWarranty: currentDraft.hasWarranty,
+        warrantyDetails: currentDraft.warrantyDetails,
+        usageType: currentDraft.usageType,
+        plateNumber:
+            detectedData['plateNumber'] as String? ?? currentDraft.plateNumber,
+        orcrStatus: currentDraft.orcrStatus,
+        registrationStatus: currentDraft.registrationStatus,
+        registrationExpiry: currentDraft.registrationExpiry,
+        province: currentDraft.province,
+        cityMunicipality: currentDraft.cityMunicipality,
+        photoUrls: currentDraft.photoUrls,
+        description: currentDraft.description,
+        knownIssues: currentDraft.knownIssues,
+        startingPrice: currentDraft.startingPrice,
+        reservePrice: currentDraft.reservePrice,
+        auctionEndDate: currentDraft.auctionEndDate,
+        biddingType: currentDraft.biddingType,
+        bidIncrement: currentDraft.bidIncrement,
+        minBidIncrement: currentDraft.minBidIncrement,
+        depositAmount: currentDraft.depositAmount,
+        enableIncrementalBidding: currentDraft.enableIncrementalBidding,
+        // tags: (detectedData['tags'] as List<dynamic>?)?.cast<String>() ?? currentDraft.tags, // Duplicate
+        deedOfSaleUrl: currentDraft.deedOfSaleUrl,
+      );
+
+      widget.controller.updateDraft(updatedDraft);
+
+      if (mounted) {
+        final isRealAi = detectedData['is_real_ai'] == true;
+        (messenger..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(
+              isRealAi
+                  ? '✅ AI detected: ${detectedData['brand']} ${detectedData['model']} (${detectedData['year']})'
+                  : '⚠️ AI Model missing. Using DEMO data for: ${detectedData['brand']} ${detectedData['model']}',
+            ),
+            backgroundColor: isRealAi ? Colors.green : Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        if (navigator.canPop()) {
+          navigator.pop(); // Close loading if still open
+        }
+        (messenger..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text('Failed to detect car: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// DEMO MODE: Auto-fill fields for testing
+  void _demoFillListing() {
+    if (widget.controller.currentDraft == null) return;
+
+    final carOptions = {
+      'car1': 'Toyota Vios',
+      'car2': 'Mitsubishi Xpander',
+      'car3': 'Honda CR-V',
+    };
+
+    showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Select Demo Car'),
+        children: carOptions.entries
+            .map(
+              (e) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(ctx, e.key),
+                child: Text('${e.key} — ${e.value}'),
+              ),
+            )
+            .toList(),
+      ),
+    ).then((selected) {
+      if (selected != null && mounted) {
+        _applyDemoFill(selected);
+      }
+    });
+  }
+
+  /// Cached asset manifest entries per basePath
+  Map<String, List<String>>? _assetManifestCache;
+
+  Future<List<String>> _loadAssetManifest() async {
+    if (_assetManifestCache != null) return _assetManifestCache!.keys.toList();
+    try {
+      final manifestJson = await rootBundle.loadString('AssetManifest.json');
+      final manifest = Map<String, dynamic>.from(
+        (manifestJson.startsWith('{'))
+            ? Map<String, dynamic>.from(json.decode(manifestJson) as Map)
+            : <String, dynamic>{},
+      );
+      _assetManifestCache = manifest.map((k, v) => MapEntry(k, [k]));
+      return _assetManifestCache!.keys.toList();
+    } catch (_) {
+      _assetManifestCache = {};
+      return [];
+    }
+  }
+
+  Future<String?> _probeAsset(String basePath, String key) async {
+    final manifest = await _loadAssetManifest();
+    final prefix = '$basePath/';
+
+    // Build candidate keys: original, singular (drop trailing 's'), plural (add 's')
+    final candidates = <String>[key];
+    if (key.endsWith('s')) {
+      candidates.add(key.substring(0, key.length - 1));
+    } else {
+      candidates.add('${key}s');
+    }
+
+    for (final candidate in candidates) {
+      for (final ext in ['jpg', 'jpeg', 'png']) {
+        final path = '$prefix$candidate.$ext';
+        if (manifest.contains(path)) return path;
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic> _getCarDetails(String carFolder) {
+    switch (carFolder) {
+      case 'car1':
+        return {
+          'brand': 'Toyota',
+          'model': 'Vios',
+          'year': 2022,
+          'variant': '1.5 G CVT',
+          'bodyType': 'Sedan',
+          'transmission': 'CVT',
+          'mileage': 28000,
+          'engineType': 'In-line 4-cylinder DOHC',
+          'engineDisplacement': 1.5,
+          'cylinderCount': 4,
+          'horsepower': 106,
+          'torque': 140,
+          'fuelType': 'Gasoline',
+          'driveType': 'FWD',
+          'length': 4425.0,
+          'width': 1730.0,
+          'height': 1475.0,
+          'wheelbase': 2550.0,
+          'groundClearance': 133.0,
+          'seatingCapacity': 5,
+          'doorCount': 4,
+          'fuelTankCapacity': 42.0,
+          'curbWeight': 1080.0,
+          'grossWeight': 1530.0,
+          'exteriorColor': 'Freedom White',
+          'paintType': 'Solid',
+          'rimType': 'Alloy',
+          'rimSize': '15',
+          'tireSize': '185/60R15',
+          'tireBrand': 'Bridgestone Ecopia',
+          'condition': 'Used',
+          'previousOwners': 1,
+          'hasModifications': false,
+          'modificationsDetails': '',
+          'hasWarranty': true,
+          'warrantyDetails': 'Toyota extended warranty until Dec 2026',
+          'usageType': 'Personal',
+          'knownIssues': 'Minor scratch on rear bumper.',
+          'plateNumber': 'ABC 1234',
+          'orcrStatus': 'Available',
+          'registrationStatus': 'Current',
+          'registrationExpiry': DateTime.now().add(const Duration(days: 240)),
+          'province': 'Metro Manila',
+          'cityMunicipality': 'Makati',
+          'barangay': 'Poblacion',
+          'description':
+              'Well-maintained 2022 Toyota Vios 1.5 G CVT with low mileage. Single owner, always serviced at Toyota dealership. Casa-maintained with complete service records. Perfect daily driver with excellent fuel efficiency. Features include push-start, 7-inch touchscreen, and reverse camera.',
+          'features': [
+            'Push Start',
+            'Reverse Camera',
+            '7-inch Touchscreen',
+            'LED Headlamps',
+            'Cruise Control',
+            'Keyless Entry',
+            'Dual Airbags',
+            'ABS with EBD',
+          ],
+          'startingPrice': 680000.0,
+          'reservePrice': 750000.0,
+          'bidIncrement': 5000.0,
+          'minBidIncrement': 2000.0,
+          'depositAmount': 20000.0,
+          'biddingType': 'open',
+          'enableIncrementalBidding': true,
+          'autoLiveAfterApproval': true,
+          'snipeGuardEnabled': true,
+          'snipeGuardThresholdSeconds': 300,
+          'snipeGuardExtendSeconds': 180,
+          'allowsInstallment': true,
+          'auctionEndDate': DateTime.now().add(const Duration(days: 7)),
+          'tags': ['Sedan', 'Fuel Efficient', 'Low Mileage', 'Casa Maintained'],
+        };
+      case 'car2':
+        return {
+          'brand': 'Mitsubishi',
+          'model': 'Xpander',
+          'year': 2023,
+          'variant': '1.5 GLS Sport AT',
+          'bodyType': 'MPV',
+          'transmission': 'Automatic',
+          'mileage': 12000,
+          'engineType': 'In-line 4-cylinder DOHC MIVEC',
+          'engineDisplacement': 1.5,
+          'cylinderCount': 4,
+          'horsepower': 103,
+          'torque': 141,
+          'fuelType': 'Gasoline',
+          'driveType': 'FWD',
+          'length': 4595.0,
+          'width': 1750.0,
+          'height': 1700.0,
+          'wheelbase': 2775.0,
+          'groundClearance': 205.0,
+          'seatingCapacity': 7,
+          'doorCount': 4,
+          'fuelTankCapacity': 45.0,
+          'curbWeight': 1190.0,
+          'grossWeight': 1750.0,
+          'exteriorColor': 'Jet Black Mica',
+          'paintType': 'Mica',
+          'rimType': 'Alloy',
+          'rimSize': '17',
+          'tireSize': '205/55R17',
+          'tireBrand': 'Yokohama BluEarth',
+          'condition': 'Used',
+          'previousOwners': 0,
+          'hasModifications': true,
+          'modificationsDetails':
+              'Tinted windows (3M Crystalline) and dashcam installed',
+          'hasWarranty': true,
+          'warrantyDetails': 'Mitsubishi 5-year/100,000km warranty until 2028',
+          'usageType': 'Personal',
+          'knownIssues': 'None. Vehicle is in excellent condition.',
+          'plateNumber': 'DEF 5678',
+          'orcrStatus': 'Available',
+          'registrationStatus': 'Current',
+          'registrationExpiry': DateTime.now().add(const Duration(days: 365)),
+          'province': 'Cebu',
+          'cityMunicipality': 'Cebu City',
+          'barangay': 'Lahug',
+          'description':
+              'Almost brand new 2023 Mitsubishi Xpander GLS Sport AT with only 12,000 km. First owner, always dealer-serviced at Mitsubishi Motors Cebu. This MPV offers spacious 7-seater comfort with SUV-like ground clearance. Features the Dynamic Shield front design, 8-inch display audio, and comprehensive safety suite.',
+          'features': [
+            'Dynamic Shield Design',
+            '8-inch Display Audio',
+            'Apple CarPlay',
+            'Android Auto',
+            'Rear AC Vents',
+            'Hill Start Assist',
+            'Stability Control',
+            'ISOFIX Child Seat Anchors',
+            '360° Camera',
+          ],
+          'startingPrice': 990000.0,
+          'reservePrice': 1100000.0,
+          'bidIncrement': 10000.0,
+          'minBidIncrement': 5000.0,
+          'depositAmount': 30000.0,
+          'biddingType': 'exclusive',
+          'enableIncrementalBidding': false,
+          'autoLiveAfterApproval': false,
+          'snipeGuardEnabled': true,
+          'snipeGuardThresholdSeconds': 600,
+          'snipeGuardExtendSeconds': 300,
+          'allowsInstallment': true,
+          'auctionEndDate': DateTime.now().add(const Duration(days: 10)),
+          'tags': ['MPV', '7-Seater', 'Family Car', 'Low Mileage'],
+        };
+      case 'car3':
+      default:
+        return {
+          'brand': 'Honda',
+          'model': 'CR-V',
+          'year': 2021,
+          'variant': '2.0 S CVT',
+          'bodyType': 'SUV',
+          'transmission': 'CVT',
+          'mileage': 42000,
+          'engineType': 'In-line 4-cylinder i-VTEC',
+          'engineDisplacement': 2.0,
+          'cylinderCount': 4,
+          'horsepower': 152,
+          'torque': 189,
+          'fuelType': 'Gasoline',
+          'driveType': 'FWD',
+          'length': 4623.0,
+          'width': 1855.0,
+          'height': 1689.0,
+          'wheelbase': 2660.0,
+          'groundClearance': 198.0,
+          'seatingCapacity': 5,
+          'doorCount': 4,
+          'fuelTankCapacity': 57.0,
+          'curbWeight': 1467.0,
+          'grossWeight': 2010.0,
+          'exteriorColor': 'Modern Steel Metallic',
+          'paintType': 'Metallic',
+          'rimType': 'Alloy',
+          'rimSize': '18',
+          'tireSize': '235/60R18',
+          'tireBrand': 'Continental ContiCross',
+          'condition': 'Used',
+          'previousOwners': 2,
+          'hasModifications': true,
+          'modificationsDetails':
+              'Aftermarket roof rack and all-weather floor mats installed',
+          'hasWarranty': false,
+          'warrantyDetails': '',
+          'usageType': 'Personal',
+          'knownIssues': 'Stone chips on hood. AC re-gas done Jan 2026.',
+          'plateNumber': 'GHI 9012',
+          'orcrStatus': 'Available',
+          'registrationStatus': 'Current',
+          'registrationExpiry': DateTime.now().add(const Duration(days: 90)),
+          'province': 'Davao del Sur',
+          'cityMunicipality': 'Davao City',
+          'barangay': 'Buhangin',
+          'description':
+              '2021 Honda CR-V 2.0 S CVT in excellent running condition. Two previous owners, complete service history at Honda Cars Davao. Spacious cabin, reliable Honda engineering, and outstanding ride comfort. Power tailgate, Honda Sensing suite, and premium interior. AC recently serviced. Ready for long drives.',
+          'features': [
+            'Honda Sensing',
+            'Lane Keep Assist',
+            'Collision Mitigation',
+            'Adaptive Cruise Control',
+            'Power Tailgate',
+            'Dual Zone Auto AC',
+            'Electric Parking Brake',
+            'Walk-Away Auto Lock',
+          ],
+          'startingPrice': 1150000.0,
+          'reservePrice': 1300000.0,
+          'bidIncrement': 10000.0,
+          'minBidIncrement': 5000.0,
+          'depositAmount': 50000.0,
+          'biddingType': 'mystery',
+          'enableIncrementalBidding': true,
+          'autoLiveAfterApproval': true,
+          'snipeGuardEnabled': false,
+          'snipeGuardThresholdSeconds': 300,
+          'snipeGuardExtendSeconds': 300,
+          'allowsInstallment': false,
+          'auctionEndDate': DateTime.now().add(const Duration(days: 5)),
+          'tags': ['SUV', 'Honda Sensing', 'Spacious', 'Reliable'],
+        };
+    }
+  }
+
+  Future<void> _applyDemoFill(String carFolder) async {
+    if (widget.controller.currentDraft == null) return;
+
+    final currentDraft = widget.controller.currentDraft!;
+    final basePath = 'assets/autofill_cars/$carFolder';
+    final car = _getCarDetails(carFolder);
+
+    // Build photo URLs by probing assets — only add found assets
+    final photoUrls = <String, List<String>>{};
+
+    for (final category in PhotoCategories.all) {
+      final key = PhotoCategories.toKey(category);
+      final assetPath = await _probeAsset(basePath, key);
+      if (assetPath != null) {
+        photoUrls[key] = [assetPath];
+      }
+    }
+
+    // Cover photo: use front_view asset, or first found photo
+    final frontAsset = await _probeAsset(basePath, 'front_view');
+    final coverPhotoUrl =
+        frontAsset ??
+        (photoUrls.isNotEmpty ? photoUrls.values.first.first : null);
+
+    // Deed of sale
+    final deedAsset = await _probeAsset(basePath, 'deed_of_sale');
+
+    if (!mounted) return;
+
+    final demoDraft = ListingDraftEntity(
+      id: currentDraft.id,
+      sellerId: currentDraft.sellerId,
+      currentStep: 9,
+      lastSaved: DateTime.now(),
+      isComplete: false,
+
+      // Step 2: Basic Info
+      brand: car['brand'] as String,
+      model: car['model'] as String,
+      year: car['year'] as int,
+      variant: car['variant'] as String,
+      bodyType: car['bodyType'] as String,
+      transmission: car['transmission'] as String,
+      mileage: car['mileage'] as int,
+
+      // Step 3: Mechanical
+      engineType: car['engineType'] as String,
+      engineDisplacement: car['engineDisplacement'] as double,
+      cylinderCount: car['cylinderCount'] as int,
+      horsepower: car['horsepower'] as int,
+      torque: car['torque'] as int,
+      fuelType: car['fuelType'] as String,
+      driveType: car['driveType'] as String,
+
+      // Step 4: Dimensions
+      length: car['length'] as double,
+      width: car['width'] as double,
+      height: car['height'] as double,
+      wheelbase: car['wheelbase'] as double,
+      groundClearance: car['groundClearance'] as double,
+      seatingCapacity: car['seatingCapacity'] as int,
+      doorCount: car['doorCount'] as int,
+      fuelTankCapacity: car['fuelTankCapacity'] as double,
+      curbWeight: car['curbWeight'] as double,
+      grossWeight: car['grossWeight'] as double,
+
+      // Step 5: Exterior
+      exteriorColor: car['exteriorColor'] as String,
+      paintType: car['paintType'] as String,
+      rimType: car['rimType'] as String,
+      rimSize: car['rimSize'] as String,
+      tireSize: car['tireSize'] as String,
+      tireBrand: car['tireBrand'] as String,
+
+      // Step 6: Condition
+      condition: car['condition'] as String,
+      previousOwners: car['previousOwners'] as int,
+      hasModifications: car['hasModifications'] as bool,
+      modificationsDetails: car['modificationsDetails'] as String,
+      hasWarranty: car['hasWarranty'] as bool,
+      warrantyDetails: car['warrantyDetails'] as String,
+      usageType: car['usageType'] as String,
+      knownIssues: car['knownIssues'] as String,
+
+      // Step 7: Documentation
+      plateNumber: car['plateNumber'] as String,
+      isPlateValid: true,
+      orcrStatus: car['orcrStatus'] as String,
+      registrationStatus: car['registrationStatus'] as String,
+      registrationExpiry: car['registrationExpiry'] as DateTime,
+      province: car['province'] as String,
+      cityMunicipality: car['cityMunicipality'] as String,
+      barangay: car['barangay'] as String,
+      deedOfSaleUrl: deedAsset,
+
+      // Step 1: Photos
+      photoUrls: photoUrls,
+      coverPhotoUrl: coverPhotoUrl,
+
+      // Step 8: Final Details & Bidding
+      description: car['description'] as String,
+      features: List<String>.from(car['features'] as List),
+      startingPrice: car['startingPrice'] as double,
+      reservePrice: car['reservePrice'] as double,
+      auctionEndDate: car['auctionEndDate'] as DateTime,
+      biddingType: car['biddingType'] as String,
+      bidIncrement: car['bidIncrement'] as double,
+      minBidIncrement: car['minBidIncrement'] as double,
+      depositAmount: car['depositAmount'] as double,
+      enableIncrementalBidding: car['enableIncrementalBidding'] as bool,
+      autoLiveAfterApproval: car['autoLiveAfterApproval'] as bool,
+      snipeGuardEnabled: car['snipeGuardEnabled'] as bool,
+      snipeGuardThresholdSeconds: car['snipeGuardThresholdSeconds'] as int,
+      snipeGuardExtendSeconds: car['snipeGuardExtendSeconds'] as int,
+      allowsInstallment: car['allowsInstallment'] as bool,
+
+      tags: List<String>.from(car['tags'] as List),
+    );
+
+    widget.controller.updateDraft(demoDraft);
+    widget.controller.goToStep(9);
+
+    (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+      const SnackBar(
+        content: Text('⚡ Demo Mode: All fields auto-filled!'),
+        backgroundColor: Colors.purple,
       ),
     );
+  }
+
+  Future<void> _handleNextStep() async {
+    // If Step 1 (Photos) and moving to Step 2
+    if (widget.controller.currentStep == 1 && widget.controller.canGoNext) {
+      final photoUrls = widget.controller.currentDraft?.photoUrls;
+      // Check if there are ANY photos
+      bool hasPhotos =
+          photoUrls != null && photoUrls.values.any((list) => list.isNotEmpty);
+
+      if (hasPhotos) {
+        final shouldAutoFill = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.auto_awesome, color: ColorConstants.primary),
+                const SizedBox(width: 12),
+                const Text('Auto-fill with AI?'),
+              ],
+            ),
+            content: const Text(
+              'We can analyze your photos to auto-fill vehicle details like Brand, Model, and Year.\n\nWould you like to try this?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('No, Manual Entry'),
+              ),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                icon: const Icon(Icons.psychology),
+                label: const Text('Yes, Auto-fill'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: ColorConstants.primary,
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldAutoFill == true && mounted) {
+          await _detectCarAndAutoFill(context);
+        }
+      }
+    }
+
+    // Proceed to next step
+    widget.controller.goToNextStep();
   }
 
   @override
@@ -111,7 +790,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final shouldPop = await _onWillPop();
-        if (shouldPop && context.mounted) {
+        if (shouldPop && mounted && context.mounted) {
           Navigator.pop(context);
         }
       },
@@ -119,6 +798,13 @@ class _CreateListingPageState extends State<CreateListingPage> {
         appBar: AppBar(
           title: const Text('Create New Listing'),
           actions: [
+            if (kDebugMode)
+              IconButton(
+                onPressed: _demoFillListing,
+                icon: const Icon(Icons.bolt),
+                tooltip: 'Demo Fill',
+                color: Colors.purple,
+              ),
             ListenableBuilder(
               listenable: widget.controller,
               builder: (context, _) {
@@ -158,26 +844,45 @@ class _CreateListingPageState extends State<CreateListingPage> {
             }
 
             final draft = widget.controller.currentDraft;
+
+            // If submission was successful, show loading while waiting for navigation/modal
+            if (widget.controller.isSubmissionSuccess) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
             if (draft == null) {
               return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    SizedBox(height: 16),
-                    Text(
-                      widget.controller.errorMessage ?? 'Failed to initialize listing',
-                      textAlign: TextAlign.center,
-                    ),
-                    SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        await _initializeDraft();
-                      },
-                      icon: Icon(Icons.refresh),
-                      label: Text('Retry'),
-                    ),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      SizedBox(height: 16),
+                      Text(
+                        'Unable to start listing',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        widget.controller.errorMessage ??
+                            'Please check your connection and try again.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          await _initializeDraft();
+                        },
+                        icon: Icon(Icons.refresh),
+                        label: Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
@@ -185,9 +890,7 @@ class _CreateListingPageState extends State<CreateListingPage> {
             return Column(
               children: [
                 _buildStepIndicator(isDark),
-                Expanded(
-                  child: _buildStepContent(),
-                ),
+                Expanded(child: _buildStepContent()),
                 _buildNavigationBar(isDark),
               ],
             );
@@ -232,22 +935,27 @@ class _CreateListingPageState extends State<CreateListingPage> {
                       color: isCompleted
                           ? Colors.green
                           : (isCurrent
-                              ? ColorConstants.primary
-                              : (isDark
-                                  ? ColorConstants.surfaceLight
-                                  : ColorConstants.backgroundSecondaryLight)),
+                                ? ColorConstants.primary
+                                : (isDark
+                                      ? ColorConstants.surfaceLight
+                                      : ColorConstants
+                                            .backgroundSecondaryLight)),
                     ),
                     child: Center(
                       child: isCompleted
-                          ? const Icon(Icons.check, color: Colors.white, size: 18)
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 18,
+                            )
                           : Text(
                               '$step',
                               style: TextStyle(
                                 color: isCurrent
                                     ? Colors.white
                                     : (isDark
-                                        ? ColorConstants.textSecondaryDark
-                                        : ColorConstants.textSecondaryLight),
+                                          ? ColorConstants.textSecondaryDark
+                                          : ColorConstants.textSecondaryLight),
                                 fontWeight: FontWeight.w600,
                                 fontSize: 12,
                               ),
@@ -273,34 +981,57 @@ class _CreateListingPageState extends State<CreateListingPage> {
     );
   }
 
+  // Cache step widgets to preserve state across tab changes
+  final Map<int, Widget> _stepCache = {};
+
+  Widget _getOrCreateStep(int step) {
+    return _stepCache.putIfAbsent(step, () {
+      switch (step) {
+        case 1:
+          return Step7Photos(controller: widget.controller);
+        case 2:
+          return Step1BasicInfo(controller: widget.controller);
+        case 3:
+          return Step2MechanicalSpec(controller: widget.controller);
+        case 4:
+          return Step3Dimensions(controller: widget.controller);
+        case 5:
+          return Step4Exterior(controller: widget.controller);
+        case 6:
+          return Step5Condition(controller: widget.controller);
+        case 7:
+          return Step6Documentation(controller: widget.controller);
+        case 8:
+          return Step8FinalDetails(controller: widget.controller);
+        case 9:
+          return Step9Summary(
+            controller: widget.controller,
+            onSubmitSuccess: _showSuccessModal,
+          );
+        default:
+          return const Center(child: Text('Invalid step'));
+      }
+    });
+  }
+
   Widget _buildStepContent() {
-    switch (widget.controller.currentStep) {
-      case 1:
-        // NEW ORDER: Photos first with AI detection
-        return Step7Photos(controller: widget.controller);
-      case 2:
-        // AI-prefilled from photos
-        return Step1BasicInfo(controller: widget.controller);
-      case 3:
-        return Step2MechanicalSpec(controller: widget.controller);
-      case 4:
-        return Step3Dimensions(controller: widget.controller);
-      case 5:
-        return Step4Exterior(controller: widget.controller);
-      case 6:
-        return Step5Condition(controller: widget.controller);
-      case 7:
-        return Step6Documentation(controller: widget.controller);
-      case 8:
-        return Step8FinalDetails(controller: widget.controller);
-      case 9:
-        return Step9Summary(
-          controller: widget.controller,
-          onSubmitSuccess: _showSuccessModal,
-        );
-      default:
-        return const Center(child: Text('Invalid step'));
+    final currentStep = widget.controller.currentStep;
+    // Pre-build current step so it's cached
+    _getOrCreateStep(currentStep);
+
+    // Build all cached steps in an IndexedStack to preserve state
+    final steps = <int>[];
+    for (int i = 1; i <= 9; i++) {
+      if (_stepCache.containsKey(i)) {
+        steps.add(i);
+      }
     }
+
+    final currentIndex = steps.indexOf(currentStep);
+    return IndexedStack(
+      index: currentIndex >= 0 ? currentIndex : 0,
+      children: steps.map((s) => _stepCache[s]!).toList(),
+    );
   }
 
   Widget _buildNavigationBar(bool isDark) {
@@ -338,7 +1069,8 @@ class _CreateListingPageState extends State<CreateListingPage> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
-                  onPressed: widget.controller.goToNextStep,
+                  // Use _handleNextStep here
+                  onPressed: _handleNextStep,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ColorConstants.primary,
                     foregroundColor: Colors.white,

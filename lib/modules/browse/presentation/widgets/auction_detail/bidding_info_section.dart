@@ -10,6 +10,9 @@ class BiddingInfoSection extends StatefulWidget {
   final bool showReservePrice;
   final int totalBids;
   final int watchersCount;
+  final bool isMystery;
+  final int? mysteryBidCount;
+  final double? startingPrice;
 
   const BiddingInfoSection({
     super.key,
@@ -20,6 +23,9 @@ class BiddingInfoSection extends StatefulWidget {
     required this.showReservePrice,
     required this.totalBids,
     required this.watchersCount,
+    this.isMystery = false,
+    this.mysteryBidCount,
+    this.startingPrice,
   });
 
   @override
@@ -212,6 +218,44 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
   }
 
   Widget _buildBidAmount(ThemeData theme, bool isDark) {
+    if (widget.isMystery) {
+      return Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock, size: 18, color: Colors.deepPurple),
+              const SizedBox(width: 6),
+              Text(
+                'Sealed Auction',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.deepPurple,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Starting at ₱${_formatNumber(widget.startingPrice ?? widget.currentBid)}',
+            style: theme.textTheme.headlineMedium?.copyWith(
+              color: Colors.deepPurple,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${widget.mysteryBidCount ?? widget.totalBids} sealed bid${(widget.mysteryBidCount ?? widget.totalBids) == 1 ? '' : 's'}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.deepPurple.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         Text(
@@ -237,6 +281,9 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
   }
 
   Widget _buildReserveStatus(ThemeData theme, bool isDark) {
+    // Hide reserve price info entirely for mystery auctions
+    if (widget.isMystery) return const SizedBox.shrink();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -294,9 +341,11 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
       children: [
         Expanded(
           child: _buildStatCard(
-            icon: Icons.gavel_rounded,
-            value: widget.totalBids.toString(),
-            label: 'Bids',
+            icon: widget.isMystery ? Icons.lock_outline : Icons.gavel_rounded,
+            value: widget.isMystery
+                ? (widget.mysteryBidCount ?? widget.totalBids).toString()
+                : widget.totalBids.toString(),
+            label: widget.isMystery ? 'Sealed Bids' : 'Bids',
             theme: theme,
             isDark: isDark,
           ),
@@ -365,16 +414,11 @@ class _BiddingInfoSectionState extends State<BiddingInfoSection> {
   }
 
   String _formatNumber(double number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return number
-          .toStringAsFixed(0)
-          .replaceAllMapped(
-            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-            (m) => '${m[1]},',
-          );
-    }
-    return number.toStringAsFixed(0);
+    return number
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]},',
+        );
   }
 }

@@ -59,7 +59,7 @@ class _LoginOtpDialogState extends State<LoginOtpDialog> {
         _emailOtpSent = true;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('OTP sent to ${widget.email}'),
             backgroundColor: ColorConstants.success,
@@ -68,7 +68,7 @@ class _LoginOtpDialogState extends State<LoginOtpDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to send email OTP: $e'),
             backgroundColor: ColorConstants.error,
@@ -85,7 +85,7 @@ class _LoginOtpDialogState extends State<LoginOtpDialog> {
         _phoneOtpSent = true;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('OTP sent to +63${widget.phoneNumber}'),
             backgroundColor: ColorConstants.success,
@@ -94,7 +94,7 @@ class _LoginOtpDialogState extends State<LoginOtpDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to send phone OTP: $e'),
             backgroundColor: ColorConstants.error,
@@ -109,7 +109,7 @@ class _LoginOtpDialogState extends State<LoginOtpDialog> {
 
     if (mounted) {
       if (isVerified) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Email verified successfully!'),
             backgroundColor: ColorConstants.success,
@@ -117,7 +117,7 @@ class _LoginOtpDialogState extends State<LoginOtpDialog> {
         );
         _checkBothVerified();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Invalid OTP. Please try again.'),
             backgroundColor: ColorConstants.error,
@@ -132,7 +132,7 @@ class _LoginOtpDialogState extends State<LoginOtpDialog> {
 
     if (mounted) {
       if (isVerified) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Phone verified successfully!'),
             backgroundColor: ColorConstants.success,
@@ -140,7 +140,7 @@ class _LoginOtpDialogState extends State<LoginOtpDialog> {
         );
         _checkBothVerified();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Invalid OTP. Please try again.'),
             backgroundColor: ColorConstants.error,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../controllers/kyc_registration_controller.dart';
@@ -13,13 +14,12 @@ class OtpVerificationStep extends StatefulWidget {
 }
 
 class _OtpVerificationStepState extends State<OtpVerificationStep> {
-  bool _isVerifyingPhone = false;
   bool _isVerifyingEmail = false;
-  bool _phoneSent = false;
   bool _emailSent = false;
-
-  String _phoneOtp = '';
   String _emailOtp = '';
+  
+  int _resendCountdown = 0;
+  Timer? _countdownTimer;
 
   final List<TextEditingController> _phoneControllers = List.generate(
     6,
@@ -35,6 +35,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     for (var controller in _phoneControllers) {
       controller.dispose();
     }
@@ -50,75 +51,16 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
     super.dispose();
   }
 
-  Future<void> _sendPhoneOtp() async {
-    try {
-      await widget.controller.sendPhoneOtp();
-
-      setState(() {
-        _phoneSent = true;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'OTP sent to +63${widget.controller.phoneNumber ?? ''}',
-            ),
-            backgroundColor: ColorConstants.success,
-          ),
-        );
+  void _startResendTimer() {
+    _countdownTimer?.cancel();
+    setState(() => _resendCountdown = 60);
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendCountdown > 0) {
+        setState(() => _resendCountdown--);
+      } else {
+        timer.cancel();
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send OTP: $e'),
-            backgroundColor: ColorConstants.error,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _verifyPhoneOtp() async {
-    setState(() {
-      _isVerifyingPhone = true;
     });
-
-    try {
-      final isVerified = await widget.controller.verifyPhoneOtp(_phoneOtp);
-
-      if (mounted) {
-        if (isVerified) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Phone number verified successfully!'),
-              backgroundColor: ColorConstants.success,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Invalid OTP. Please try again.'),
-              backgroundColor: ColorConstants.error,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Verification failed: $e'),
-            backgroundColor: ColorConstants.error,
-          ),
-        );
-      }
-    } finally {
-      setState(() {
-        _isVerifyingPhone = false;
-      });
-    }
   }
 
   Future<void> _sendEmailOtp() async {
@@ -128,9 +70,10 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       setState(() {
         _emailSent = true;
       });
+      _startResendTimer();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('OTP sent to ${widget.controller.email ?? ''}'),
             backgroundColor: ColorConstants.success,
@@ -139,9 +82,9 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
-            content: Text('Failed to send OTP: $e'),
+            content: Text(e.toString()),
             backgroundColor: ColorConstants.error,
           ),
         );
@@ -159,14 +102,14 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
 
       if (mounted) {
         if (isVerified) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Email verified successfully!'),
               backgroundColor: ColorConstants.success,
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(
               content: Text('Invalid OTP. Please try again.'),
               backgroundColor: ColorConstants.error,
@@ -176,7 +119,7 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Verification failed: $e'),
             backgroundColor: ColorConstants.error,
@@ -184,9 +127,11 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
         );
       }
     } finally {
-      setState(() {
-        _isVerifyingEmail = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isVerifyingEmail = false;
+        });
+      }
     }
   }
 
@@ -207,28 +152,12 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Verify your phone number and email address',
+            'Verify your email address',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: isDark
                   ? ColorConstants.textSecondaryDark
                   : ColorConstants.textSecondaryLight,
             ),
-          ),
-          const SizedBox(height: 32),
-          _buildVerificationCard(
-            icon: Icons.phone_android_rounded,
-            title: 'Phone Number Verification',
-            subtitle: '+63${widget.controller.phoneNumber ?? ''}',
-            isVerified: widget.controller.phoneOtpVerified,
-            isSent: _phoneSent,
-            isVerifying: _isVerifyingPhone,
-            controllers: _phoneControllers,
-            focusNodes: _phoneFocusNodes,
-            onSend: _sendPhoneOtp,
-            onVerify: _verifyPhoneOtp,
-            onOtpChanged: (value) {
-              _phoneOtp = value;
-            },
           ),
           const SizedBox(height: 24),
           _buildVerificationCard(
@@ -388,8 +317,12 @@ class _OtpVerificationStepState extends State<OtpVerificationStep> {
               const SizedBox(height: 12),
               Center(
                 child: TextButton(
-                  onPressed: onSend,
-                  child: const Text('Resend OTP'),
+                  onPressed: _resendCountdown > 0 ? null : onSend,
+                  child: Text(
+                    _resendCountdown > 0
+                        ? 'Resend OTP (${_resendCountdown}s)'
+                        : 'Resend OTP',
+                  ),
                 ),
               ),
             ],

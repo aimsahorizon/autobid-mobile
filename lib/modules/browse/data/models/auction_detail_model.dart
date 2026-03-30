@@ -9,6 +9,9 @@ class AuctionDetailModel extends AuctionDetailEntity {
     required super.minimumBid,
     required super.minBidIncrement,
     required super.enableIncrementalBidding,
+    super.biddingType,
+    super.exclusiveTier,
+    super.depositAmount,
     super.reservePrice,
     required super.isReserveMet,
     required super.showReservePrice,
@@ -19,6 +22,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
     required super.status,
     required super.photos,
     required super.hasUserDeposited,
+    super.deedOfSaleUrl,
     super.snipeGuardEnabled,
     super.snipeGuardThresholdSeconds,
     super.snipeGuardExtendSeconds,
@@ -59,6 +63,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
     super.warrantyDetails,
     super.usageType,
     super.plateNumber,
+    super.chassisNumber,
     super.orcrStatus,
     super.registrationStatus,
     super.registrationExpiry,
@@ -88,8 +93,10 @@ class AuctionDetailModel extends AuctionDetailEntity {
 
     final minBidIncrementValue = numOrZero(
       json['min_bid_increment'],
-      numOrZero(json['bid_increment'], 1000),
+      numOrZero(json['bid_increment'], 100),
     );
+
+    final depositAmountValue = numOrZero(json['deposit_amount'], 0);
 
     final snipeGuardEnabled = json['snipe_guard_enabled'] as bool? ?? true;
     final snipeGuardThresholdSeconds =
@@ -108,6 +115,9 @@ class AuctionDetailModel extends AuctionDetailEntity {
       minimumBid: minimumBidValue.toDouble(),
       minBidIncrement: minBidIncrementValue.toDouble(),
       enableIncrementalBidding: enableIncrementalBiddingValue,
+      biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
+      depositAmount: depositAmountValue.toDouble(),
       reservePrice: json['reserve_price'] != null
           ? (json['reserve_price'] as num).toDouble()
           : null,
@@ -122,6 +132,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
         json['photos'] as Map<String, dynamic>? ?? {},
       ),
       hasUserDeposited: json['has_user_deposited'] as bool? ?? false,
+      deedOfSaleUrl: json['deed_of_sale_url'] as String?,
       snipeGuardEnabled: snipeGuardEnabled,
       snipeGuardThresholdSeconds: snipeGuardThresholdSeconds,
       snipeGuardExtendSeconds: snipeGuardExtendSeconds,
@@ -178,6 +189,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       warrantyDetails: json['warranty_details'] as String?,
       usageType: json['usage_type'] as String?,
       plateNumber: json['plate_number'] as String?,
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String?,
       registrationStatus: json['registration_status'] as String?,
       registrationExpiry: json['registration_expiry'] != null
@@ -202,6 +214,8 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'minimum_bid': minimumBid,
       'min_bid_increment': minBidIncrement,
       'enable_incremental_bidding': enableIncrementalBidding,
+      'bidding_type': biddingType,
+      'deposit_amount': depositAmount,
       'reserve_price': reservePrice,
       'is_reserve_met': isReserveMet,
       'show_reserve_price': showReservePrice,
@@ -212,6 +226,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'status': status,
       'photos': (photos as CarPhotosModel).toJson(),
       'has_user_deposited': hasUserDeposited,
+      'deed_of_sale_url': deedOfSaleUrl,
       'snipe_guard_enabled': snipeGuardEnabled,
       'snipe_guard_threshold_seconds': snipeGuardThresholdSeconds,
       'snipe_guard_extend_seconds': snipeGuardExtendSeconds,
@@ -253,6 +268,7 @@ class AuctionDetailModel extends AuctionDetailEntity {
       'warranty_details': warrantyDetails,
       'usage_type': usageType,
       'plate_number': plateNumber,
+      'chassis_number': chassisNumber,
       'orcr_status': orcrStatus,
       'registration_status': registrationStatus,
       'registration_expiry': registrationExpiry?.toIso8601String(),

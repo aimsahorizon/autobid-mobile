@@ -1,18 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/widgets/user_profile_bottom_sheet.dart';
 import '../../../domain/entities/bid_detail_entity.dart';
 
 class BidHistorySection extends StatelessWidget {
   final BidDetailEntity bidDetail;
 
-  const BidHistorySection({
-    super.key,
-    required this.bidDetail,
-  });
+  const BidHistorySection({super.key, required this.bidDetail});
 
   String _formatTimestamp(DateTime timestamp) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final hour = timestamp.hour > 12 ? timestamp.hour - 12 : (timestamp.hour == 0 ? 12 : timestamp.hour);
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final hour = timestamp.hour > 12
+        ? timestamp.hour - 12
+        : (timestamp.hour == 0 ? 12 : timestamp.hour);
     final period = timestamp.hour >= 12 ? 'PM' : 'AM';
     final minute = timestamp.minute.toString().padLeft(2, '0');
 
@@ -40,9 +53,49 @@ class BidHistorySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Seller profile link
+          GestureDetector(
+            onTap: () => UserProfileBottomSheet.show(
+              context,
+              userId: bidDetail.sellerId,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: ColorConstants.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person, size: 16, color: ColorConstants.primary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'View Seller Profile & Stats',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: ColorConstants.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 16,
+                    color: ColorConstants.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
           Row(
             children: [
-              const Icon(Icons.history, size: 20, color: ColorConstants.primary),
+              const Icon(
+                Icons.history,
+                size: 20,
+                color: ColorConstants.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Bid History',
@@ -65,7 +118,9 @@ class BidHistorySection extends StatelessWidget {
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: bidDetail.bidHistory.length > 5 ? 5 : bidDetail.bidHistory.length,
+            itemCount: bidDetail.bidHistory.length > 5
+                ? 5
+                : bidDetail.bidHistory.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final bid = bidDetail.bidHistory[index];
@@ -77,8 +132,8 @@ class BidHistorySection extends StatelessWidget {
                   color: bid.isCurrentUser
                       ? ColorConstants.primary.withValues(alpha: 0.1)
                       : (isDark
-                          ? ColorConstants.backgroundDark
-                          : ColorConstants.backgroundSecondaryLight),
+                            ? ColorConstants.backgroundDark
+                            : ColorConstants.backgroundSecondaryLight),
                   borderRadius: BorderRadius.circular(12),
                   border: isHighest
                       ? Border.all(color: ColorConstants.primary, width: 1.5)
@@ -92,14 +147,18 @@ class BidHistorySection extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: bid.isCurrentUser
                             ? ColorConstants.primary
-                            : ColorConstants.textSecondaryLight.withValues(alpha: 0.2),
+                            : ColorConstants.textSecondaryLight.withValues(
+                                alpha: 0.2,
+                              ),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
                         child: Text(
                           bid.bidderName.substring(0, 1).toUpperCase(),
                           style: TextStyle(
-                            color: bid.isCurrentUser ? Colors.white : Colors.black54,
+                            color: bid.isCurrentUser
+                                ? Colors.white
+                                : Colors.black54,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

@@ -24,4 +24,9 @@ class AuctionRepositoryImpl implements AuctionRepository {
   Future<List<AuctionEntity>> searchAuctions(String query) async {
     return await _remoteDataSource.searchAuctions(query);
   }
+
+  @override
+  Stream<void> streamActiveAuctions() {
+    return _remoteDataSource.streamAuctionsTable();
+  }
 }

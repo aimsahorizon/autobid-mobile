@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/admin_listing_entity.dart';
 
@@ -73,18 +74,20 @@ class AdminSupabaseDataSource {
           .eq('status_id', pendingStatusId)
           .order('created_at', ascending: true);
 
-      print(
+      debugPrint(
         'DEBUG: Pending listings response: ${(response as List).length} items',
       );
       if ((response as List).isNotEmpty) {
-        print('DEBUG: First item keys: ${(response[0] as Map).keys.toList()}');
+        debugPrint(
+          'DEBUG: First item keys: ${(response[0] as Map).keys.toList()}',
+        );
       }
 
       return (response as List)
           .map((json) => _parseAdminListing(json))
           .toList();
     } catch (e) {
-      print('DEBUG: Failed to fetch pending listings: $e');
+      debugPrint('DEBUG: Failed to fetch pending listings: $e');
       throw Exception('Failed to fetch pending listings: $e');
     }
   }
@@ -92,9 +95,9 @@ class AdminSupabaseDataSource {
   /// Get all listings by status
   Future<List<AdminListingEntity>> getListingsByStatus(String status) async {
     try {
-      print('[ADMIN] ===== START FETCH =====');
-      print('[ADMIN] Fetching listings with status: $status');
-      print('[ADMIN] Current user: ${_supabase.auth.currentUser?.id}');
+      debugPrint('[ADMIN] ===== START FETCH =====');
+      debugPrint('[ADMIN] Fetching listings with status: $status');
+      debugPrint('[ADMIN] Current user: ${_supabase.auth.currentUser?.id}');
 
       // Handle 'all' status differently - no status filter
       if (status == 'all') {
@@ -110,11 +113,11 @@ class AdminSupabaseDataSource {
             .order('created_at', ascending: false)
             .limit(100);
 
-        print(
+        debugPrint(
           '[ADMIN] Fetched ${(response as List).length} listings (all statuses)',
         );
         if ((response as List).isNotEmpty) {
-          print('[ADMIN] Sample data: ${(response as List).first}');
+          debugPrint('[ADMIN] Sample data: ${(response as List).first}');
         }
         return (response as List)
             .map((json) => _parseAdminListing(json))
@@ -122,11 +125,11 @@ class AdminSupabaseDataSource {
       }
 
       // For specific status, filter by status_id
-      print('[ADMIN] Getting status ID for: $status');
+      debugPrint('[ADMIN] Getting status ID for: $status');
       final statusId = await _getStatusId(status);
-      print('[ADMIN] Status ID: $statusId');
+      debugPrint('[ADMIN] Status ID: $statusId');
 
-      print('[ADMIN] Executing query...');
+      debugPrint('[ADMIN] Executing query...');
       final response = await _supabase
           .from('auctions')
           .select('''
@@ -140,29 +143,29 @@ class AdminSupabaseDataSource {
           .order('created_at', ascending: false)
           .limit(100);
 
-      print('[ADMIN] Raw response type: ${response.runtimeType}');
-      print(
+      debugPrint('[ADMIN] Raw response type: ${response.runtimeType}');
+      debugPrint(
         '[ADMIN] Fetched ${(response as List).length} listings with status: $status',
       );
 
       if ((response as List).isNotEmpty) {
-        print('[ADMIN] First item: ${(response as List).first}');
+        debugPrint('[ADMIN] First item: ${(response as List).first}');
       }
 
-      print('[ADMIN] Parsing ${(response as List).length} items...');
+      debugPrint('[ADMIN] Parsing ${(response as List).length} items...');
       final parsed = (response as List)
           .map((json) => _parseAdminListing(json))
           .toList();
-      print('[ADMIN] Successfully parsed ${parsed.length} listings');
-      print('[ADMIN] ===== END FETCH =====');
+      debugPrint('[ADMIN] Successfully parsed ${parsed.length} listings');
+      debugPrint('[ADMIN] ===== END FETCH =====');
       return parsed;
     } catch (e) {
-      print('[ADMIN] Error fetching listings: $e');
+      debugPrint('[ADMIN] Error fetching listings: $e');
       throw Exception('Failed to fetch listings: $e');
     }
   }
 
-  /// Approve a listing (move to approved; seller schedules later)
+  /// Approve a listing — respects auto_live and auto_schedule preferences
   Future<void> approveListing(String auctionId, {String? notes}) async {
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
@@ -179,22 +182,62 @@ class AdminSupabaseDataSource {
           .single();
 
       final adminUserId = adminUserResponse['id'] as String;
-      // Approval should keep listing in 'approved' status; seller will schedule/go live later
-      final statusId = await _getStatusId('scheduled');
 
-      await _supabase
+      // Read the seller's scheduling preferences from the auction
+      final auctionRow = await _supabase
           .from('auctions')
-          .update({
-            'status_id': statusId,
-            'reviewed_at': DateTime.now().toIso8601String(),
-            'reviewed_by': adminUserId,
-            'review_notes': notes,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', auctionId);
+          .select('auto_live_after_approval, schedule_live_mode, end_time')
+          .eq('id', auctionId)
+          .single();
 
-      print(
-        '[ADMIN] Approved listing $auctionId -> status: approved by admin_user $adminUserId (user: $currentUserId)',
+      final autoLive = auctionRow['auto_live_after_approval'] as bool? ?? false;
+      final scheduleLiveMode =
+          auctionRow['schedule_live_mode'] as String? ?? 'manual';
+      final existingEndTime = auctionRow['end_time'] as String?;
+
+      // Determine target status and timing based on preferences
+      String targetStatus;
+      Map<String, dynamic> updateData;
+      final now = DateTime.now().toUtc();
+
+      if (autoLive || scheduleLiveMode == 'auto_live') {
+        // Auto-live: go live immediately
+        targetStatus = 'live';
+        final endTime = existingEndTime != null
+            ? DateTime.parse(existingEndTime)
+            : now.add(const Duration(days: 7));
+        final safeEnd = endTime.isAfter(now)
+            ? endTime
+            : now.add(const Duration(days: 7));
+
+        updateData = {
+          'start_time': now.toIso8601String(),
+          'end_time': safeEnd.toIso8601String(),
+        };
+      } else if (scheduleLiveMode == 'auto_schedule') {
+        // Auto-schedule: set to scheduled status
+        targetStatus = 'scheduled';
+        updateData = {};
+      } else {
+        // Manual: seller decides when to go live
+        targetStatus = 'approved';
+        updateData = {};
+      }
+
+      final statusId = await _getStatusId(targetStatus);
+
+      updateData.addAll({
+        'status_id': statusId,
+        'reviewed_at': now.toIso8601String(),
+        'reviewed_by': adminUserId,
+        'review_notes': notes,
+        'updated_at': now.toIso8601String(),
+      });
+
+      await _supabase.from('auctions').update(updateData).eq('id', auctionId);
+
+      debugPrint(
+        '[ADMIN] Approved listing $auctionId -> status: $targetStatus (auto_live=$autoLive, schedule_mode=$scheduleLiveMode) by admin_user $adminUserId (user: $currentUserId)',
       );
     } catch (e) {
       throw Exception('Failed to approve listing: $e');
@@ -231,7 +274,7 @@ class AdminSupabaseDataSource {
           })
           .eq('id', auctionId);
 
-      print(
+      debugPrint(
         '[ADMIN] Rejected listing $auctionId by admin_user $adminUserId (user: $currentUserId): $reason',
       );
     } catch (e) {
@@ -320,7 +363,7 @@ class AdminSupabaseDataSource {
           );
           coverPhoto = primaryPhoto['photo_url'] as String?;
         } catch (e) {
-          print('[ADMIN] Error extracting photo: $e');
+          debugPrint('[ADMIN] Error extracting photo: $e');
         }
       }
 
@@ -355,6 +398,17 @@ class AdminSupabaseDataSource {
         variant: vehicle?['variant'] as String?,
         mileage: vehicle?['mileage'] as int? ?? 0,
         condition: vehicle?['condition'] as String? ?? 'used',
+        transmission: vehicle?['transmission'] as String? ?? 'Unknown',
+        fuelType: vehicle?['fuel_type'] as String? ?? 'Unknown',
+        engineType: vehicle?['engine_type'] as String?,
+        engineDisplacement: (vehicle?['engine_displacement'] as num?)
+            ?.toDouble(),
+        exteriorColor: vehicle?['exterior_color'] as String? ?? 'Unknown',
+        province: vehicle?['province'] as String? ?? '',
+        cityMunicipality: vehicle?['city_municipality'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        visibility: json['visibility'] as String? ?? 'public',
+        depositAmount: (json['deposit_amount'] as num?)?.toDouble() ?? 0.0,
         reviewNotes: json['review_notes'] as String?,
         reviewedAt: json['reviewed_at'] != null
             ? DateTime.parse(json['reviewed_at'] as String)
@@ -362,9 +416,9 @@ class AdminSupabaseDataSource {
         reviewedBy: json['reviewed_by'] as String?,
       );
     } catch (e, stackTrace) {
-      print('[ADMIN] ERROR parsing listing: $e');
-      print('[ADMIN] Stack trace: $stackTrace');
-      print('[ADMIN] JSON keys: ${json.keys.toList()}');
+      debugPrint('[ADMIN] ERROR parsing listing: $e');
+      debugPrint('[ADMIN] Stack trace: $stackTrace');
+      debugPrint('[ADMIN] JSON keys: ${json.keys.toList()}');
       rethrow;
     }
   }

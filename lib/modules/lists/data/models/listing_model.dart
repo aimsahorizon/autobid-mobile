@@ -15,6 +15,7 @@ class ListingModel {
   final String brand;
   final String model;
   final String? variant;
+  final String? bodyType; // Added
   final int year;
   final String? engineType;
   final double? engineDisplacement;
@@ -49,11 +50,13 @@ class ListingModel {
   final String? warrantyDetails;
   final String? usageType;
   final String plateNumber;
+  final String? chassisNumber;
   final String orcrStatus;
   final String registrationStatus;
   final DateTime? registrationExpiry;
   final String province;
   final String cityMunicipality;
+  final String? barangay;
   final Map<String, List<String>> photoUrls;
   final String? coverPhotoUrl;
   final String description;
@@ -76,6 +79,38 @@ class ListingModel {
   /// Transaction ID for cancelled listings that have an associated failed transaction
   final String? transactionId;
 
+  /// Reason for cancellation (if applicable)
+  final String? cancellationReason;
+
+  /// Who cancelled the deal ('seller' or 'buyer')
+  final String? cancelledBy;
+
+  // Bidding Configuration
+  final String biddingType;
+  final String? exclusiveTier;
+
+  final double bidIncrement;
+  final double minBidIncrement;
+  final double depositAmount;
+  final bool enableIncrementalBidding;
+  final bool autoLiveAfterApproval;
+
+  // Snipe Guard
+  final bool snipeGuardEnabled;
+  final int snipeGuardThresholdSeconds;
+  final int snipeGuardExtendSeconds;
+
+  // Documents
+  final String? deedOfSaleUrl;
+
+  final String visibility;
+
+  // Installment
+  final bool allowsInstallment;
+
+  // Review status (for completed transactions)
+  final bool? hasReview;
+
   const ListingModel({
     required this.id,
     required this.sellerId,
@@ -88,6 +123,7 @@ class ListingModel {
     required this.brand,
     required this.model,
     this.variant,
+    this.bodyType,
     required this.year,
     this.engineType,
     this.engineDisplacement,
@@ -122,11 +158,13 @@ class ListingModel {
     this.warrantyDetails,
     this.usageType,
     required this.plateNumber,
+    this.chassisNumber,
     required this.orcrStatus,
     required this.registrationStatus,
     this.registrationExpiry,
     required this.province,
     required this.cityMunicipality,
+    this.barangay,
     required this.photoUrls,
     this.coverPhotoUrl,
     required this.description,
@@ -146,6 +184,22 @@ class ListingModel {
     required this.createdAt,
     required this.updatedAt,
     this.transactionId,
+    this.cancellationReason,
+    this.cancelledBy,
+    this.biddingType = 'open',
+    this.exclusiveTier,
+    this.bidIncrement = 100,
+    this.minBidIncrement = 100,
+    this.depositAmount = 0,
+    this.enableIncrementalBidding = true,
+    this.autoLiveAfterApproval = false,
+    this.snipeGuardEnabled = true,
+    this.snipeGuardThresholdSeconds = 300,
+    this.snipeGuardExtendSeconds = 300,
+    this.deedOfSaleUrl,
+    this.visibility = 'open',
+    this.allowsInstallment = false,
+    this.hasReview,
   });
 
   /// Convert database row to model
@@ -200,6 +254,7 @@ class ListingModel {
       warrantyDetails: json['warranty_details'] as String?,
       usageType: json['usage_type'] as String?,
       plateNumber: json['plate_number'] as String? ?? '',
+      chassisNumber: json['chassis_number'] as String?,
       orcrStatus: json['orcr_status'] as String? ?? '',
       registrationStatus: json['registration_status'] as String? ?? '',
       registrationExpiry: json['registration_expiry'] != null
@@ -207,6 +262,7 @@ class ListingModel {
           : null,
       province: json['province'] as String? ?? '',
       cityMunicipality: json['city_municipality'] as String? ?? '',
+      barangay: json['barangay'] as String?,
       photoUrls: json['photo_urls'] != null
           ? _parsePhotoUrls(json['photo_urls'] as Map<String, dynamic>)
           : {},
@@ -240,17 +296,43 @@ class ListingModel {
           ? DateTime.parse(json['updated_at'] as String)
           : DateTime.now(),
       transactionId: json['transaction_id'] as String?,
+      cancellationReason: json['cancellation_reason'] as String?,
+      cancelledBy: json['cancelled_by'] as String?,
+      biddingType: json['bidding_type'] as String? ?? 'open',
+      exclusiveTier: json['exclusive_tier'] as String?,
+      bidIncrement: _toDouble(json['bid_increment']) ?? 100,
+      minBidIncrement: _toDouble(json['min_bid_increment']) ?? 100,
+      depositAmount: _toDouble(json['deposit_amount']) ?? 0,
+      enableIncrementalBidding:
+          json['enable_incremental_bidding'] as bool? ?? true,
+      autoLiveAfterApproval: json['auto_live_after_approval'] as bool? ?? false,
+      snipeGuardEnabled: json['snipe_guard_enabled'] as bool? ?? true,
+      snipeGuardThresholdSeconds:
+          json['snipe_guard_threshold_seconds'] as int? ?? 300,
+      snipeGuardExtendSeconds:
+          json['snipe_guard_extend_seconds'] as int? ?? 300,
+      deedOfSaleUrl: json['deed_of_sale_url'] as String?,
+      visibility:
+          json['visibility'] as String? ??
+          json['bidding_type'] as String? ??
+          'open',
+      allowsInstallment: json['allows_installment'] as bool? ?? false,
+      hasReview: json['has_review'] as bool?,
     );
   }
 
   /// Convert to SellerListingEntity (for list views)
   SellerListingEntity toSellerListingEntity() {
+    final resolvedCoverPhotoUrl =
+        coverPhotoUrl ?? _resolveCoverPhotoFromPhotoUrls();
+
     return SellerListingEntity(
       id: id,
-      imageUrl: coverPhotoUrl ?? '',
+      imageUrl: resolvedCoverPhotoUrl ?? '',
       year: year,
       make: brand,
       model: model,
+      variant: variant,
       status: _parseListingStatus(status),
       startingPrice: startingPrice,
       startTime: auctionStartTime,
@@ -265,7 +347,25 @@ class ListingModel {
       soldPrice: soldPrice,
       sellerId: sellerId,
       transactionId: transactionId,
+      cancellationReason: cancellationReason,
+      cancelledBy: cancelledBy,
+      rejectionReason: rejectionReason,
+      visibility: visibility != 'open' ? visibility : biddingType,
+      allowsInstallment: allowsInstallment,
+      hasReview: hasReview,
     );
+  }
+
+  String? _resolveCoverPhotoFromPhotoUrls() {
+    if (photoUrls.isEmpty) return null;
+
+    for (final urls in photoUrls.values) {
+      if (urls.isNotEmpty) {
+        return urls.first;
+      }
+    }
+
+    return null;
   }
 
   /// Convert to ListingDetailEntity (for detail views)
@@ -320,16 +420,33 @@ class ListingModel {
       warrantyDetails: warrantyDetails,
       usageType: usageType,
       plateNumber: plateNumber,
+      chassisNumber: chassisNumber,
       orcrStatus: orcrStatus,
       registrationStatus: registrationStatus,
       registrationExpiry: registrationExpiry,
       province: province,
       cityMunicipality: cityMunicipality,
+      barangay: barangay,
       photoUrls: photoUrls,
+      storedCoverPhotoUrl: coverPhotoUrl,
       description: description,
       knownIssues: knownIssues,
       features: features,
       auctionEndDate: auctionEndTime,
+      biddingType: biddingType,
+      exclusiveTier: exclusiveTier,
+      bidIncrement: bidIncrement,
+      minBidIncrement: minBidIncrement,
+      depositAmount: depositAmount,
+      enableIncrementalBidding: enableIncrementalBidding,
+      snipeGuardEnabled: snipeGuardEnabled,
+      snipeGuardThresholdSeconds: snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds: snipeGuardExtendSeconds,
+      deedOfSaleUrl: deedOfSaleUrl,
+      visibility: visibility,
+      autoLiveAfterApproval: autoLiveAfterApproval,
+      allowsInstallment: allowsInstallment,
+      rejectionReason: rejectionReason,
     );
   }
 
@@ -358,9 +475,12 @@ class ListingModel {
       case 'scheduled':
         return ListingStatus.scheduled;
       case 'ended':
+      case 'unsold':
         return ListingStatus.ended;
       case 'cancelled':
         return ListingStatus.cancelled;
+      case 'rejected':
+        return ListingStatus.rejected;
       case 'in_transaction':
         return ListingStatus.inTransaction;
       case 'sold':

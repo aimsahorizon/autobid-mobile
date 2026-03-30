@@ -1,14 +1,64 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
+import 'package:autobid_mobile/modules/auth/auth_routes.dart';
 import '../../controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/core/constants/policy_constants.dart';
+import '../../controllers/installment_controller.dart';
 import '../../../domain/entities/transaction_entity.dart';
 
 /// Progress tab - shows transaction timeline and status
-class ProgressRealtimeTab extends StatelessWidget {
+class ProgressRealtimeTab extends StatefulWidget {
   final TransactionRealtimeController controller;
   final String? userId;
+  final InstallmentController? installmentController;
 
-  const ProgressRealtimeTab({super.key, required this.controller, this.userId});
+  const ProgressRealtimeTab({
+    super.key,
+    required this.controller,
+    this.userId,
+    this.installmentController,
+  });
+
+  @override
+  State<ProgressRealtimeTab> createState() => _ProgressRealtimeTabState();
+}
+
+class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
+  static const int _pageSize = 20;
+  int _visibleCount = _pageSize;
+  Timer? _deadlineTimer;
+
+  TransactionRealtimeController get controller => widget.controller;
+  String? get userId => widget.userId;
+  InstallmentController? get installmentController =>
+      widget.installmentController;
+
+  @override
+  void initState() {
+    super.initState();
+    _deadlineTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final deadline = controller.buyerAcceptanceDeadline;
+      if (deadline != null && mounted) {
+        if (DateTime.now().isAfter(deadline)) {
+          controller.sweepAutoAccept();
+          _deadlineTimer?.cancel();
+        }
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _deadlineTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +79,9 @@ class ProgressRealtimeTab extends StatelessWidget {
         final isBuyer =
             userId != null && controller.getUserRole(userId!) == FormRole.buyer;
 
-        // Check if deal can be cancelled (not yet admin approved and not already failed/cancelled)
+        // Check if deal can be cancelled — available at any active stage
+        // Both buyer and seller can cancel (penalties escalate by stage per policy)
         final canCancelDeal =
-            isBuyer &&
-            !transaction.adminApproved &&
             transaction.status != TransactionStatus.cancelled &&
             transaction.status != TransactionStatus.completed;
 
@@ -46,10 +95,16 @@ class ProgressRealtimeTab extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // Progress Steps
+              // Delivery Progress (Visible after Finalization)
+              if (transaction.adminApproved) ...[
+                _buildDeliveryProgress(context, transaction, isBuyer, isDark),
+                const SizedBox(height: 24),
+              ],
+
+              // Progress Steps (admin approval removed - shows finalized status)
               _buildProgressSteps(transaction, isDark),
 
-              // Cancel Deal Button (only for buyers who haven't completed transaction)
+              // Cancel Deal Button (for both parties)
               if (canCancelDeal) ...[
                 const SizedBox(height: 24),
                 _buildCancelDealSection(context, isDark),
@@ -64,9 +119,7 @@ class ProgressRealtimeTab extends StatelessWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                ...timeline.reversed.map(
-                  (event) => _buildTimelineItem(event, isDark),
-                ),
+                ..._buildPaginatedTimeline(timeline, isDark),
               ] else
                 Center(
                   child: Column(
@@ -89,12 +142,55 @@ class ProgressRealtimeTab extends StatelessWidget {
                   ),
                 ),
 
+              // Review Section — only when fully complete
+              // If installments exist, wait until they're completed too
+              if (transaction.deliveryStatus == DeliveryStatus.completed &&
+                  _isFullyComplete(transaction)) ...[
+                const SizedBox(height: 32),
+                _buildReviewSection(context, transaction, isDark),
+              ] else if (transaction.deliveryStatus ==
+                      DeliveryStatus.completed &&
+                  !_isFullyComplete(transaction)) ...[
+                const SizedBox(height: 32),
+                _buildReviewPendingInstallmentBanner(isDark),
+              ],
+
               const SizedBox(height: 32),
             ],
           ),
         );
       },
     );
+  }
+
+  List<Widget> _buildPaginatedTimeline(
+    List<TransactionTimelineEntity> timeline,
+    bool isDark,
+  ) {
+    final filtered = timeline
+        .where((e) => e.type != TimelineEventType.messageSent)
+        .toList();
+    final visible = filtered.take(_visibleCount).toList();
+    final hasMore = filtered.length > _visibleCount;
+
+    return [
+      ...visible.map((event) => _buildTimelineItem(event, isDark)),
+      if (hasMore)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Center(
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() => _visibleCount += _pageSize);
+              },
+              icon: const Icon(Icons.expand_more),
+              label: Text(
+                'Show more (${filtered.length - _visibleCount} remaining)',
+              ),
+            ),
+          ),
+        ),
+    ];
   }
 
   Widget _buildCancelDealSection(BuildContext context, bool isDark) {
@@ -124,7 +220,7 @@ class ProgressRealtimeTab extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'If you can no longer proceed with this purchase, you can cancel the deal. The seller will be notified and may offer to the next highest bidder.',
+            'Cancelling this deal will result in penalties as per the transaction policy you accepted.',
             style: TextStyle(
               fontSize: 13,
               color: isDark
@@ -169,57 +265,100 @@ class ProgressRealtimeTab extends StatelessWidget {
           children: [
             Icon(Icons.warning_amber_rounded, color: ColorConstants.error),
             const SizedBox(width: 12),
-            const Text('Cancel Deal'),
+            const Expanded(
+              child: Text('Cancel Deal', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Are you sure you want to cancel this deal? This action cannot be undone.',
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Please provide a reason (optional):',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Enter reason for cancellation...',
-                border: OutlineInputBorder(
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Are you sure you want to cancel this deal? This action cannot be undone.',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+
+              // Policy reminder
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: ColorConstants.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: ColorConstants.error.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.policy_rounded,
+                          color: ColorConstants.error,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Cancellation Penalties',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...PolicyConstants.transactionPolicies
+                        .where(
+                          (p) =>
+                              p.contains('cancel') ||
+                              p.contains('deposit') ||
+                              p.contains('penalty') ||
+                              p.contains('Suspension') ||
+                              p.contains('penalties') ||
+                              p.startsWith('  •'),
+                        )
+                        .map(
+                          (policy) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              policy,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: ColorConstants.error.withValues(
+                                  alpha: 0.9,
+                                ),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: ColorConstants.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 16),
+
+              const Text(
+                'Reason for cancellation:',
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: ColorConstants.warning,
-                    size: 20,
+              const SizedBox(height: 8),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Enter reason for cancellation...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'The seller will be notified and may offer to the next highest bidder.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -238,32 +377,28 @@ class ProgressRealtimeTab extends StatelessWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      print(
-        '[ProgressRealtimeTab] User confirmed cancel. Calling controller...',
-      );
-      print('[ProgressRealtimeTab] Reason: "${reasonController.text.trim()}"');
-
-      final success = await controller.buyerCancelDeal(
+      final success = await controller.cancelAuctionWithPenalty(
         reason: reasonController.text.trim(),
       );
 
-      print('[ProgressRealtimeTab] buyerCancelDeal returned: $success');
-
       if (context.mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Deal cancelled successfully'),
-              backgroundColor: ColorConstants.success,
-            ),
-          );
-          // Navigate back since the deal is cancelled
-          Navigator.pop(context);
+          final suspension = controller.suspensionAfterCancel;
+          if (suspension != null && suspension.isSuspended) {
+            await _showSuspensionAndSignOut(context, suspension);
+          } else {
+            (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Deal cancelled. Penalties applied as per policy.',
+                ),
+                backgroundColor: ColorConstants.success,
+              ),
+            );
+            Navigator.pop(context);
+          }
         } else {
-          print(
-            '[ProgressRealtimeTab] ❌ Cancel failed. Error: ${controller.errorMessage}',
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             SnackBar(
               content: Text(controller.errorMessage ?? 'Failed to cancel deal'),
               backgroundColor: ColorConstants.error,
@@ -274,6 +409,238 @@ class ProgressRealtimeTab extends StatelessWidget {
     }
 
     reasonController.dispose();
+  }
+
+  Widget _buildReviewSection(
+    BuildContext context,
+    TransactionEntity transaction,
+    bool isDark,
+  ) {
+    final myReview = controller.myReview;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ColorConstants.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ColorConstants.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.rate_review, color: ColorConstants.primary, size: 24),
+              const SizedBox(width: 12),
+              const Text(
+                'Rate your Experience',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (myReview != null) ...[
+            const Text('Your submitted review:'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (int i = 1; i <= 5; i++)
+                  Icon(
+                    i <= myReview.rating ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 20,
+                  ),
+              ],
+            ),
+            if (myReview.comment != null && myReview.comment!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                myReview.comment!,
+                style: const TextStyle(fontStyle: FontStyle.italic),
+              ),
+            ],
+          ] else ...[
+            Text(
+              'Please take a moment to rate the other party to help our community grow.',
+              style: TextStyle(
+                color: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _showReviewDialog(context),
+                icon: const Icon(Icons.star),
+                label: const Text('Submit Review'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Check if the transaction is fully complete (delivery done + installments done if applicable)
+  bool _isFullyComplete(TransactionEntity transaction) {
+    if (!transaction.isInstallment) return true;
+    // If installment controller is available, check completion
+    if (installmentController != null) {
+      return installmentController!.isCompleted;
+    }
+    // No controller means no installment data loaded — assume incomplete
+    return false;
+  }
+
+  Widget _buildReviewPendingInstallmentBanner(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.hourglass_top, color: Colors.orange, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Review available after gives are completed',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Complete all gives payments to unlock the review section.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? ColorConstants.textSecondaryDark
+                        : ColorConstants.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showReviewDialog(BuildContext context) async {
+    int rating = 5;
+    int communication = 5;
+    int reliability = 5;
+    final commentController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Submit Review'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'How was your experience?',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                _buildRatingRow(
+                  'Overall',
+                  rating,
+                  (v) => setState(() => rating = v),
+                ),
+                const SizedBox(height: 12),
+                _buildRatingRow(
+                  'Communication',
+                  communication,
+                  (v) => setState(() => communication = v),
+                ),
+                const SizedBox(height: 12),
+                _buildRatingRow(
+                  'Reliability',
+                  reliability,
+                  (v) => setState(() => reliability = v),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Add a comment (optional)...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                final success = await controller.submitReview(
+                  rating: rating,
+                  ratingCommunication: communication,
+                  ratingReliability: reliability,
+                  comment: commentController.text.trim(),
+                );
+                if (success && context.mounted) {
+                  (ScaffoldMessenger.of(
+                    context,
+                  )..clearSnackBars()).showSnackBar(
+                    const SnackBar(
+                      content: Text('Thank you for your review!'),
+                      backgroundColor: ColorConstants.success,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRatingRow(String label, int value, ValueChanged<int> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (int i = 1; i <= 5; i++)
+              InkWell(
+                onTap: () => onChanged(i),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                  child: Icon(
+                    i <= value ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 32,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildSummaryCard(TransactionEntity transaction, bool isDark) {
@@ -354,24 +721,20 @@ class ProgressRealtimeTab extends StatelessWidget {
         icon: Icons.handshake,
       ),
       _ProgressStep(
-        title: 'Seller Form Submitted',
-        isComplete: transaction.sellerFormSubmitted,
-        icon: Icons.description,
+        title: 'Agreement Locked',
+        isComplete:
+            transaction.sellerFormSubmitted && transaction.buyerFormSubmitted,
+        icon: Icons.lock,
       ),
       _ProgressStep(
-        title: 'Buyer Form Submitted',
-        isComplete: transaction.buyerFormSubmitted,
-        icon: Icons.description,
-      ),
-      _ProgressStep(
-        title: 'Forms Confirmed',
+        title: 'Both Confirmed',
         isComplete: transaction.sellerConfirmed && transaction.buyerConfirmed,
         icon: Icons.verified,
       ),
       _ProgressStep(
-        title: 'Admin Approved',
+        title: 'Finalized',
         isComplete: transaction.adminApproved,
-        icon: Icons.admin_panel_settings,
+        icon: Icons.check_circle,
       ),
       _ProgressStep(
         title: 'Completed',
@@ -482,6 +845,12 @@ class ProgressRealtimeTab extends StatelessWidget {
       case TimelineEventType.adminApproved:
         icon = Icons.admin_panel_settings;
         color = ColorConstants.success;
+      case TimelineEventType.deliveryStarted:
+        icon = Icons.local_shipping;
+        color = ColorConstants.info;
+      case TimelineEventType.deliveryCompleted:
+        icon = Icons.done_all;
+        color = ColorConstants.success;
       case TimelineEventType.completed:
         icon = Icons.celebration;
         color = ColorConstants.success;
@@ -559,6 +928,1314 @@ class ProgressRealtimeTab extends StatelessWidget {
     if (diff.inDays < 7) return '${diff.inDays}d ago';
 
     return '${timestamp.month}/${timestamp.day}/${timestamp.year}';
+  }
+
+  Widget _buildDeliveryProgress(
+    BuildContext context,
+    TransactionEntity transaction,
+    bool isBuyer,
+    bool isDark,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Delivery Status',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark
+                ? ColorConstants.surfaceDark
+                : ColorConstants.backgroundSecondaryLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? ColorConstants.borderDark
+                  : ColorConstants.borderLight,
+            ),
+          ),
+          child: Column(
+            children: [
+              _buildDeliveryStepper(transaction.deliveryStatus),
+              const SizedBox(height: 24),
+              if (!isBuyer)
+                _buildSellerDeliveryControls(context, transaction)
+              else
+                _buildBuyerDeliveryView(context, transaction),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeliveryStepper(DeliveryStatus currentStatus) {
+    final steps = [
+      {'status': DeliveryStatus.preparing, 'label': 'Preparing'},
+      {'status': DeliveryStatus.inTransit, 'label': 'In Transit'},
+      {'status': DeliveryStatus.delivered, 'label': 'Delivered'},
+      {'status': DeliveryStatus.completed, 'label': 'Completed'},
+    ];
+
+    int currentIndex = -1;
+    if (currentStatus == DeliveryStatus.pending) {
+      currentIndex = -1;
+    } else {
+      currentIndex = steps.indexWhere((s) => s['status'] == currentStatus);
+      // If completed, make sure delivered is also active
+      if (currentStatus == DeliveryStatus.completed) {
+        currentIndex = 3;
+      }
+    }
+
+    return Row(
+      children: [
+        for (int i = 0; i < steps.length; i++) ...[
+          Expanded(
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: i <= currentIndex
+                      ? ColorConstants.primary
+                      : Colors.grey.withValues(alpha: 0.3),
+                  child: Icon(
+                    Icons.check,
+                    size: 16,
+                    color: i <= currentIndex ? Colors.white : Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  steps[i]['label'] as String,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: i <= currentIndex
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: i <= currentIndex
+                        ? ColorConstants.primary
+                        : Colors.grey,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          if (i < steps.length - 1)
+            Expanded(
+              child: Container(
+                height: 2,
+                color: i < currentIndex
+                    ? ColorConstants.primary
+                    : Colors.grey.withValues(alpha: 0.3),
+                margin: const EdgeInsets.only(bottom: 20),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSellerDeliveryControls(
+    BuildContext context,
+    TransactionEntity transaction,
+  ) {
+    if (transaction.deliveryStatus == DeliveryStatus.completed) {
+      return Column(
+        children: [
+          const Center(
+            child: Text(
+              'Transaction Completed',
+              style: TextStyle(
+                color: ColorConstants.success,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          if (transaction.sellerPrepPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Preparation Photo',
+              transaction.sellerPrepPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerTransitPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Transit Photo',
+              transaction.sellerTransitPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Delivery Photo',
+              transaction.sellerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.buyerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Buyer's Confirmation Photo",
+              transaction.buyerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+        ],
+      );
+    }
+
+    if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
+      // If dispute is active (seller already objected)
+      if (transaction.isDisputed) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            children: [
+              const Icon(Icons.gavel, color: Colors.orange, size: 32),
+              const SizedBox(height: 8),
+              const Text(
+                'Dispute Under Review',
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your objection: ${transaction.sellerObjectionReason ?? ""}',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: ColorConstants.textSecondaryLight),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'An admin is reviewing the dispute. You will be notified of the decision.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: ColorConstants.textSecondaryLight,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // If dispute was resolved
+      if (transaction.isDisputeResolved) {
+        return _buildDisputeResolutionView(transaction);
+      }
+
+      // Buyer rejected, seller can object
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: ColorConstants.error.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            const Text(
+              'Buyer Rejected Delivery',
+              style: TextStyle(
+                color: ColorConstants.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Reason: ${transaction.buyerRejectionReason ?? "None provided"}',
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'If you believe this rejection is unjustified, you can raise a dispute for admin review.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: controller.isProcessing
+                    ? null
+                    : () => _showSellerObjectionDialog(context),
+                icon: const Icon(Icons.gavel, size: 18),
+                label: const Text('Raise Dispute'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    String buttonLabel;
+    DeliveryStatus nextStatus;
+    bool isEnabled = true;
+    String? existingPhotoUrl;
+
+    switch (transaction.deliveryStatus) {
+      case DeliveryStatus.pending:
+        buttonLabel = 'Start Preparing (Photo Required)';
+        nextStatus = DeliveryStatus.preparing;
+        break;
+      case DeliveryStatus.preparing:
+        buttonLabel = 'Mark as In Transit (Photo Required)';
+        nextStatus = DeliveryStatus.inTransit;
+        existingPhotoUrl = transaction.sellerPrepPhotoUrl;
+        break;
+      case DeliveryStatus.inTransit:
+        buttonLabel = 'Mark as Delivered (Photo Required)';
+        nextStatus = DeliveryStatus.delivered;
+        existingPhotoUrl = transaction.sellerTransitPhotoUrl;
+        break;
+      case DeliveryStatus.delivered:
+        buttonLabel = 'Waiting for Buyer Confirmation';
+        nextStatus = DeliveryStatus.completed;
+        isEnabled = false;
+        existingPhotoUrl = transaction.sellerDeliveryPhotoUrl;
+        break;
+      default:
+        buttonLabel = 'Update Status';
+        nextStatus = DeliveryStatus.pending;
+        isEnabled = false;
+    }
+
+    return Column(
+      children: [
+        // Show previous step's uploaded photo proof
+        if (existingPhotoUrl != null) ...[
+          _buildPhotoProofTile('Your Photo Proof', existingPhotoUrl, context),
+          const SizedBox(height: 12),
+        ],
+        // Show buyer's photo if delivered
+        if (transaction.deliveryStatus == DeliveryStatus.delivered &&
+            transaction.buyerDeliveryPhotoUrl != null) ...[
+          _buildPhotoProofTile(
+            "Buyer's Photo Proof",
+            transaction.buyerDeliveryPhotoUrl!,
+            context,
+          ),
+          const SizedBox(height: 12),
+        ],
+        // Auto-accept countdown for seller
+        if (transaction.deliveryStatus == DeliveryStatus.delivered &&
+            transaction.buyerAcceptanceStatus ==
+                BuyerAcceptanceStatus.pending) ...[
+          _buildAutoAcceptCountdown(context),
+          const SizedBox(height: 8),
+          // Demo mode button: shorten deadline to 3 minutes for testing
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: controller.isProcessing
+                  ? null
+                  : () async {
+                      final success = await controller.enableAutoAcceptDemo();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? 'Demo mode enabled — auto-accept in 3 minutes'
+                                  : 'Failed to enable demo mode',
+                            ),
+                            backgroundColor: success
+                                ? Colors.orange
+                                : ColorConstants.error,
+                          ),
+                        );
+                      }
+                    },
+              icon: const Icon(Icons.speed, size: 16),
+              label: const Text('Demo: Auto-accept in 3 min'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: isEnabled && !controller.isProcessing
+                ? () => _showPhotoPickerForDeliveryStatus(context, nextStatus)
+                : null,
+            icon: controller.isProcessing && isEnabled
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.camera_alt, size: 18),
+            label: Text(buttonLabel),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBuyerDeliveryView(
+    BuildContext context,
+    TransactionEntity transaction,
+  ) {
+    if (transaction.deliveryStatus == DeliveryStatus.completed) {
+      return Column(
+        children: [
+          const Center(
+            child: Text(
+              'You have accepted the vehicle!',
+              style: TextStyle(
+                color: ColorConstants.success,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          if (transaction.sellerPrepPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Preparation Photo",
+              transaction.sellerPrepPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerTransitPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Transit Photo",
+              transaction.sellerTransitPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              "Seller's Delivery Photo",
+              transaction.sellerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.buyerDeliveryPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Your Confirmation Photo',
+              transaction.buyerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+        ],
+      );
+    }
+
+    if (transaction.deliveryStatus == DeliveryStatus.delivered) {
+      if (transaction.buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected) {
+        // If dispute is active
+        if (transaction.isDisputed) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              children: [
+                const Icon(Icons.gavel, color: Colors.orange, size: 32),
+                const SizedBox(height: 8),
+                const Text(
+                  'Dispute Under Review',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'The seller has objected to your rejection. An admin is reviewing the dispute.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: ColorConstants.textSecondaryLight,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // If dispute was resolved
+        if (transaction.isDisputeResolved) {
+          return _buildDisputeResolutionView(transaction);
+        }
+
+        return const Center(
+          child: Text(
+            'You rejected the delivery.',
+            style: TextStyle(
+              color: ColorConstants.error,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      }
+
+      final hasUploadedPhoto = transaction.buyerDeliveryPhotoUrl != null;
+
+      return Column(
+        children: [
+          const Text(
+            'Vehicle Delivered',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Please inspect the vehicle, take a confirmation photo, and confirm receipt.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          // Auto-accept countdown for buyer
+          _buildAutoAcceptCountdown(context),
+          const SizedBox(height: 12),
+          // Show seller's delivery photo
+          if (transaction.sellerDeliveryPhotoUrl != null) ...[
+            _buildPhotoProofTile(
+              "Seller's Delivery Photo",
+              transaction.sellerDeliveryPhotoUrl!,
+              context,
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Buyer photo upload
+          if (!hasUploadedPhoto)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: controller.isProcessing
+                    ? null
+                    : () => _pickAndUploadBuyerDeliveryPhoto(context),
+                icon: const Icon(Icons.camera_alt, size: 18),
+                label: const Text('Upload Confirmation Photo (Required)'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ColorConstants.primary,
+                  side: BorderSide(color: ColorConstants.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            )
+          else ...[
+            _buildPhotoProofTile(
+              'Your Confirmation Photo',
+              transaction.buyerDeliveryPhotoUrl!,
+              context,
+            ),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: controller.isProcessing
+                      ? null
+                      : () => _showRejectionDialog(context),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ColorConstants.error,
+                    side: BorderSide(color: ColorConstants.error),
+                  ),
+                  child: const Text('Reject'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: FilledButton(
+                  onPressed: hasUploadedPhoto && !controller.isProcessing
+                      ? () => _showAcceptVehicleWarning(context)
+                      : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: ColorConstants.success,
+                  ),
+                  child: const Text('Accept'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    String statusText = 'Waiting for seller update...';
+    IconData statusIcon = Icons.hourglass_empty;
+    if (transaction.deliveryStatus == DeliveryStatus.preparing) {
+      statusText = 'Seller is preparing the vehicle...';
+      statusIcon = Icons.build_circle_outlined;
+    } else if (transaction.deliveryStatus == DeliveryStatus.inTransit) {
+      statusText = 'Vehicle is on the way!';
+      statusIcon = Icons.local_shipping_outlined;
+    }
+
+    return Column(
+      children: [
+        Icon(statusIcon, size: 48, color: ColorConstants.textSecondaryLight),
+        const SizedBox(height: 8),
+        Text(
+          statusText,
+          style: TextStyle(color: ColorConstants.textSecondaryLight),
+        ),
+        if (transaction.deliveryStatus == DeliveryStatus.preparing &&
+            transaction.sellerPrepPhotoUrl != null) ...[
+          const SizedBox(height: 16),
+          _buildPhotoProofTile(
+            'Seller Preparation Photo',
+            transaction.sellerPrepPhotoUrl!,
+            context,
+          ),
+        ],
+        if (transaction.deliveryStatus == DeliveryStatus.inTransit) ...[
+          if (transaction.sellerPrepPhotoUrl != null) ...[
+            const SizedBox(height: 16),
+            _buildPhotoProofTile(
+              'Seller Preparation Photo',
+              transaction.sellerPrepPhotoUrl!,
+              context,
+            ),
+          ],
+          if (transaction.sellerTransitPhotoUrl != null) ...[
+            const SizedBox(height: 12),
+            _buildPhotoProofTile(
+              'Seller Transit Photo',
+              transaction.sellerTransitPhotoUrl!,
+              context,
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  Future<void> _showRejectionDialog(BuildContext context) async {
+    final reasonController = TextEditingController();
+    final List<File> photos = [];
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Reject Delivery'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Please provide a reason for rejecting the vehicle.',
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Photo Proof (Required)',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ...photos.map(
+                      (f) => Stack(
+                        children: [
+                          Image.file(
+                            f,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: InkWell(
+                              onTap: () => setState(() => photos.remove(f)),
+                              child: const CircleAvatar(
+                                radius: 10,
+                                backgroundColor: Colors.red,
+                                child: Icon(
+                                  Icons.close,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () async {
+                        final picker = ImagePicker();
+                        final image = await picker.pickImage(
+                          source: ImageSource.camera,
+                        );
+                        if (image != null) {
+                          setState(() => photos.add(File(image.path)));
+                        }
+                      },
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.add_a_photo),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (reasonController.text.isEmpty || photos.isEmpty) {
+                  (ScaffoldMessenger.of(
+                    context,
+                  )..clearSnackBars()).showSnackBar(
+                    const SnackBar(
+                      content: Text('Reason and photo proof are required'),
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(context);
+                final success = await controller.respondToDelivery(
+                  accepted: false,
+                  rejectionReason: reasonController.text,
+                  rejectionPhotos: photos,
+                );
+                if (!success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        controller.errorMessage ?? 'Failed to reject delivery',
+                      ),
+                      backgroundColor: ColorConstants.error,
+                    ),
+                  );
+                }
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: ColorConstants.error,
+              ),
+              child: const Text('Reject Delivery'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Warning dialog before buyer confirms vehicle acceptance.
+  /// This action completes the transaction and cannot be undone.
+  Future<void> _showAcceptVehicleWarning(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Confirm Vehicle Receipt')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'By accepting, you confirm that you have received the vehicle and are satisfied with its condition.',
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ColorConstants.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: ColorConstants.error.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: ColorConstants.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'This action cannot be undone. The transaction will be marked as completed.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Go Back'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.success,
+            ),
+            child: const Text('Accept Vehicle'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      controller.respondToDelivery(accepted: true);
+    }
+  }
+
+  /// Show photo picker dialog for seller delivery status advancement
+  Future<void> _showPhotoPickerForDeliveryStatus(
+    BuildContext context,
+    DeliveryStatus nextStatus,
+  ) async {
+    final picker = ImagePicker();
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Photo Proof Required'),
+        content: const Text(
+          'Please provide a photo as proof for this delivery step.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            icon: const Icon(Icons.photo_library),
+            label: const Text('Gallery'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Camera'),
+          ),
+        ],
+      ),
+    );
+
+    if (source == null || !context.mounted) return;
+
+    final image = await picker.pickImage(source: source, imageQuality: 80);
+    if (image == null || !context.mounted) return;
+
+    final success = await controller.updateDeliveryStatusWithPhoto(
+      nextStatus,
+      File(image.path),
+    );
+
+    if (context.mounted) {
+      if (success) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Delivery status updated with photo proof'),
+            backgroundColor: ColorConstants.success,
+          ),
+        );
+      } else {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(
+              controller.errorMessage ?? 'Failed to update delivery status',
+            ),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Pick and upload buyer's delivery confirmation photo
+  Future<void> _pickAndUploadBuyerDeliveryPhoto(BuildContext context) async {
+    final picker = ImagePicker();
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmation Photo'),
+        content: const Text(
+          'Take or select a photo as proof of vehicle receipt.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.gallery),
+            icon: const Icon(Icons.photo_library),
+            label: const Text('Gallery'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, ImageSource.camera),
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Camera'),
+          ),
+        ],
+      ),
+    );
+
+    if (source == null || !context.mounted) return;
+
+    final image = await picker.pickImage(source: source, imageQuality: 80);
+    if (image == null || !context.mounted) return;
+
+    final success = await controller.uploadBuyerDeliveryPhoto(File(image.path));
+
+    if (context.mounted) {
+      if (success) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Photo uploaded successfully'),
+            backgroundColor: ColorConstants.success,
+          ),
+        );
+      } else {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(controller.errorMessage ?? 'Failed to upload photo'),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Build a photo proof tile showing an uploaded image with label
+  Widget _buildPhotoProofTile(
+    String label,
+    String photoUrl,
+    BuildContext context,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: ColorConstants.success.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: ColorConstants.success.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.network(
+              photoUrl,
+              width: 56,
+              height: 56,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 56,
+                height: 56,
+                color: Colors.grey.withValues(alpha: 0.2),
+                child: const Icon(Icons.broken_image, size: 24),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: ColorConstants.success,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Uploaded',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: ColorConstants.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _showFullScreenPhoto(context, photoUrl, label),
+            icon: const Icon(Icons.fullscreen, size: 20),
+            tooltip: 'View full size',
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show full-screen photo viewer
+  void _showFullScreenPhoto(
+    BuildContext context,
+    String photoUrl,
+    String title,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              title: Text(title, style: const TextStyle(fontSize: 16)),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            Flexible(
+              child: InteractiveViewer(
+                child: Image.network(
+                  photoUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) =>
+                      const Center(child: Text('Failed to load image')),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSuspensionAndSignOut(
+    BuildContext context,
+    SuspensionStatus suspension,
+  ) async {
+    final message = suspension.isPermanent
+        ? 'Your account has been permanently banned due to repeated policy violations.'
+        : 'Your account has been suspended until ${suspension.endsAt?.toLocal().toString().split('.').first ?? 'unknown'} for violating transaction policies.';
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.block, color: ColorConstants.error),
+            const SizedBox(width: 12),
+            const Text('Account Suspended'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: FilledButton.styleFrom(
+              backgroundColor: ColorConstants.error,
+            ),
+            child: const Text('I Understand'),
+          ),
+        ],
+      ),
+    );
+
+    if (context.mounted) {
+      await Supabase.instance.client.auth.signOut();
+      if (context.mounted) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AuthRoutes.login, (route) => false);
+      }
+    }
+  }
+
+  /// Dialog for seller to explain their objection to buyer rejection
+  Future<void> _showSellerObjectionDialog(BuildContext context) async {
+    final reasonController = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.gavel, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Raise Dispute'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Explain why you believe the buyer\'s rejection is unjustified. '
+              'An admin will review the full conversation and evidence.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              maxLines: 4,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'Your objection reason',
+                hintText: 'Describe why the rejection is unfair...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (reasonController.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Submit Dispute'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final success = await controller.raiseSellerObjection(
+        reason: reasonController.text.trim(),
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Dispute raised. An admin will review your case.'
+                  : 'Failed to raise dispute. Please try again.',
+            ),
+            backgroundColor: success ? Colors.orange : ColorConstants.error,
+          ),
+        );
+      }
+    }
+
+    reasonController.dispose();
+  }
+
+  /// Shows dispute resolution result for both parties
+  Widget _buildDisputeResolutionView(TransactionEntity transaction) {
+    final resolution = transaction.disputeResolution;
+    final isRefundBoth = resolution == 'refund_both';
+    final isPenalizeSeller = resolution == 'penalize_seller';
+
+    String title;
+    String description;
+    IconData icon;
+    Color color;
+
+    if (isRefundBoth) {
+      title = 'Dispute Resolved — No Penalty';
+      description = 'Both deposits have been refunded. No party was penalized.';
+      icon = Icons.handshake;
+      color = Colors.blue;
+    } else if (isPenalizeSeller) {
+      title = 'Dispute Resolved — Seller Penalized';
+      description =
+          'The seller was found at fault. Both deposits refunded. The seller\'s account has been suspended.';
+      icon = Icons.warning_amber;
+      color = ColorConstants.error;
+    } else {
+      title = 'Dispute Resolved — Buyer Penalized';
+      description =
+          'The buyer was found at fault. Both deposits refunded. The buyer\'s account has been suspended.';
+      icon = Icons.warning_amber;
+      color = ColorConstants.error;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: ColorConstants.textSecondaryLight,
+              fontSize: 12,
+            ),
+          ),
+          if (transaction.disputeAdminNotes != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Admin notes: ${transaction.disputeAdminNotes}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAutoAcceptCountdown(BuildContext context) {
+    final deadline = controller.buyerAcceptanceDeadline;
+    if (deadline == null) return const SizedBox.shrink();
+
+    final now = DateTime.now();
+    final remaining = deadline.difference(now);
+    if (remaining.isNegative) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: ColorConstants.success.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: ColorConstants.success.withValues(alpha: 0.3),
+          ),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle, color: ColorConstants.success, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Auto-accepting...',
+              style: TextStyle(
+                color: ColorConstants.success,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final days = remaining.inDays;
+    final hours = remaining.inHours % 24;
+    final minutes = remaining.inMinutes % 60;
+    final seconds = remaining.inSeconds % 60;
+
+    String timeText;
+    if (days > 0) {
+      timeText = '${days}d ${hours}h ${minutes}m';
+    } else if (hours > 0) {
+      timeText = '${hours}h ${minutes}m ${seconds}s';
+    } else {
+      timeText = '${minutes}m ${seconds}s';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ColorConstants.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: ColorConstants.warning.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.timer_outlined,
+            color: ColorConstants.warning,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Auto-accepts in $timeText',
+              style: const TextStyle(
+                color: ColorConstants.warning,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

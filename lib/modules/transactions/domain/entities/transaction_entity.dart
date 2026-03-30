@@ -19,16 +19,41 @@ class TransactionEntity {
   final bool buyerConfirmed;
   final bool adminApproved;
   final DateTime? adminApprovedAt;
+  final DateTime? bothConfirmedAt;
 
-  // Delivery tracking (only active after admin approval)
+  // Delivery tracking (only active after finalization)
   final DeliveryStatus deliveryStatus;
   final DateTime? deliveryStartedAt;
   final DateTime? deliveryCompletedAt;
+
+  // Delivery checklist photo proofs
+  final String? sellerPrepPhotoUrl;
+  final String? sellerTransitPhotoUrl;
+  final String? sellerDeliveryPhotoUrl;
+  final String? buyerDeliveryPhotoUrl;
 
   // Buyer acceptance tracking (after delivery)
   final BuyerAcceptanceStatus buyerAcceptanceStatus;
   final DateTime? buyerAcceptedAt;
   final String? buyerRejectionReason;
+
+  // Cancellation tracking
+  final String? sellerRejectionReason;
+  final String? cancelledBy; // 'buyer' or 'seller'
+
+  // Dispute tracking (seller objects to buyer rejection)
+  final String? sellerObjectionReason;
+  final DateTime? sellerObjectedAt;
+  final String?
+  disputeResolution; // 'refund_both', 'penalize_seller', 'penalize_buyer'
+  final DateTime? disputeResolvedAt;
+  final String? disputeAdminNotes;
+
+  // Payment method agreed in the transaction
+  final String paymentMethod; // 'full_payment' or 'installment'
+
+  // Whether the listing allows installment payments
+  final bool allowsInstallment;
 
   const TransactionEntity({
     required this.id,
@@ -47,13 +72,33 @@ class TransactionEntity {
     this.buyerConfirmed = false,
     this.adminApproved = false,
     this.adminApprovedAt,
+    this.bothConfirmedAt,
     this.deliveryStatus = DeliveryStatus.pending,
     this.deliveryStartedAt,
     this.deliveryCompletedAt,
+    this.sellerPrepPhotoUrl,
+    this.sellerTransitPhotoUrl,
+    this.sellerDeliveryPhotoUrl,
+    this.buyerDeliveryPhotoUrl,
     this.buyerAcceptanceStatus = BuyerAcceptanceStatus.pending,
     this.buyerAcceptedAt,
     this.buyerRejectionReason,
+    this.sellerRejectionReason,
+    this.cancelledBy,
+    this.sellerObjectionReason,
+    this.sellerObjectedAt,
+    this.disputeResolution,
+    this.disputeResolvedAt,
+    this.disputeAdminNotes,
+    this.paymentMethod = 'full_payment',
+    this.allowsInstallment = false,
   });
+
+  /// Check if this transaction uses installment payments
+  bool get isInstallment => paymentMethod == 'installment';
+
+  /// Whether the installment tab should be visible
+  bool get showInstallmentTab => isInstallment;
 
   /// Check if both parties have submitted forms
   bool get bothFormsSubmitted => sellerFormSubmitted && buyerFormSubmitted;
@@ -61,7 +106,7 @@ class TransactionEntity {
   /// Check if both parties have confirmed
   bool get bothConfirmed => sellerConfirmed && buyerConfirmed;
 
-  /// Check if transaction is ready for admin review
+  /// Check if transaction is ready for admin review (legacy, kept for compat)
   bool get readyForAdminReview => bothFormsSubmitted && bothConfirmed;
 
   /// Check if transaction is active (can be modified)
@@ -81,8 +126,27 @@ class TransactionEntity {
 
   /// Check if deal failed due to rejection
   bool get isDealFailed =>
-      buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected ||
+      (buyerAcceptanceStatus == BuyerAcceptanceStatus.rejected &&
+          status != TransactionStatus.disputed) ||
       status == TransactionStatus.cancelled;
+
+  /// Check if dispute is active (seller objected to buyer rejection)
+  bool get isDisputed => status == TransactionStatus.disputed;
+
+  /// Check if dispute has been resolved by admin
+  bool get isDisputeResolved =>
+      disputeResolution != null && disputeResolvedAt != null;
+
+  /// Get the cancellation reason (from whichever party cancelled)
+  String? get cancellationReason {
+    if (sellerRejectionReason != null && sellerRejectionReason!.isNotEmpty) {
+      return sellerRejectionReason;
+    }
+    if (buyerRejectionReason != null && buyerRejectionReason!.isNotEmpty) {
+      return buyerRejectionReason;
+    }
+    return null;
+  }
 
   /// Copy with method for updating fields
   TransactionEntity copyWith({
@@ -102,12 +166,26 @@ class TransactionEntity {
     bool? buyerConfirmed,
     bool? adminApproved,
     DateTime? adminApprovedAt,
+    DateTime? bothConfirmedAt,
     DeliveryStatus? deliveryStatus,
     DateTime? deliveryStartedAt,
     DateTime? deliveryCompletedAt,
+    String? sellerPrepPhotoUrl,
+    String? sellerTransitPhotoUrl,
+    String? sellerDeliveryPhotoUrl,
+    String? buyerDeliveryPhotoUrl,
     BuyerAcceptanceStatus? buyerAcceptanceStatus,
     DateTime? buyerAcceptedAt,
     String? buyerRejectionReason,
+    String? sellerRejectionReason,
+    String? cancelledBy,
+    String? paymentMethod,
+    bool? allowsInstallment,
+    String? sellerObjectionReason,
+    DateTime? sellerObjectedAt,
+    String? disputeResolution,
+    DateTime? disputeResolvedAt,
+    String? disputeAdminNotes,
   }) {
     return TransactionEntity(
       id: id ?? this.id,
@@ -126,13 +204,32 @@ class TransactionEntity {
       buyerConfirmed: buyerConfirmed ?? this.buyerConfirmed,
       adminApproved: adminApproved ?? this.adminApproved,
       adminApprovedAt: adminApprovedAt ?? this.adminApprovedAt,
+      bothConfirmedAt: bothConfirmedAt ?? this.bothConfirmedAt,
       deliveryStatus: deliveryStatus ?? this.deliveryStatus,
       deliveryStartedAt: deliveryStartedAt ?? this.deliveryStartedAt,
       deliveryCompletedAt: deliveryCompletedAt ?? this.deliveryCompletedAt,
+      sellerPrepPhotoUrl: sellerPrepPhotoUrl ?? this.sellerPrepPhotoUrl,
+      sellerTransitPhotoUrl:
+          sellerTransitPhotoUrl ?? this.sellerTransitPhotoUrl,
+      sellerDeliveryPhotoUrl:
+          sellerDeliveryPhotoUrl ?? this.sellerDeliveryPhotoUrl,
+      buyerDeliveryPhotoUrl:
+          buyerDeliveryPhotoUrl ?? this.buyerDeliveryPhotoUrl,
       buyerAcceptanceStatus:
           buyerAcceptanceStatus ?? this.buyerAcceptanceStatus,
       buyerAcceptedAt: buyerAcceptedAt ?? this.buyerAcceptedAt,
       buyerRejectionReason: buyerRejectionReason ?? this.buyerRejectionReason,
+      sellerRejectionReason:
+          sellerRejectionReason ?? this.sellerRejectionReason,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      allowsInstallment: allowsInstallment ?? this.allowsInstallment,
+      sellerObjectionReason:
+          sellerObjectionReason ?? this.sellerObjectionReason,
+      sellerObjectedAt: sellerObjectedAt ?? this.sellerObjectedAt,
+      disputeResolution: disputeResolution ?? this.disputeResolution,
+      disputeResolvedAt: disputeResolvedAt ?? this.disputeResolvedAt,
+      disputeAdminNotes: disputeAdminNotes ?? this.disputeAdminNotes,
     );
   }
 }
@@ -141,9 +238,9 @@ class TransactionEntity {
 enum TransactionStatus {
   discussion, // Initial discussion phase
   formReview, // Both forms submitted, parties reviewing
-  pendingApproval, // Submitted to admin for approval
-  approved, // Admin approved, deposit handled
-  ongoing, // Seller processing transaction
+  pendingApproval, // Submitted to admin for approval (legacy)
+  approved, // Admin approved, deposit handled (legacy)
+  ongoing, // In progress - delivery/handover phase
   completed, // Transaction finished
   cancelled, // Transaction cancelled
   disputed, // Issue raised, needs resolution

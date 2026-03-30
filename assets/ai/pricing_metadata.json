@@ -1,0 +1,52 @@
+{
+  "encoders": {
+    "brand": {
+      "Chevrolet": 0,
+      "Ford": 1,
+      "Honda": 2,
+      "Hyundai": 3,
+      "Isuzu": 4,
+      "Kia": 5,
+      "Mazda": 6,
+      "Mitsubishi": 7,
+      "Nissan": 8,
+      "Subaru": 9,
+      "Suzuki": 10,
+      "Toyota": 11
+    },
+    "condition": {
+      "Excellent": 0,
+      "Good": 1,
+      "Fair": 2,
+      "Poor": 3
+    },
+    "transmission": {
+      "Automatic": 0,
+      "CVT": 1,
+      "Manual": 2
+    }
+  },
+  "stats": {
+    "year": {
+      "min": 2014.0,
+      "max": 2025.0
+    },
+    "mileage": {
+      "min": 1000.0,
+      "max": 318728.0
+    }
+  },
+  "price_max": 1750000.0,
+  "model_info": {
+    "input_features": [
+      "brand_code",
+      "year_norm",
+      "mileage_norm",
+      "condition_code",
+      "transmission_code"
+    ],
+    "output": "price_norm (multiply by price_max to get PHP)",
+    "samples_trained": 1801,
+    "val_mae_php": 154321
+  }
+}

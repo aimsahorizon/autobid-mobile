@@ -10,6 +10,9 @@ class AuctionEntity {
   final int biddersCount;
   final DateTime endTime;
   final String sellerId;
+  final String? sellerDisplayName;
+  final String? sellerProfileImageUrl;
+  final String visibility; // 'open', 'exclusive', or 'mystery'
 
   const AuctionEntity({
     required this.id,
@@ -22,6 +25,9 @@ class AuctionEntity {
     required this.biddersCount,
     required this.endTime,
     required this.sellerId,
+    this.sellerDisplayName,
+    this.sellerProfileImageUrl,
+    this.visibility = 'open',
   });
 
   /// Calculate time remaining in minutes

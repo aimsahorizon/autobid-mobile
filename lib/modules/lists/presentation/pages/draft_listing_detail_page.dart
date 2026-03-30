@@ -26,6 +26,7 @@ class DraftListingDetailPage extends StatefulWidget {
 
 class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
   late final ListingSupabaseDataSource _datasource;
+  bool _isDeleteEnabled = false;
 
   @override
   void initState() {
@@ -33,9 +34,25 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
     _datasource = ListingSupabaseDataSource(SupabaseConfig.client);
   }
 
+  void _toggleDeleteEnabled() {
+    setState(() {
+      _isDeleteEnabled = !_isDeleteEnabled;
+    });
+
+    if (_isDeleteEnabled) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        const SnackBar(
+          content: Text('Deletion enabled. You can now delete this draft.'),
+          backgroundColor: ColorConstants.warning,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   void _continueDraft(BuildContext context) async {
-    final result = await Navigator.push(
-      context,
+    final navigator = Navigator.of(context);
+    final result = await navigator.push(
       MaterialPageRoute(
         builder: (context) => CreateListingPage(
           controller: widget.controller,
@@ -46,8 +63,8 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
     );
 
     // If draft was submitted, go back to listings page with result
-    if (result == true && mounted) {
-      Navigator.pop(context, true);
+    if (result is Map && result['navigateTo'] == 'pending' && mounted) {
+      navigator.pop(result);
     }
   }
 
@@ -75,9 +92,13 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
 
     if (confirmed != true || !mounted) return;
 
+    // Capture references before async gap
+    final navigator = Navigator.of(this.context);
+    final messenger = ScaffoldMessenger.of(this.context);
+
     // Show loading
     showDialog(
-      context: context,
+      context: this.context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
@@ -87,10 +108,10 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
       await _datasource.deleteDraft(widget.listing.id);
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading
-      Navigator.pop(context, true); // Go back to list with result
+      navigator.pop(); // Close loading
+      navigator.pop(true); // Go back to list with result
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Draft deleted successfully'),
           backgroundColor: ColorConstants.success,
@@ -98,9 +119,9 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading
+      navigator.pop(); // Close loading
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      (messenger..clearSnackBars()).showSnackBar(
         SnackBar(
           content: Text('Failed to delete draft: $e'),
           backgroundColor: ColorConstants.error,
@@ -119,9 +140,18 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
         title: const Text('Draft Listing'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _deleteDraft(context),
+            icon: Icon(
+              _isDeleteEnabled ? Icons.lock_open : Icons.lock_outline,
+              color: _isDeleteEnabled ? Colors.red : null,
+            ),
+            tooltip: _isDeleteEnabled ? 'Disable Deletion' : 'Enable Deletion',
+            onPressed: _toggleDeleteEnabled,
           ),
+          if (_isDeleteEnabled)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () => _deleteDraft(context),
+            ),
         ],
       ),
       backgroundColor: isDark
@@ -323,18 +353,20 @@ class _DraftListingDetailPageState extends State<DraftListingDetailPage> {
       child: SafeArea(
         child: Row(
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _deleteDraft(context),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(color: Colors.red),
-                  foregroundColor: Colors.red,
+            if (_isDeleteEnabled) ...[
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _deleteDraft(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: const BorderSide(color: Colors.red),
+                    foregroundColor: Colors.red,
+                  ),
+                  child: const Text('Delete Draft'),
                 ),
-                child: const Text('Delete Draft'),
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               flex: 2,
               child: ElevatedButton.icon(

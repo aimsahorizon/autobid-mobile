@@ -1,15 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../domain/entities/auction_detail_entity.dart';
 
+bool _isAssetPath(String url) => url.startsWith('assets/');
+
+Widget _buildImage(
+  String url, {
+  BoxFit fit = BoxFit.cover,
+  Widget? placeholder,
+  Widget? errorWidget,
+}) {
+  final fallback =
+      errorWidget ??
+      Container(
+        color: ColorConstants.backgroundSecondaryLight,
+        child: const Icon(Icons.image_not_supported),
+      );
+  if (_isAssetPath(url)) {
+    return Image.asset(url, fit: fit, errorBuilder: (_, __, ___) => fallback);
+  }
+  return CachedNetworkImage(
+    imageUrl: url,
+    fit: fit,
+    placeholder: placeholder != null ? (_, __) => placeholder : null,
+    errorWidget: (_, __, ___) => fallback,
+  );
+}
+
 class CarPhotosSection extends StatefulWidget {
   final CarPhotosEntity photos;
 
-  const CarPhotosSection({
-    super.key,
-    required this.photos,
-  });
+  const CarPhotosSection({super.key, required this.photos});
 
   @override
   State<CarPhotosSection> createState() => _CarPhotosSectionState();
@@ -28,6 +51,29 @@ class _CarPhotosSectionState extends State<CarPhotosSection> {
 
   List<String> get _currentPhotos {
     return widget.photos.getByCategory(_selectedCategory);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategory = _resolveInitialCategory();
+  }
+
+  @override
+  void didUpdateWidget(covariant CarPhotosSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.photos != widget.photos) {
+      _selectedCategory = _resolveInitialCategory();
+    }
+  }
+
+  String _resolveInitialCategory() {
+    for (final category in _categories) {
+      if (widget.photos.getByCategory(category).isNotEmpty) {
+        return category;
+      }
+    }
+    return _categories.first;
   }
 
   @override
@@ -79,16 +125,16 @@ class _CarPhotosSectionState extends State<CarPhotosSection> {
                 color: isSelected
                     ? ColorConstants.primary
                     : (isDark
-                        ? ColorConstants.textSecondaryDark
-                        : ColorConstants.textSecondaryLight),
+                          ? ColorConstants.textSecondaryDark
+                          : ColorConstants.textSecondaryLight),
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               side: BorderSide(
                 color: isSelected
                     ? ColorConstants.primary
                     : (isDark
-                        ? ColorConstants.borderDark
-                        : ColorConstants.borderLight),
+                          ? ColorConstants.borderDark
+                          : ColorConstants.borderLight),
               ),
             ),
           );
@@ -123,10 +169,9 @@ class _CarPhotosSectionState extends State<CarPhotosSection> {
           onTap: () => _showFullScreenImage(context, index),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: _currentPhotos[index],
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
+            child: _buildImage(
+              _currentPhotos[index],
+              placeholder: Container(
                 color: ColorConstants.backgroundSecondaryLight,
                 child: const Center(
                   child: SizedBox(
@@ -135,10 +180,6 @@ class _CarPhotosSectionState extends State<CarPhotosSection> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: ColorConstants.backgroundSecondaryLight,
-                child: const Icon(Icons.image_not_supported),
               ),
             ),
           ),
@@ -164,32 +205,34 @@ class _FullScreenGallery extends StatelessWidget {
   final List<String> photos;
   final int initialIndex;
 
-  const _FullScreenGallery({
-    required this.photos,
-    required this.initialIndex,
-  });
+  const _FullScreenGallery({required this.photos, required this.initialIndex});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
       ),
-      body: PageView.builder(
-        controller: PageController(initialPage: initialIndex),
-        itemCount: photos.length,
-        itemBuilder: (context, index) {
-          return InteractiveViewer(
-            child: Center(
-              child: CachedNetworkImage(
-                imageUrl: photos[index],
-                fit: BoxFit.contain,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: PageView.builder(
+          controller: PageController(initialPage: initialIndex),
+          itemCount: photos.length,
+          itemBuilder: (context, index) {
+            final url = photos[index];
+            return InteractiveViewer(
+              child: Center(
+                child: _isAssetPath(url)
+                    ? Image.asset(url, fit: BoxFit.contain)
+                    : CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

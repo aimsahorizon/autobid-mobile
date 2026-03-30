@@ -1,16 +1,29 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/services/virtual_wallet_service.dart';
+import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import '../../domain/entities/transaction_entity.dart';
+import '../../domain/entities/transaction_review_entity.dart';
 import '../../data/datasources/transaction_realtime_datasource.dart';
+import '../../data/datasources/buyer_transaction_supabase_datasource.dart';
+import '../../domain/entities/agreement_field_entity.dart';
 
 /// Controller for real-time transaction management
+// ... (omitting lines for brevity in explanation, but including them in actual call)
+
 /// Supports live chat updates between buyer and seller
 class TransactionRealtimeController extends ChangeNotifier {
   final TransactionRealtimeDataSource _dataSource;
+  TransactionRealtimeDataSource get dataSource => _dataSource;
 
   // Subscriptions
   StreamSubscription<ChatMessageEntity>? _chatSubscription;
   StreamSubscription<Map<String, dynamic>>? _transactionSubscription;
+  String? _subscribedTransactionId; // Track to avoid re-subscribing
 
   TransactionRealtimeController(this._dataSource);
 
@@ -19,23 +32,62 @@ class TransactionRealtimeController extends ChangeNotifier {
   List<ChatMessageEntity> _chatMessages = [];
   TransactionFormEntity? _myForm;
   TransactionFormEntity? _otherPartyForm;
+  TransactionReviewEntity? _myReview;
   List<TransactionTimelineEntity> _timeline = [];
   bool _isLoading = false;
   bool _isProcessing = false;
   String? _errorMessage;
   String? _currentUserId;
+  List<AgreementFieldEntity> _agreementFields = [];
+
+  // Deposit state (buyer must deposit before accessing transaction tabs)
+  bool _hasDeposited = false;
+  double _depositAmount = 5000.0;
+  final DepositSupabaseDataSource _depositDataSource =
+      DepositSupabaseDataSource(SupabaseConfig.client);
+
+  // Auto-accept deadline state
+  DateTime? _buyerAcceptanceDeadline;
+  final BuyerTransactionSupabaseDataSource _buyerTransactionDataSource =
+      BuyerTransactionSupabaseDataSource(SupabaseConfig.client);
+
+  // Suspension state after cancellation
+  SuspensionStatus? _suspensionAfterCancel;
+
+  // Red-dot tab update tracking
+  // Counts that increment on each realtime update; the UI saves the
+  // "last seen" value when the user views the tab and compares.
+  int _chatUpdateCount = 0;
+  int _agreementUpdateCount = 0;
+  int _progressUpdateCount = 0;
+  int _givesUpdateCount = 0;
 
   // Getters
   TransactionEntity? get transaction => _transaction;
   List<ChatMessageEntity> get chatMessages => _chatMessages;
   TransactionFormEntity? get myForm => _myForm;
   TransactionFormEntity? get otherPartyForm => _otherPartyForm;
+  TransactionReviewEntity? get myReview => _myReview;
   List<TransactionTimelineEntity> get timeline => _timeline;
   bool get isLoading => _isLoading;
   bool get isProcessing => _isProcessing;
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
   String? get currentUserId => _currentUserId;
+  List<AgreementFieldEntity> get agreementFields => _agreementFields;
+  bool get hasDeposited => _hasDeposited;
+  double get depositAmount => _depositAmount;
+  DateTime? get buyerAcceptanceDeadline => _buyerAcceptanceDeadline;
+  SuspensionStatus? get suspensionAfterCancel => _suspensionAfterCancel;
+  int get chatUpdateCount => _chatUpdateCount;
+  int get agreementUpdateCount => _agreementUpdateCount;
+  int get progressUpdateCount => _progressUpdateCount;
+  int get givesUpdateCount => _givesUpdateCount;
+
+  void clearChatUpdateCount() => _chatUpdateCount = 0;
+  void clearAgreementUpdateCount() => _agreementUpdateCount = 0;
+  void clearProgressUpdateCount() => _progressUpdateCount = 0;
+  void clearGivesUpdateCount() => _givesUpdateCount = 0;
 
   // Determine user's role (seller or buyer)
   FormRole getUserRole(String userId) {
@@ -45,13 +97,13 @@ class TransactionRealtimeController extends ChangeNotifier {
 
   /// Load transaction and subscribe to real-time updates
   Future<void> loadTransaction(String transactionId, String userId) async {
-    print(
+    debugPrint(
       '[TransactionRealtimeController] ========================================',
     );
-    print(
+    debugPrint(
       '[TransactionRealtimeController] Loading transaction: $transactionId',
     );
-    print('[TransactionRealtimeController] User ID: $userId');
+    debugPrint('[TransactionRealtimeController] User ID: $userId');
 
     _isLoading = true;
     _errorMessage = null;
@@ -65,18 +117,20 @@ class TransactionRealtimeController extends ChangeNotifier {
       if (_transaction == null) {
         _errorMessage =
             'Transaction not found. The seller may not have started the transaction yet.';
-        print('[TransactionRealtimeController] ❌ Transaction not found');
+        debugPrint('[TransactionRealtimeController] ❌ Transaction not found');
         return;
       }
 
-      print(
+      debugPrint(
         '[TransactionRealtimeController] ✅ Transaction loaded: ${_transaction!.id}',
       );
-      print(
+      debugPrint(
         '[TransactionRealtimeController] Seller: ${_transaction!.sellerId}',
       );
-      print('[TransactionRealtimeController] Buyer: ${_transaction!.buyerId}');
-      print(
+      debugPrint(
+        '[TransactionRealtimeController] Buyer: ${_transaction!.buyerId}',
+      );
+      debugPrint(
         '[TransactionRealtimeController] Status: ${_transaction!.status.label}',
       );
 
@@ -85,7 +139,12 @@ class TransactionRealtimeController extends ChangeNotifier {
           ? FormRole.buyer
           : FormRole.seller;
 
-      print('[TransactionRealtimeController] Current user role: ${role.name}');
+      debugPrint(
+        '[TransactionRealtimeController] Current user role: ${role.name}',
+      );
+
+      // Check deposit status for both buyers and sellers
+      await _checkDepositStatus(userId);
 
       // For cancelled/failed transactions, don't load extra data
       // The page will show a special UI for cancelled/failed status
@@ -97,65 +156,213 @@ class TransactionRealtimeController extends ChangeNotifier {
           _loadMyFormSafe(_transaction!.id, role),
           _loadOtherPartyFormSafe(_transaction!.id, otherRole),
           _loadTimelineSafe(_transaction!.id),
+          _loadReviewSafe(_transaction!.id, userId),
+          _loadAgreementFieldsSafe(_transaction!.id),
         ]);
 
-        // Subscribe to real-time updates only for active transactions
-        _subscribeToRealtime(_transaction!.id);
+        // Finalization now happens immediately when both confirm (no grace period)
+
+        // Load buyer acceptance deadline if delivery is in progress
+        await _loadBuyerAcceptanceDeadline();
+
+        // Subscribe to real-time updates only once per transaction
+        if (_subscribedTransactionId != _transaction!.id) {
+          _subscribeToRealtime(_transaction!.id);
+        }
       } else {
-        print(
+        debugPrint(
           '[TransactionRealtimeController] Skipping extra data for cancelled transaction',
         );
       }
 
-      print(
+      debugPrint(
         '[TransactionRealtimeController] Loaded ${_chatMessages.length} messages',
       );
-      print(
+      debugPrint(
         '[TransactionRealtimeController] Loaded ${_timeline.length} timeline events',
       );
-      print(
+      debugPrint(
         '[TransactionRealtimeController] ✅ Transaction loaded successfully',
       );
     } catch (e, stackTrace) {
       _errorMessage = 'Failed to load transaction: $e';
-      print('[TransactionRealtimeController] ❌ Error: $e');
-      print('[TransactionRealtimeController] Stack: $stackTrace');
+      debugPrint('[TransactionRealtimeController] ❌ Error: $e');
+      debugPrint('[TransactionRealtimeController] Stack: $stackTrace');
     } finally {
       _isLoading = false;
       notifyListeners();
-      print(
+      debugPrint(
         '[TransactionRealtimeController] ========================================',
       );
     }
   }
 
+  /// Check if the buyer has deposited for this auction
+  Future<void> _checkDepositStatus(String userId) async {
+    if (_transaction == null) return;
+
+    // Skip deposit check for terminal transaction states — deposits are
+    // already refunded/forfeited at that point, so the DB query would return
+    // false and incorrectly re-show the deposit gate.
+    final status = _transaction!.status;
+    if (status == TransactionStatus.completed ||
+        status == TransactionStatus.cancelled) {
+      _hasDeposited = true;
+      return;
+    }
+
+    try {
+      final auctionId = _transaction!.listingId;
+
+      // Check if buyer has already deposited
+      _hasDeposited = await _depositDataSource.hasUserDeposited(
+        auctionId: auctionId,
+        userId: userId,
+      );
+
+      // Fetch deposit amount from auction config
+      final auctionData = await SupabaseConfig.client
+          .from('auctions')
+          .select('deposit_amount')
+          .eq('id', auctionId)
+          .maybeSingle();
+
+      if (auctionData != null) {
+        final amount = (auctionData['deposit_amount'] as num?)?.toDouble() ?? 0;
+        _depositAmount = amount > 0 ? amount : 5000.0;
+      }
+
+      debugPrint(
+        '[TransactionRealtimeController] Deposit status: $_hasDeposited, amount: $_depositAmount',
+      );
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error checking deposit: $e');
+      // Default to not deposited on error
+      _hasDeposited = false;
+    }
+  }
+
+  /// Refresh deposit status (called after successful deposit payment)
+  Future<void> refreshDepositStatus() async {
+    if (_currentUserId == null || _transaction == null) return;
+    await _checkDepositStatus(_currentUserId!);
+    notifyListeners();
+  }
+
   void _subscribeToRealtime(String transactionId) {
-    // Subscribe to chat messages
+    // Cancel existing subscriptions
     _chatSubscription?.cancel();
+    _transactionSubscription?.cancel();
+    _subscribedTransactionId = transactionId;
+
+    // Subscribe to chat messages
     _dataSource.subscribeToChat(transactionId);
     _chatSubscription = _dataSource.chatStream.listen((message) {
       // Only add if not already in list (avoid duplicates)
       if (!_chatMessages.any((m) => m.id == message.id)) {
         _chatMessages.add(message);
+        // Increment chat update counter for messages from the other party
+        if (message.senderId != _currentUserId) {
+          _chatUpdateCount++;
+        }
         notifyListeners();
-        print(
+        debugPrint(
           '[TransactionRealtimeController] 📨 New message received: ${message.message}',
         );
       }
     });
 
-    // Subscribe to transaction updates
-    _transactionSubscription?.cancel();
+    // Subscribe to transaction updates (auction_transactions row changes)
     _dataSource.subscribeToTransaction(transactionId);
+
+    // Subscribe to form changes (transaction_forms INSERT/UPDATE)
+    _dataSource.subscribeToForms(transactionId);
+
+    // Subscribe to timeline changes (transaction_timeline INSERT)
+    _dataSource.subscribeToTimeline(transactionId);
+
+    // Subscribe to agreement field changes
+    _dataSource.subscribeToAgreementFields(transactionId);
+
     _transactionSubscription = _dataSource.transactionUpdateStream.listen((
       data,
     ) async {
-      print('[TransactionRealtimeController] 🔄 Transaction updated');
-      // Reload transaction to get fresh data
+      debugPrint('[TransactionRealtimeController] 🔄 Transaction updated');
+      // Reload data quietly without re-subscribing to avoid infinite loop
       if (_currentUserId != null) {
-        await loadTransaction(transactionId, _currentUserId!);
+        await _reloadTransactionData(transactionId, _currentUserId!);
       }
     });
+  }
+
+  /// Reload transaction data without re-subscribing to realtime
+  Future<void> _reloadTransactionData(
+    String transactionId,
+    String userId,
+  ) async {
+    try {
+      final oldAgreementFields = List<AgreementFieldEntity>.from(
+        _agreementFields,
+      );
+      final oldTimeline = List<TransactionTimelineEntity>.from(_timeline);
+      final oldTransaction = _transaction;
+
+      _transaction = await _dataSource.getTransaction(transactionId);
+
+      if (_transaction == null) return;
+
+      final role = getUserRole(userId);
+      final otherRole = role == FormRole.seller
+          ? FormRole.buyer
+          : FormRole.seller;
+
+      if (_transaction!.status != TransactionStatus.cancelled) {
+        await Future.wait([
+          _loadChatMessagesSafe(_transaction!.id),
+          _loadMyFormSafe(_transaction!.id, role),
+          _loadOtherPartyFormSafe(_transaction!.id, otherRole),
+          _loadTimelineSafe(_transaction!.id),
+          _loadReviewSafe(_transaction!.id, userId),
+          _loadAgreementFieldsSafe(_transaction!.id),
+          _loadBuyerAcceptanceDeadline(),
+        ]);
+      }
+
+      // Bump red-dot counters based on what changed
+      if (_agreementFields.length != oldAgreementFields.length ||
+          _agreementFields.any((f) {
+            final old = oldAgreementFields.where((o) => o.id == f.id);
+            return old.isEmpty || old.first.value != f.value;
+          })) {
+        _agreementUpdateCount++;
+      }
+      if (oldTransaction != null) {
+        // Check agreement status changes
+        if (_transaction!.sellerFormSubmitted !=
+                oldTransaction.sellerFormSubmitted ||
+            _transaction!.buyerFormSubmitted !=
+                oldTransaction.buyerFormSubmitted ||
+            _transaction!.sellerConfirmed != oldTransaction.sellerConfirmed ||
+            _transaction!.buyerConfirmed != oldTransaction.buyerConfirmed) {
+          _agreementUpdateCount++;
+        }
+        // Check delivery status change
+        if (_transaction!.deliveryStatus != oldTransaction.deliveryStatus) {
+          _progressUpdateCount++;
+        }
+        // Check payment method change
+        if (_transaction!.paymentMethod != oldTransaction.paymentMethod) {
+          _agreementUpdateCount++;
+        }
+      }
+      if (_timeline.length != oldTimeline.length) {
+        _progressUpdateCount++;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error reloading data: $e');
+    }
   }
 
   Future<void> _loadTimeline(String transactionId) async {
@@ -167,7 +374,7 @@ class TransactionRealtimeController extends ChangeNotifier {
     try {
       _chatMessages = await _dataSource.getChatMessages(transactionId);
     } catch (e) {
-      print(
+      debugPrint(
         '[TransactionRealtimeController] Warning: Failed to load chat messages: $e',
       );
       _chatMessages = [];
@@ -178,7 +385,7 @@ class TransactionRealtimeController extends ChangeNotifier {
     try {
       _myForm = await _dataSource.getTransactionForm(transactionId, role);
     } catch (e) {
-      print(
+      debugPrint(
         '[TransactionRealtimeController] Warning: Failed to load my form: $e',
       );
       _myForm = null;
@@ -195,7 +402,7 @@ class TransactionRealtimeController extends ChangeNotifier {
         role,
       );
     } catch (e) {
-      print(
+      debugPrint(
         '[TransactionRealtimeController] Warning: Failed to load other party form: $e',
       );
       _otherPartyForm = null;
@@ -206,10 +413,65 @@ class TransactionRealtimeController extends ChangeNotifier {
     try {
       _timeline = await _dataSource.getTimeline(transactionId);
     } catch (e) {
-      print(
+      debugPrint(
         '[TransactionRealtimeController] Warning: Failed to load timeline: $e',
       );
       _timeline = [];
+    }
+  }
+
+  Future<void> _loadReviewSafe(String transactionId, String userId) async {
+    try {
+      _myReview = await _dataSource.getReview(transactionId, userId);
+    } catch (e) {
+      debugPrint(
+        '[TransactionRealtimeController] Warning: Failed to load review: $e',
+      );
+      _myReview = null;
+    }
+  }
+
+  /// Submit a review
+  Future<bool> submitReview({
+    required int rating,
+    int? ratingCommunication,
+    int? ratingReliability,
+    String? comment,
+  }) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final role = getUserRole(_currentUserId!);
+      final revieweeId = role == FormRole.seller
+          ? _transaction!.buyerId
+          : _transaction!.sellerId;
+
+      final review = await _dataSource.submitReview(
+        transactionId: _transaction!.id,
+        reviewerId: _currentUserId!,
+        revieweeId: revieweeId,
+        rating: rating,
+        ratingCommunication: ratingCommunication,
+        ratingReliability: ratingReliability,
+        comment: comment,
+      );
+
+      if (review != null) {
+        _myReview = review;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _errorMessage = 'Failed to submit review';
+      debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
     }
   }
 
@@ -238,11 +500,11 @@ class TransactionRealtimeController extends ChangeNotifier {
         if (!_chatMessages.any((m) => m.id == newMessage.id)) {
           _chatMessages.add(newMessage);
         }
-        print('[TransactionRealtimeController] ✅ Message sent');
+        debugPrint('[TransactionRealtimeController] ✅ Message sent');
       }
     } catch (e) {
       _errorMessage = 'Failed to send message';
-      print('[TransactionRealtimeController] ❌ Error sending message: $e');
+      debugPrint('[TransactionRealtimeController] ❌ Error sending message: $e');
     } finally {
       _isProcessing = false;
       notifyListeners();
@@ -271,13 +533,13 @@ class TransactionRealtimeController extends ChangeNotifier {
         }
 
         notifyListeners();
-        print('[TransactionRealtimeController] ✅ Form submitted');
+        debugPrint('[TransactionRealtimeController] ✅ Form submitted');
         return true;
       }
       return false;
     } catch (e) {
       _errorMessage = 'Failed to submit form';
-      print('[TransactionRealtimeController] ❌ Error submitting form: $e');
+      debugPrint('[TransactionRealtimeController] ❌ Error submitting form: $e');
       return false;
     } finally {
       _isProcessing = false;
@@ -303,12 +565,12 @@ class TransactionRealtimeController extends ChangeNotifier {
         if (_currentUserId != null) {
           await loadTransaction(_transaction!.id, _currentUserId!);
         }
-        print('[TransactionRealtimeController] ✅ Form confirmed');
+        debugPrint('[TransactionRealtimeController] ✅ Form confirmed');
       }
       return success;
     } catch (e) {
       _errorMessage = 'Failed to confirm form';
-      print('[TransactionRealtimeController] ❌ Error confirming form: $e');
+      debugPrint('[TransactionRealtimeController] ❌ Error confirming form: $e');
       return false;
     } finally {
       _isProcessing = false;
@@ -335,12 +597,12 @@ class TransactionRealtimeController extends ChangeNotifier {
         if (_currentUserId != null) {
           await loadTransaction(_transaction!.id, _currentUserId!);
         }
-        print('[TransactionRealtimeController] ✅ Confirmation withdrawn');
+        debugPrint('[TransactionRealtimeController] ✅ Confirmation withdrawn');
       }
       return success;
     } catch (e) {
       _errorMessage = 'Failed to withdraw confirmation';
-      print(
+      debugPrint(
         '[TransactionRealtimeController] ❌ Error withdrawing confirmation: $e',
       );
       return false;
@@ -350,15 +612,19 @@ class TransactionRealtimeController extends ChangeNotifier {
     }
   }
 
-  /// Buyer cancels the deal
+  /// Cancel the deal (Buyer or Seller)
   /// Returns true if cancellation was successful
-  Future<bool> buyerCancelDeal({String reason = ''}) async {
-    print('[TransactionRealtimeController] buyerCancelDeal called');
-    print('[TransactionRealtimeController] Transaction: ${_transaction?.id}');
-    print('[TransactionRealtimeController] Current user: $_currentUserId');
+  Future<bool> cancelDeal({String reason = ''}) async {
+    debugPrint('[TransactionRealtimeController] cancelDeal called');
+    debugPrint(
+      '[TransactionRealtimeController] Transaction: ${_transaction?.id}',
+    );
+    debugPrint('[TransactionRealtimeController] Current user: $_currentUserId');
 
-    if (_transaction == null) {
-      print('[TransactionRealtimeController] ❌ No transaction loaded');
+    if (_transaction == null || _currentUserId == null) {
+      debugPrint(
+        '[TransactionRealtimeController] ❌ No transaction loaded or user not set',
+      );
       return false;
     }
 
@@ -366,11 +632,15 @@ class TransactionRealtimeController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print(
-        '[TransactionRealtimeController] Calling datasource.buyerCancelDeal with ID: ${_transaction!.id}',
+      final role = getUserRole(_currentUserId!);
+      debugPrint('[TransactionRealtimeController] Cancelling as role: $role');
+
+      debugPrint(
+        '[TransactionRealtimeController] Calling datasource.cancelDeal with ID: ${_transaction!.id}',
       );
-      final success = await _dataSource.buyerCancelDeal(
+      final success = await _dataSource.cancelDeal(
         _transaction!.id,
+        role,
         reason: reason,
       );
 
@@ -379,17 +649,17 @@ class TransactionRealtimeController extends ChangeNotifier {
         if (_currentUserId != null) {
           await loadTransaction(_transaction!.id, _currentUserId!);
         }
-        print('[TransactionRealtimeController] ✅ Deal cancelled by buyer');
+        debugPrint('[TransactionRealtimeController] ✅ Deal cancelled');
       } else {
-        print(
-          '[TransactionRealtimeController] ❌ buyerCancelDeal returned false',
+        debugPrint(
+          '[TransactionRealtimeController] ❌ cancelDeal returned false',
         );
       }
       return success;
     } catch (e, stackTrace) {
       _errorMessage = 'Failed to cancel deal';
-      print('[TransactionRealtimeController] ❌ Error cancelling deal: $e');
-      print('[TransactionRealtimeController] Stack trace: $stackTrace');
+      debugPrint('[TransactionRealtimeController] ❌ Error cancelling deal: $e');
+      debugPrint('[TransactionRealtimeController] Stack trace: $stackTrace');
       return false;
     } finally {
       _isProcessing = false;
@@ -422,7 +692,9 @@ class TransactionRealtimeController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to offer to next bidder';
-      print('[TransactionRealtimeController] ❌ Error offering next bidder: $e');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error offering next bidder: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
@@ -447,7 +719,9 @@ class TransactionRealtimeController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to relist auction';
-      print('[TransactionRealtimeController] ❌ Error relisting auction: $e');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error relisting auction: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
@@ -463,16 +737,17 @@ class TransactionRealtimeController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await _dataSource.deleteAuction(_transaction!.id);
+      await _dataSource.softDeleteAuction(_transaction!.id);
 
-      if (success) {
-        print('[TransactionRealtimeController] ✅ Auction deleted');
-      }
-
-      return success;
+      // Transaction is deleted by the RPC — clear local state
+      _transaction = null;
+      debugPrint('[TransactionRealtimeController] ✅ Auction soft-deleted');
+      return true;
     } catch (e) {
       _errorMessage = 'Failed to delete auction';
-      print('[TransactionRealtimeController] ❌ Error deleting auction: $e');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error deleting auction: $e',
+      );
       return false;
     } finally {
       _isProcessing = false;
@@ -487,7 +762,7 @@ class TransactionRealtimeController extends ChangeNotifier {
     try {
       return await _dataSource.getAuctionBidders(_transaction!.id);
     } catch (e) {
-      print('[TransactionRealtimeController] ❌ Error getting bidders: $e');
+      debugPrint('[TransactionRealtimeController] ❌ Error getting bidders: $e');
       return [];
     }
   }
@@ -513,7 +788,279 @@ class TransactionRealtimeController extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Failed to offer to bidder';
-      print('[TransactionRealtimeController] ❌ Error offering to bidder: $e');
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error offering to bidder: $e',
+      );
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cancel auction with penalty recorded against the cancelling party
+  Future<bool> cancelAuctionWithPenalty({String reason = ''}) async {
+    if (_transaction == null) return false;
+
+    _isProcessing = true;
+    _suspensionAfterCancel = null;
+    notifyListeners();
+
+    try {
+      await _dataSource.cancelAuctionWithPenalty(_transaction!.id, reason);
+
+      // Check suspension status — record_penalty() suspends immediately
+      if (_currentUserId != null) {
+        _suspensionAfterCancel = await PolicyPenaltyDatasource.instance
+            .checkSuspension(_currentUserId!);
+        await VirtualWalletService.instance.loadBalance(_currentUserId!);
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to cancel auction';
+      debugPrint(
+        '[TransactionRealtimeController] ❌ Error cancel with penalty: $e',
+      );
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Auto-reselect the next highest eligible bidder
+  /// Returns the new transaction ID on success, null on failure.
+  Future<String?> autoReselectNextWinner() async {
+    if (_transaction == null) return null;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final newTxnId = await _dataSource.autoReselectNextWinner(
+        _transaction!.id,
+      );
+
+      if (newTxnId != null) {
+        // Old transaction is deleted; clear and load new one
+        _transaction = null;
+      }
+
+      return newTxnId;
+    } catch (e) {
+      _errorMessage = 'Failed to reselect next winner';
+      debugPrint('[TransactionRealtimeController] ❌ Error auto-reselect: $e');
+      return null;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Select a standby user as next winner. Returns new transaction ID.
+  Future<String?> selectFromStandby(String standbyUserId) async {
+    if (_transaction == null) return null;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final newTxnId = await _dataSource.selectFromStandby(
+        _transaction!.id,
+        standbyUserId,
+      );
+
+      if (newTxnId != null) {
+        _transaction = null;
+      }
+
+      return newTxnId;
+    } catch (e) {
+      _errorMessage = 'Failed to select from standby';
+      debugPrint('[TransactionRealtimeController] ❌ Error select standby: $e');
+      return null;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Restart auction bidding from scratch (new round)
+  Future<bool> restartAuctionBidding() async {
+    if (_transaction == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      await _dataSource.restartAuctionBidding(_transaction!.id);
+
+      // Transaction is deleted by the RPC — clear local state
+      _transaction = null;
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to restart bidding';
+      debugPrint('[TransactionRealtimeController] ❌ Error restart bidding: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Update delivery status (Seller) - without photo (legacy)
+  Future<bool> updateDeliveryStatus(DeliveryStatus status) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.updateDeliveryStatus(
+        _transaction!.id,
+        _currentUserId!,
+        status,
+      );
+
+      if (success) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to update delivery status';
+      debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Update delivery status with photo proof (Seller)
+  Future<bool> updateDeliveryStatusWithPhoto(
+    DeliveryStatus status,
+    File photo,
+  ) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.updateDeliveryStatusWithPhoto(
+        _transaction!.id,
+        _currentUserId!,
+        status,
+        photo,
+      );
+
+      if (success) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to update delivery: $e';
+      debugPrint(
+        '[TransactionRealtimeController] Error updating delivery with photo: $e',
+      );
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Upload buyer delivery confirmation photo
+  Future<bool> uploadBuyerDeliveryPhoto(File photo) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.uploadBuyerDeliveryPhoto(
+        _transaction!.id,
+        photo,
+      );
+
+      if (success) {
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to upload photo';
+      debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Respond to delivery (Buyer)
+  Future<bool> respondToDelivery({
+    required bool accepted,
+    String? rejectionReason,
+    List<File>? rejectionPhotos,
+  }) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final success = await _dataSource.respondToDelivery(
+        transactionId: _transaction!.id,
+        buyerId: _currentUserId!,
+        accepted: accepted,
+        rejectionReason: rejectionReason,
+        rejectionPhotos: rejectionPhotos,
+      );
+
+      if (success) {
+        // Refresh wallet balance (SQL refunds deposits on acceptance)
+        await VirtualWalletService.instance.loadBalance(_currentUserId!);
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      } else {
+        _errorMessage = accepted
+            ? 'Failed to accept delivery'
+            : 'Failed to reject delivery. Please try again.';
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to submit response';
+      debugPrint('[TransactionRealtimeController] Error: $e');
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Seller raises objection to buyer rejection (creates dispute)
+  Future<bool> raiseSellerObjection({required String reason}) async {
+    if (_transaction == null || _currentUserId == null) return false;
+
+    _isProcessing = true;
+    notifyListeners();
+
+    try {
+      final error = await _dataSource.raiseSellerObjection(
+        transactionId: _transaction!.id,
+        sellerId: _currentUserId!,
+        reason: reason,
+      );
+
+      if (error == null) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+        return true;
+      }
+      _errorMessage = error;
+      return false;
+    } catch (e) {
+      _errorMessage = 'Failed to raise objection';
+      debugPrint('[TransactionRealtimeController] Error raising objection: $e');
       return false;
     } finally {
       _isProcessing = false;
@@ -528,11 +1075,253 @@ class TransactionRealtimeController extends ChangeNotifier {
     }
   }
 
+  // ============================================================================
+  // AGREEMENT FIELDS
+  // ============================================================================
+
+  Future<void> _loadAgreementFieldsSafe(String transactionId) async {
+    try {
+      _agreementFields = await _dataSource.getAgreementFields(transactionId);
+    } catch (e) {
+      debugPrint(
+        '[TransactionRealtimeController] Warning: Failed to load agreement fields: $e',
+      );
+      _agreementFields = [];
+    }
+  }
+
+  Future<bool> addAgreementField({
+    required String label,
+    String value = '',
+    String fieldType = 'text',
+    String category = 'general',
+    String? options,
+  }) async {
+    if (_transaction == null) return false;
+    try {
+      final field = await _dataSource.addAgreementField(
+        transactionId: _transaction!.id,
+        label: label,
+        value: value,
+        fieldType: fieldType,
+        category: category,
+        options: options,
+      );
+      if (field != null) {
+        _agreementFields.add(field);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error adding field: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateAgreementField(String fieldId, String value) async {
+    try {
+      final success = await _dataSource.updateAgreementField(
+        fieldId,
+        value,
+        editedBy: _currentUserId,
+      );
+      if (success) {
+        final idx = _agreementFields.indexWhere((f) => f.id == fieldId);
+        if (idx != -1) {
+          _agreementFields[idx] = _agreementFields[idx].copyWith(
+            value: value,
+            lastEditedBy: _currentUserId,
+          );
+          notifyListeners();
+        }
+      }
+      return success;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error updating field: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteAgreementField(String fieldId) async {
+    try {
+      final success = await _dataSource.deleteAgreementField(fieldId);
+      if (success) {
+        _agreementFields.removeWhere((f) => f.id == fieldId);
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error deleting field: $e');
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // LOCK / CONFIRM / FINALIZE
+  // ============================================================================
+
+  Future<bool> lockAgreement() async {
+    if (_transaction == null || _currentUserId == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final role = getUserRole(_currentUserId!);
+      final success = await _dataSource.lockAgreement(_transaction!.id, role);
+      if (success) {
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to lock agreement';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> unlockAgreement() async {
+    if (_transaction == null || _currentUserId == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final role = getUserRole(_currentUserId!);
+      final success = await _dataSource.unlockAgreement(_transaction!.id, role);
+      if (success) {
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to unlock agreement';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> confirmAgreement() async {
+    if (_transaction == null || _currentUserId == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final role = getUserRole(_currentUserId!);
+      final success = await _dataSource.confirmAgreement(
+        _transaction!.id,
+        role,
+      );
+      if (success) {
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to confirm agreement';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> withdrawAgreementConfirmation() async {
+    if (_transaction == null || _currentUserId == null) return false;
+    _isProcessing = true;
+    notifyListeners();
+    try {
+      final role = getUserRole(_currentUserId!);
+      final success = await _dataSource.withdrawAgreementConfirmation(
+        _transaction!.id,
+        role,
+      );
+      if (success) {
+        await _reloadTransactionData(_transaction!.id, _currentUserId!);
+      }
+      return success;
+    } catch (e) {
+      _errorMessage = 'Failed to withdraw confirmation';
+      return false;
+    } finally {
+      _isProcessing = false;
+      notifyListeners();
+    }
+  }
+
+  /// Toggle installment payment method on/off
+  Future<void> toggleInstallment(bool enabled) async {
+    if (_transaction == null) return;
+    final method = enabled ? 'installment' : 'full_payment';
+    try {
+      await _dataSource.updatePaymentMethod(_transaction!.id, method);
+      _transaction = _transaction!.copyWith(paymentMethod: method);
+      notifyListeners();
+    } catch (e) {
+      debugPrint(
+        '[TransactionRealtimeController] Error toggling installment: $e',
+      );
+    }
+  }
+
+  // ============================================================================
+  // AUTO-ACCEPT DEADLINE
+  // ============================================================================
+
+  Future<void> _loadBuyerAcceptanceDeadline() async {
+    if (_transaction == null) return;
+    if (_transaction!.deliveryStatus != DeliveryStatus.delivered ||
+        _transaction!.buyerAcceptanceStatus != BuyerAcceptanceStatus.pending) {
+      _buyerAcceptanceDeadline = null;
+      return;
+    }
+    try {
+      _buyerAcceptanceDeadline = await _buyerTransactionDataSource
+          .getBuyerAcceptanceDeadline(_transaction!.id);
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Error loading deadline: $e');
+    }
+  }
+
+  /// Sweep expired deliveries and auto-accept. Returns count of affected.
+  Future<int> sweepAutoAccept() async {
+    try {
+      final count = await _buyerTransactionDataSource.checkAndAutoAccept();
+      if (count > 0 && _transaction != null && _currentUserId != null) {
+        await loadTransaction(_transaction!.id, _currentUserId!);
+      }
+      return count;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Auto-accept sweep error: $e');
+      return 0;
+    }
+  }
+
+  /// Enable demo mode (3-min deadline) for the current transaction.
+  Future<bool> enableAutoAcceptDemo() async {
+    if (_transaction == null) return false;
+    try {
+      final success = await _buyerTransactionDataSource.enableAutoAcceptDemo(
+        _transaction!.id,
+      );
+      if (success) {
+        await _loadBuyerAcceptanceDeadline();
+        notifyListeners();
+      }
+      return success;
+    } catch (e) {
+      debugPrint('[TransactionRealtimeController] Demo mode error: $e');
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _chatSubscription?.cancel();
     _transactionSubscription?.cancel();
-    _dataSource.dispose();
+    _subscribedTransactionId = null;
+    // Only unsubscribe this controller's detail channels.
+    // Do NOT call _dataSource.dispose() — it's a shared singleton
+    // and closing its streams kills realtime for the entire app.
+    _dataSource.unsubscribeDetailChannels();
     super.dispose();
   }
 }

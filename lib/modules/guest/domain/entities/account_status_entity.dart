@@ -4,6 +4,7 @@ enum AccountStatus {
   approved,
   rejected,
   suspended,
+  appealPending,
 }
 
 extension AccountStatusExtension on AccountStatus {
@@ -19,6 +20,8 @@ extension AccountStatusExtension on AccountStatus {
         return 'Rejected';
       case AccountStatus.suspended:
         return 'Suspended';
+      case AccountStatus.appealPending:
+        return 'Appeal Submitted';
     }
   }
 
@@ -31,9 +34,11 @@ extension AccountStatusExtension on AccountStatus {
       case AccountStatus.approved:
         return 'Your account has been verified. You can now participate in auctions.';
       case AccountStatus.rejected:
-        return 'Your verification was rejected. Please contact support for more details.';
+        return 'Your verification was rejected. You may submit an appeal for re-review.';
       case AccountStatus.suspended:
         return 'Your account has been suspended. Contact support for assistance.';
+      case AccountStatus.appealPending:
+        return 'Your appeal has been submitted and is awaiting review by our team.';
     }
   }
 }

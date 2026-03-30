@@ -8,9 +8,11 @@ import '../../../modules/transactions/presentation/controllers/buyer_seller_tran
 import '../../../modules/lists/presentation/pages/lists_page.dart';
 import '../../../modules/lists/presentation/controllers/lists_controller.dart';
 import '../../../modules/notifications/presentation/controllers/notification_controller.dart';
+import '../../../modules/browse/presentation/controllers/buyer_invites_controller.dart';
 import '../../../modules/profile/presentation/pages/profile_page.dart';
 import '../../../modules/profile/presentation/controllers/profile_controller.dart';
 import '../../../modules/profile/presentation/controllers/pricing_controller.dart';
+import '../../../modules/profile/presentation/controllers/review_controller.dart';
 import '../../../core/config/supabase_config.dart';
 import '../../../core/controllers/theme_controller.dart';
 import '../../../core/widgets/main_navigation.dart';
@@ -36,6 +38,7 @@ class _HomePageState extends State<HomePage> {
 
     // Initialize notification controller and load initial data
     _initializeNotifications();
+    _initializeBuyerInvites();
 
     _pages = [
       BrowsePage(controller: sl<BrowseController>()),
@@ -48,6 +51,7 @@ class _HomePageState extends State<HomePage> {
         controller: sl<ProfileController>(),
         pricingController: sl<PricingController>(),
         themeController: widget.themeController,
+        reviewController: sl<ReviewController>(),
       ),
     ];
   }
@@ -58,6 +62,16 @@ class _HomePageState extends State<HomePage> {
     if (userId != null) {
       final notificationController = sl<NotificationController>();
       notificationController.loadNotifications(userId);
+    }
+  }
+
+  /// Initialize buyer invites and subscribe to updates
+  void _initializeBuyerInvites() {
+    final userId = SupabaseConfig.client.auth.currentUser?.id;
+    if (userId != null) {
+      final invitesController = sl<BuyerInvitesController>();
+      invitesController.loadInvites();
+      invitesController.subscribeToInvites();
     }
   }
 

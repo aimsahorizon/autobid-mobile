@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../domain/entities/support_ticket_entity.dart';
-import '../../data/datasources/support_mock_datasource.dart';
+import '../controllers/support_controller.dart';
 
 class CustomerSupportPage extends StatefulWidget {
   const CustomerSupportPage({super.key});
@@ -11,20 +12,22 @@ class CustomerSupportPage extends StatefulWidget {
 }
 
 class _CustomerSupportPageState extends State<CustomerSupportPage> {
-  final _dataSource = SupportMockDataSource();
-  List<SupportTicketEntity> _tickets = [];
-  bool _isLoading = true;
+  late SupportController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = GetIt.instance<SupportController>();
     _loadTickets();
   }
 
   Future<void> _loadTickets() async {
-    setState(() => _isLoading = true);
-    _tickets = await _dataSource.getTickets();
-    setState(() => _isLoading = false);
+    // Assuming the user is logged in, we'd normally get the userId from auth
+    // For now, we'll let the controller handle fetching or pass a placeholder if needed
+    // The controller likely needs a userId to fetch tickets.
+    // Checking SupportController implementation...
+    await _controller.loadUserTickets();
+    if (mounted) setState(() {});
   }
 
   void _createNewTicket() {
@@ -45,14 +48,23 @@ class _CustomerSupportPageState extends State<CustomerSupportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Customer Support')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _tickets.isEmpty
-              ? _EmptyState(onCreateTicket: _createNewTicket)
-              : _TicketsList(
-                  tickets: _tickets,
-                  onTicketTap: _openTicket,
-                ),
+      body: ListenableBuilder(
+        listenable: _controller,
+        builder: (context, child) {
+          if (_controller.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (_controller.userTickets.isEmpty) {
+            return _EmptyState(onCreateTicket: _createNewTicket);
+          }
+
+          return _TicketsList(
+            tickets: _controller.userTickets,
+            onTicketTap: _openTicket,
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createNewTicket,
         icon: const Icon(Icons.add),
@@ -77,11 +89,17 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.support_agent, size: 80, color: ColorConstants.primary),
+            const Icon(
+              Icons.support_agent,
+              size: 80,
+              color: ColorConstants.primary,
+            ),
             const SizedBox(height: 24),
             Text(
               'No Support Tickets',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -106,10 +124,7 @@ class _TicketsList extends StatelessWidget {
   final List<SupportTicketEntity> tickets;
   final Function(SupportTicketEntity) onTicketTap;
 
-  const _TicketsList({
-    required this.tickets,
-    required this.onTicketTap,
-  });
+  const _TicketsList({required this.tickets, required this.onTicketTap});
 
   @override
   Widget build(BuildContext context) {
@@ -141,12 +156,16 @@ class _TicketCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+          color: isDark
+              ? ColorConstants.surfaceDark
+              : ColorConstants.surfaceLight,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: ticket.isOpen
                 ? ColorConstants.primary.withValues(alpha: 0.3)
-                : (isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+                : (isDark
+                      ? ColorConstants.borderDark
+                      : ColorConstants.borderLight),
           ),
         ),
         child: Column(
@@ -157,7 +176,9 @@ class _TicketCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     ticket.subject,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -168,24 +189,38 @@ class _TicketCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.category_outlined, size: 14, color: ColorConstants.textSecondaryLight),
+                Icon(
+                  Icons.category_outlined,
+                  size: 14,
+                  color: ColorConstants.textSecondaryLight,
+                ),
                 const SizedBox(width: 4),
                 Text(ticket.categoryName, style: theme.textTheme.bodySmall),
                 const SizedBox(width: 16),
-                Icon(Icons.access_time, size: 14, color: ColorConstants.textSecondaryLight),
+                Icon(
+                  Icons.access_time,
+                  size: 14,
+                  color: ColorConstants.textSecondaryLight,
+                ),
                 const SizedBox(width: 4),
-                Text(_formatTime(ticket.updatedAt), style: theme.textTheme.bodySmall),
+                Text(
+                  _formatTime(ticket.updatedAt),
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              ticket.messages.last.message,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight,
+            if (ticket.messages.isNotEmpty)
+              Text(
+                ticket.messages.last.message,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDark
+                      ? ColorConstants.textSecondaryDark
+                      : ColorConstants.textSecondaryLight,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
           ],
         ),
       ),
@@ -215,7 +250,11 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         status.label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _getColor()),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: _getColor(),
+        ),
       ),
     );
   }
@@ -244,8 +283,16 @@ class _CreateTicketPage extends StatefulWidget {
 class _CreateTicketPageState extends State<_CreateTicketPage> {
   final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
-  SupportCategory _selectedCategory = SupportCategory.general;
+  SupportCategoryEntity? _selectedCategory;
+  late SupportController _controller;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = GetIt.instance<SupportController>();
+    _controller.loadCategories();
+  }
 
   @override
   void dispose() {
@@ -255,8 +302,10 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
   }
 
   Future<void> _submitTicket() async {
-    if (_subjectController.text.isEmpty || _messageController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (_selectedCategory == null ||
+        _subjectController.text.isEmpty ||
+        _messageController.text.isEmpty) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
       );
       return;
@@ -264,18 +313,32 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
 
     setState(() => _isSubmitting = true);
 
-    await SupportMockDataSource().createTicket(
+    await _controller.createTicket(
+      categoryId: _selectedCategory!.id,
       subject: _subjectController.text,
-      categoryId: 'cat_${_selectedCategory.name}',
-      categoryName: _selectedCategory.label,
       description: _messageController.text,
+      priority: TicketPriority.medium,
     );
 
+    setState(() => _isSubmitting = false);
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ticket created successfully'), backgroundColor: ColorConstants.success),
-      );
-      Navigator.pop(context);
+      if (_controller.errorMessage != null) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(_controller.errorMessage!),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      } else {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(
+            content: Text('Ticket created successfully'),
+            backgroundColor: ColorConstants.success,
+          ),
+        );
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -290,19 +353,72 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
           children: [
             Text('Category', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: SupportCategory.values.map((cat) => ChoiceChip(
-                label: Text(cat.label),
-                selected: _selectedCategory == cat,
-                onSelected: (_) => setState(() => _selectedCategory = cat),
-              )).toList(),
+            ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                if (_controller.isCategoriesLoading) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+                final categories = _controller.categories;
+                if (categories.isEmpty) {
+                  return const Text('No categories available');
+                }
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: categories.map((cat) {
+                    final isSelected = _selectedCategory?.id == cat.id;
+                    final isDark =
+                        Theme.of(context).brightness == Brightness.dark;
+                    return ChoiceChip(
+                      label: Text(cat.name),
+                      selected: isSelected,
+                      onSelected: (_) =>
+                          setState(() => _selectedCategory = cat),
+                      selectedColor: ColorConstants.primary.withValues(
+                        alpha: 0.15,
+                      ),
+                      backgroundColor: isDark
+                          ? ColorConstants.surfaceDark
+                          : ColorConstants.surfaceLight,
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? ColorConstants.primary
+                            : isDark
+                            ? ColorConstants.textPrimaryDark
+                            : ColorConstants.textPrimaryLight,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                      checkmarkColor: ColorConstants.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isSelected
+                              ? ColorConstants.primary
+                              : isDark
+                              ? ColorConstants.borderDark
+                              : ColorConstants.borderLight,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
             const SizedBox(height: 24),
             TextField(
               controller: _subjectController,
-              decoration: const InputDecoration(labelText: 'Subject', hintText: 'Brief description of your issue'),
+              decoration: const InputDecoration(
+                labelText: 'Subject',
+                hintText: 'Brief description of your issue',
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -320,7 +436,14 @@ class _CreateTicketPageState extends State<_CreateTicketPage> {
               child: FilledButton(
                 onPressed: _isSubmitting ? null : _submitTicket,
                 child: _isSubmitting
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('Submit Ticket'),
               ),
             ),
@@ -342,7 +465,14 @@ class _TicketDetailPage extends StatefulWidget {
 
 class _TicketDetailPageState extends State<_TicketDetailPage> {
   final _messageController = TextEditingController();
+  late SupportController _controller;
   bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = GetIt.instance<SupportController>();
+  }
 
   @override
   void dispose() {
@@ -354,14 +484,26 @@ class _TicketDetailPageState extends State<_TicketDetailPage> {
     if (_messageController.text.isEmpty) return;
 
     setState(() => _isSending = true);
-    await SupportMockDataSource().sendMessage(widget.ticket.id, _messageController.text);
+    await _controller.addMessage(
+      ticketId: widget.ticket.id,
+      message: _messageController.text,
+    );
     _messageController.clear();
     setState(() => _isSending = false);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Message sent')),
-      );
+      if (_controller.errorMessage != null) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(
+            content: Text(_controller.errorMessage!),
+            backgroundColor: ColorConstants.error,
+          ),
+        );
+      } else {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          const SnackBar(content: Text('Message sent')),
+        );
+      }
     }
   }
 
@@ -386,28 +528,44 @@ class _TicketDetailPageState extends State<_TicketDetailPage> {
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: widget.ticket.messages.length,
-              itemBuilder: (context, index) => _MessageBubble(message: widget.ticket.messages[index]),
+              itemBuilder: (context, index) =>
+                  _MessageBubble(message: widget.ticket.messages[index]),
             ),
           ),
           if (widget.ticket.isOpen)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
-                border: Border(top: BorderSide(color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight)),
+                color: isDark
+                    ? ColorConstants.surfaceDark
+                    : ColorConstants.surfaceLight,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? ColorConstants.borderDark
+                        : ColorConstants.borderLight,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _messageController,
-                      decoration: const InputDecoration(hintText: 'Type your message...', border: InputBorder.none),
+                      decoration: const InputDecoration(
+                        hintText: 'Type your message...',
+                        border: InputBorder.none,
+                      ),
                     ),
                   ),
                   IconButton(
                     onPressed: _isSending ? null : _sendMessage,
                     icon: _isSending
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.send, color: ColorConstants.primary),
                   ),
                 ],
@@ -435,10 +593,14 @@ class _MessageBubble extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: isSupport
-              ? (isDark ? ColorConstants.surfaceDark : ColorConstants.backgroundSecondaryLight)
+              ? (isDark
+                    ? ColorConstants.surfaceDark
+                    : ColorConstants.backgroundSecondaryLight)
               : ColorConstants.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
         ),

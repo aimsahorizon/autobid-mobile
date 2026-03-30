@@ -5,7 +5,8 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 class CardPaymentForm extends StatefulWidget {
   final double amount;
   final VoidCallback onCancel;
-  final Function(String cardNumber, String expiry, String cvv, String name) onSubmit;
+  final Function(String cardNumber, String expiry, String cvv, String name)
+  onSubmit;
   final bool isProcessing;
 
   const CardPaymentForm({
@@ -55,7 +56,9 @@ class _CardPaymentFormState extends State<CardPaymentForm> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SingleChildScrollView(
@@ -101,7 +104,11 @@ class _CardPaymentFormState extends State<CardPaymentForm> {
             color: ColorConstants.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.credit_card, color: ColorConstants.primary, size: 24),
+          child: const Icon(
+            Icons.credit_card,
+            color: ColorConstants.primary,
+            size: 24,
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -110,7 +117,9 @@ class _CardPaymentFormState extends State<CardPaymentForm> {
             children: [
               Text(
                 'Pay with Card',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 'Visa, Mastercard accepted',
@@ -150,7 +159,7 @@ class _CardPaymentFormState extends State<CardPaymentForm> {
           ),
           const SizedBox(height: 4),
           Text(
-            '₱${widget.amount.toStringAsFixed(2)}',
+            '₱${widget.amount.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
             style: theme.textTheme.headlineMedium?.copyWith(
               color: ColorConstants.primary,
               fontWeight: FontWeight.bold,
@@ -268,7 +277,9 @@ class _CardPaymentFormState extends State<CardPaymentForm> {
             onPressed: widget.isProcessing ? null : widget.onCancel,
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Cancel'),
           ),
@@ -280,13 +291,18 @@ class _CardPaymentFormState extends State<CardPaymentForm> {
             onPressed: widget.isProcessing ? null : _handleSubmit,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: widget.isProcessing
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Text('Pay Now'),
           ),
@@ -299,7 +315,11 @@ class _CardPaymentFormState extends State<CardPaymentForm> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.lock_outline, size: 14, color: ColorConstants.textSecondaryLight),
+        Icon(
+          Icons.lock_outline,
+          size: 14,
+          color: ColorConstants.textSecondaryLight,
+        ),
         const SizedBox(width: 6),
         Text(
           'Your card info is encrypted and secure',

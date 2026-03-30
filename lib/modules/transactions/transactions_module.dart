@@ -2,7 +2,6 @@ import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/datasources/transaction_remote_datasource.dart';
 import 'data/datasources/transaction_composite_supabase_datasource.dart';
-import 'data/datasources/transaction_mock_datasource.dart';
 import 'data/datasources/transaction_supabase_datasource.dart';
 import 'data/datasources/transaction_realtime_datasource.dart';
 import 'data/datasources/seller_transaction_supabase_datasource.dart';
@@ -23,7 +22,6 @@ Future<void> initTransactionsModule() async {
   final sl = GetIt.instance;
 
   // Primitive Datasources
-  sl.registerLazySingleton(() => TransactionMockDataSource());
   sl.registerLazySingleton(() => TransactionSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => SellerTransactionSupabaseDataSource(sl()));
   sl.registerLazySingleton(() => BuyerTransactionSupabaseDataSource(sl()));
@@ -43,7 +41,7 @@ Future<void> initTransactionsModule() async {
 
   // Repositories
   sl.registerLazySingleton<TransactionRepository>(
-    () => TransactionRepositoryImpl(sl()),
+    () => TransactionRepositoryImpl(sl(), sl()),
   );
 
   // Use Cases
@@ -58,36 +56,50 @@ Future<void> initTransactionsModule() async {
   sl.registerLazySingleton(() => UpdateDeliveryStatusUseCase(sl()));
   sl.registerLazySingleton(() => AcceptVehicleUseCase(sl()));
   sl.registerLazySingleton(() => RejectVehicleUseCase(sl()));
+  sl.registerLazySingleton(() => GetBuyerAcceptanceDeadlineUseCase(sl()));
+  sl.registerLazySingleton(() => CheckAutoAcceptUseCase(sl()));
+  sl.registerLazySingleton(() => EnableAutoAcceptDemoUseCase(sl()));
+
+  // Realtime Datasource (Singleton)
+  sl.registerLazySingleton(() => TransactionRealtimeDataSource(sl()));
 
   // Controllers (Factory)
-  sl.registerFactory(() => TransactionController(
-    getTransactionUseCase: sl(),
-    getChatMessagesUseCase: sl(),
-    getTransactionFormUseCase: sl(),
-    getTimelineUseCase: sl(),
-    sendMessageUseCase: sl(),
-    submitFormUseCase: sl(),
-    confirmFormUseCase: sl(),
-    submitToAdminUseCase: sl(),
-    updateDeliveryStatusUseCase: sl(),
-    acceptVehicleUseCase: sl(),
-    rejectVehicleUseCase: sl(),
-  ));
+  sl.registerFactory(
+    () => TransactionController(
+      getTransactionUseCase: sl(),
+      getChatMessagesUseCase: sl(),
+      getTransactionFormUseCase: sl(),
+      getTimelineUseCase: sl(),
+      sendMessageUseCase: sl(),
+      submitFormUseCase: sl(),
+      confirmFormUseCase: sl(),
+      submitToAdminUseCase: sl(),
+      updateDeliveryStatusUseCase: sl(),
+      acceptVehicleUseCase: sl(),
+      rejectVehicleUseCase: sl(),
+      getDeadlineUseCase: sl(),
+      checkAutoAcceptUseCase: sl(),
+      enableAutoAcceptDemoUseCase: sl(),
+    ),
+  );
 
-  sl.registerFactory(() => TransactionRealtimeController(
-    TransactionRealtimeDataSource(sl()),
-  ));
-  
-  sl.registerFactory(() => TransactionsStatusController(
-    sl(), // TransactionSupabaseDataSource
-    sl<SupabaseClient>().auth.currentUser?.id ?? '',
-  ));
-  
-  sl.registerFactory(() => BuyerSellerTransactionsController(
-    sl<TransactionSupabaseDataSource>(),
-    null,
-    sl<SupabaseClient>().auth.currentUser?.id ?? '',
-  ));
+  sl.registerFactory(() => TransactionRealtimeController(sl()));
+
+  sl.registerFactory(
+    () => TransactionsStatusController(
+      sl(), // TransactionSupabaseDataSource
+      sl<TransactionRealtimeDataSource>(),
+      sl<SupabaseClient>().auth.currentUser?.id ?? '',
+    ),
+  );
+
+  sl.registerFactory(
+    () => BuyerSellerTransactionsController(
+      sl<TransactionSupabaseDataSource>(),
+      sl<TransactionRealtimeDataSource>(),
+      sl<SupabaseClient>().auth.currentUser?.id ?? '',
+    ),
+  );
 }
 
 /// Transactions Module - Manages buyer-seller transactions (Legacy)
@@ -95,10 +107,10 @@ class TransactionsModule {
   static final TransactionsModule _instance = TransactionsModule._internal();
   static TransactionsModule get instance => _instance;
   TransactionsModule._internal();
-  
+
   // Legacy methods removed as they are replaced by DI
   // Keeping class for potential static references if any remain
-  
+
   TransactionRealtimeController createRealtimeTransactionController() {
     // Fallback for any legacy calls not yet using sl
     return TransactionRealtimeController(

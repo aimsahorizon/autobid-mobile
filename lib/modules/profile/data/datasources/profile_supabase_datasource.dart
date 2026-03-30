@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_profile_model.dart';
+import '../../domain/entities/user_review_entity.dart';
 
 /// Supabase data source for user profile operations
 /// Handles profile CRUD operations and image uploads to Supabase Storage
@@ -10,28 +12,26 @@ class ProfileSupabaseDataSource {
   ProfileSupabaseDataSource(this._supabase);
 
   /// Get current user's profile from users table (KYC users)
-  /// Uses phone or email to query, bypasses RLS with public policy
+  /// Get current user's profile from users table (KYC users)
+  /// Uses user ID or email to query, bypasses RLS with public policy
   Future<UserProfileModel?> getUserProfile(String userId) async {
     try {
       // Get current auth user
       final currentUser = _supabase.auth.currentUser;
       if (currentUser == null) return null;
 
-      // Query by phone number (with public RLS policy allowing approved users)
-      // This works because RLS policy 2 allows viewing approved active users
-      final phoneToQuery = currentUser.phone?.replaceAll('+63', '') ?? '';
-
+      // Query by user ID first (most direct) with address join
       var response = await _supabase
           .from('users')
-          .select()
-          .eq('phone_number', phoneToQuery)
+          .select('*, user_addresses(*)')
+          .eq('id', userId)
           .maybeSingle();
 
-      // If not found by phone, try by email
+      // If not found by ID, try by email
       if (response == null && currentUser.email != null) {
         response = await _supabase
             .from('users')
-            .select()
+            .select('*, user_addresses(*)')
             .eq('email', currentUser.email!)
             .maybeSingle();
       }
@@ -96,9 +96,10 @@ class ProfileSupabaseDataSource {
       // Build update map with only non-null fields
       final Map<String, dynamic> updates = {};
       if (username != null) updates['username'] = username;
-      if (contactNumber != null) updates['phone_number'] = contactNumber;
       if (coverPhotoUrl != null) updates['cover_photo_url'] = coverPhotoUrl;
-      if (profilePhotoUrl != null) updates['profile_photo_url'] = profilePhotoUrl;
+      if (profilePhotoUrl != null) {
+        updates['profile_photo_url'] = profilePhotoUrl;
+      }
 
       // Note: fullName is not updated here as it's derived from first/middle/last names
       // To update name, update first_name, middle_name, last_name separately
@@ -204,9 +205,9 @@ class ProfileSupabaseDataSource {
       await _supabase.storage.from(bucket).remove([filepath]);
     } on StorageException catch (e) {
       // Log error but don't throw - deletion is not critical
-      print('Failed to delete photo: ${e.message}');
+      debugPrint('Failed to delete photo: ${e.message}');
     } catch (e) {
-      print('Failed to delete photo: $e');
+      debugPrint('Failed to delete photo: $e');
     }
   }
 
@@ -250,6 +251,117 @@ class ProfileSupabaseDataSource {
       throw Exception('Failed to get profile by email: ${e.message}');
     } catch (e) {
       throw Exception('Failed to get profile by email: $e');
+    }
+  }
+
+  /// Get all reviews received by a user (as reviewee)
+  /// Joins with users table to get reviewer name and photo
+  Future<List<UserReviewEntity>> getReviewsForUser(String userId) async {
+    try {
+      final response = await _supabase
+          .from('transaction_reviews')
+          .select('''
+            id,
+            transaction_id,
+            reviewer_id,
+            rating,
+            comment,
+            created_at,
+            reviewer:users!transaction_reviews_reviewer_id_fkey(
+              full_name,
+              profile_photo_url
+            )
+          ''')
+          .eq('reviewee_id', userId)
+          .order('created_at', ascending: false);
+
+      return (response as List).map((data) {
+        final reviewer = data['reviewer'] as Map<String, dynamic>?;
+
+        // Build full_name from first/middle/last or use full_name directly
+        String reviewerName = 'Anonymous';
+        if (reviewer != null) {
+          if (reviewer['full_name'] != null &&
+              (reviewer['full_name'] as String).isNotEmpty) {
+            reviewerName = reviewer['full_name'] as String;
+          }
+        }
+
+        return UserReviewEntity(
+          id: data['id'] as String,
+          transactionId: data['transaction_id'] as String,
+          reviewerId: data['reviewer_id'] as String,
+          reviewerName: reviewerName,
+          reviewerPhotoUrl: reviewer?['profile_photo_url'] as String?,
+          rating: data['rating'] as int,
+          comment: data['comment'] as String?,
+          createdAt: DateTime.parse(data['created_at'] as String),
+        );
+      }).toList();
+    } on PostgrestException catch (e) {
+      debugPrint('Failed to get reviews for user: ${e.message}');
+      return [];
+    } catch (e) {
+      debugPrint('Failed to get reviews for user: $e');
+      return [];
+    }
+  }
+
+  /// Change user password
+  /// Verifies old password first by re-authenticating
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null || user.email == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // 1. Verify old password by attempting to sign in
+      try {
+        await _supabase.auth.signInWithPassword(
+          email: user.email,
+          password: currentPassword,
+        );
+      } on AuthException {
+        throw Exception('Incorrect current password');
+      }
+
+      // 2. Update password
+      final response = await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+
+      if (response.user == null) {
+        throw Exception('Failed to update password');
+      }
+    } on AuthException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception('Failed to change password: $e');
+    }
+  }
+
+  /// Get another user's public profile with bidding & transaction stats
+  /// Uses the get_user_bidding_stats RPC
+  Future<UserProfileModel?> getUserBiddingStats(String userId) async {
+    try {
+      final result = await _supabase.rpc(
+        'get_user_bidding_stats',
+        params: {'p_user_id': userId},
+      );
+      if (result is Map<String, dynamic>) {
+        return UserProfileModel.fromStatsJson(result);
+      }
+      return null;
+    } on PostgrestException catch (e) {
+      debugPrint('Failed to get user bidding stats: ${e.message}');
+      return null;
+    } catch (e) {
+      debugPrint('Failed to get user bidding stats: $e');
+      return null;
     }
   }
 }

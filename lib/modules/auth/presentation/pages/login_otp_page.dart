@@ -6,14 +6,12 @@ import '../widgets/otp_input_fields.dart';
 
 class LoginOtpPage extends StatefulWidget {
   final String email;
-  final String phoneNumber;
   final LoginOtpController otpController;
   final LoginController loginController;
 
   const LoginOtpPage({
     super.key,
     required this.email,
-    required this.phoneNumber,
     required this.otpController,
     required this.loginController,
   });
@@ -48,7 +46,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
         _emailOtpSent = true;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('OTP sent to ${widget.email}'),
             backgroundColor: ColorConstants.success,
@@ -57,7 +55,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           SnackBar(
             content: Text('Failed to send email OTP: $e'),
             backgroundColor: ColorConstants.error,
@@ -73,7 +71,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
 
     if (mounted) {
       if (isVerified) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Email verified successfully!'),
             backgroundColor: ColorConstants.success,
@@ -83,7 +81,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
         // Reset OTP state after successful verification
         widget.otpController.reset();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
           const SnackBar(
             content: Text('Invalid OTP. Please try again.'),
             backgroundColor: ColorConstants.error,
@@ -97,7 +95,7 @@ class _LoginOtpPageState extends State<LoginOtpPage> {
   void _checkEmailVerified() {
     if (widget.otpController.isEmailVerified) {
       widget.loginController.completeLogin();
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     }
   }
 

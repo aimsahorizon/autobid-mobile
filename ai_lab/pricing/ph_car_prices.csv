@@ -1,0 +1,2120 @@
+Brand,Model,BodyType,Year,Transmission,FuelType,Mileage,Condition,Location,PreviousOwners,Price
+Honda,City,Sedan,2014,Automatic,Gasoline,179828,Good,Western Visayas,1,300000
+Suzuki,Jimny,SUV,2021,Automatic,Gasoline,78011,Fair,Eastern Visayas,1,480000
+Honda,Brio,Hatchback,2024,Manual,Gasoline,32498,Excellent,Metro Manila,1,455000
+Toyota,Innova,MPV,2024,Automatic,Diesel,27779,Fair,Metro Manila,2,735000
+Suzuki,Dzire,Sedan,2021,Manual,Gasoline,99368,Good,Calabarzon,3,260000
+Mitsubishi,Mirage,Hatchback,2020,Automatic,Gasoline,1000,Good,Northern Mindanao,2,325000
+Hyundai,Reina,Sedan,2023,Automatic,Gasoline,39283,Good,Central Visayas,2,370000
+Honda,CR-V,SUV,2018,CVT,Gasoline,97562,Poor,Northern Mindanao,3,565000
+Mitsubishi,Strada,Pickup,2024,Automatic,Diesel,29097,Good,Central Visayas,2,685000
+Isuzu,D-Max,Pickup,2021,Automatic,Diesel,50749,Poor,Eastern Visayas,1,340000
+Kia,Stonic,SUV,2022,Automatic,Gasoline,32982,Good,Western Visayas,1,495000
+Kia,Stonic,SUV,2025,Automatic,Gasoline,1230,Excellent,Metro Manila,2,690000
+Mitsubishi,Montero Sport,SUV,2017,Automatic,Diesel,75168,Good,Central Luzon,3,730000
+Nissan,Almera,Sedan,2021,Manual,Gasoline,44536,Good,Metro Manila,2,440000
+Hyundai,Tucson,SUV,2020,Automatic,Diesel,79043,Fair,Central Visayas,2,660000
+Nissan,Navara,Pickup,2019,Automatic,Diesel,108767,Excellent,Eastern Visayas,2,470000
+Honda,Brio,Hatchback,2021,CVT,Gasoline,91404,Good,Ilocos Region,1,325000
+Ford,EcoSport,SUV,2021,Automatic,Gasoline,68461,Fair,Central Visayas,2,405000
+Mazda,CX-3,SUV,2018,Automatic,Gasoline,104662,Good,Western Visayas,2,580000
+Mazda,CX-3,SUV,2018,Automatic,Gasoline,121609,Fair,Metro Manila,1,560000
+Isuzu,mu-X,SUV,2017,Automatic,Diesel,145706,Poor,Central Luzon,2,465000
+Ford,Ranger,Pickup,2021,Automatic,Diesel,95120,Fair,Calabarzon,2,465000
+Toyota,Innova,MPV,2019,Manual,Diesel,121621,Fair,Calabarzon,3,400000
+Isuzu,mu-X,SUV,2022,Automatic,Diesel,31276,Poor,Central Luzon,2,685000
+Mitsubishi,Montero Sport,SUV,2021,Automatic,Diesel,109639,Excellent,Metro Manila,3,835000
+Toyota,Innova,MPV,2017,Automatic,Diesel,170478,Fair,Northern Mindanao,1,335000
+Toyota,Fortuner,SUV,2022,Manual,Diesel,58216,Poor,Calabarzon,4,585000
+Toyota,Avanza,MPV,2024,Automatic,Gasoline,28068,Fair,Metro Manila,1,575000
+Mazda,Mazda3,Sedan,2018,Automatic,Gasoline,151386,Good,Metro Manila,1,595000
+Honda,BR-V,MPV,2022,Automatic,Gasoline,58851,Excellent,Metro Manila,1,745000
+Mitsubishi,Xpander,MPV,2021,Automatic,Gasoline,41446,Poor,Metro Manila,1,505000
+Suzuki,Swift,Hatchback,2022,CVT,Gasoline,66976,Fair,Davao Region,2,390000
+Ford,Territory,SUV,2024,Automatic,Gasoline,13372,Excellent,Metro Manila,1,875000
+Toyota,Innova,MPV,2025,Manual,Diesel,19269,Good,Bicol Region,1,795000
+Toyota,Hiace,Van,2021,Manual,Diesel,70238,Good,Davao Region,3,855000
+Toyota,Vios,Sedan,2017,Manual,Gasoline,140278,Poor,Metro Manila,1,220000
+Hyundai,Tucson,SUV,2018,Automatic,Diesel,110247,Fair,Metro Manila,2,585000
+Suzuki,Vitara,SUV,2023,Automatic,Gasoline,34379,Poor,Bicol Region,2,460000
+Toyota,Fortuner,SUV,2019,Automatic,Diesel,57526,Fair,Ilocos Region,1,845000
+Mazda,BT-50,Pickup,2016,Automatic,Diesel,164362,Fair,Eastern Visayas,2,320000
+Hyundai,Accent,Sedan,2019,Manual,Gasoline,30720,Fair,Bicol Region,4,280000
+Isuzu,D-Max,Pickup,2021,Manual,Diesel,41583,Good,Central Visayas,1,495000
+Chevrolet,Trailblazer,SUV,2016,Automatic,Diesel,158839,Fair,Central Luzon,4,435000
+Nissan,Almera,Sedan,2017,Manual,Gasoline,121727,Poor,Western Visayas,1,235000
+Toyota,Hiace,Van,2024,Automatic,Diesel,33779,Fair,Calabarzon,1,1215000
+Hyundai,Kona,SUV,2025,Automatic,Gasoline,25188,Excellent,Metro Manila,2,890000
+Ford,Everest,SUV,2018,Automatic,Diesel,1000,Fair,Ilocos Region,2,730000
+Toyota,Innova,MPV,2017,Automatic,Diesel,85531,Fair,Calabarzon,1,475000
+Mazda,CX-5,SUV,2021,Automatic,Gasoline,70943,Good,Calabarzon,1,925000
+Mazda,CX-3,SUV,2025,Automatic,Gasoline,16128,Good,Central Luzon,1,1030000
+Kia,Picanto,Hatchback,2022,Manual,Gasoline,56766,Poor,Calabarzon,1,260000
+Mitsubishi,Mirage,Hatchback,2024,Manual,Gasoline,25564,Good,Davao Region,1,380000
+Toyota,Camry,Sedan,2025,Automatic,Gasoline,11293,Fair,Central Luzon,3,1435000
+Toyota,Hiace,Van,2016,Manual,Diesel,130768,Poor,Central Luzon,2,530000
+Suzuki,Dzire,Sedan,2020,Manual,Gasoline,94684,Good,Metro Manila,1,345000
+Honda,City,Sedan,2020,Automatic,Gasoline,84040,Fair,Calabarzon,2,430000
+Toyota,Innova,MPV,2019,Automatic,Diesel,75543,Fair,Metro Manila,1,550000
+Honda,CR-V,SUV,2018,Automatic,Gasoline,55363,Good,Western Visayas,2,885000
+Toyota,Camry,Sedan,2021,Automatic,Gasoline,66541,Fair,Metro Manila,2,1140000
+Toyota,Innova,MPV,2021,Manual,Diesel,96378,Good,Calabarzon,1,550000
+Mazda,CX-5,SUV,2022,Automatic,Gasoline,30662,Fair,Davao Region,1,915000
+Honda,BR-V,MPV,2019,CVT,Gasoline,81797,Good,Calabarzon,2,570000
+Kia,Sportage,SUV,2023,Automatic,Diesel,30949,Good,Metro Manila,2,1045000
+Suzuki,Ertiga,MPV,2019,Automatic,Gasoline,90106,Poor,Metro Manila,1,305000
+Kia,Seltos,SUV,2024,Automatic,Gasoline,12937,Excellent,Western Visayas,1,875000
+Hyundai,Tucson,SUV,2025,Automatic,Diesel,20603,Good,Northern Mindanao,1,1015000
+Suzuki,Swift,Hatchback,2021,CVT,Gasoline,124372,Poor,Central Luzon,2,220000
+Honda,Civic,Sedan,2020,CVT,Gasoline,67895,Good,Central Luzon,1,770000
+Toyota,Hiace,Van,2025,Manual,Diesel,17145,Good,Central Visayas,2,1290000
+Mitsubishi,Strada,Pickup,2022,Manual,Diesel,29575,Good,Metro Manila,2,650000
+Nissan,Terra,SUV,2025,Automatic,Diesel,11443,Poor,Central Visayas,1,900000
+Toyota,Corolla Altis,Sedan,2022,CVT,Gasoline,81380,Poor,Western Visayas,2,410000
+Kia,Stonic,SUV,2021,Automatic,Gasoline,41794,Poor,Metro Manila,2,335000
+Honda,Civic,Sedan,2017,Automatic,Gasoline,138568,Fair,Metro Manila,1,530000
+Suzuki,Jimny,SUV,2023,Manual,Gasoline,23369,Excellent,Davao Region,3,645000
+Chevrolet,Colorado,Pickup,2018,Automatic,Diesel,161288,Good,Ilocos Region,1,375000
+Kia,Seltos,SUV,2021,CVT,Gasoline,43606,Good,Bicol Region,1,635000
+Subaru,Forester,SUV,2016,Automatic,Gasoline,123816,Fair,Western Visayas,1,730000
+Toyota,Hilux,Pickup,2025,Automatic,Diesel,15913,Fair,Northern Mindanao,1,720000
+Toyota,Vios,Sedan,2023,Manual,Gasoline,21276,Good,Western Visayas,4,420000
+Nissan,Terra,SUV,2020,Manual,Diesel,114039,Poor,Northern Mindanao,1,455000
+Nissan,Urvan,Van,2023,Manual,Diesel,63038,Good,Central Visayas,1,755000
+Toyota,Hilux,Pickup,2018,Automatic,Diesel,81434,Good,Calabarzon,1,525000
+Suzuki,Swift,Hatchback,2021,Automatic,Gasoline,80020,Fair,Central Luzon,1,350000
+Mitsubishi,Montero Sport,SUV,2023,Automatic,Diesel,64447,Good,Calabarzon,3,965000
+Nissan,Almera,Sedan,2018,Manual,Gasoline,142057,Fair,Central Luzon,1,235000
+Honda,Jazz,Hatchback,2014,Automatic,Gasoline,209960,Good,Calabarzon,1,300000
+Honda,City,Sedan,2021,CVT,Gasoline,66427,Fair,Eastern Visayas,1,430000
+Mazda,BT-50,Pickup,2025,Manual,Diesel,22329,Good,Central Luzon,2,735000
+Hyundai,Accent,Sedan,2023,Automatic,Gasoline,47173,Good,Metro Manila,2,500000
+Toyota,Hiace,Van,2021,Manual,Diesel,43498,Poor,Calabarzon,1,760000
+Toyota,Hilux,Pickup,2025,Manual,Diesel,10032,Excellent,Metro Manila,2,805000
+Toyota,Camry,Sedan,2021,Automatic,Gasoline,100761,Good,Calabarzon,1,1060000
+Ford,Territory,SUV,2025,CVT,Gasoline,21667,Excellent,Central Visayas,1,905000
+Kia,Seltos,SUV,2021,Automatic,Gasoline,55005,Poor,Central Visayas,1,425000
+Honda,BR-V,MPV,2022,CVT,Gasoline,47189,Fair,Metro Manila,1,640000
+Mazda,CX-5,SUV,2023,Automatic,Gasoline,64484,Good,Metro Manila,1,995000
+Toyota,Corolla Altis,Sedan,2024,CVT,Gasoline,27823,Good,Calabarzon,3,795000
+Mitsubishi,Xpander,MPV,2025,Automatic,Gasoline,6063,Good,Metro Manila,4,860000
+Toyota,Fortuner,SUV,2016,Manual,Diesel,154241,Fair,Metro Manila,2,630000
+Isuzu,D-Max,Pickup,2024,Manual,Diesel,12033,Good,Metro Manila,4,615000
+Suzuki,Dzire,Sedan,2020,Automatic,Gasoline,131606,Good,Calabarzon,1,270000
+Subaru,XV,SUV,2018,Automatic,Gasoline,115069,Fair,Calabarzon,2,690000
+Suzuki,Jimny,SUV,2022,Manual,Gasoline,64273,Fair,Calabarzon,1,510000
+Suzuki,Jimny,SUV,2024,Manual,Gasoline,51199,Good,Eastern Visayas,1,530000
+Isuzu,D-Max,Pickup,2021,Automatic,Diesel,109436,Fair,Bicol Region,3,325000
+Mitsubishi,Strada,Pickup,2017,Manual,Diesel,97255,Fair,Central Visayas,2,395000
+Chevrolet,Trailblazer,SUV,2018,Automatic,Diesel,103626,Good,Central Luzon,2,690000
+Mitsubishi,Mirage,Hatchback,2025,Manual,Gasoline,10745,Excellent,Davao Region,2,450000
+Isuzu,D-Max,Pickup,2024,Automatic,Diesel,27542,Good,Davao Region,3,550000
+Honda,Civic,Sedan,2014,Automatic,Gasoline,134638,Good,Central Visayas,2,535000
+Mazda,CX-3,SUV,2017,Automatic,Gasoline,142416,Fair,Davao Region,3,430000
+Subaru,Forester,SUV,2023,Automatic,Gasoline,33234,Good,Metro Manila,3,1165000
+Suzuki,Ertiga,MPV,2021,Automatic,Gasoline,86358,Good,Davao Region,1,420000
+Hyundai,Tucson,SUV,2022,Automatic,Diesel,61218,Poor,Metro Manila,2,585000
+Toyota,Vios,Sedan,2019,Manual,Gasoline,69703,Fair,Central Luzon,1,340000
+Toyota,Wigo,Hatchback,2017,Manual,Gasoline,191192,Excellent,Eastern Visayas,1,180000
+Mitsubishi,Mirage G4,Sedan,2022,Manual,Gasoline,1000,Poor,Northern Mindanao,1,280000
+Toyota,Camry,Sedan,2022,Automatic,Gasoline,35596,Good,Central Luzon,1,1315000
+Toyota,Hilux,Pickup,2020,Manual,Diesel,69794,Fair,Central Visayas,1,455000
+Isuzu,mu-X,SUV,2020,Automatic,Diesel,102021,Good,Calabarzon,1,745000
+Kia,Seltos,SUV,2022,CVT,Gasoline,60990,Poor,Central Visayas,1,400000
+Toyota,Vios,Sedan,2018,Manual,Gasoline,106150,Poor,Metro Manila,2,245000
+Mitsubishi,Montero Sport,SUV,2015,Automatic,Diesel,130374,Good,Central Visayas,3,650000
+Honda,Jazz,Hatchback,2016,Automatic,Gasoline,62309,Good,Davao Region,2,370000
+Toyota,Hiace,Van,2023,Automatic,Diesel,43217,Good,Northern Mindanao,2,1060000
+Mitsubishi,Mirage,Hatchback,2014,Manual,Gasoline,115537,Poor,Central Visayas,1,160000
+Suzuki,Swift,Hatchback,2021,CVT,Gasoline,104285,Fair,Calabarzon,1,350000
+Toyota,Fortuner,SUV,2020,Automatic,Diesel,117984,Good,Central Visayas,1,805000
+Subaru,Forester,SUV,2019,CVT,Gasoline,129547,Poor,Central Visayas,1,585000
+Ford,Ranger,Pickup,2022,Automatic,Diesel,58579,Good,Metro Manila,1,765000
+Hyundai,Reina,Sedan,2025,Automatic,Gasoline,11820,Fair,Metro Manila,2,445000
+Mazda,BT-50,Pickup,2016,Automatic,Diesel,124310,Good,Calabarzon,3,435000
+Toyota,Camry,Sedan,2023,Automatic,Gasoline,24440,Fair,Metro Manila,1,1425000
+Mazda,CX-3,SUV,2023,Automatic,Gasoline,35051,Good,Central Visayas,1,885000
+Kia,Sportage,SUV,2018,Automatic,Diesel,172699,Poor,Ilocos Region,2,360000
+Nissan,Navara,Pickup,2024,Manual,Diesel,5805,Good,Calabarzon,3,750000
+Mitsubishi,L300,Van,2020,Manual,Diesel,114186,Fair,Metro Manila,1,340000
+Hyundai,Reina,Sedan,2024,Manual,Gasoline,15466,Good,Calabarzon,1,455000
+Honda,CR-V,SUV,2017,Automatic,Gasoline,47856,Fair,Metro Manila,1,730000
+Nissan,Terra,SUV,2022,Manual,Diesel,78924,Good,Western Visayas,1,750000
+Isuzu,D-Max,Pickup,2016,Automatic,Diesel,176180,Fair,Central Luzon,2,285000
+Mitsubishi,Xpander,MPV,2022,Automatic,Gasoline,75064,Excellent,Central Luzon,2,595000
+Toyota,Avanza,MPV,2015,Manual,Gasoline,154188,Fair,Central Luzon,1,275000
+Kia,Sportage,SUV,2023,Automatic,Diesel,36864,Good,Ilocos Region,1,980000
+Honda,HR-V,SUV,2020,Automatic,Gasoline,27451,Fair,Calabarzon,1,690000
+Mitsubishi,Mirage G4,Sedan,2018,CVT,Gasoline,123045,Fair,Calabarzon,1,270000
+Subaru,Forester,SUV,2018,CVT,Gasoline,146807,Fair,Ilocos Region,1,630000
+Ford,EcoSport,SUV,2020,Automatic,Gasoline,85334,Good,Davao Region,2,405000
+Suzuki,Swift,Hatchback,2024,CVT,Gasoline,19249,Fair,Calabarzon,2,515000
+Mazda,CX-3,SUV,2025,Automatic,Gasoline,4718,Poor,Bicol Region,2,690000
+Honda,City,Sedan,2021,CVT,Gasoline,81534,Fair,Davao Region,1,425000
+Chevrolet,Colorado,Pickup,2019,Manual,Diesel,183658,Fair,Central Visayas,1,265000
+Ford,Territory,SUV,2020,Automatic,Gasoline,114416,Fair,Metro Manila,1,415000
+Subaru,Forester,SUV,2024,Automatic,Gasoline,30699,Good,Central Visayas,2,1255000
+Ford,Ranger,Pickup,2015,Manual,Diesel,191975,Fair,Western Visayas,3,280000
+Nissan,Terra,SUV,2019,Automatic,Diesel,64573,Fair,Central Luzon,1,720000
+Suzuki,Vitara,SUV,2022,Automatic,Gasoline,92279,Fair,Eastern Visayas,4,420000
+Subaru,Forester,SUV,2022,Automatic,Gasoline,47988,Good,Metro Manila,1,1250000
+Mitsubishi,L300,Van,2015,Manual,Diesel,122731,Good,Davao Region,2,310000
+Toyota,Wigo,Hatchback,2021,Manual,Gasoline,57676,Good,Metro Manila,2,335000
+Toyota,Wigo,Hatchback,2023,Manual,Gasoline,51684,Fair,Metro Manila,1,310000
+Mitsubishi,Strada,Pickup,2016,Manual,Diesel,190617,Fair,Metro Manila,1,285000
+Hyundai,Starex,Van,2015,Automatic,Diesel,239840,Good,Metro Manila,1,635000
+Toyota,Fortuner,SUV,2023,Manual,Diesel,37917,Fair,Calabarzon,2,995000
+Honda,HR-V,SUV,2024,Automatic,Gasoline,16045,Fair,Bicol Region,1,845000
+Mazda,Mazda3,Sedan,2024,Automatic,Gasoline,43215,Good,Metro Manila,3,900000
+Isuzu,mu-X,SUV,2025,Automatic,Diesel,12330,Fair,Calabarzon,3,970000
+Toyota,Avanza,MPV,2022,Automatic,Gasoline,27943,Fair,Central Luzon,3,450000
+Honda,CR-V,SUV,2018,Automatic,Gasoline,193562,Fair,Calabarzon,2,510000
+Mazda,BT-50,Pickup,2020,Automatic,Diesel,78598,Fair,Calabarzon,1,555000
+Toyota,Hiace,Van,2024,Manual,Diesel,43638,Good,Metro Manila,2,1310000
+Mitsubishi,Strada,Pickup,2022,Automatic,Diesel,37560,Fair,Western Visayas,1,570000
+Toyota,Camry,Sedan,2024,Automatic,Gasoline,24267,Poor,Metro Manila,2,1120000
+Hyundai,Starex,Van,2016,Automatic,Diesel,146707,Good,Central Luzon,1,865000
+Honda,Civic,Sedan,2023,Automatic,Gasoline,46750,Poor,Western Visayas,2,595000
+Mitsubishi,L300,Van,2015,Manual,Diesel,150921,Poor,Central Luzon,3,210000
+Mitsubishi,Xpander,MPV,2025,Automatic,Gasoline,11583,Good,Northern Mindanao,1,855000
+Kia,Sportage,SUV,2024,Automatic,Diesel,19970,Good,Metro Manila,2,1215000
+Ford,EcoSport,SUV,2021,Automatic,Gasoline,102093,Fair,Metro Manila,1,370000
+Mitsubishi,L300,Van,2025,Manual,Diesel,11125,Good,Metro Manila,1,740000
+Mazda,CX-5,SUV,2025,Automatic,Gasoline,19614,Poor,Western Visayas,2,830000
+Honda,Brio,Hatchback,2022,Automatic,Gasoline,35766,Fair,Central Luzon,1,380000
+Chevrolet,Colorado,Pickup,2018,Automatic,Diesel,141978,Good,Metro Manila,1,445000
+Subaru,XV,SUV,2020,Automatic,Gasoline,87678,Fair,Ilocos Region,1,710000
+Kia,Picanto,Hatchback,2021,Manual,Gasoline,102325,Excellent,Central Luzon,1,290000
+Mazda,CX-3,SUV,2022,Automatic,Gasoline,91892,Poor,Davao Region,1,485000
+Toyota,Corolla Altis,Sedan,2015,Automatic,Gasoline,125738,Good,Metro Manila,2,515000
+Kia,Picanto,Hatchback,2025,Manual,Gasoline,3085,Good,Metro Manila,2,475000
+Mitsubishi,Mirage G4,Sedan,2020,CVT,Gasoline,88930,Fair,Central Visayas,1,340000
+Honda,City,Sedan,2021,Automatic,Gasoline,115337,Good,Metro Manila,1,450000
+Toyota,Wigo,Hatchback,2020,Manual,Gasoline,82271,Poor,Calabarzon,1,205000
+Toyota,Hiace,Van,2018,Automatic,Diesel,67642,Fair,Central Visayas,1,835000
+Toyota,Corolla Altis,Sedan,2021,Automatic,Gasoline,62565,Good,Western Visayas,1,640000
+Ford,Everest,SUV,2016,Automatic,Diesel,141465,Fair,Bicol Region,3,600000
+Toyota,Hilux,Pickup,2017,Automatic,Diesel,123744,Fair,Northern Mindanao,2,345000
+Mitsubishi,Mirage G4,Sedan,2019,Manual,Gasoline,59821,Fair,Central Luzon,1,310000
+Toyota,Vios,Sedan,2023,Automatic,Gasoline,41922,Good,Central Luzon,2,490000
+Isuzu,mu-X,SUV,2023,Automatic,Diesel,43749,Good,Metro Manila,1,1030000
+Hyundai,Accent,Sedan,2015,Manual,Gasoline,182198,Good,Central Visayas,3,220000
+Toyota,Vios,Sedan,2015,Manual,Gasoline,217881,Fair,Central Luzon,3,155000
+Suzuki,Swift,Hatchback,2020,Automatic,Gasoline,59337,Poor,Northern Mindanao,1,315000
+Isuzu,mu-X,SUV,2025,Automatic,Diesel,12054,Excellent,Western Visayas,4,1190000
+Mazda,CX-5,SUV,2023,Automatic,Gasoline,24229,Good,Metro Manila,3,1125000
+Honda,City,Sedan,2024,Automatic,Gasoline,14859,Good,Western Visayas,3,600000
+Mazda,CX-3,SUV,2020,Automatic,Gasoline,29461,Good,Central Luzon,1,760000
+Hyundai,Creta,SUV,2022,Automatic,Gasoline,28871,Good,Bicol Region,2,595000
+Honda,HR-V,SUV,2023,Automatic,Gasoline,32380,Fair,Central Visayas,2,790000
+Ford,Territory,SUV,2020,CVT,Gasoline,77915,Poor,Metro Manila,2,445000
+Honda,BR-V,MPV,2024,Automatic,Gasoline,29768,Good,Calabarzon,1,730000
+Kia,Seltos,SUV,2022,Automatic,Gasoline,47854,Fair,Central Visayas,1,550000
+Mitsubishi,Strada,Pickup,2017,Automatic,Diesel,130234,Fair,Central Luzon,1,400000
+Mitsubishi,Strada,Pickup,2021,Automatic,Diesel,51179,Fair,Davao Region,2,525000
+Mazda,Mazda3,Sedan,2025,Automatic,Gasoline,10610,Good,Central Luzon,1,1075000
+Nissan,Almera,Sedan,2022,Automatic,Gasoline,84519,Good,Metro Manila,1,415000
+Ford,Everest,SUV,2022,Automatic,Diesel,94136,Fair,Calabarzon,1,760000
+Chevrolet,Colorado,Pickup,2015,Automatic,Diesel,43413,Fair,Western Visayas,2,345000
+Chevrolet,Trailblazer,SUV,2019,Automatic,Diesel,150272,Fair,Ilocos Region,3,470000
+Mitsubishi,Mirage,Hatchback,2024,Manual,Gasoline,30620,Good,Calabarzon,1,420000
+Isuzu,D-Max,Pickup,2014,Manual,Diesel,225870,Fair,Metro Manila,2,185000
+Subaru,Forester,SUV,2022,Automatic,Gasoline,69844,Fair,Metro Manila,1,970000
+Honda,HR-V,SUV,2024,Automatic,Gasoline,31690,Good,Northern Mindanao,1,920000
+Mitsubishi,Mirage,Hatchback,2021,Automatic,Gasoline,111143,Fair,Metro Manila,1,260000
+Suzuki,Jimny,SUV,2022,Automatic,Gasoline,107142,Good,Metro Manila,1,480000
+Mazda,BT-50,Pickup,2016,Automatic,Diesel,94800,Poor,Central Luzon,1,340000
+Honda,Jazz,Hatchback,2016,CVT,Gasoline,146045,Good,Central Visayas,2,370000
+Mitsubishi,Mirage G4,Sedan,2023,CVT,Gasoline,46097,Good,Calabarzon,2,470000
+Toyota,Camry,Sedan,2021,Automatic,Gasoline,60280,Good,Central Luzon,1,1315000
+Subaru,Forester,SUV,2016,Automatic,Gasoline,234556,Good,Calabarzon,1,525000
+Toyota,Fortuner,SUV,2022,Manual,Diesel,45268,Poor,Davao Region,1,715000
+Honda,CR-V,SUV,2017,CVT,Gasoline,197409,Fair,Metro Manila,2,505000
+Nissan,Almera,Sedan,2016,Manual,Gasoline,171797,Fair,Ilocos Region,2,215000
+Suzuki,Celerio,Hatchback,2020,Automatic,Gasoline,121458,Excellent,Central Visayas,3,245000
+Mazda,CX-3,SUV,2024,Automatic,Gasoline,36171,Fair,Western Visayas,1,780000
+Mitsubishi,Mirage G4,Sedan,2023,Automatic,Gasoline,34777,Good,Bicol Region,3,435000
+Toyota,Hiace,Van,2022,Manual,Diesel,63302,Fair,Central Luzon,2,820000
+Nissan,Urvan,Van,2023,Manual,Diesel,48843,Fair,Central Luzon,1,745000
+Suzuki,Dzire,Sedan,2019,Automatic,Gasoline,91029,Fair,Davao Region,2,265000
+Nissan,Navara,Pickup,2020,Manual,Diesel,80857,Good,Central Luzon,1,505000
+Toyota,Camry,Sedan,2022,Automatic,Gasoline,73457,Poor,Bicol Region,4,670000
+Mitsubishi,L300,Van,2022,Manual,Diesel,105608,Good,Western Visayas,2,350000
+Ford,EcoSport,SUV,2015,Automatic,Gasoline,101456,Fair,Metro Manila,1,300000
+Nissan,Terra,SUV,2018,Automatic,Diesel,132151,Fair,Metro Manila,1,630000
+Mitsubishi,Strada,Pickup,2018,Manual,Diesel,125123,Fair,Metro Manila,3,400000
+Hyundai,Accent,Sedan,2024,Manual,Gasoline,20111,Good,Calabarzon,2,500000
+Suzuki,Jimny,SUV,2022,Automatic,Gasoline,52307,Poor,Western Visayas,2,400000
+Honda,CR-V,SUV,2023,Automatic,Gasoline,37284,Fair,Calabarzon,2,1030000
+Suzuki,Ertiga,MPV,2018,Automatic,Gasoline,106789,Good,Calabarzon,1,400000
+Mazda,CX-3,SUV,2024,Automatic,Gasoline,21080,Good,Calabarzon,2,970000
+Mitsubishi,Mirage,Hatchback,2015,Automatic,Gasoline,192894,Fair,Ilocos Region,1,185000
+Honda,CR-V,SUV,2024,CVT,Gasoline,42591,Fair,Metro Manila,1,1225000
+Honda,CR-V,SUV,2015,Automatic,Gasoline,158246,Fair,Metro Manila,2,680000
+Mitsubishi,Mirage G4,Sedan,2022,CVT,Gasoline,74370,Fair,Calabarzon,1,375000
+Nissan,Almera,Sedan,2023,Manual,Gasoline,15750,Good,Calabarzon,2,465000
+Nissan,Urvan,Van,2021,Manual,Diesel,50526,Excellent,Eastern Visayas,2,765000
+Ford,EcoSport,SUV,2019,Automatic,Gasoline,147768,Good,Eastern Visayas,2,270000
+Kia,Picanto,Hatchback,2024,Automatic,Gasoline,29943,Good,Metro Manila,2,470000
+Toyota,Corolla Altis,Sedan,2022,CVT,Gasoline,59095,Poor,Metro Manila,1,520000
+Mitsubishi,Mirage G4,Sedan,2018,CVT,Gasoline,101428,Good,Central Luzon,1,350000
+Suzuki,Swift,Hatchback,2014,Automatic,Gasoline,201987,Poor,Central Visayas,1,190000
+Honda,HR-V,SUV,2025,CVT,Gasoline,22363,Good,Western Visayas,3,935000
+Mazda,BT-50,Pickup,2024,Automatic,Diesel,51236,Good,Metro Manila,4,655000
+Mazda,Mazda3,Sedan,2022,Automatic,Gasoline,27493,Good,Metro Manila,1,905000
+Honda,Brio,Hatchback,2022,Automatic,Gasoline,55261,Fair,Western Visayas,1,335000
+Mitsubishi,Strada,Pickup,2019,Manual,Diesel,127713,Fair,Metro Manila,2,385000
+Mitsubishi,L300,Van,2023,Manual,Diesel,45675,Excellent,Central Luzon,1,575000
+Chevrolet,Trailblazer,SUV,2015,Automatic,Diesel,172845,Good,Metro Manila,2,540000
+Subaru,Forester,SUV,2023,Automatic,Gasoline,33852,Good,Western Visayas,1,1280000
+Subaru,Forester,SUV,2022,Automatic,Gasoline,36580,Fair,Central Visayas,1,1010000
+Mitsubishi,Strada,Pickup,2023,Manual,Diesel,35999,Excellent,Metro Manila,4,650000
+Toyota,Rush,SUV,2025,Automatic,Gasoline,18649,Excellent,Ilocos Region,2,805000
+Hyundai,Tucson,SUV,2020,Automatic,Diesel,68049,Good,Davao Region,2,690000
+Toyota,Fortuner,SUV,2019,Automatic,Diesel,51214,Poor,Central Luzon,1,690000
+Nissan,Urvan,Van,2016,Manual,Diesel,104108,Fair,Calabarzon,3,530000
+Toyota,Hilux,Pickup,2022,Manual,Diesel,48678,Fair,Calabarzon,2,515000
+Toyota,Fortuner,SUV,2025,Manual,Diesel,17621,Good,Ilocos Region,1,1290000
+Suzuki,Swift,Hatchback,2023,Automatic,Gasoline,39771,Fair,Central Luzon,2,450000
+Toyota,Raize,SUV,2022,CVT,Gasoline,54956,Fair,Calabarzon,1,395000
+Honda,Brio,Hatchback,2020,Automatic,Gasoline,1000,Fair,Central Luzon,2,295000
+Toyota,Innova,MPV,2023,Automatic,Diesel,47943,Excellent,Northern Mindanao,3,680000
+Ford,Territory,SUV,2024,CVT,Gasoline,26507,Fair,Metro Manila,1,690000
+Mazda,Mazda3,Sedan,2020,Automatic,Gasoline,112393,Good,Ilocos Region,1,610000
+Subaru,Forester,SUV,2023,Automatic,Gasoline,43440,Good,Western Visayas,2,1120000
+Mazda,Mazda3,Sedan,2016,Automatic,Gasoline,69211,Poor,Metro Manila,1,460000
+Toyota,Wigo,Hatchback,2020,Automatic,Gasoline,67241,Good,Western Visayas,1,315000
+Toyota,Hilux,Pickup,2019,Manual,Diesel,100902,Poor,Metro Manila,4,300000
+Ford,Everest,SUV,2018,Automatic,Diesel,147703,Excellent,Metro Manila,1,880000
+Hyundai,Tucson,SUV,2025,Automatic,Diesel,12718,Good,Central Visayas,1,1115000
+Nissan,Urvan,Van,2024,Manual,Diesel,24077,Fair,Bicol Region,2,740000
+Nissan,Juke,SUV,2015,Automatic,Gasoline,136218,Fair,Central Luzon,2,325000
+Toyota,Avanza,MPV,2018,Automatic,Gasoline,122413,Fair,Western Visayas,2,285000
+Ford,Territory,SUV,2022,CVT,Gasoline,52868,Fair,Bicol Region,3,485000
+Mitsubishi,L300,Van,2018,Manual,Diesel,93232,Good,Central Visayas,2,355000
+Honda,Brio,Hatchback,2025,CVT,Gasoline,18674,Good,Northern Mindanao,2,435000
+Ford,Everest,SUV,2016,Automatic,Diesel,101818,Fair,Calabarzon,1,735000
+Hyundai,Tucson,SUV,2017,Automatic,Diesel,271783,Good,Metro Manila,4,370000
+Toyota,Hiace,Van,2020,Automatic,Diesel,73441,Good,Western Visayas,3,910000
+Toyota,Innova,MPV,2025,Automatic,Diesel,19947,Fair,Central Visayas,1,755000
+Suzuki,Celerio,Hatchback,2017,Automatic,Gasoline,126265,Fair,Central Visayas,2,215000
+Hyundai,Reina,Sedan,2024,Manual,Gasoline,14801,Fair,Calabarzon,1,380000
+Mitsubishi,Mirage,Hatchback,2020,Manual,Gasoline,133635,Excellent,Eastern Visayas,1,245000
+Nissan,Terra,SUV,2023,Manual,Diesel,27331,Good,Northern Mindanao,3,790000
+Honda,BR-V,MPV,2024,Automatic,Gasoline,25175,Good,Metro Manila,2,810000
+Mazda,Mazda3,Sedan,2022,Automatic,Gasoline,72848,Good,Metro Manila,1,800000
+Suzuki,Jimny,SUV,2021,Manual,Gasoline,56898,Good,Metro Manila,2,595000
+Suzuki,Ertiga,MPV,2019,Manual,Gasoline,152059,Fair,Calabarzon,2,235000
+Nissan,Navara,Pickup,2015,Automatic,Diesel,213375,Good,Bicol Region,4,245000
+Hyundai,Creta,SUV,2022,Automatic,Gasoline,102096,Good,Metro Manila,2,475000
+Toyota,Vios,Sedan,2025,Manual,Gasoline,9896,Excellent,Northern Mindanao,1,580000
+Toyota,Vios,Sedan,2022,Manual,Gasoline,19509,Fair,Bicol Region,2,340000
+Nissan,Urvan,Van,2019,Manual,Diesel,79907,Good,Davao Region,1,630000
+Mitsubishi,Mirage,Hatchback,2016,CVT,Gasoline,248543,Fair,Bicol Region,3,140000
+Suzuki,Swift,Hatchback,2023,CVT,Gasoline,37296,Good,Davao Region,3,470000
+Honda,HR-V,SUV,2024,Automatic,Gasoline,38063,Fair,Bicol Region,3,720000
+Toyota,Hiace,Van,2017,Manual,Diesel,145750,Fair,Ilocos Region,2,565000
+Suzuki,Vitara,SUV,2020,Automatic,Gasoline,116433,Excellent,Bicol Region,2,515000
+Mitsubishi,Mirage G4,Sedan,2023,CVT,Gasoline,60867,Good,Calabarzon,2,410000
+Hyundai,Accent,Sedan,2015,Automatic,Gasoline,178599,Good,Metro Manila,1,290000
+Toyota,Avanza,MPV,2023,Manual,Gasoline,35179,Poor,Davao Region,1,375000
+Toyota,Corolla Altis,Sedan,2021,Automatic,Gasoline,67222,Fair,Central Visayas,1,615000
+Mitsubishi,Xpander,MPV,2021,Automatic,Gasoline,93373,Good,Eastern Visayas,2,470000
+Toyota,Camry,Sedan,2017,Automatic,Gasoline,172347,Fair,Calabarzon,1,675000
+Hyundai,Starex,Van,2017,Automatic,Diesel,198752,Fair,Central Visayas,1,590000
+Hyundai,Creta,SUV,2024,CVT,Gasoline,34026,Good,Metro Manila,3,665000
+Honda,City,Sedan,2025,CVT,Gasoline,21034,Good,Western Visayas,3,730000
+Mitsubishi,Strada,Pickup,2015,Manual,Diesel,177669,Fair,Ilocos Region,1,295000
+Nissan,Almera,Sedan,2020,Manual,Gasoline,115882,Good,Bicol Region,2,295000
+Suzuki,Jimny,SUV,2024,Manual,Gasoline,30127,Fair,Davao Region,2,545000
+Toyota,Camry,Sedan,2025,Automatic,Gasoline,13590,Good,Western Visayas,2,1665000
+Ford,Ranger,Pickup,2021,Manual,Diesel,58607,Fair,Central Visayas,1,510000
+Honda,City,Sedan,2014,Automatic,Gasoline,249847,Good,Davao Region,2,215000
+Ford,Ranger,Pickup,2016,Automatic,Diesel,166055,Poor,Western Visayas,1,275000
+Toyota,Camry,Sedan,2025,Automatic,Gasoline,13549,Fair,Calabarzon,3,1525000
+Isuzu,mu-X,SUV,2023,Automatic,Diesel,43633,Fair,Metro Manila,1,940000
+Mazda,CX-5,SUV,2016,Automatic,Gasoline,101797,Poor,Western Visayas,1,505000
+Toyota,Rush,SUV,2019,Automatic,Gasoline,82552,Poor,Metro Manila,1,415000
+Isuzu,D-Max,Pickup,2022,Automatic,Diesel,85143,Fair,Calabarzon,2,415000
+Suzuki,Dzire,Sedan,2019,Automatic,Gasoline,101846,Good,Central Visayas,1,305000
+Nissan,Almera,Sedan,2021,Automatic,Gasoline,98708,Good,Calabarzon,1,370000
+Honda,Civic,Sedan,2021,Automatic,Gasoline,17097,Poor,Metro Manila,1,650000
+Kia,Picanto,Hatchback,2025,Manual,Gasoline,15922,Fair,Calabarzon,2,420000
+Honda,Jazz,Hatchback,2019,Automatic,Gasoline,95647,Fair,Central Luzon,1,405000
+Suzuki,Celerio,Hatchback,2024,Manual,Gasoline,16586,Excellent,Central Visayas,3,395000
+Mitsubishi,Montero Sport,SUV,2019,Automatic,Diesel,154931,Fair,Calabarzon,1,590000
+Mitsubishi,Mirage,Hatchback,2024,Automatic,Gasoline,48381,Good,Northern Mindanao,1,380000
+Ford,Ranger,Pickup,2016,Automatic,Diesel,106677,Poor,Western Visayas,4,310000
+Honda,BR-V,MPV,2025,CVT,Gasoline,13905,Excellent,Central Luzon,1,900000
+Toyota,Raize,SUV,2025,CVT,Gasoline,15601,Good,Central Visayas,1,595000
+Mazda,CX-5,SUV,2024,Automatic,Gasoline,26555,Poor,Central Luzon,1,855000
+Ford,EcoSport,SUV,2018,Automatic,Gasoline,124947,Poor,Central Visayas,2,245000
+Mitsubishi,L300,Van,2021,Manual,Diesel,97930,Excellent,Central Luzon,3,415000
+Suzuki,Celerio,Hatchback,2017,Automatic,Gasoline,158210,Good,Northern Mindanao,2,215000
+Nissan,Urvan,Van,2020,Manual,Diesel,75856,Fair,Metro Manila,1,685000
+Toyota,Camry,Sedan,2017,Automatic,Gasoline,87339,Good,Metro Manila,1,1115000
+Suzuki,Celerio,Hatchback,2024,Manual,Gasoline,45390,Good,Metro Manila,3,350000
+Hyundai,Starex,Van,2018,Automatic,Diesel,62248,Good,Central Visayas,3,1030000
+Hyundai,Accent,Sedan,2020,Manual,Gasoline,122243,Good,Central Visayas,2,275000
+Honda,CR-V,SUV,2022,Automatic,Gasoline,106711,Good,Central Luzon,2,820000
+Hyundai,Accent,Sedan,2025,Automatic,Gasoline,17057,Fair,Davao Region,2,480000
+Honda,City,Sedan,2021,Automatic,Gasoline,83792,Good,Western Visayas,4,415000
+Nissan,Urvan,Van,2023,Manual,Diesel,13914,Good,Northern Mindanao,1,845000
+Honda,Brio,Hatchback,2023,CVT,Gasoline,54834,Good,Davao Region,3,335000
+Toyota,Avanza,MPV,2023,Manual,Gasoline,75529,Excellent,Ilocos Region,2,440000
+Isuzu,D-Max,Pickup,2025,Automatic,Diesel,6499,Fair,Metro Manila,1,720000
+Nissan,Terra,SUV,2024,Manual,Diesel,25321,Fair,Central Visayas,1,860000
+Toyota,Avanza,MPV,2025,Manual,Gasoline,16997,Excellent,Metro Manila,2,705000
+Kia,Stonic,SUV,2023,Automatic,Gasoline,89974,Good,Metro Manila,1,380000
+Toyota,Hiace,Van,2021,Manual,Diesel,47111,Fair,Central Visayas,3,905000
+Mitsubishi,Strada,Pickup,2024,Automatic,Diesel,34829,Good,Bicol Region,1,700000
+Ford,Everest,SUV,2021,Automatic,Diesel,100886,Fair,Metro Manila,1,835000
+Toyota,Corolla Altis,Sedan,2017,Automatic,Gasoline,140008,Good,Ilocos Region,3,435000
+Suzuki,Celerio,Hatchback,2022,Automatic,Gasoline,81766,Poor,Metro Manila,1,210000
+Honda,Jazz,Hatchback,2018,CVT,Gasoline,122162,Fair,Western Visayas,3,330000
+Toyota,Avanza,MPV,2019,Manual,Gasoline,64085,Good,Metro Manila,4,390000
+Ford,Everest,SUV,2017,Automatic,Diesel,43436,Fair,Eastern Visayas,1,705000
+Hyundai,Accent,Sedan,2020,Automatic,Gasoline,73868,Fair,Metro Manila,1,385000
+Honda,CR-V,SUV,2020,Automatic,Gasoline,144676,Poor,Calabarzon,4,495000
+Honda,Brio,Hatchback,2022,CVT,Gasoline,67324,Good,Western Visayas,1,375000
+Toyota,Camry,Sedan,2025,Automatic,Gasoline,16998,Good,Central Visayas,2,1650000
+Nissan,Terra,SUV,2021,Manual,Diesel,33489,Fair,Calabarzon,1,835000
+Chevrolet,Trailblazer,SUV,2017,Automatic,Diesel,165637,Poor,Central Luzon,2,395000
+Subaru,Forester,SUV,2024,CVT,Gasoline,23047,Good,Calabarzon,1,1350000
+Ford,Ranger,Pickup,2018,Automatic,Diesel,142547,Fair,Bicol Region,1,385000
+Toyota,Hiace,Van,2022,Manual,Diesel,39734,Good,Central Visayas,4,915000
+Kia,Picanto,Hatchback,2018,Automatic,Gasoline,137012,Good,Metro Manila,1,305000
+Mitsubishi,Montero Sport,SUV,2018,Automatic,Diesel,113752,Good,Northern Mindanao,2,725000
+Mitsubishi,Xpander,MPV,2020,Automatic,Gasoline,158920,Good,Bicol Region,3,350000
+Hyundai,Accent,Sedan,2020,Automatic,Gasoline,82981,Good,Central Visayas,2,395000
+Kia,Seltos,SUV,2025,CVT,Gasoline,7962,Fair,Central Visayas,2,730000
+Honda,Brio,Hatchback,2022,Manual,Gasoline,23570,Good,Metro Manila,1,390000
+Honda,City,Sedan,2025,CVT,Gasoline,23024,Good,Calabarzon,2,710000
+Mazda,CX-5,SUV,2017,Automatic,Gasoline,115302,Good,Davao Region,2,710000
+Suzuki,Swift,Hatchback,2022,CVT,Gasoline,76183,Poor,Central Luzon,3,290000
+Suzuki,Swift,Hatchback,2019,CVT,Gasoline,112287,Fair,Central Luzon,3,285000
+Suzuki,Ertiga,MPV,2023,Automatic,Gasoline,42668,Fair,Metro Manila,2,470000
+Mitsubishi,L300,Van,2023,Manual,Diesel,14885,Good,Central Visayas,1,595000
+Toyota,Vios,Sedan,2022,Automatic,Gasoline,58175,Excellent,Metro Manila,1,510000
+Mitsubishi,L300,Van,2021,Manual,Diesel,72474,Good,Central Visayas,3,410000
+Nissan,Urvan,Van,2019,Manual,Diesel,78279,Good,Northern Mindanao,2,660000
+Hyundai,Accent,Sedan,2024,Manual,Gasoline,34753,Excellent,Metro Manila,2,555000
+Chevrolet,Colorado,Pickup,2017,Manual,Diesel,102464,Poor,Central Visayas,2,290000
+Isuzu,D-Max,Pickup,2014,Automatic,Diesel,145592,Good,Central Luzon,1,370000
+Mitsubishi,Xpander,MPV,2024,Automatic,Gasoline,30275,Good,Metro Manila,2,790000
+Kia,Picanto,Hatchback,2021,Manual,Gasoline,99588,Poor,Metro Manila,2,225000
+Chevrolet,Colorado,Pickup,2018,Automatic,Diesel,124530,Fair,Northern Mindanao,1,390000
+Hyundai,Reina,Sedan,2025,Automatic,Gasoline,24069,Good,Ilocos Region,1,460000
+Hyundai,Accent,Sedan,2016,Automatic,Gasoline,141724,Fair,Metro Manila,4,260000
+Ford,Everest,SUV,2020,Automatic,Diesel,158462,Poor,Central Luzon,3,415000
+Toyota,Hiace,Van,2025,Manual,Diesel,13999,Good,Central Visayas,1,1380000
+Kia,Picanto,Hatchback,2019,Automatic,Gasoline,23404,Poor,Bicol Region,1,235000
+Honda,Civic,Sedan,2020,CVT,Gasoline,116962,Fair,Metro Manila,2,585000
+Nissan,Urvan,Van,2019,Manual,Diesel,80612,Poor,Calabarzon,1,480000
+Toyota,Hilux,Pickup,2023,Automatic,Diesel,51858,Excellent,Metro Manila,1,710000
+Mitsubishi,Mirage G4,Sedan,2021,CVT,Gasoline,70215,Good,Metro Manila,2,395000
+Ford,Everest,SUV,2023,Automatic,Diesel,43613,Excellent,Western Visayas,1,1225000
+Hyundai,Accent,Sedan,2017,Manual,Gasoline,129029,Poor,Calabarzon,2,210000
+Honda,City,Sedan,2020,CVT,Gasoline,101578,Poor,Metro Manila,3,330000
+Mitsubishi,L300,Van,2020,Manual,Diesel,60988,Fair,Metro Manila,2,410000
+Honda,Civic,Sedan,2017,Automatic,Gasoline,156009,Good,Western Visayas,2,505000
+Toyota,Hilux,Pickup,2022,Manual,Diesel,30094,Good,Central Visayas,1,535000
+Ford,Territory,SUV,2021,CVT,Gasoline,63243,Fair,Metro Manila,1,620000
+Hyundai,Tucson,SUV,2023,Automatic,Diesel,66255,Poor,Central Visayas,1,570000
+Honda,CR-V,SUV,2019,CVT,Gasoline,71438,Good,Metro Manila,1,1060000
+Suzuki,Jimny,SUV,2019,Manual,Gasoline,89543,Good,Central Visayas,1,460000
+Mitsubishi,Montero Sport,SUV,2022,Automatic,Diesel,30574,Fair,Central Luzon,1,910000
+Toyota,Vios,Sedan,2022,Manual,Gasoline,62876,Good,Central Visayas,1,415000
+Kia,Picanto,Hatchback,2020,Automatic,Gasoline,78915,Fair,Metro Manila,1,350000
+Mitsubishi,Mirage,Hatchback,2015,Automatic,Gasoline,164616,Good,Central Luzon,1,225000
+Nissan,Almera,Sedan,2017,Manual,Gasoline,152783,Fair,Bicol Region,3,230000
+Subaru,XV,SUV,2021,Automatic,Gasoline,99157,Fair,Central Visayas,1,775000
+Mazda,CX-3,SUV,2017,Automatic,Gasoline,123785,Good,Central Visayas,1,560000
+Honda,BR-V,MPV,2017,CVT,Gasoline,128626,Poor,Metro Manila,1,380000
+Toyota,Camry,Sedan,2016,Automatic,Gasoline,70636,Good,Central Luzon,2,930000
+Mazda,CX-5,SUV,2023,Automatic,Gasoline,38713,Good,Ilocos Region,1,1040000
+Honda,Civic,Sedan,2017,CVT,Gasoline,45847,Good,Central Visayas,2,625000
+Toyota,Innova,MPV,2016,Automatic,Diesel,102885,Good,Western Visayas,1,480000
+Toyota,Hiace,Van,2022,Manual,Diesel,28567,Fair,Calabarzon,1,1025000
+Suzuki,Celerio,Hatchback,2015,Automatic,Gasoline,103884,Fair,Calabarzon,1,215000
+Honda,Brio,Hatchback,2021,Manual,Gasoline,81663,Fair,Davao Region,1,265000
+Nissan,Navara,Pickup,2018,Manual,Diesel,110914,Fair,Metro Manila,1,435000
+Toyota,Innova,MPV,2020,Manual,Diesel,72463,Good,Central Luzon,1,550000
+Toyota,Corolla Altis,Sedan,2016,Automatic,Gasoline,152478,Poor,Davao Region,1,335000
+Honda,BR-V,MPV,2018,CVT,Gasoline,225125,Good,Calabarzon,2,345000
+Isuzu,D-Max,Pickup,2023,Manual,Diesel,55217,Fair,Northern Mindanao,2,420000
+Toyota,Rush,SUV,2022,Automatic,Gasoline,23702,Good,Central Luzon,2,625000
+Toyota,Hilux,Pickup,2020,Manual,Diesel,104288,Good,Metro Manila,1,475000
+Chevrolet,Trailblazer,SUV,2020,Automatic,Diesel,78840,Good,Eastern Visayas,1,830000
+Nissan,Urvan,Van,2018,Manual,Diesel,113541,Fair,Metro Manila,2,570000
+Hyundai,Reina,Sedan,2021,Automatic,Gasoline,107203,Good,Western Visayas,1,285000
+Subaru,XV,SUV,2024,CVT,Gasoline,15459,Fair,Metro Manila,2,1290000
+Honda,HR-V,SUV,2025,Automatic,Gasoline,12055,Good,Calabarzon,2,1045000
+Nissan,Urvan,Van,2020,Manual,Diesel,123872,Good,Metro Manila,1,580000
+Hyundai,Starex,Van,2020,Automatic,Diesel,44854,Good,Metro Manila,2,1310000
+Toyota,Vios,Sedan,2018,Manual,Gasoline,72319,Fair,Calabarzon,4,285000
+Kia,Stonic,SUV,2022,Automatic,Gasoline,74523,Good,Metro Manila,3,410000
+Hyundai,Tucson,SUV,2019,Automatic,Diesel,119396,Fair,Central Visayas,1,490000
+Suzuki,Celerio,Hatchback,2020,Manual,Gasoline,119320,Excellent,Central Visayas,2,220000
+Toyota,Hiace,Van,2018,Manual,Diesel,31728,Good,Metro Manila,3,920000
+Ford,Ranger,Pickup,2019,Automatic,Diesel,126735,Good,Metro Manila,4,465000
+Ford,Ranger,Pickup,2024,Automatic,Diesel,47815,Good,Calabarzon,1,825000
+Nissan,Terra,SUV,2023,Manual,Diesel,19851,Fair,Ilocos Region,2,830000
+Ford,Everest,SUV,2015,Automatic,Diesel,211193,Fair,Central Visayas,3,405000
+Hyundai,Accent,Sedan,2016,Automatic,Gasoline,153823,Fair,Calabarzon,3,245000
+Toyota,Vios,Sedan,2025,Automatic,Gasoline,17003,Good,Central Visayas,2,580000
+Toyota,Innova,MPV,2025,Manual,Diesel,17901,Good,Metro Manila,2,860000
+Honda,City,Sedan,2015,CVT,Gasoline,162248,Poor,Western Visayas,2,250000
+Mitsubishi,Mirage,Hatchback,2020,Manual,Gasoline,88260,Fair,Central Luzon,3,250000
+Mitsubishi,Montero Sport,SUV,2016,Automatic,Diesel,217974,Fair,Metro Manila,2,435000
+Ford,Everest,SUV,2022,Automatic,Diesel,69749,Fair,Calabarzon,2,815000
+Mitsubishi,Mirage,Hatchback,2021,Automatic,Gasoline,62967,Good,Central Visayas,2,350000
+Honda,Jazz,Hatchback,2017,CVT,Gasoline,154666,Fair,Davao Region,1,320000
+Honda,BR-V,MPV,2020,CVT,Gasoline,78903,Fair,Western Visayas,2,500000
+Mazda,Mazda3,Sedan,2016,Automatic,Gasoline,130730,Fair,Central Visayas,3,445000
+Subaru,Forester,SUV,2021,CVT,Gasoline,90579,Fair,Metro Manila,2,890000
+Suzuki,Ertiga,MPV,2017,Automatic,Gasoline,187646,Fair,Metro Manila,2,210000
+Kia,Seltos,SUV,2025,CVT,Gasoline,22848,Excellent,Davao Region,1,900000
+Toyota,Vios,Sedan,2023,Manual,Gasoline,29884,Good,Metro Manila,2,485000
+Subaru,XV,SUV,2023,CVT,Gasoline,47830,Good,Central Luzon,3,985000
+Honda,BR-V,MPV,2021,CVT,Gasoline,89338,Fair,Bicol Region,2,460000
+Toyota,Vios,Sedan,2021,Automatic,Gasoline,107673,Good,Bicol Region,3,330000
+Suzuki,Swift,Hatchback,2025,Automatic,Gasoline,13361,Excellent,Metro Manila,1,765000
+Honda,CR-V,SUV,2020,CVT,Gasoline,102278,Good,Metro Manila,1,965000
+Hyundai,Accent,Sedan,2017,Automatic,Gasoline,164106,Good,Ilocos Region,1,280000
+Toyota,Hilux,Pickup,2022,Automatic,Diesel,31391,Good,Central Visayas,2,580000
+Honda,HR-V,SUV,2024,CVT,Gasoline,9123,Good,Ilocos Region,2,1035000
+Honda,HR-V,SUV,2021,CVT,Gasoline,63990,Good,Northern Mindanao,2,695000
+Suzuki,Dzire,Sedan,2021,Manual,Gasoline,67887,Fair,Central Visayas,3,260000
+Isuzu,mu-X,SUV,2018,Automatic,Diesel,132976,Poor,Davao Region,2,450000
+Nissan,Navara,Pickup,2023,Automatic,Diesel,65270,Excellent,Bicol Region,1,575000
+Hyundai,Starex,Van,2019,Automatic,Diesel,111964,Good,Ilocos Region,2,1040000
+Isuzu,mu-X,SUV,2023,Automatic,Diesel,47795,Good,Western Visayas,1,940000
+Mitsubishi,L300,Van,2019,Manual,Diesel,82321,Good,Metro Manila,2,415000
+Suzuki,Celerio,Hatchback,2024,Manual,Gasoline,37999,Good,Western Visayas,1,355000
+Toyota,Corolla Altis,Sedan,2020,Automatic,Gasoline,81975,Fair,Calabarzon,1,580000
+Ford,Ranger,Pickup,2017,Manual,Diesel,129665,Good,Bicol Region,2,405000
+Hyundai,Accent,Sedan,2021,Manual,Gasoline,44891,Good,Bicol Region,1,405000
+Nissan,Almera,Sedan,2019,Automatic,Gasoline,84559,Fair,Calabarzon,1,360000
+Toyota,Hilux,Pickup,2023,Manual,Diesel,60353,Good,Calabarzon,1,595000
+Toyota,Hilux,Pickup,2024,Manual,Diesel,30279,Good,Metro Manila,4,645000
+Toyota,Hilux,Pickup,2016,Automatic,Diesel,190727,Fair,Northern Mindanao,3,260000
+Toyota,Fortuner,SUV,2023,Manual,Diesel,48656,Good,Metro Manila,1,1125000
+Toyota,Corolla Altis,Sedan,2022,Automatic,Gasoline,67025,Fair,Western Visayas,1,615000
+Toyota,Rush,SUV,2021,Automatic,Gasoline,86438,Good,Central Luzon,1,580000
+Toyota,Corolla Altis,Sedan,2020,CVT,Gasoline,123300,Excellent,Western Visayas,2,515000
+Hyundai,Accent,Sedan,2024,Manual,Gasoline,38592,Good,Calabarzon,1,455000
+Toyota,Hilux,Pickup,2024,Manual,Diesel,20760,Poor,Metro Manila,3,450000
+Nissan,Almera,Sedan,2023,Automatic,Gasoline,37190,Fair,Metro Manila,1,445000
+Toyota,Rush,SUV,2021,Automatic,Gasoline,48133,Fair,Central Luzon,2,510000
+Kia,Picanto,Hatchback,2015,Manual,Gasoline,169232,Poor,Calabarzon,2,170000
+Hyundai,Kona,SUV,2023,Automatic,Gasoline,59032,Good,Bicol Region,1,605000
+Suzuki,Jimny,SUV,2019,Automatic,Gasoline,137146,Fair,Calabarzon,1,365000
+Hyundai,Reina,Sedan,2025,Automatic,Gasoline,23290,Good,Metro Manila,3,450000
+Mitsubishi,Montero Sport,SUV,2020,Automatic,Diesel,66380,Fair,Metro Manila,2,835000
+Isuzu,mu-X,SUV,2018,Automatic,Diesel,210384,Poor,Western Visayas,1,365000
+Hyundai,Starex,Van,2020,Automatic,Diesel,133716,Fair,Metro Manila,2,855000
+Kia,Seltos,SUV,2021,CVT,Gasoline,71525,Good,Davao Region,1,550000
+Suzuki,Celerio,Hatchback,2025,Manual,Gasoline,2545,Good,Northern Mindanao,3,400000
+Kia,Sportage,SUV,2023,Automatic,Diesel,7946,Good,Metro Manila,1,1210000
+Ford,Ranger,Pickup,2015,Automatic,Diesel,104413,Fair,Metro Manila,4,440000
+Toyota,Avanza,MPV,2025,Manual,Gasoline,15150,Good,Central Visayas,1,650000
+Honda,HR-V,SUV,2024,CVT,Gasoline,28901,Excellent,Calabarzon,2,980000
+Mazda,CX-5,SUV,2020,Automatic,Gasoline,94273,Fair,Western Visayas,2,655000
+Mitsubishi,Montero Sport,SUV,2015,Automatic,Diesel,206071,Poor,Central Visayas,2,360000
+Mitsubishi,Xpander,MPV,2023,Automatic,Gasoline,57066,Good,Davao Region,3,595000
+Suzuki,Ertiga,MPV,2016,Manual,Gasoline,121865,Good,Metro Manila,1,330000
+Toyota,Innova,MPV,2024,Automatic,Diesel,38613,Good,Davao Region,2,710000
+Toyota,Hiace,Van,2018,Manual,Diesel,93763,Fair,Metro Manila,4,685000
+Toyota,Avanza,MPV,2017,Manual,Gasoline,166907,Good,Ilocos Region,1,265000
+Nissan,Terra,SUV,2024,Manual,Diesel,38774,Fair,Eastern Visayas,1,845000
+Suzuki,Dzire,Sedan,2022,Automatic,Gasoline,48479,Good,Ilocos Region,2,365000
+Honda,Civic,Sedan,2022,Automatic,Gasoline,51477,Poor,Metro Manila,2,595000
+Toyota,Fortuner,SUV,2022,Manual,Diesel,70642,Good,Calabarzon,1,875000
+Mazda,BT-50,Pickup,2020,Automatic,Diesel,17731,Fair,Calabarzon,1,540000
+Suzuki,Celerio,Hatchback,2024,Automatic,Gasoline,56179,Fair,Western Visayas,2,300000
+Mazda,Mazda3,Sedan,2024,Automatic,Gasoline,25300,Excellent,Metro Manila,1,1135000
+Toyota,Innova,MPV,2016,Manual,Diesel,131980,Fair,Western Visayas,3,355000
+Kia,Seltos,SUV,2024,Automatic,Gasoline,40374,Poor,Metro Manila,1,505000
+Toyota,Raize,SUV,2022,Automatic,Gasoline,59952,Fair,Ilocos Region,1,405000
+Honda,CR-V,SUV,2016,Automatic,Gasoline,99628,Fair,Calabarzon,2,665000
+Suzuki,Ertiga,MPV,2025,Automatic,Gasoline,15731,Good,Calabarzon,1,690000
+Mitsubishi,L300,Van,2022,Manual,Diesel,75815,Good,Davao Region,1,410000
+Suzuki,Swift,Hatchback,2024,CVT,Gasoline,30132,Good,Central Visayas,3,540000
+Toyota,Avanza,MPV,2022,Automatic,Gasoline,72626,Poor,Ilocos Region,2,305000
+Toyota,Vios,Sedan,2023,Automatic,Gasoline,41324,Excellent,Metro Manila,1,530000
+Toyota,Avanza,MPV,2025,Automatic,Gasoline,13657,Excellent,Central Visayas,1,735000
+Isuzu,D-Max,Pickup,2020,Manual,Diesel,98244,Poor,Northern Mindanao,1,280000
+Toyota,Innova,MPV,2023,Manual,Diesel,33270,Fair,Metro Manila,1,645000
+Honda,HR-V,SUV,2022,CVT,Gasoline,62086,Fair,Davao Region,1,710000
+Honda,CR-V,SUV,2020,CVT,Gasoline,29683,Poor,Calabarzon,1,790000
+Toyota,Wigo,Hatchback,2024,Automatic,Gasoline,59462,Good,Central Luzon,2,335000
+Nissan,Terra,SUV,2018,Automatic,Diesel,75353,Poor,Metro Manila,2,595000
+Toyota,Wigo,Hatchback,2021,Manual,Gasoline,92643,Fair,Western Visayas,1,240000
+Isuzu,D-Max,Pickup,2017,Manual,Diesel,107944,Good,Northern Mindanao,1,350000
+Mazda,CX-5,SUV,2017,Automatic,Gasoline,92535,Good,Metro Manila,1,835000
+Toyota,Camry,Sedan,2015,Automatic,Gasoline,138404,Fair,Davao Region,2,765000
+Honda,Jazz,Hatchback,2017,Automatic,Gasoline,65473,Fair,Central Visayas,2,355000
+Mazda,CX-5,SUV,2024,Automatic,Gasoline,43424,Poor,Davao Region,1,750000
+Subaru,XV,SUV,2017,Automatic,Gasoline,122649,Fair,Calabarzon,1,755000
+Toyota,Hiace,Van,2023,Manual,Diesel,57065,Excellent,Metro Manila,4,1010000
+Subaru,XV,SUV,2018,CVT,Gasoline,67635,Fair,Western Visayas,2,760000
+Kia,Sportage,SUV,2025,Automatic,Diesel,15695,Fair,Central Luzon,1,1115000
+Suzuki,Celerio,Hatchback,2020,Automatic,Gasoline,79535,Good,Central Visayas,1,310000
+Toyota,Avanza,MPV,2025,Automatic,Gasoline,20013,Excellent,Northern Mindanao,1,685000
+Nissan,Urvan,Van,2015,Manual,Diesel,91035,Good,Eastern Visayas,3,490000
+Suzuki,Jimny,SUV,2022,Automatic,Gasoline,46625,Fair,Central Visayas,4,465000
+Mazda,Mazda3,Sedan,2025,Automatic,Gasoline,19954,Good,Western Visayas,1,1045000
+Chevrolet,Colorado,Pickup,2020,Manual,Diesel,73633,Poor,Ilocos Region,4,315000
+Mazda,CX-3,SUV,2019,Automatic,Gasoline,140766,Fair,Metro Manila,2,510000
+Honda,City,Sedan,2025,CVT,Gasoline,6639,Poor,Calabarzon,1,615000
+Ford,Territory,SUV,2021,Automatic,Gasoline,77880,Excellent,Calabarzon,1,645000
+Suzuki,Dzire,Sedan,2021,Automatic,Gasoline,67010,Fair,Metro Manila,1,340000
+Suzuki,Vitara,SUV,2017,Automatic,Gasoline,93710,Fair,Metro Manila,1,475000
+Kia,Seltos,SUV,2024,Automatic,Gasoline,34511,Good,Metro Manila,2,765000
+Isuzu,D-Max,Pickup,2015,Manual,Diesel,181797,Fair,Central Luzon,1,265000
+Mazda,BT-50,Pickup,2022,Automatic,Diesel,55533,Poor,Calabarzon,1,500000
+Suzuki,Jimny,SUV,2021,Automatic,Gasoline,97522,Fair,Metro Manila,1,470000
+Suzuki,Celerio,Hatchback,2025,Automatic,Gasoline,13996,Excellent,Davao Region,3,450000
+Mitsubishi,Mirage G4,Sedan,2021,CVT,Gasoline,84241,Good,Calabarzon,3,360000
+Nissan,Urvan,Van,2021,Manual,Diesel,44328,Poor,Metro Manila,2,585000
+Toyota,Vios,Sedan,2014,Automatic,Gasoline,213809,Fair,Metro Manila,1,220000
+Subaru,Forester,SUV,2019,Automatic,Gasoline,51409,Poor,Central Visayas,1,655000
+Nissan,Navara,Pickup,2021,Manual,Diesel,45060,Good,Ilocos Region,2,585000
+Toyota,Corolla Altis,Sedan,2024,Automatic,Gasoline,28344,Good,Calabarzon,2,860000
+Mazda,CX-5,SUV,2018,Automatic,Gasoline,80591,Fair,Metro Manila,2,730000
+Kia,Picanto,Hatchback,2023,Manual,Gasoline,51646,Good,Ilocos Region,1,380000
+Nissan,Almera,Sedan,2019,Automatic,Gasoline,86372,Poor,Western Visayas,1,280000
+Ford,Territory,SUV,2024,Automatic,Gasoline,25124,Good,Metro Manila,1,795000
+Suzuki,Vitara,SUV,2020,Automatic,Gasoline,90816,Poor,Ilocos Region,1,405000
+Mazda,Mazda3,Sedan,2019,Automatic,Gasoline,118327,Fair,Calabarzon,3,535000
+Hyundai,Accent,Sedan,2021,Manual,Gasoline,92165,Fair,Metro Manila,1,330000
+Hyundai,Reina,Sedan,2025,Automatic,Gasoline,13150,Excellent,Metro Manila,2,620000
+Toyota,Innova,MPV,2025,Automatic,Diesel,18899,Fair,Western Visayas,2,705000
+Honda,City,Sedan,2015,Automatic,Gasoline,146466,Fair,Northern Mindanao,1,315000
+Toyota,Wigo,Hatchback,2025,Automatic,Gasoline,9458,Excellent,Central Visayas,1,545000
+Suzuki,Swift,Hatchback,2014,Automatic,Gasoline,184199,Good,Calabarzon,1,275000
+Nissan,Almera,Sedan,2023,Automatic,Gasoline,70273,Good,Metro Manila,1,450000
+Ford,Territory,SUV,2023,Automatic,Gasoline,48954,Good,Metro Manila,2,715000
+Hyundai,Kona,SUV,2023,Automatic,Gasoline,55357,Good,Central Luzon,1,670000
+Nissan,Navara,Pickup,2024,Automatic,Diesel,36101,Good,Central Visayas,1,740000
+Hyundai,Starex,Van,2021,Automatic,Diesel,58736,Poor,Central Luzon,1,960000
+Toyota,Camry,Sedan,2018,Automatic,Gasoline,136636,Poor,Calabarzon,1,640000
+Mazda,Mazda3,Sedan,2024,Automatic,Gasoline,26674,Poor,Metro Manila,1,730000
+Subaru,Forester,SUV,2021,CVT,Gasoline,57386,Fair,Northern Mindanao,1,955000
+Nissan,Navara,Pickup,2018,Manual,Diesel,45715,Good,Calabarzon,2,485000
+Suzuki,Swift,Hatchback,2025,Automatic,Gasoline,13762,Fair,Metro Manila,2,580000
+Suzuki,Dzire,Sedan,2023,Manual,Gasoline,44250,Good,Calabarzon,1,365000
+Honda,City,Sedan,2017,Automatic,Gasoline,170693,Poor,Ilocos Region,2,210000
+Toyota,Vios,Sedan,2019,Manual,Gasoline,121134,Good,Central Visayas,2,300000
+Ford,Ranger,Pickup,2017,Manual,Diesel,147634,Fair,Western Visayas,1,370000
+Honda,HR-V,SUV,2019,CVT,Gasoline,59881,Good,Ilocos Region,1,725000
+Mitsubishi,Strada,Pickup,2021,Automatic,Diesel,102450,Good,Eastern Visayas,1,455000
+Nissan,Navara,Pickup,2015,Manual,Diesel,134037,Good,Bicol Region,3,375000
+Honda,HR-V,SUV,2023,CVT,Gasoline,64092,Fair,Metro Manila,1,780000
+Mitsubishi,Mirage G4,Sedan,2020,Manual,Gasoline,132129,Good,Calabarzon,1,275000
+Ford,EcoSport,SUV,2019,Automatic,Gasoline,92795,Good,Western Visayas,1,370000
+Toyota,Camry,Sedan,2023,Automatic,Gasoline,30750,Good,Calabarzon,2,1300000
+Nissan,Urvan,Van,2018,Manual,Diesel,151869,Poor,Western Visayas,2,320000
+Subaru,XV,SUV,2025,CVT,Gasoline,16892,Excellent,Metro Manila,2,1410000
+Chevrolet,Trailblazer,SUV,2016,Automatic,Diesel,130310,Poor,Central Visayas,1,485000
+Toyota,Fortuner,SUV,2017,Manual,Diesel,161257,Good,Central Luzon,3,600000
+Mazda,Mazda3,Sedan,2025,Automatic,Gasoline,16527,Good,Northern Mindanao,4,850000
+Mitsubishi,Montero Sport,SUV,2019,Automatic,Diesel,95509,Good,Calabarzon,2,850000
+Mazda,BT-50,Pickup,2024,Manual,Diesel,29161,Poor,Davao Region,1,515000
+Mazda,CX-3,SUV,2023,Automatic,Gasoline,53449,Good,Calabarzon,1,845000
+Mitsubishi,Xpander,MPV,2025,Manual,Gasoline,21682,Good,Ilocos Region,1,725000
+Ford,Everest,SUV,2023,Automatic,Diesel,43438,Good,Central Luzon,1,1150000
+Toyota,Vios,Sedan,2020,Automatic,Gasoline,66998,Fair,Central Visayas,1,365000
+Mazda,CX-3,SUV,2023,Automatic,Gasoline,57074,Good,Northern Mindanao,1,760000
+Honda,HR-V,SUV,2020,Automatic,Gasoline,63166,Good,Northern Mindanao,2,715000
+Honda,CR-V,SUV,2023,CVT,Gasoline,44598,Excellent,Metro Manila,2,1420000
+Mitsubishi,Mirage G4,Sedan,2025,CVT,Gasoline,14393,Fair,Davao Region,1,495000
+Toyota,Corolla Altis,Sedan,2023,CVT,Gasoline,56824,Good,Calabarzon,3,670000
+Suzuki,Swift,Hatchback,2024,CVT,Gasoline,39094,Good,Metro Manila,2,560000
+Nissan,Urvan,Van,2020,Manual,Diesel,95629,Fair,Northern Mindanao,2,555000
+Mitsubishi,Mirage,Hatchback,2020,CVT,Gasoline,8843,Fair,Metro Manila,1,330000
+Suzuki,Ertiga,MPV,2020,Manual,Gasoline,111306,Good,Metro Manila,2,350000
+Suzuki,Swift,Hatchback,2024,Automatic,Gasoline,26226,Good,Western Visayas,2,570000
+Honda,Brio,Hatchback,2025,CVT,Gasoline,20915,Good,Metro Manila,3,510000
+Toyota,Fortuner,SUV,2020,Automatic,Diesel,42428,Fair,Central Luzon,2,945000
+Mitsubishi,Strada,Pickup,2018,Manual,Diesel,135969,Good,Calabarzon,4,390000
+Honda,Brio,Hatchback,2024,Manual,Gasoline,26159,Excellent,Metro Manila,2,475000
+Nissan,Navara,Pickup,2021,Automatic,Diesel,85754,Fair,Metro Manila,1,520000
+Toyota,Vios,Sedan,2015,Automatic,Gasoline,252568,Good,Central Visayas,3,195000
+Honda,Brio,Hatchback,2025,Manual,Gasoline,26781,Good,Western Visayas,1,440000
+Toyota,Hiace,Van,2024,Manual,Diesel,23006,Good,Calabarzon,1,1285000
+Kia,Sportage,SUV,2023,Automatic,Diesel,39619,Poor,Metro Manila,1,780000
+Isuzu,mu-X,SUV,2022,Automatic,Diesel,82384,Good,Metro Manila,2,890000
+Toyota,Fortuner,SUV,2022,Manual,Diesel,87899,Poor,Metro Manila,2,640000
+Nissan,Urvan,Van,2019,Manual,Diesel,149735,Poor,Central Visayas,3,320000
+Chevrolet,Trailblazer,SUV,2020,Automatic,Diesel,40108,Fair,Metro Manila,1,880000
+Toyota,Hilux,Pickup,2021,Automatic,Diesel,40026,Poor,Calabarzon,3,430000
+Mitsubishi,Mirage G4,Sedan,2019,Manual,Gasoline,154621,Good,Central Luzon,1,255000
+Nissan,Almera,Sedan,2022,Automatic,Gasoline,68628,Good,Metro Manila,1,465000
+Mitsubishi,Mirage,Hatchback,2014,Automatic,Gasoline,101679,Good,Metro Manila,2,265000
+Mitsubishi,Mirage G4,Sedan,2018,CVT,Gasoline,243579,Fair,Central Visayas,1,190000
+Suzuki,Swift,Hatchback,2025,CVT,Gasoline,16606,Fair,Western Visayas,1,565000
+Chevrolet,Trailblazer,SUV,2015,Automatic,Diesel,265508,Poor,Central Luzon,1,280000
+Honda,BR-V,MPV,2025,Automatic,Gasoline,15085,Excellent,Western Visayas,1,965000
+Kia,Picanto,Hatchback,2023,Manual,Gasoline,67284,Good,Davao Region,2,335000
+Isuzu,mu-X,SUV,2020,Automatic,Diesel,80591,Poor,Calabarzon,1,640000
+Honda,Civic,Sedan,2016,CVT,Gasoline,251945,Fair,Central Luzon,1,335000
+Mazda,CX-3,SUV,2021,Automatic,Gasoline,91385,Fair,Metro Manila,1,645000
+Honda,Brio,Hatchback,2023,Automatic,Gasoline,63959,Good,Metro Manila,1,400000
+Mazda,CX-5,SUV,2025,Automatic,Gasoline,18887,Poor,Central Luzon,1,825000
+Toyota,Raize,SUV,2023,Automatic,Gasoline,56848,Good,Central Visayas,2,410000
+Hyundai,Creta,SUV,2025,CVT,Gasoline,21780,Fair,Central Luzon,4,605000
+Mitsubishi,Mirage G4,Sedan,2025,Manual,Gasoline,4430,Fair,Metro Manila,2,510000
+Subaru,XV,SUV,2021,CVT,Gasoline,75849,Fair,Metro Manila,1,885000
+Subaru,Forester,SUV,2025,Automatic,Gasoline,15090,Excellent,Metro Manila,1,1735000
+Honda,City,Sedan,2023,CVT,Gasoline,50610,Good,Metro Manila,3,595000
+Suzuki,Ertiga,MPV,2021,Automatic,Gasoline,122660,Good,Ilocos Region,1,325000
+Hyundai,Starex,Van,2019,Automatic,Diesel,117326,Excellent,Metro Manila,1,1155000
+Honda,HR-V,SUV,2020,CVT,Gasoline,58201,Fair,Metro Manila,2,665000
+Nissan,Almera,Sedan,2024,Manual,Gasoline,36525,Poor,Eastern Visayas,2,325000
+Suzuki,Swift,Hatchback,2021,Automatic,Gasoline,38057,Fair,Metro Manila,3,430000
+Mitsubishi,Strada,Pickup,2015,Manual,Diesel,126217,Fair,Western Visayas,2,360000
+Chevrolet,Trailblazer,SUV,2020,Automatic,Diesel,122958,Good,Ilocos Region,1,650000
+Toyota,Innova,MPV,2023,Automatic,Diesel,36521,Good,Metro Manila,1,810000
+Honda,Brio,Hatchback,2019,Automatic,Gasoline,123799,Poor,Central Visayas,2,205000
+Subaru,Forester,SUV,2016,CVT,Gasoline,127218,Fair,Central Visayas,2,710000
+Hyundai,Accent,Sedan,2021,Automatic,Gasoline,108238,Good,Calabarzon,3,330000
+Honda,CR-V,SUV,2022,Automatic,Gasoline,54128,Fair,Calabarzon,2,970000
+Suzuki,Vitara,SUV,2024,Automatic,Gasoline,30820,Fair,Metro Manila,1,765000
+Suzuki,Ertiga,MPV,2016,Automatic,Gasoline,233293,Fair,Metro Manila,2,210000
+Hyundai,Creta,SUV,2024,CVT,Gasoline,33746,Good,Central Visayas,3,675000
+Nissan,Terra,SUV,2022,Manual,Diesel,51129,Good,Eastern Visayas,1,760000
+Mitsubishi,Mirage G4,Sedan,2017,Manual,Gasoline,108358,Fair,Eastern Visayas,2,245000
+Suzuki,Swift,Hatchback,2024,CVT,Gasoline,36373,Good,Calabarzon,1,585000
+Mazda,CX-3,SUV,2022,Automatic,Gasoline,37136,Good,Metro Manila,1,875000
+Toyota,Fortuner,SUV,2017,Manual,Diesel,168006,Poor,Metro Manila,1,435000
+Toyota,Innova,MPV,2024,Automatic,Diesel,35850,Good,Eastern Visayas,2,730000
+Honda,Civic,Sedan,2024,CVT,Gasoline,31197,Fair,Northern Mindanao,2,720000
+Nissan,Navara,Pickup,2016,Manual,Diesel,89553,Good,Metro Manila,3,435000
+Toyota,Camry,Sedan,2020,Automatic,Gasoline,60186,Good,Western Visayas,3,1055000
+Suzuki,Swift,Hatchback,2018,Automatic,Gasoline,138376,Fair,Central Visayas,1,290000
+Suzuki,Dzire,Sedan,2025,Automatic,Gasoline,17643,Good,Metro Manila,3,540000
+Nissan,Terra,SUV,2021,Manual,Diesel,90013,Good,Metro Manila,2,770000
+Mazda,Mazda3,Sedan,2024,Automatic,Gasoline,40112,Excellent,Metro Manila,2,990000
+Suzuki,Ertiga,MPV,2017,Automatic,Gasoline,121117,Fair,Metro Manila,2,330000
+Toyota,Hiace,Van,2016,Automatic,Diesel,32428,Fair,Central Luzon,2,700000
+Nissan,Navara,Pickup,2022,Automatic,Diesel,64993,Fair,Calabarzon,1,545000
+Toyota,Vios,Sedan,2017,Automatic,Gasoline,36269,Good,Central Visayas,2,370000
+Kia,Picanto,Hatchback,2023,Automatic,Gasoline,64342,Poor,Eastern Visayas,2,245000
+Toyota,Raize,SUV,2025,Automatic,Gasoline,23194,Excellent,Central Luzon,2,635000
+Suzuki,Dzire,Sedan,2022,Automatic,Gasoline,85561,Fair,Metro Manila,3,300000
+Suzuki,Celerio,Hatchback,2020,Automatic,Gasoline,142141,Good,Central Luzon,1,220000
+Toyota,Hilux,Pickup,2024,Manual,Diesel,25719,Fair,Central Luzon,1,550000
+Honda,Civic,Sedan,2022,CVT,Gasoline,57412,Poor,Central Visayas,1,610000
+Suzuki,Swift,Hatchback,2022,CVT,Gasoline,62990,Fair,Calabarzon,1,400000
+Honda,CR-V,SUV,2016,CVT,Gasoline,164130,Good,Eastern Visayas,2,645000
+Toyota,Fortuner,SUV,2024,Automatic,Diesel,29297,Good,Eastern Visayas,1,1270000
+Hyundai,Accent,Sedan,2020,Manual,Gasoline,117155,Fair,Metro Manila,2,275000
+Toyota,Corolla Altis,Sedan,2014,Automatic,Gasoline,49071,Fair,Metro Manila,3,390000
+Suzuki,Jimny,SUV,2025,Automatic,Gasoline,7734,Good,Metro Manila,2,870000
+Chevrolet,Trailblazer,SUV,2020,Automatic,Diesel,85829,Poor,Davao Region,1,570000
+Mitsubishi,L300,Van,2020,Manual,Diesel,143505,Fair,Eastern Visayas,1,255000
+Toyota,Camry,Sedan,2017,Automatic,Gasoline,124073,Poor,Metro Manila,3,655000
+Toyota,Raize,SUV,2024,CVT,Gasoline,43413,Poor,Central Luzon,1,400000
+Toyota,Hilux,Pickup,2017,Manual,Diesel,188628,Fair,Central Visayas,2,250000
+Mitsubishi,L300,Van,2016,Manual,Diesel,141292,Poor,Ilocos Region,2,240000
+Subaru,XV,SUV,2019,CVT,Gasoline,172090,Good,Metro Manila,2,565000
+Ford,Ranger,Pickup,2025,Automatic,Diesel,18515,Excellent,Bicol Region,2,880000
+Mitsubishi,Montero Sport,SUV,2020,Automatic,Diesel,48191,Fair,Western Visayas,1,800000
+Suzuki,Celerio,Hatchback,2022,Automatic,Gasoline,60711,Fair,Metro Manila,3,295000
+Hyundai,Reina,Sedan,2020,Manual,Gasoline,89261,Fair,Northern Mindanao,1,260000
+Isuzu,mu-X,SUV,2023,Automatic,Diesel,17834,Good,Western Visayas,1,1055000
+Honda,City,Sedan,2014,Automatic,Gasoline,174857,Good,Metro Manila,2,325000
+Suzuki,Celerio,Hatchback,2017,Automatic,Gasoline,99283,Poor,Metro Manila,3,190000
+Mitsubishi,Xpander,MPV,2024,Automatic,Gasoline,17514,Good,Calabarzon,3,715000
+Mitsubishi,Strada,Pickup,2020,Manual,Diesel,72206,Fair,Metro Manila,1,485000
+Hyundai,Reina,Sedan,2022,Manual,Gasoline,76532,Poor,Metro Manila,1,245000
+Subaru,XV,SUV,2017,CVT,Gasoline,143082,Poor,Calabarzon,1,510000
+Suzuki,Swift,Hatchback,2025,Automatic,Gasoline,12869,Good,Central Visayas,1,640000
+Subaru,Forester,SUV,2023,Automatic,Gasoline,69404,Good,Bicol Region,4,885000
+Mitsubishi,Mirage,Hatchback,2014,Manual,Gasoline,135155,Fair,Western Visayas,1,200000
+Hyundai,Tucson,SUV,2023,Automatic,Diesel,74029,Good,Metro Manila,1,735000
+Hyundai,Tucson,SUV,2021,Automatic,Diesel,65196,Fair,Metro Manila,3,655000
+Toyota,Innova,MPV,2022,Manual,Diesel,67522,Poor,Northern Mindanao,1,410000
+Hyundai,Creta,SUV,2025,Automatic,Gasoline,15000,Fair,Metro Manila,1,795000
+Suzuki,Celerio,Hatchback,2015,Manual,Gasoline,142885,Fair,Calabarzon,1,205000
+Mitsubishi,Montero Sport,SUV,2025,Automatic,Diesel,21185,Excellent,Metro Manila,2,1460000
+Nissan,Urvan,Van,2023,Manual,Diesel,38324,Good,Calabarzon,1,880000
+Nissan,Navara,Pickup,2023,Automatic,Diesel,36746,Good,Metro Manila,2,645000
+Hyundai,Starex,Van,2021,Automatic,Diesel,71262,Fair,Metro Manila,2,1145000
+Suzuki,Dzire,Sedan,2018,Manual,Gasoline,51198,Fair,Calabarzon,1,280000
+Isuzu,D-Max,Pickup,2016,Automatic,Diesel,242987,Good,Metro Manila,2,260000
+Toyota,Wigo,Hatchback,2024,Automatic,Gasoline,15520,Poor,Central Visayas,1,330000
+Toyota,Hiace,Van,2017,Manual,Diesel,186317,Good,Calabarzon,2,550000
+Toyota,Vios,Sedan,2024,Manual,Gasoline,12354,Excellent,Davao Region,1,580000
+Mitsubishi,Mirage,Hatchback,2014,CVT,Gasoline,125355,Good,Central Luzon,1,250000
+Hyundai,Accent,Sedan,2015,Manual,Gasoline,120466,Fair,Metro Manila,1,280000
+Toyota,Fortuner,SUV,2016,Manual,Diesel,158826,Good,Davao Region,3,640000
+Mazda,Mazda3,Sedan,2024,Automatic,Gasoline,23797,Fair,Northern Mindanao,2,805000
+Toyota,Rush,SUV,2022,Automatic,Gasoline,32122,Fair,Calabarzon,1,575000
+Mitsubishi,Xpander,MPV,2022,Automatic,Gasoline,73576,Poor,Calabarzon,1,430000
+Suzuki,Dzire,Sedan,2023,Manual,Gasoline,50214,Good,Metro Manila,1,410000
+Honda,HR-V,SUV,2021,CVT,Gasoline,61872,Fair,Calabarzon,2,645000
+Mitsubishi,Mirage,Hatchback,2019,CVT,Gasoline,82597,Good,Metro Manila,1,350000
+Isuzu,D-Max,Pickup,2018,Manual,Diesel,119574,Excellent,Calabarzon,3,405000
+Suzuki,Vitara,SUV,2023,Automatic,Gasoline,38178,Poor,Metro Manila,2,565000
+Toyota,Camry,Sedan,2024,Automatic,Gasoline,27515,Good,Metro Manila,3,1435000
+Kia,Seltos,SUV,2025,Automatic,Gasoline,12381,Excellent,Central Visayas,1,850000
+Honda,City,Sedan,2019,Automatic,Gasoline,112015,Good,Central Luzon,2,420000
+Honda,Civic,Sedan,2018,Automatic,Gasoline,103722,Fair,Central Visayas,1,595000
+Mitsubishi,Mirage G4,Sedan,2020,CVT,Gasoline,144295,Good,Metro Manila,2,275000
+Ford,EcoSport,SUV,2018,Automatic,Gasoline,116292,Poor,Ilocos Region,1,260000
+Honda,BR-V,MPV,2018,Automatic,Gasoline,143422,Fair,Northern Mindanao,1,405000
+Toyota,Avanza,MPV,2017,Manual,Gasoline,130348,Good,Metro Manila,2,340000
+Mitsubishi,Mirage,Hatchback,2023,Automatic,Gasoline,53504,Fair,Central Luzon,4,285000
+Toyota,Avanza,MPV,2021,Manual,Gasoline,37218,Good,Ilocos Region,2,405000
+Toyota,Hilux,Pickup,2025,Automatic,Diesel,19885,Good,Western Visayas,1,780000
+Toyota,Corolla Altis,Sedan,2023,Automatic,Gasoline,29312,Excellent,Calabarzon,1,895000
+Hyundai,Accent,Sedan,2021,Manual,Gasoline,64631,Good,Eastern Visayas,1,385000
+Subaru,XV,SUV,2019,CVT,Gasoline,110990,Poor,Metro Manila,2,585000
+Toyota,Camry,Sedan,2025,Automatic,Gasoline,9566,Fair,Calabarzon,2,1535000
+Honda,City,Sedan,2021,CVT,Gasoline,50429,Good,Central Visayas,1,535000
+Nissan,Navara,Pickup,2023,Automatic,Diesel,48974,Fair,Central Luzon,1,555000
+Mazda,BT-50,Pickup,2024,Manual,Diesel,27792,Poor,Central Luzon,3,465000
+Toyota,Camry,Sedan,2023,Automatic,Gasoline,59997,Good,Central Luzon,4,1100000
+Honda,BR-V,MPV,2020,CVT,Gasoline,96149,Good,Calabarzon,1,595000
+Toyota,Corolla Altis,Sedan,2020,Automatic,Gasoline,130106,Good,Calabarzon,1,510000
+Kia,Sportage,SUV,2017,Automatic,Diesel,165313,Good,Western Visayas,1,545000
+Toyota,Vios,Sedan,2025,Automatic,Gasoline,16704,Fair,Northern Mindanao,1,515000
+Suzuki,Vitara,SUV,2020,Automatic,Gasoline,131357,Poor,Calabarzon,1,335000
+Mitsubishi,Mirage G4,Sedan,2015,Automatic,Gasoline,169734,Good,Davao Region,1,250000
+Subaru,XV,SUV,2025,CVT,Gasoline,12193,Fair,Western Visayas,1,1185000
+Suzuki,Jimny,SUV,2025,Automatic,Gasoline,15944,Excellent,Ilocos Region,1,800000
+Toyota,Fortuner,SUV,2024,Manual,Diesel,32580,Good,Metro Manila,2,1225000
+Toyota,Fortuner,SUV,2016,Automatic,Diesel,286387,Good,Central Luzon,1,500000
+Hyundai,Kona,SUV,2025,Automatic,Gasoline,13871,Good,Metro Manila,1,890000
+Mitsubishi,Strada,Pickup,2019,Manual,Diesel,154789,Good,Davao Region,1,360000
+Toyota,Rush,SUV,2024,Automatic,Gasoline,30144,Fair,Metro Manila,3,650000
+Mazda,CX-5,SUV,2024,Automatic,Gasoline,24342,Good,Metro Manila,1,1350000
+Mazda,BT-50,Pickup,2020,Automatic,Diesel,105369,Good,Metro Manila,2,550000
+Toyota,Hiace,Van,2025,Manual,Diesel,17648,Excellent,Central Luzon,4,1315000
+Mitsubishi,Mirage G4,Sedan,2016,Manual,Gasoline,263841,Good,Metro Manila,2,185000
+Isuzu,D-Max,Pickup,2016,Automatic,Diesel,131227,Poor,Eastern Visayas,1,270000
+Toyota,Rush,SUV,2020,Automatic,Gasoline,67666,Good,Calabarzon,2,560000
+Toyota,Rush,SUV,2023,Automatic,Gasoline,57668,Good,Metro Manila,4,560000
+Nissan,Almera,Sedan,2025,Automatic,Gasoline,17065,Good,Davao Region,2,590000
+Toyota,Hiace,Van,2015,Manual,Diesel,143332,Good,Central Visayas,1,680000
+Honda,City,Sedan,2023,CVT,Gasoline,57310,Good,Central Visayas,2,565000
+Mitsubishi,L300,Van,2022,Manual,Diesel,85897,Good,Metro Manila,3,410000
+Chevrolet,Trailblazer,SUV,2019,Automatic,Diesel,137348,Excellent,Central Luzon,3,640000
+Nissan,Urvan,Van,2022,Manual,Diesel,49905,Good,Metro Manila,1,900000
+Nissan,Navara,Pickup,2022,Automatic,Diesel,65200,Good,Metro Manila,1,610000
+Toyota,Avanza,MPV,2022,Automatic,Gasoline,43704,Fair,Central Visayas,2,450000
+Nissan,Urvan,Van,2017,Manual,Diesel,190794,Fair,Calabarzon,1,350000
+Suzuki,Dzire,Sedan,2021,Manual,Gasoline,38711,Fair,Metro Manila,3,310000
+Subaru,Forester,SUV,2021,CVT,Gasoline,60223,Fair,Western Visayas,2,930000
+Mitsubishi,Mirage,Hatchback,2023,CVT,Gasoline,37290,Poor,Bicol Region,2,270000
+Isuzu,D-Max,Pickup,2024,Manual,Diesel,38697,Good,Metro Manila,3,550000
+Hyundai,Kona,SUV,2020,Automatic,Gasoline,101202,Good,Calabarzon,2,505000
+Isuzu,mu-X,SUV,2017,Automatic,Diesel,125088,Poor,Central Luzon,2,455000
+Suzuki,Dzire,Sedan,2022,Automatic,Gasoline,31248,Poor,Metro Manila,1,335000
+Honda,CR-V,SUV,2017,Automatic,Gasoline,162654,Poor,Central Visayas,2,440000
+Hyundai,Kona,SUV,2024,Automatic,Gasoline,30627,Poor,Metro Manila,1,585000
+Suzuki,Vitara,SUV,2021,Automatic,Gasoline,127513,Fair,Eastern Visayas,3,335000
+Honda,Jazz,Hatchback,2015,CVT,Gasoline,1477,Fair,Central Visayas,2,325000
+Toyota,Wigo,Hatchback,2024,Manual,Gasoline,43968,Good,Central Luzon,2,360000
+Subaru,XV,SUV,2025,CVT,Gasoline,10888,Good,Central Luzon,1,1505000
+Nissan,Terra,SUV,2025,Manual,Diesel,14555,Fair,Metro Manila,1,970000
+Honda,City,Sedan,2025,CVT,Gasoline,16651,Good,Central Visayas,1,750000
+Toyota,Corolla Altis,Sedan,2021,Automatic,Gasoline,77643,Fair,Metro Manila,1,620000
+Mazda,Mazda3,Sedan,2021,Automatic,Gasoline,124033,Poor,Bicol Region,1,355000
+Nissan,Juke,SUV,2018,Automatic,Gasoline,159836,Poor,Western Visayas,1,265000
+Hyundai,Accent,Sedan,2025,Automatic,Gasoline,20754,Fair,Central Visayas,1,530000
+Toyota,Corolla Altis,Sedan,2023,CVT,Gasoline,44072,Good,Metro Manila,1,835000
+Kia,Picanto,Hatchback,2022,Manual,Gasoline,40857,Poor,Central Visayas,1,280000
+Honda,Brio,Hatchback,2020,Manual,Gasoline,61760,Fair,Central Visayas,3,275000
+Mitsubishi,Strada,Pickup,2020,Automatic,Diesel,54536,Fair,Western Visayas,1,505000
+Mitsubishi,L300,Van,2014,Manual,Diesel,187811,Good,Metro Manila,1,300000
+Toyota,Hilux,Pickup,2021,Manual,Diesel,60906,Poor,Ilocos Region,1,370000
+Toyota,Camry,Sedan,2020,Automatic,Gasoline,46145,Fair,Bicol Region,2,995000
+Suzuki,Celerio,Hatchback,2019,Automatic,Gasoline,108074,Good,Metro Manila,2,300000
+Mazda,Mazda3,Sedan,2023,Automatic,Gasoline,39298,Good,Western Visayas,3,805000
+Toyota,Innova,MPV,2017,Manual,Diesel,144784,Good,Metro Manila,2,440000
+Ford,Territory,SUV,2024,Automatic,Gasoline,27320,Fair,Calabarzon,1,650000
+Isuzu,mu-X,SUV,2018,Automatic,Diesel,56365,Fair,Western Visayas,1,675000
+Subaru,Forester,SUV,2025,Automatic,Gasoline,13502,Good,Central Luzon,1,1410000
+Honda,Brio,Hatchback,2020,CVT,Gasoline,121079,Good,Northern Mindanao,1,265000
+Toyota,Vios,Sedan,2025,Manual,Gasoline,25568,Good,Metro Manila,2,525000
+Mitsubishi,Strada,Pickup,2024,Automatic,Diesel,18916,Excellent,Central Luzon,3,780000
+Hyundai,Accent,Sedan,2018,Automatic,Gasoline,140597,Poor,Davao Region,1,205000
+Toyota,Vios,Sedan,2025,Manual,Gasoline,17249,Poor,Metro Manila,1,455000
+Suzuki,Dzire,Sedan,2021,Automatic,Gasoline,60115,Poor,Calabarzon,2,265000
+Kia,Sportage,SUV,2016,Automatic,Diesel,125858,Fair,Central Luzon,3,510000
+Kia,Stonic,SUV,2023,Automatic,Gasoline,49335,Fair,Eastern Visayas,3,380000
+Hyundai,Kona,SUV,2025,Automatic,Gasoline,17235,Good,Metro Manila,1,895000
+Suzuki,Jimny,SUV,2022,Manual,Gasoline,71433,Fair,Metro Manila,1,510000
+Kia,Sportage,SUV,2024,Automatic,Diesel,39198,Fair,Central Visayas,1,900000
+Honda,HR-V,SUV,2025,Automatic,Gasoline,13487,Good,Metro Manila,1,1125000
+Mitsubishi,Mirage,Hatchback,2017,Automatic,Gasoline,40548,Fair,Metro Manila,1,290000
+Toyota,Hiace,Van,2015,Manual,Diesel,208574,Good,Eastern Visayas,1,455000
+Subaru,XV,SUV,2023,Automatic,Gasoline,47527,Good,Davao Region,2,955000
+Hyundai,Starex,Van,2016,Automatic,Diesel,110567,Poor,Central Visayas,1,685000
+Mazda,CX-3,SUV,2023,Automatic,Gasoline,41889,Fair,Northern Mindanao,1,715000
+Mitsubishi,Mirage,Hatchback,2021,CVT,Gasoline,105378,Fair,Central Luzon,4,235000
+Toyota,Hiace,Van,2018,Manual,Diesel,85002,Poor,Metro Manila,1,725000
+Nissan,Urvan,Van,2024,Manual,Diesel,43429,Good,Central Luzon,3,815000
+Ford,Ranger,Pickup,2020,Manual,Diesel,61663,Fair,Central Visayas,1,470000
+Suzuki,Ertiga,MPV,2024,Automatic,Gasoline,35804,Good,Calabarzon,1,600000
+Subaru,XV,SUV,2016,CVT,Gasoline,173338,Good,Calabarzon,4,505000
+Honda,Civic,Sedan,2015,CVT,Gasoline,163813,Good,Eastern Visayas,1,475000
+Toyota,Vios,Sedan,2014,Automatic,Gasoline,161158,Fair,Calabarzon,1,250000
+Nissan,Almera,Sedan,2024,Automatic,Gasoline,20288,Poor,Metro Manila,1,440000
+Toyota,Wigo,Hatchback,2023,Manual,Gasoline,45970,Poor,Northern Mindanao,3,220000
+Hyundai,Tucson,SUV,2017,Automatic,Diesel,148033,Poor,Metro Manila,3,370000
+Nissan,Almera,Sedan,2019,Manual,Gasoline,104477,Fair,Central Visayas,1,300000
+Ford,Everest,SUV,2024,Automatic,Diesel,31885,Good,Eastern Visayas,3,1100000
+Mitsubishi,Montero Sport,SUV,2019,Automatic,Diesel,104861,Poor,Metro Manila,2,590000
+Toyota,Camry,Sedan,2016,Automatic,Gasoline,168772,Excellent,Metro Manila,2,855000
+Hyundai,Tucson,SUV,2023,Automatic,Diesel,32588,Good,Central Luzon,1,870000
+Kia,Picanto,Hatchback,2022,Automatic,Gasoline,64290,Good,Calabarzon,2,355000
+Honda,CR-V,SUV,2025,CVT,Gasoline,17151,Good,Metro Manila,2,1550000
+Hyundai,Starex,Van,2018,Automatic,Diesel,75259,Good,Calabarzon,2,1195000
+Subaru,Forester,SUV,2019,CVT,Gasoline,123421,Fair,Central Luzon,1,665000
+Suzuki,Ertiga,MPV,2019,Manual,Gasoline,86830,Fair,Central Luzon,2,325000
+Mitsubishi,Montero Sport,SUV,2020,Automatic,Diesel,127526,Fair,Central Visayas,4,575000
+Hyundai,Accent,Sedan,2023,Automatic,Gasoline,36661,Good,Calabarzon,3,475000
+Subaru,XV,SUV,2025,CVT,Gasoline,9656,Good,Northern Mindanao,1,1325000
+Toyota,Camry,Sedan,2019,Automatic,Gasoline,133544,Good,Central Luzon,1,895000
+Ford,EcoSport,SUV,2017,Automatic,Gasoline,117195,Good,Metro Manila,4,370000
+Kia,Stonic,SUV,2024,Automatic,Gasoline,28217,Excellent,Metro Manila,2,630000
+Hyundai,Accent,Sedan,2022,Automatic,Gasoline,74914,Good,Davao Region,1,390000
+Honda,BR-V,MPV,2021,Automatic,Gasoline,83593,Fair,Metro Manila,2,555000
+Nissan,Terra,SUV,2022,Automatic,Diesel,123856,Good,Calabarzon,1,665000
+Honda,BR-V,MPV,2023,Automatic,Gasoline,75895,Fair,Metro Manila,2,560000
+Toyota,Wigo,Hatchback,2024,Automatic,Gasoline,32810,Good,Davao Region,2,370000
+Hyundai,Reina,Sedan,2020,Manual,Gasoline,99081,Poor,Ilocos Region,2,175000
+Toyota,Innova,MPV,2016,Manual,Diesel,167262,Fair,Central Luzon,1,345000
+Mitsubishi,Montero Sport,SUV,2021,Automatic,Diesel,103405,Good,Central Luzon,1,745000
+Honda,Brio,Hatchback,2019,CVT,Gasoline,126499,Fair,Northern Mindanao,3,230000
+Toyota,Fortuner,SUV,2025,Automatic,Diesel,15828,Excellent,Davao Region,1,1565000
+Toyota,Rush,SUV,2018,Automatic,Gasoline,160380,Poor,Eastern Visayas,1,270000
+Hyundai,Accent,Sedan,2018,Manual,Gasoline,142518,Fair,Central Visayas,3,230000
+Mitsubishi,Strada,Pickup,2022,Automatic,Diesel,34464,Fair,Central Visayas,3,530000
+Honda,City,Sedan,2017,CVT,Gasoline,136092,Good,Calabarzon,3,415000
+Mitsubishi,L300,Van,2023,Manual,Diesel,49473,Fair,Metro Manila,1,460000
+Ford,Ranger,Pickup,2021,Manual,Diesel,30470,Fair,Central Luzon,2,525000
+Mazda,Mazda3,Sedan,2023,Automatic,Gasoline,45551,Fair,Metro Manila,2,755000
+Toyota,Hiace,Van,2024,Automatic,Diesel,29980,Good,Ilocos Region,1,1235000
+Isuzu,D-Max,Pickup,2023,Automatic,Diesel,57905,Poor,Central Visayas,2,375000
+Suzuki,Dzire,Sedan,2025,Manual,Gasoline,19723,Fair,Central Visayas,2,370000
+Kia,Seltos,SUV,2021,Automatic,Gasoline,69513,Fair,Northern Mindanao,2,445000
+Toyota,Fortuner,SUV,2023,Automatic,Diesel,24595,Excellent,Metro Manila,1,1375000
+Toyota,Rush,SUV,2024,Automatic,Gasoline,41049,Fair,Western Visayas,1,585000
+Toyota,Camry,Sedan,2023,Automatic,Gasoline,50433,Good,Davao Region,2,1275000
+Kia,Sportage,SUV,2022,Automatic,Diesel,79883,Good,Metro Manila,1,870000
+Suzuki,Celerio,Hatchback,2016,Manual,Gasoline,251440,Fair,Western Visayas,2,120000
+Toyota,Vios,Sedan,2023,Manual,Gasoline,51784,Excellent,Ilocos Region,1,470000
+Ford,Everest,SUV,2019,Automatic,Diesel,136214,Good,Western Visayas,3,660000
+Suzuki,Vitara,SUV,2017,Automatic,Gasoline,153484,Fair,Central Visayas,1,380000
+Suzuki,Ertiga,MPV,2022,Manual,Gasoline,70241,Poor,Bicol Region,2,270000
+Honda,City,Sedan,2018,Automatic,Gasoline,160614,Poor,Metro Manila,3,245000
+Nissan,Navara,Pickup,2017,Manual,Diesel,208232,Good,Metro Manila,1,310000
+Toyota,Raize,SUV,2022,Automatic,Gasoline,54376,Excellent,Northern Mindanao,2,470000
+Suzuki,Vitara,SUV,2017,Automatic,Gasoline,134956,Good,Metro Manila,4,425000
+Subaru,Forester,SUV,2019,CVT,Gasoline,87369,Good,Davao Region,2,925000
+Ford,Ranger,Pickup,2025,Automatic,Diesel,7558,Good,Calabarzon,1,945000
+Toyota,Rush,SUV,2025,Automatic,Gasoline,25385,Good,Central Luzon,1,715000
+Kia,Stonic,SUV,2022,Automatic,Gasoline,76485,Fair,Eastern Visayas,2,310000
+Toyota,Corolla Altis,Sedan,2022,Automatic,Gasoline,79766,Fair,Western Visayas,1,520000
+Nissan,Juke,SUV,2015,Automatic,Gasoline,150873,Fair,Calabarzon,1,365000
+Chevrolet,Trailblazer,SUV,2015,Automatic,Diesel,226217,Fair,Metro Manila,1,395000
+Kia,Stonic,SUV,2024,Automatic,Gasoline,22172,Poor,Central Luzon,3,355000
+Toyota,Wigo,Hatchback,2025,Manual,Gasoline,14682,Excellent,Western Visayas,1,440000
+Toyota,Fortuner,SUV,2025,Manual,Diesel,12278,Fair,Central Visayas,2,1040000
+Toyota,Corolla Altis,Sedan,2024,Automatic,Gasoline,21484,Poor,Davao Region,2,600000
+Toyota,Rush,SUV,2022,Automatic,Gasoline,88616,Poor,Ilocos Region,1,375000
+Nissan,Urvan,Van,2025,Manual,Diesel,19522,Fair,Metro Manila,2,1000000
+Subaru,Forester,SUV,2021,CVT,Gasoline,56105,Good,Metro Manila,1,1170000
+Toyota,Raize,SUV,2025,Automatic,Gasoline,11638,Good,Davao Region,2,585000
+Toyota,Hiace,Van,2025,Manual,Diesel,21668,Fair,Metro Manila,2,1190000
+Hyundai,Tucson,SUV,2016,Automatic,Diesel,194236,Poor,Davao Region,1,290000
+Toyota,Raize,SUV,2024,Automatic,Gasoline,25388,Fair,Central Luzon,2,460000
+Mazda,Mazda3,Sedan,2021,Automatic,Gasoline,125361,Good,Davao Region,3,485000
+Suzuki,Swift,Hatchback,2020,Automatic,Gasoline,104997,Good,Calabarzon,2,380000
+Chevrolet,Colorado,Pickup,2015,Manual,Diesel,75792,Poor,Calabarzon,2,275000
+Mitsubishi,Mirage,Hatchback,2025,Automatic,Gasoline,13247,Good,Central Visayas,1,525000
+Toyota,Camry,Sedan,2018,Automatic,Gasoline,117697,Good,Central Visayas,2,905000
+Toyota,Wigo,Hatchback,2023,Manual,Gasoline,48395,Good,Metro Manila,4,320000
+Hyundai,Starex,Van,2016,Automatic,Diesel,75852,Poor,Calabarzon,2,700000
+Ford,Ranger,Pickup,2018,Automatic,Diesel,119337,Good,Metro Manila,2,500000
+Suzuki,Ertiga,MPV,2020,Manual,Gasoline,118424,Good,Metro Manila,1,345000
+Mitsubishi,L300,Van,2020,Manual,Diesel,76552,Poor,Calabarzon,1,315000
+Hyundai,Reina,Sedan,2020,Automatic,Gasoline,47443,Good,Metro Manila,1,375000
+Ford,Territory,SUV,2025,CVT,Gasoline,7140,Poor,Calabarzon,1,645000
+Kia,Seltos,SUV,2023,CVT,Gasoline,51112,Good,Metro Manila,2,650000
+Ford,Everest,SUV,2023,Automatic,Diesel,45122,Fair,Central Luzon,1,1030000
+Ford,EcoSport,SUV,2016,Automatic,Gasoline,155682,Poor,Central Luzon,1,205000
+Toyota,Wigo,Hatchback,2022,Manual,Gasoline,48685,Poor,Davao Region,1,250000
+Mitsubishi,Strada,Pickup,2016,Manual,Diesel,123366,Good,Davao Region,1,435000
+Toyota,Camry,Sedan,2020,Automatic,Gasoline,51661,Excellent,Metro Manila,1,1435000
+Toyota,Hilux,Pickup,2019,Automatic,Diesel,77995,Good,Metro Manila,1,575000
+Mitsubishi,Strada,Pickup,2025,Manual,Diesel,14756,Good,Central Visayas,1,790000
+Mitsubishi,Montero Sport,SUV,2021,Automatic,Diesel,58893,Fair,Central Visayas,1,900000
+Suzuki,Ertiga,MPV,2024,Manual,Gasoline,17557,Good,Davao Region,2,490000
+Suzuki,Swift,Hatchback,2016,CVT,Gasoline,101522,Excellent,Western Visayas,3,360000
+Toyota,Corolla Altis,Sedan,2017,Automatic,Gasoline,204908,Good,Calabarzon,2,335000
+Kia,Picanto,Hatchback,2020,Manual,Gasoline,108700,Poor,Metro Manila,1,210000
+Mitsubishi,Mirage G4,Sedan,2021,CVT,Gasoline,110870,Fair,Davao Region,1,265000
+Kia,Stonic,SUV,2022,Automatic,Gasoline,59560,Good,Metro Manila,4,420000
+Ford,Ranger,Pickup,2016,Manual,Diesel,129878,Good,Bicol Region,1,395000
+Ford,Territory,SUV,2021,Automatic,Gasoline,41793,Good,Western Visayas,1,615000
+Hyundai,Reina,Sedan,2022,Automatic,Gasoline,51459,Good,Metro Manila,1,430000
+Isuzu,D-Max,Pickup,2020,Automatic,Diesel,76649,Fair,Ilocos Region,2,390000
+Hyundai,Creta,SUV,2023,Automatic,Gasoline,51621,Good,Central Visayas,3,550000
+Subaru,Forester,SUV,2024,Automatic,Gasoline,48220,Good,Metro Manila,2,1305000
+Honda,City,Sedan,2018,Automatic,Gasoline,80883,Fair,Davao Region,1,390000
+Nissan,Urvan,Van,2025,Manual,Diesel,14879,Excellent,Davao Region,1,1150000
+Mazda,BT-50,Pickup,2025,Automatic,Diesel,13607,Fair,Metro Manila,1,875000
+Toyota,Fortuner,SUV,2022,Manual,Diesel,62721,Fair,Davao Region,1,820000
+Isuzu,D-Max,Pickup,2015,Manual,Diesel,157250,Fair,Calabarzon,1,310000
+Suzuki,Vitara,SUV,2023,Automatic,Gasoline,34122,Excellent,Bicol Region,2,675000
+Hyundai,Starex,Van,2015,Automatic,Diesel,266298,Fair,Northern Mindanao,2,475000
+Honda,BR-V,MPV,2021,Automatic,Gasoline,99380,Good,Western Visayas,1,485000
+Subaru,Forester,SUV,2017,CVT,Gasoline,99304,Fair,Metro Manila,1,835000
+Hyundai,Accent,Sedan,2021,Manual,Gasoline,68125,Good,Metro Manila,1,415000
+Nissan,Navara,Pickup,2021,Automatic,Diesel,84974,Good,Metro Manila,3,565000
+Suzuki,Jimny,SUV,2019,Automatic,Gasoline,121390,Good,Calabarzon,1,475000
+Honda,BR-V,MPV,2020,CVT,Gasoline,47908,Good,Metro Manila,1,640000
+Mitsubishi,Mirage G4,Sedan,2019,Automatic,Gasoline,123468,Fair,Central Luzon,2,255000
+Nissan,Terra,SUV,2024,Manual,Diesel,35571,Good,Metro Manila,1,1025000
+Mitsubishi,Mirage,Hatchback,2021,CVT,Gasoline,71389,Fair,Northern Mindanao,1,310000
+Mitsubishi,Mirage,Hatchback,2018,Automatic,Gasoline,155161,Fair,Calabarzon,1,215000
+Nissan,Juke,SUV,2019,Automatic,Gasoline,120965,Excellent,Central Luzon,2,480000
+Honda,CR-V,SUV,2021,CVT,Gasoline,72605,Fair,Central Luzon,2,885000
+Nissan,Terra,SUV,2023,Manual,Diesel,38985,Fair,Metro Manila,2,860000
+Mitsubishi,Mirage,Hatchback,2017,CVT,Gasoline,209465,Good,Central Visayas,1,180000
+Honda,Brio,Hatchback,2024,Manual,Gasoline,28537,Fair,Calabarzon,1,400000
+Toyota,Avanza,MPV,2020,Automatic,Gasoline,96259,Fair,Davao Region,1,355000
+Mitsubishi,Mirage G4,Sedan,2025,Manual,Gasoline,12278,Good,Calabarzon,2,545000
+Chevrolet,Trailblazer,SUV,2020,Automatic,Diesel,38363,Good,Central Luzon,1,925000
+Mitsubishi,L300,Van,2024,Manual,Diesel,28572,Good,Central Visayas,1,570000
+Kia,Sportage,SUV,2022,Automatic,Diesel,41962,Fair,Eastern Visayas,1,845000
+Suzuki,Vitara,SUV,2016,Automatic,Gasoline,157669,Fair,Metro Manila,2,380000
+Suzuki,Celerio,Hatchback,2023,Automatic,Gasoline,40308,Poor,Metro Manila,2,275000
+Suzuki,Ertiga,MPV,2024,Manual,Gasoline,38896,Good,Central Luzon,1,485000
+Toyota,Hilux,Pickup,2019,Manual,Diesel,128943,Poor,Eastern Visayas,3,240000
+Hyundai,Creta,SUV,2022,CVT,Gasoline,80493,Fair,Metro Manila,3,485000
+Hyundai,Starex,Van,2018,Automatic,Diesel,122689,Good,Calabarzon,3,910000
+Honda,Civic,Sedan,2014,Automatic,Gasoline,318728,Fair,Calabarzon,4,255000
+Mitsubishi,Strada,Pickup,2023,Manual,Diesel,38149,Good,Calabarzon,2,590000
+Toyota,Hiace,Van,2020,Manual,Diesel,82054,Fair,Eastern Visayas,1,755000
+Ford,EcoSport,SUV,2020,Automatic,Gasoline,85951,Fair,Metro Manila,1,370000
+Subaru,XV,SUV,2016,CVT,Gasoline,190285,Excellent,Metro Manila,3,565000
+Ford,Ranger,Pickup,2020,Automatic,Diesel,54923,Excellent,Metro Manila,2,705000
+Toyota,Avanza,MPV,2023,Automatic,Gasoline,46572,Good,Metro Manila,1,565000
+Mitsubishi,L300,Van,2023,Manual,Diesel,62792,Fair,Central Luzon,2,400000
+Mazda,BT-50,Pickup,2021,Manual,Diesel,118193,Excellent,Metro Manila,3,430000
+Honda,City,Sedan,2024,Automatic,Gasoline,42396,Fair,Eastern Visayas,1,500000
+Isuzu,D-Max,Pickup,2021,Automatic,Diesel,67432,Poor,Metro Manila,1,415000
+Ford,Everest,SUV,2025,Automatic,Diesel,13409,Good,Calabarzon,1,1495000
+Hyundai,Accent,Sedan,2019,Automatic,Gasoline,84508,Fair,Metro Manila,1,370000
+Kia,Sportage,SUV,2022,Automatic,Diesel,85075,Good,Metro Manila,1,835000
+Mitsubishi,Mirage,Hatchback,2019,Automatic,Gasoline,119322,Fair,Davao Region,2,225000
+Suzuki,Celerio,Hatchback,2022,Manual,Gasoline,82685,Poor,Western Visayas,2,190000
+Mazda,CX-5,SUV,2022,Automatic,Gasoline,59816,Fair,Northern Mindanao,4,710000
+Isuzu,mu-X,SUV,2021,Automatic,Diesel,109885,Fair,Metro Manila,1,665000
+Nissan,Almera,Sedan,2019,Automatic,Gasoline,94871,Excellent,Central Luzon,2,390000
+Honda,Civic,Sedan,2014,Automatic,Gasoline,203051,Fair,Western Visayas,1,355000
+Kia,Stonic,SUV,2023,Automatic,Gasoline,42529,Excellent,Calabarzon,1,550000
+Mazda,Mazda3,Sedan,2021,Automatic,Gasoline,84347,Fair,Calabarzon,1,570000
+Nissan,Navara,Pickup,2022,Automatic,Diesel,55153,Fair,Eastern Visayas,1,540000
+Honda,CR-V,SUV,2022,CVT,Gasoline,55853,Fair,Eastern Visayas,1,910000
+Toyota,Corolla Altis,Sedan,2023,CVT,Gasoline,49497,Good,Metro Manila,3,665000
+Toyota,Avanza,MPV,2019,Automatic,Gasoline,149204,Fair,Central Visayas,2,270000
+Hyundai,Kona,SUV,2023,Automatic,Gasoline,29702,Good,Central Luzon,1,695000
+Ford,Everest,SUV,2021,Automatic,Diesel,51529,Good,Calabarzon,1,1150000
+Toyota,Raize,SUV,2025,CVT,Gasoline,15983,Fair,Metro Manila,1,590000
+Hyundai,Kona,SUV,2022,Automatic,Gasoline,35666,Good,Calabarzon,1,695000
+Mitsubishi,Strada,Pickup,2023,Automatic,Diesel,43175,Good,Western Visayas,2,655000
+Ford,Everest,SUV,2019,Automatic,Diesel,127386,Good,Bicol Region,1,710000
+Mitsubishi,Strada,Pickup,2020,Automatic,Diesel,108177,Good,Davao Region,2,450000
+Nissan,Juke,SUV,2015,CVT,Gasoline,111782,Fair,Davao Region,3,335000
+Mitsubishi,Strada,Pickup,2020,Manual,Diesel,168650,Fair,Central Visayas,2,275000
+Subaru,Forester,SUV,2024,CVT,Gasoline,38001,Good,Central Visayas,1,1245000
+Kia,Picanto,Hatchback,2020,Automatic,Gasoline,143544,Good,Bicol Region,1,240000
+Kia,Picanto,Hatchback,2016,Automatic,Gasoline,107723,Poor,Central Luzon,1,210000
+Mazda,BT-50,Pickup,2020,Automatic,Diesel,95353,Fair,Eastern Visayas,1,465000
+Toyota,Camry,Sedan,2015,Automatic,Gasoline,275315,Poor,Central Visayas,3,395000
+Mazda,CX-3,SUV,2021,Automatic,Gasoline,122010,Good,Central Luzon,1,555000
+Isuzu,D-Max,Pickup,2017,Manual,Diesel,232782,Good,Ilocos Region,1,225000
+Mitsubishi,Montero Sport,SUV,2017,Automatic,Diesel,169655,Fair,Metro Manila,3,505000
+Honda,HR-V,SUV,2021,Automatic,Gasoline,56315,Fair,Central Visayas,2,615000
+Mitsubishi,Xpander,MPV,2023,Manual,Gasoline,36835,Poor,Northern Mindanao,2,455000
+Toyota,Innova,MPV,2022,Manual,Diesel,16939,Good,Metro Manila,3,710000
+Kia,Picanto,Hatchback,2024,Automatic,Gasoline,18670,Good,Northern Mindanao,1,475000
+Ford,EcoSport,SUV,2015,Automatic,Gasoline,141375,Good,Bicol Region,2,295000
+Toyota,Rush,SUV,2018,Automatic,Gasoline,119491,Good,Metro Manila,1,460000
+Honda,CR-V,SUV,2023,Automatic,Gasoline,43294,Fair,Western Visayas,1,1015000
+Mitsubishi,L300,Van,2020,Manual,Diesel,40467,Good,Central Visayas,1,470000
+Mitsubishi,Mirage,Hatchback,2015,Manual,Gasoline,199293,Good,Bicol Region,2,160000
+Suzuki,Vitara,SUV,2019,Automatic,Gasoline,113817,Good,Central Luzon,4,445000
+Toyota,Rush,SUV,2024,Automatic,Gasoline,39983,Excellent,Metro Manila,4,695000
+Suzuki,Celerio,Hatchback,2021,Manual,Gasoline,113893,Fair,Metro Manila,2,210000
+Mazda,Mazda3,Sedan,2022,Automatic,Gasoline,48377,Poor,Metro Manila,1,635000
+Hyundai,Tucson,SUV,2024,Automatic,Diesel,32921,Fair,Calabarzon,1,885000
+Nissan,Urvan,Van,2018,Manual,Diesel,137510,Fair,Central Visayas,1,500000
+Suzuki,Swift,Hatchback,2014,CVT,Gasoline,212104,Good,Western Visayas,4,200000
+Hyundai,Tucson,SUV,2025,Automatic,Diesel,12943,Poor,Calabarzon,3,790000
+Kia,Sportage,SUV,2018,Automatic,Diesel,82330,Fair,Metro Manila,1,735000
+Toyota,Fortuner,SUV,2025,Automatic,Diesel,14197,Excellent,Central Luzon,2,1550000
+Hyundai,Tucson,SUV,2021,Automatic,Diesel,40078,Fair,Metro Manila,1,770000
+Mazda,BT-50,Pickup,2025,Automatic,Diesel,23185,Good,Metro Manila,1,960000
+Mitsubishi,Mirage G4,Sedan,2023,Automatic,Gasoline,31701,Excellent,Metro Manila,3,520000
+Honda,HR-V,SUV,2025,CVT,Gasoline,10854,Fair,Western Visayas,2,915000
+Honda,Jazz,Hatchback,2018,CVT,Gasoline,70707,Fair,Calabarzon,3,375000
+Chevrolet,Colorado,Pickup,2015,Manual,Diesel,139494,Good,Western Visayas,1,400000
+Nissan,Almera,Sedan,2020,Manual,Gasoline,111940,Poor,Central Visayas,1,235000
+Mitsubishi,Mirage,Hatchback,2018,CVT,Gasoline,89005,Good,Central Visayas,1,310000
+Mitsubishi,Montero Sport,SUV,2022,Automatic,Diesel,45861,Good,Ilocos Region,1,950000
+Mitsubishi,L300,Van,2023,Manual,Diesel,40091,Fair,Northern Mindanao,1,445000
+Suzuki,Jimny,SUV,2024,Automatic,Gasoline,23978,Good,Calabarzon,1,735000
+Isuzu,D-Max,Pickup,2024,Automatic,Diesel,42684,Fair,Northern Mindanao,1,485000
+Hyundai,Reina,Sedan,2019,Manual,Gasoline,69889,Poor,Metro Manila,1,230000
+Honda,City,Sedan,2019,Automatic,Gasoline,141315,Good,Eastern Visayas,4,305000
+Hyundai,Reina,Sedan,2021,Manual,Gasoline,86038,Poor,Ilocos Region,1,205000
+Toyota,Corolla Altis,Sedan,2016,Automatic,Gasoline,111159,Fair,Ilocos Region,4,410000
+Ford,Everest,SUV,2024,Automatic,Diesel,23677,Fair,Eastern Visayas,2,1030000
+Ford,Ranger,Pickup,2025,Automatic,Diesel,12998,Good,Northern Mindanao,1,910000
+Chevrolet,Colorado,Pickup,2017,Manual,Diesel,70147,Good,Calabarzon,2,450000
+Isuzu,mu-X,SUV,2019,Automatic,Diesel,96307,Good,Calabarzon,2,785000
+Mazda,Mazda3,Sedan,2020,Automatic,Gasoline,82571,Good,Metro Manila,2,735000
+Ford,Ranger,Pickup,2022,Manual,Diesel,39835,Good,Bicol Region,1,615000
+Isuzu,mu-X,SUV,2020,Automatic,Diesel,102811,Fair,Central Visayas,3,590000
+Honda,Brio,Hatchback,2021,Manual,Gasoline,68947,Fair,Central Visayas,2,295000
+Toyota,Hiace,Van,2023,Manual,Diesel,46080,Good,Calabarzon,1,1065000
+Mazda,Mazda3,Sedan,2015,Automatic,Gasoline,192768,Poor,Western Visayas,3,275000
+Mitsubishi,Mirage G4,Sedan,2015,CVT,Gasoline,193150,Poor,Metro Manila,2,185000
+Toyota,Wigo,Hatchback,2019,Automatic,Gasoline,78919,Fair,Metro Manila,2,260000
+Hyundai,Reina,Sedan,2022,Automatic,Gasoline,9571,Fair,Davao Region,1,350000
+Toyota,Corolla Altis,Sedan,2024,CVT,Gasoline,39975,Good,Northern Mindanao,1,765000
+Nissan,Navara,Pickup,2019,Manual,Diesel,40417,Fair,Central Visayas,1,445000
+Nissan,Urvan,Van,2017,Manual,Diesel,182281,Poor,Calabarzon,3,290000
+Mitsubishi,Mirage G4,Sedan,2018,Manual,Gasoline,158595,Fair,Metro Manila,1,240000
+Honda,BR-V,MPV,2020,CVT,Gasoline,127757,Poor,Metro Manila,2,315000
+Toyota,Wigo,Hatchback,2024,Manual,Gasoline,22563,Excellent,Bicol Region,3,380000
+Mitsubishi,L300,Van,2014,Manual,Diesel,74485,Good,Metro Manila,2,315000
+Ford,Ranger,Pickup,2019,Manual,Diesel,153265,Fair,Calabarzon,1,345000
+Chevrolet,Colorado,Pickup,2019,Automatic,Diesel,89871,Fair,Central Luzon,1,460000
+Mitsubishi,Mirage G4,Sedan,2014,Manual,Gasoline,87633,Good,Central Luzon,1,265000
+Toyota,Camry,Sedan,2020,Automatic,Gasoline,88865,Fair,Metro Manila,2,1025000
+Mitsubishi,Xpander,MPV,2019,Manual,Gasoline,66897,Good,Davao Region,2,520000
+Mazda,BT-50,Pickup,2018,Automatic,Diesel,112791,Poor,Calabarzon,1,375000
+Suzuki,Ertiga,MPV,2022,Manual,Gasoline,73636,Fair,Metro Manila,1,370000
+Hyundai,Kona,SUV,2022,Automatic,Gasoline,83555,Good,Metro Manila,3,515000
+Mazda,CX-5,SUV,2022,Automatic,Gasoline,39078,Good,Western Visayas,1,1005000
+Toyota,Camry,Sedan,2019,Automatic,Gasoline,137015,Good,Metro Manila,1,850000
+Mitsubishi,Strada,Pickup,2018,Manual,Diesel,90782,Good,Metro Manila,1,510000
+Toyota,Hilux,Pickup,2020,Automatic,Diesel,113255,Fair,Central Visayas,3,370000
+Mazda,Mazda3,Sedan,2021,Automatic,Gasoline,76614,Fair,Central Visayas,1,680000
+Ford,Everest,SUV,2025,Automatic,Diesel,14112,Good,Calabarzon,1,1535000
+Chevrolet,Colorado,Pickup,2017,Manual,Diesel,191543,Good,Western Visayas,3,260000
+Nissan,Almera,Sedan,2023,Manual,Gasoline,30280,Good,Central Luzon,2,425000
+Suzuki,Celerio,Hatchback,2018,Automatic,Gasoline,88334,Poor,Metro Manila,2,215000
+Mitsubishi,Montero Sport,SUV,2020,Automatic,Diesel,52668,Good,Bicol Region,2,865000
+Nissan,Navara,Pickup,2023,Manual,Diesel,53897,Fair,Metro Manila,3,545000
+Ford,Territory,SUV,2023,Automatic,Gasoline,27627,Good,Western Visayas,2,680000
+Mitsubishi,L300,Van,2019,Manual,Diesel,101156,Good,Eastern Visayas,2,370000
+Honda,City,Sedan,2023,Automatic,Gasoline,48318,Good,Eastern Visayas,2,510000
+Mazda,BT-50,Pickup,2019,Automatic,Diesel,113235,Poor,Davao Region,3,310000
+Toyota,Hilux,Pickup,2025,Manual,Diesel,19024,Good,Calabarzon,2,780000
+Honda,Civic,Sedan,2020,CVT,Gasoline,128899,Good,Central Luzon,3,505000
+Isuzu,mu-X,SUV,2015,Automatic,Diesel,263565,Fair,Metro Manila,1,395000
+Honda,BR-V,MPV,2024,Automatic,Gasoline,33463,Good,Metro Manila,1,885000
+Mazda,CX-5,SUV,2025,Automatic,Gasoline,18149,Fair,Western Visayas,1,1085000
+Hyundai,Reina,Sedan,2023,Automatic,Gasoline,60225,Fair,Calabarzon,3,315000
+Kia,Picanto,Hatchback,2020,Manual,Gasoline,101067,Fair,Central Visayas,1,240000
+Kia,Sportage,SUV,2025,Automatic,Diesel,21495,Good,Ilocos Region,1,1195000
+Honda,City,Sedan,2018,CVT,Gasoline,113903,Good,Metro Manila,2,450000
+Toyota,Vios,Sedan,2024,Automatic,Gasoline,28331,Fair,Metro Manila,2,490000
+Toyota,Hiace,Van,2025,Manual,Diesel,21585,Good,Metro Manila,4,1220000
+Nissan,Navara,Pickup,2024,Manual,Diesel,30687,Good,Eastern Visayas,1,660000
+Honda,Brio,Hatchback,2023,Manual,Gasoline,43674,Fair,Calabarzon,4,305000
+Kia,Sportage,SUV,2018,Automatic,Diesel,129310,Poor,Ilocos Region,1,505000
+Hyundai,Reina,Sedan,2023,Manual,Gasoline,71136,Good,Bicol Region,2,275000
+Honda,BR-V,MPV,2023,CVT,Gasoline,38253,Good,Calabarzon,3,750000
+Mitsubishi,Xpander,MPV,2020,Manual,Gasoline,84960,Excellent,Central Luzon,1,550000
+Mitsubishi,Xpander,MPV,2023,Manual,Gasoline,71438,Fair,Calabarzon,3,430000
+Mitsubishi,Strada,Pickup,2016,Automatic,Diesel,180628,Good,Calabarzon,1,360000
+Toyota,Fortuner,SUV,2022,Manual,Diesel,35977,Fair,Metro Manila,1,1055000
+Honda,BR-V,MPV,2022,CVT,Gasoline,89747,Fair,Central Luzon,2,475000
+Suzuki,Celerio,Hatchback,2023,Automatic,Gasoline,44801,Good,Bicol Region,3,315000
+Toyota,Wigo,Hatchback,2022,Manual,Gasoline,92249,Fair,Metro Manila,3,220000
+Toyota,Raize,SUV,2024,CVT,Gasoline,50119,Good,Bicol Region,1,490000
+Suzuki,Dzire,Sedan,2023,Automatic,Gasoline,59620,Fair,Central Luzon,1,355000
+Subaru,XV,SUV,2022,Automatic,Gasoline,68636,Good,Calabarzon,2,885000
+Mazda,CX-3,SUV,2020,Automatic,Gasoline,71816,Poor,Central Luzon,1,530000
+Nissan,Terra,SUV,2023,Automatic,Diesel,39419,Good,Metro Manila,2,1040000
+Suzuki,Vitara,SUV,2019,Automatic,Gasoline,73714,Poor,Calabarzon,1,445000
+Mitsubishi,Montero Sport,SUV,2025,Automatic,Diesel,13229,Fair,Central Luzon,1,1205000
+Nissan,Urvan,Van,2022,Manual,Diesel,79720,Good,Davao Region,1,650000
+Honda,Civic,Sedan,2024,Automatic,Gasoline,27445,Excellent,Davao Region,2,925000
+Isuzu,mu-X,SUV,2018,Automatic,Diesel,32766,Poor,Calabarzon,1,560000
+Hyundai,Reina,Sedan,2024,Manual,Gasoline,22023,Excellent,Metro Manila,2,455000
+Isuzu,D-Max,Pickup,2024,Automatic,Diesel,27853,Poor,Central Visayas,3,425000
+Isuzu,mu-X,SUV,2023,Automatic,Diesel,71811,Good,Western Visayas,2,855000
+Suzuki,Vitara,SUV,2020,Automatic,Gasoline,43710,Excellent,Calabarzon,2,630000
+Mazda,BT-50,Pickup,2022,Automatic,Diesel,95873,Good,Calabarzon,3,480000
+Suzuki,Vitara,SUV,2025,Automatic,Gasoline,17377,Fair,Central Visayas,2,745000
+Mazda,Mazda3,Sedan,2018,Automatic,Gasoline,126751,Fair,Calabarzon,1,520000
+Kia,Sportage,SUV,2025,Automatic,Diesel,12531,Excellent,Metro Manila,4,1295000
+Nissan,Navara,Pickup,2025,Automatic,Diesel,19491,Excellent,Central Visayas,4,785000
+Nissan,Urvan,Van,2024,Manual,Diesel,43698,Good,Calabarzon,1,905000
+Nissan,Almera,Sedan,2020,Automatic,Gasoline,79234,Fair,Davao Region,1,335000
+Honda,BR-V,MPV,2017,Automatic,Gasoline,158204,Fair,Metro Manila,1,420000
+Mazda,BT-50,Pickup,2024,Manual,Diesel,45352,Excellent,Metro Manila,1,710000
+Toyota,Hilux,Pickup,2022,Automatic,Diesel,73489,Fair,Central Visayas,3,460000
+Mitsubishi,Xpander,MPV,2020,Manual,Gasoline,78772,Good,Central Visayas,1,560000
+Suzuki,Ertiga,MPV,2022,Manual,Gasoline,34721,Poor,Eastern Visayas,4,255000
+Toyota,Corolla Altis,Sedan,2025,Automatic,Gasoline,17225,Fair,Central Visayas,3,775000
+Isuzu,mu-X,SUV,2025,Automatic,Diesel,14290,Excellent,Metro Manila,1,1450000
+Honda,Civic,Sedan,2023,CVT,Gasoline,28304,Good,Calabarzon,1,900000
+Toyota,Fortuner,SUV,2020,Automatic,Diesel,52819,Poor,Central Visayas,2,710000
+Toyota,Avanza,MPV,2024,Manual,Gasoline,33422,Fair,Calabarzon,2,470000
+Ford,Territory,SUV,2021,Automatic,Gasoline,92798,Fair,Bicol Region,1,440000
+Suzuki,Ertiga,MPV,2018,Automatic,Gasoline,26736,Good,Davao Region,1,405000
+Hyundai,Tucson,SUV,2024,Automatic,Diesel,20816,Good,Calabarzon,3,875000
+Subaru,XV,SUV,2023,Automatic,Gasoline,39000,Poor,Davao Region,3,670000
+Hyundai,Tucson,SUV,2023,Automatic,Diesel,14026,Poor,Calabarzon,2,670000
+Chevrolet,Colorado,Pickup,2020,Manual,Diesel,152399,Poor,Metro Manila,1,265000
+Ford,Ranger,Pickup,2023,Automatic,Diesel,42631,Fair,Metro Manila,1,680000
+Kia,Sportage,SUV,2020,Automatic,Diesel,121521,Poor,Western Visayas,2,470000
+Toyota,Rush,SUV,2025,Automatic,Gasoline,12013,Fair,Metro Manila,3,730000
+Nissan,Almera,Sedan,2025,Automatic,Gasoline,14015,Excellent,Calabarzon,2,580000
+Mazda,CX-3,SUV,2018,Automatic,Gasoline,106636,Good,Central Luzon,1,615000
+Toyota,Avanza,MPV,2021,Manual,Gasoline,89467,Excellent,Davao Region,3,360000
+Toyota,Hilux,Pickup,2022,Manual,Diesel,69309,Fair,Western Visayas,1,415000
+Mitsubishi,Montero Sport,SUV,2016,Automatic,Diesel,195117,Good,Eastern Visayas,1,540000
+Toyota,Camry,Sedan,2022,Automatic,Gasoline,61021,Fair,Central Luzon,1,1070000
+Mazda,BT-50,Pickup,2023,Automatic,Diesel,53271,Good,Metro Manila,3,685000
+Nissan,Terra,SUV,2022,Automatic,Diesel,36391,Fair,Metro Manila,2,855000
+Suzuki,Vitara,SUV,2022,Automatic,Gasoline,89144,Good,Metro Manila,4,520000
+Hyundai,Tucson,SUV,2018,Automatic,Diesel,136650,Poor,Metro Manila,2,395000
+Honda,HR-V,SUV,2019,Automatic,Gasoline,108765,Poor,Metro Manila,2,475000
+Ford,Everest,SUV,2017,Automatic,Diesel,136248,Good,Central Visayas,1,775000
+Isuzu,D-Max,Pickup,2021,Manual,Diesel,102319,Fair,Davao Region,2,310000
+Toyota,Vios,Sedan,2020,Manual,Gasoline,137998,Good,Western Visayas,4,240000
+Hyundai,Accent,Sedan,2014,Manual,Gasoline,209251,Poor,Central Visayas,1,155000
+Mazda,BT-50,Pickup,2019,Manual,Diesel,85903,Good,Central Luzon,2,485000
+Nissan,Juke,SUV,2016,CVT,Gasoline,108592,Poor,Metro Manila,1,355000
+Toyota,Rush,SUV,2023,Automatic,Gasoline,66413,Fair,Calabarzon,4,455000
+Suzuki,Ertiga,MPV,2021,Automatic,Gasoline,71263,Good,Metro Manila,1,490000
+Mitsubishi,Mirage G4,Sedan,2024,Automatic,Gasoline,42547,Good,Davao Region,1,440000
+Hyundai,Accent,Sedan,2022,Manual,Gasoline,53027,Good,Metro Manila,2,410000
+Hyundai,Accent,Sedan,2019,Manual,Gasoline,154706,Good,Central Luzon,4,230000
+Ford,Territory,SUV,2023,CVT,Gasoline,28042,Good,Central Luzon,1,710000
+Nissan,Juke,SUV,2017,Automatic,Gasoline,92022,Fair,Western Visayas,3,390000
+Toyota,Hiace,Van,2015,Manual,Diesel,143833,Fair,Metro Manila,1,645000
+Ford,Everest,SUV,2021,Automatic,Diesel,77312,Excellent,Central Luzon,1,1025000
+Isuzu,mu-X,SUV,2017,Automatic,Diesel,151053,Good,Calabarzon,2,585000
+Kia,Seltos,SUV,2022,Automatic,Gasoline,62264,Excellent,Metro Manila,3,630000
+Kia,Stonic,SUV,2023,Automatic,Gasoline,28832,Fair,Davao Region,2,410000
+Hyundai,Accent,Sedan,2021,Manual,Gasoline,50122,Poor,Metro Manila,3,295000
+Ford,Everest,SUV,2015,Automatic,Diesel,170285,Fair,Central Luzon,1,590000
+Honda,Civic,Sedan,2015,Automatic,Gasoline,122177,Poor,Calabarzon,1,390000
+Toyota,Avanza,MPV,2021,Automatic,Gasoline,56652,Poor,Central Visayas,1,350000
+Ford,Everest,SUV,2025,Automatic,Diesel,22348,Good,Calabarzon,1,1425000
+Nissan,Almera,Sedan,2025,Automatic,Gasoline,7186,Good,Calabarzon,1,670000
+Suzuki,Swift,Hatchback,2021,CVT,Gasoline,84335,Good,Western Visayas,1,425000
+Honda,BR-V,MPV,2017,CVT,Gasoline,207430,Poor,Western Visayas,3,230000
+Toyota,Avanza,MPV,2025,Manual,Gasoline,7553,Excellent,Western Visayas,2,670000
+Suzuki,Celerio,Hatchback,2021,Manual,Gasoline,42252,Good,Metro Manila,2,335000
+Toyota,Camry,Sedan,2020,Automatic,Gasoline,42066,Fair,Metro Manila,2,1170000
+Isuzu,mu-X,SUV,2024,Automatic,Diesel,37721,Fair,Metro Manila,1,995000
+Honda,City,Sedan,2025,CVT,Gasoline,17917,Excellent,Metro Manila,2,825000
+Mazda,CX-3,SUV,2019,Automatic,Gasoline,85648,Fair,Central Luzon,1,645000
+Nissan,Urvan,Van,2021,Manual,Diesel,67339,Good,Bicol Region,1,705000
+Toyota,Avanza,MPV,2021,Automatic,Gasoline,71341,Excellent,Central Luzon,1,505000
+Honda,Brio,Hatchback,2022,Manual,Gasoline,75884,Excellent,Metro Manila,2,345000
+Subaru,Forester,SUV,2020,Automatic,Gasoline,97129,Good,Metro Manila,2,985000
+Honda,City,Sedan,2024,Automatic,Gasoline,25650,Excellent,Davao Region,3,625000
+Mazda,BT-50,Pickup,2017,Manual,Diesel,85165,Poor,Western Visayas,1,350000
+Hyundai,Accent,Sedan,2023,Manual,Gasoline,41396,Good,Western Visayas,1,435000
+Mitsubishi,L300,Van,2016,Manual,Diesel,162032,Good,Metro Manila,4,285000
+Toyota,Hilux,Pickup,2025,Automatic,Diesel,4067,Excellent,Calabarzon,3,820000
+Mazda,Mazda3,Sedan,2015,Automatic,Gasoline,217026,Fair,Northern Mindanao,2,300000
+Toyota,Rush,SUV,2021,Automatic,Gasoline,60737,Fair,Davao Region,2,460000
+Mitsubishi,L300,Van,2025,Manual,Diesel,13561,Excellent,Calabarzon,1,725000
+Suzuki,Jimny,SUV,2020,Manual,Gasoline,155751,Good,Calabarzon,2,335000
+Kia,Sportage,SUV,2016,Automatic,Diesel,122274,Good,Bicol Region,2,630000
+Toyota,Wigo,Hatchback,2024,Automatic,Gasoline,14981,Excellent,Davao Region,1,505000
+Honda,Civic,Sedan,2024,CVT,Gasoline,26582,Fair,Calabarzon,3,800000
+Toyota,Camry,Sedan,2019,Automatic,Gasoline,148859,Good,Western Visayas,1,790000
+Hyundai,Accent,Sedan,2020,Manual,Gasoline,131498,Good,Calabarzon,2,255000
+Toyota,Innova,MPV,2021,Automatic,Diesel,65254,Fair,Calabarzon,1,590000
+Toyota,Avanza,MPV,2016,Manual,Gasoline,184353,Poor,Metro Manila,1,205000
+Toyota,Innova,MPV,2020,Manual,Diesel,67606,Fair,Davao Region,1,510000
+Suzuki,Jimny,SUV,2020,Automatic,Gasoline,111996,Good,Central Visayas,1,470000
+Toyota,Camry,Sedan,2018,Automatic,Gasoline,78677,Fair,Western Visayas,1,920000
+Mitsubishi,Mirage G4,Sedan,2022,Automatic,Gasoline,30733,Fair,Central Luzon,2,385000
+Subaru,Forester,SUV,2023,CVT,Gasoline,33785,Good,Central Luzon,1,1185000
+Toyota,Corolla Altis,Sedan,2023,CVT,Gasoline,52501,Fair,Calabarzon,1,670000
+Toyota,Hiace,Van,2023,Manual,Diesel,51542,Good,Metro Manila,1,1190000
+Nissan,Juke,SUV,2015,Automatic,Gasoline,208329,Good,Metro Manila,1,330000
+Hyundai,Reina,Sedan,2019,Automatic,Gasoline,171360,Fair,Central Luzon,1,185000
+Nissan,Urvan,Van,2020,Manual,Diesel,40881,Good,Metro Manila,2,830000
+Hyundai,Creta,SUV,2025,CVT,Gasoline,10723,Excellent,Metro Manila,1,1040000
+Isuzu,D-Max,Pickup,2017,Automatic,Diesel,113823,Poor,Bicol Region,2,275000
+Toyota,Avanza,MPV,2021,Automatic,Gasoline,79828,Good,Eastern Visayas,2,400000
+Toyota,Avanza,MPV,2015,Manual,Gasoline,120850,Excellent,Calabarzon,2,360000
+Hyundai,Creta,SUV,2022,CVT,Gasoline,88990,Good,Metro Manila,1,580000
+Honda,CR-V,SUV,2019,CVT,Gasoline,109316,Fair,Ilocos Region,1,790000
+Kia,Sportage,SUV,2018,Automatic,Diesel,92912,Poor,Central Visayas,1,540000
+Honda,CR-V,SUV,2024,Automatic,Gasoline,16563,Good,Northern Mindanao,4,1105000
+Kia,Sportage,SUV,2023,Automatic,Diesel,29558,Excellent,Western Visayas,3,1015000
+Hyundai,Accent,Sedan,2025,Manual,Gasoline,10532,Fair,Central Visayas,2,455000
+Honda,CR-V,SUV,2015,CVT,Gasoline,153852,Fair,Ilocos Region,3,565000
+Ford,EcoSport,SUV,2019,Automatic,Gasoline,165269,Good,Northern Mindanao,1,265000
+Toyota,Innova,MPV,2020,Automatic,Diesel,90267,Good,Metro Manila,1,630000
+Hyundai,Accent,Sedan,2022,Automatic,Gasoline,46350,Good,Calabarzon,4,395000
+Mitsubishi,L300,Van,2022,Manual,Diesel,44923,Fair,Metro Manila,1,465000
+Isuzu,mu-X,SUV,2015,Automatic,Diesel,143194,Fair,Ilocos Region,4,480000
+Mazda,Mazda3,Sedan,2017,Automatic,Gasoline,110680,Good,Central Luzon,2,615000
+Toyota,Corolla Altis,Sedan,2014,Automatic,Gasoline,190807,Good,Bicol Region,3,360000
+Mitsubishi,Xpander,MPV,2022,Automatic,Gasoline,22441,Good,Central Visayas,2,705000
+Mitsubishi,Mirage G4,Sedan,2020,CVT,Gasoline,83633,Good,Calabarzon,1,405000
+Mitsubishi,Mirage,Hatchback,2023,CVT,Gasoline,30507,Good,Central Luzon,2,390000
+Suzuki,Celerio,Hatchback,2021,Manual,Gasoline,82217,Poor,Davao Region,3,190000
+Mitsubishi,Xpander,MPV,2025,Manual,Gasoline,19800,Poor,Davao Region,4,480000
+Toyota,Corolla Altis,Sedan,2014,CVT,Gasoline,239579,Good,Metro Manila,2,320000
+Mazda,CX-3,SUV,2025,Automatic,Gasoline,11279,Good,Metro Manila,1,1180000
+Toyota,Wigo,Hatchback,2017,Manual,Gasoline,152211,Poor,Metro Manila,4,135000
+Mazda,BT-50,Pickup,2023,Automatic,Diesel,68485,Good,Metro Manila,1,635000
+Subaru,XV,SUV,2022,Automatic,Gasoline,56584,Poor,Central Visayas,1,755000
+Kia,Picanto,Hatchback,2025,Manual,Gasoline,15224,Fair,Calabarzon,3,415000
+Hyundai,Tucson,SUV,2023,Automatic,Diesel,77002,Good,Metro Manila,1,750000
+Suzuki,Dzire,Sedan,2018,Manual,Gasoline,97256,Excellent,Davao Region,1,335000
+Mazda,CX-5,SUV,2024,Automatic,Gasoline,35072,Fair,Ilocos Region,1,980000
+Mazda,Mazda3,Sedan,2023,Automatic,Gasoline,36845,Good,Central Luzon,1,895000
+Honda,BR-V,MPV,2019,Automatic,Gasoline,133483,Fair,Metro Manila,2,415000
+Honda,Civic,Sedan,2023,CVT,Gasoline,61223,Fair,Metro Manila,1,765000
+Honda,HR-V,SUV,2020,Automatic,Gasoline,97843,Poor,Ilocos Region,1,460000
+Mitsubishi,Montero Sport,SUV,2023,Automatic,Diesel,71256,Good,Calabarzon,3,925000
+Mitsubishi,Mirage G4,Sedan,2016,CVT,Gasoline,112112,Poor,Central Visayas,1,230000
+Honda,Brio,Hatchback,2023,Automatic,Gasoline,12198,Good,Central Visayas,3,435000
+Honda,City,Sedan,2019,Automatic,Gasoline,156220,Poor,Northern Mindanao,2,225000
+Mazda,BT-50,Pickup,2017,Manual,Diesel,95722,Fair,Western Visayas,2,395000
+Mitsubishi,Montero Sport,SUV,2023,Automatic,Diesel,37269,Fair,Central Luzon,1,1015000
+Toyota,Avanza,MPV,2021,Manual,Gasoline,55736,Good,Calabarzon,2,455000
+Mitsubishi,Xpander,MPV,2021,Automatic,Gasoline,68475,Good,Central Visayas,3,595000
+Suzuki,Dzire,Sedan,2018,Manual,Gasoline,120303,Poor,Central Visayas,4,170000
+Toyota,Wigo,Hatchback,2023,Manual,Gasoline,40425,Good,Central Visayas,3,290000
+Mazda,BT-50,Pickup,2022,Manual,Diesel,51249,Good,Davao Region,3,510000
+Mitsubishi,Xpander,MPV,2018,Automatic,Gasoline,132850,Fair,Central Visayas,2,400000
+Suzuki,Vitara,SUV,2024,Automatic,Gasoline,37138,Fair,Northern Mindanao,4,585000
+Subaru,Forester,SUV,2025,CVT,Gasoline,15779,Good,Northern Mindanao,3,1345000
+Mitsubishi,L300,Van,2021,Manual,Diesel,70381,Good,Metro Manila,2,455000
+Kia,Picanto,Hatchback,2016,Automatic,Gasoline,155033,Excellent,Davao Region,4,250000
+Suzuki,Dzire,Sedan,2025,Automatic,Gasoline,12395,Poor,Metro Manila,1,420000
+Nissan,Terra,SUV,2025,Manual,Diesel,20707,Good,Davao Region,1,1100000
+Nissan,Terra,SUV,2022,Manual,Diesel,61703,Fair,Central Visayas,1,685000
+Kia,Sportage,SUV,2016,Automatic,Diesel,145341,Fair,Metro Manila,1,595000
+Honda,Jazz,Hatchback,2015,CVT,Gasoline,214467,Fair,Western Visayas,1,215000
+Isuzu,D-Max,Pickup,2022,Manual,Diesel,58870,Poor,Central Visayas,1,340000
+Nissan,Urvan,Van,2022,Manual,Diesel,76639,Fair,Central Luzon,4,580000
+Mitsubishi,L300,Van,2017,Manual,Diesel,130467,Poor,Metro Manila,2,260000
+Mazda,CX-3,SUV,2021,Automatic,Gasoline,57801,Fair,Ilocos Region,3,630000
+Toyota,Raize,SUV,2023,Automatic,Gasoline,32511,Fair,Eastern Visayas,1,415000
+Honda,CR-V,SUV,2025,Automatic,Gasoline,17831,Fair,Western Visayas,1,1225000
+Hyundai,Starex,Van,2021,Automatic,Diesel,137656,Good,Metro Manila,1,935000
+Ford,Everest,SUV,2018,Automatic,Diesel,178459,Fair,Ilocos Region,2,470000
+Mazda,CX-5,SUV,2023,Automatic,Gasoline,50434,Poor,Central Luzon,1,740000
+Hyundai,Reina,Sedan,2021,Manual,Gasoline,5651,Good,Calabarzon,1,375000
+Mitsubishi,Xpander,MPV,2023,Manual,Gasoline,48028,Good,Metro Manila,4,595000
+Toyota,Rush,SUV,2022,Automatic,Gasoline,73182,Good,Western Visayas,2,505000
+Mitsubishi,L300,Van,2021,Manual,Diesel,96253,Poor,Western Visayas,1,275000
+Mitsubishi,L300,Van,2021,Manual,Diesel,90978,Fair,Davao Region,1,370000
+Mitsubishi,Montero Sport,SUV,2025,Automatic,Diesel,12729,Good,Metro Manila,1,1540000
+Subaru,XV,SUV,2021,CVT,Gasoline,33379,Fair,Calabarzon,2,845000
+Toyota,Innova,MPV,2024,Manual,Diesel,45386,Good,Central Visayas,1,625000
+Kia,Picanto,Hatchback,2020,Automatic,Gasoline,32585,Poor,Metro Manila,1,290000
+Hyundai,Creta,SUV,2023,CVT,Gasoline,44437,Poor,Metro Manila,2,505000
+Kia,Picanto,Hatchback,2024,Manual,Gasoline,22903,Good,Ilocos Region,2,425000
+Mitsubishi,Xpander,MPV,2024,Manual,Gasoline,32559,Poor,Metro Manila,1,565000
+Hyundai,Kona,SUV,2024,Automatic,Gasoline,27925,Excellent,Metro Manila,1,805000
+Suzuki,Celerio,Hatchback,2024,Manual,Gasoline,22977,Good,Ilocos Region,3,350000
+Mitsubishi,L300,Van,2016,Manual,Diesel,157732,Good,Metro Manila,1,330000
+Mazda,CX-5,SUV,2019,Automatic,Gasoline,128395,Fair,Western Visayas,2,610000
+Honda,Civic,Sedan,2017,Automatic,Gasoline,229777,Good,Western Visayas,1,395000
+Kia,Sportage,SUV,2021,Automatic,Diesel,115279,Good,Bicol Region,2,620000
+Subaru,Forester,SUV,2024,CVT,Gasoline,24111,Good,Metro Manila,2,1410000
+Honda,HR-V,SUV,2022,CVT,Gasoline,33045,Poor,Central Luzon,1,615000
+Ford,Everest,SUV,2021,Automatic,Diesel,93878,Fair,Metro Manila,1,905000
+Mazda,CX-5,SUV,2021,Automatic,Gasoline,83881,Fair,Metro Manila,1,760000
+Toyota,Avanza,MPV,2020,Automatic,Gasoline,101955,Fair,Western Visayas,1,345000
+Suzuki,Dzire,Sedan,2022,Manual,Gasoline,86299,Good,Central Luzon,3,270000
+Nissan,Almera,Sedan,2020,Automatic,Gasoline,144045,Fair,Western Visayas,1,260000
+Isuzu,mu-X,SUV,2023,Automatic,Diesel,43097,Good,Metro Manila,1,1075000
+Honda,City,Sedan,2020,Automatic,Gasoline,105282,Good,Central Visayas,1,470000
+Hyundai,Reina,Sedan,2021,Automatic,Gasoline,96501,Fair,Central Visayas,4,255000
+Honda,Civic,Sedan,2021,CVT,Gasoline,28338,Fair,Central Luzon,3,655000
+Toyota,Innova,MPV,2022,Automatic,Diesel,79340,Good,Metro Manila,4,605000
+Toyota,Hilux,Pickup,2017,Manual,Diesel,134756,Poor,Central Luzon,1,300000
+Kia,Stonic,SUV,2022,Automatic,Gasoline,32525,Fair,Calabarzon,2,430000
+Honda,CR-V,SUV,2025,CVT,Gasoline,20677,Good,Metro Manila,3,1470000
+Suzuki,Dzire,Sedan,2024,Automatic,Gasoline,35365,Fair,Metro Manila,1,440000
+Suzuki,Celerio,Hatchback,2021,Automatic,Gasoline,64865,Good,Metro Manila,2,345000
+Hyundai,Tucson,SUV,2022,Automatic,Diesel,66092,Good,Bicol Region,1,770000
+Toyota,Avanza,MPV,2017,Automatic,Gasoline,163872,Poor,Western Visayas,2,225000
+Toyota,Vios,Sedan,2025,Automatic,Gasoline,15349,Good,Western Visayas,1,605000
+Hyundai,Tucson,SUV,2021,Automatic,Diesel,105925,Good,Metro Manila,1,620000
+Mazda,BT-50,Pickup,2020,Manual,Diesel,107100,Fair,Bicol Region,3,390000
+Toyota,Raize,SUV,2022,CVT,Gasoline,35958,Good,Metro Manila,1,560000
+Mitsubishi,Xpander,MPV,2023,Automatic,Gasoline,36921,Fair,Metro Manila,2,630000
+Toyota,Avanza,MPV,2023,Manual,Gasoline,39111,Poor,Central Luzon,3,350000
+Honda,City,Sedan,2020,Automatic,Gasoline,130871,Fair,Metro Manila,1,370000
+Honda,Brio,Hatchback,2024,Manual,Gasoline,36307,Fair,Metro Manila,3,335000
+Suzuki,Ertiga,MPV,2017,Manual,Gasoline,78663,Fair,Metro Manila,2,320000
+Suzuki,Swift,Hatchback,2023,CVT,Gasoline,46911,Fair,Davao Region,2,420000
+Toyota,Corolla Altis,Sedan,2015,CVT,Gasoline,84660,Good,Central Luzon,1,515000
+Toyota,Rush,SUV,2022,Automatic,Gasoline,59307,Poor,Metro Manila,1,435000
+Honda,Civic,Sedan,2016,Automatic,Gasoline,98097,Fair,Western Visayas,1,545000
+Mitsubishi,Mirage G4,Sedan,2017,CVT,Gasoline,183332,Good,Calabarzon,1,250000
+Mazda,CX-5,SUV,2017,Automatic,Gasoline,130464,Excellent,Central Luzon,1,775000
+Honda,CR-V,SUV,2023,Automatic,Gasoline,28617,Good,Central Visayas,2,1120000
+Kia,Picanto,Hatchback,2025,Automatic,Gasoline,15630,Fair,Metro Manila,1,495000
+Mazda,CX-5,SUV,2019,Automatic,Gasoline,171761,Poor,Northern Mindanao,2,345000
+Suzuki,Jimny,SUV,2020,Manual,Gasoline,20308,Good,Metro Manila,2,510000
+Honda,City,Sedan,2020,CVT,Gasoline,45684,Poor,Calabarzon,1,415000
+Honda,City,Sedan,2024,Automatic,Gasoline,22277,Fair,Metro Manila,3,610000
+Subaru,Forester,SUV,2020,Automatic,Gasoline,67345,Fair,Calabarzon,2,895000
+Mazda,CX-5,SUV,2021,Automatic,Gasoline,44134,Good,Central Visayas,1,930000
+Honda,HR-V,SUV,2025,CVT,Gasoline,20396,Poor,Metro Manila,1,820000
+Mazda,Mazda3,Sedan,2021,Automatic,Gasoline,88193,Good,Calabarzon,1,695000
+Suzuki,Jimny,SUV,2022,Automatic,Gasoline,88338,Good,Calabarzon,2,515000
+Mitsubishi,Mirage,Hatchback,2020,Automatic,Gasoline,141140,Fair,Central Luzon,2,205000
+Toyota,Fortuner,SUV,2021,Manual,Diesel,98809,Poor,Calabarzon,2,580000
+Toyota,Vios,Sedan,2021,Manual,Gasoline,93114,Fair,Eastern Visayas,3,275000
+Hyundai,Reina,Sedan,2025,Manual,Gasoline,11355,Good,Metro Manila,2,440000
+Suzuki,Celerio,Hatchback,2019,Automatic,Gasoline,120788,Good,Ilocos Region,1,255000
+Ford,Ranger,Pickup,2023,Manual,Diesel,44540,Excellent,Ilocos Region,1,725000
+Hyundai,Kona,SUV,2022,Automatic,Gasoline,24410,Good,Northern Mindanao,2,685000
+Toyota,Raize,SUV,2023,Automatic,Gasoline,32911,Poor,Metro Manila,3,355000
+Mitsubishi,Strada,Pickup,2022,Manual,Diesel,55371,Poor,Metro Manila,1,445000
+Toyota,Innova,MPV,2023,Manual,Diesel,46015,Fair,Bicol Region,2,515000
+Chevrolet,Trailblazer,SUV,2018,Automatic,Diesel,115126,Fair,Ilocos Region,2,595000
+Hyundai,Tucson,SUV,2020,Automatic,Diesel,12621,Fair,Central Visayas,1,650000
+Hyundai,Kona,SUV,2020,Automatic,Gasoline,87096,Poor,Western Visayas,1,390000
+Isuzu,D-Max,Pickup,2019,Automatic,Diesel,123277,Good,Calabarzon,2,385000
+Mazda,BT-50,Pickup,2023,Automatic,Diesel,51056,Good,Western Visayas,2,640000
+Hyundai,Kona,SUV,2022,Automatic,Gasoline,70836,Good,Central Visayas,2,570000
+Subaru,Forester,SUV,2022,CVT,Gasoline,22331,Fair,Metro Manila,2,1070000
+Toyota,Corolla Altis,Sedan,2025,Automatic,Gasoline,17851,Good,Metro Manila,2,965000
+Toyota,Camry,Sedan,2020,Automatic,Gasoline,48356,Fair,Ilocos Region,3,940000
+Hyundai,Accent,Sedan,2020,Manual,Gasoline,100293,Poor,Central Visayas,1,260000
+Toyota,Fortuner,SUV,2025,Manual,Diesel,13813,Poor,Davao Region,3,830000
+Toyota,Hiace,Van,2016,Manual,Diesel,159252,Fair,Northern Mindanao,2,545000
+Toyota,Hilux,Pickup,2024,Manual,Diesel,32787,Poor,Metro Manila,2,460000
+Toyota,Fortuner,SUV,2024,Manual,Diesel,42341,Good,Central Luzon,1,1165000
+Hyundai,Tucson,SUV,2017,Automatic,Diesel,213484,Excellent,Northern Mindanao,2,405000
+Mitsubishi,Xpander,MPV,2024,Automatic,Gasoline,50009,Poor,Central Luzon,1,490000
+Mitsubishi,L300,Van,2017,Manual,Diesel,187441,Fair,Central Visayas,1,230000
+Nissan,Navara,Pickup,2019,Manual,Diesel,90467,Good,Metro Manila,3,480000
+Toyota,Fortuner,SUV,2019,Manual,Diesel,123678,Fair,Northern Mindanao,2,615000
+Suzuki,Ertiga,MPV,2024,Manual,Gasoline,36812,Good,Central Luzon,1,530000
+Hyundai,Tucson,SUV,2022,Automatic,Diesel,57616,Good,Metro Manila,1,775000
+Suzuki,Jimny,SUV,2024,Manual,Gasoline,33832,Good,Ilocos Region,4,550000
+Mitsubishi,Strada,Pickup,2023,Automatic,Diesel,38632,Fair,Davao Region,1,595000
+Toyota,Camry,Sedan,2019,Automatic,Gasoline,116124,Good,Metro Manila,1,1040000
+Isuzu,D-Max,Pickup,2020,Manual,Diesel,95497,Fair,Metro Manila,1,370000
+Kia,Stonic,SUV,2022,Automatic,Gasoline,88553,Fair,Bicol Region,3,280000
+Mitsubishi,Strada,Pickup,2021,Manual,Diesel,112225,Good,Metro Manila,1,465000
+Suzuki,Celerio,Hatchback,2020,Automatic,Gasoline,74148,Good,Metro Manila,1,355000
+Nissan,Urvan,Van,2016,Manual,Diesel,154618,Fair,Metro Manila,4,455000
+Honda,HR-V,SUV,2021,Automatic,Gasoline,102184,Excellent,Central Luzon,1,680000
+Kia,Sportage,SUV,2023,Automatic,Diesel,36594,Good,Calabarzon,2,1050000
+Isuzu,D-Max,Pickup,2025,Automatic,Diesel,9654,Fair,Central Luzon,4,570000
+Mazda,CX-5,SUV,2020,Automatic,Gasoline,127327,Fair,Metro Manila,3,600000
+Nissan,Terra,SUV,2020,Manual,Diesel,78609,Fair,Davao Region,2,645000
+Ford,Territory,SUV,2023,Automatic,Gasoline,63138,Good,Eastern Visayas,3,555000
+Isuzu,mu-X,SUV,2016,Automatic,Diesel,135234,Fair,Central Visayas,1,580000
+Kia,Picanto,Hatchback,2022,Manual,Gasoline,58624,Poor,Calabarzon,1,265000
+Toyota,Vios,Sedan,2015,Manual,Gasoline,160256,Fair,Metro Manila,1,250000
+Isuzu,mu-X,SUV,2022,Automatic,Diesel,63817,Fair,Metro Manila,2,825000
+Isuzu,D-Max,Pickup,2023,Manual,Diesel,56790,Good,Davao Region,1,475000
+Kia,Sportage,SUV,2025,Automatic,Diesel,13175,Poor,Metro Manila,2,860000
+Toyota,Hilux,Pickup,2016,Automatic,Diesel,211371,Good,Metro Manila,3,300000
+Honda,Civic,Sedan,2025,Automatic,Gasoline,9578,Good,Eastern Visayas,1,1035000
+Mazda,BT-50,Pickup,2022,Automatic,Diesel,79456,Poor,Calabarzon,4,375000
+Hyundai,Reina,Sedan,2022,Automatic,Gasoline,86637,Excellent,Davao Region,2,335000
+Isuzu,D-Max,Pickup,2023,Manual,Diesel,46782,Fair,Central Luzon,1,450000
+Hyundai,Starex,Van,2020,Automatic,Diesel,69908,Poor,Calabarzon,4,840000
+Isuzu,D-Max,Pickup,2019,Manual,Diesel,83823,Fair,Metro Manila,3,360000
+Suzuki,Swift,Hatchback,2014,CVT,Gasoline,207550,Poor,Metro Manila,3,180000
+Nissan,Almera,Sedan,2020,Automatic,Gasoline,90842,Good,Central Visayas,2,350000
+Suzuki,Celerio,Hatchback,2020,Automatic,Gasoline,127866,Poor,Central Visayas,1,175000
+Honda,CR-V,SUV,2025,CVT,Gasoline,20053,Excellent,Western Visayas,1,1605000
+Nissan,Navara,Pickup,2022,Automatic,Diesel,71888,Fair,Ilocos Region,1,495000
+Mitsubishi,Montero Sport,SUV,2015,Automatic,Diesel,184323,Fair,Calabarzon,1,535000
+Honda,Civic,Sedan,2021,Automatic,Gasoline,72277,Poor,Ilocos Region,1,565000
+Mazda,CX-3,SUV,2023,Automatic,Gasoline,23968,Fair,Metro Manila,2,825000
+Nissan,Terra,SUV,2021,Manual,Diesel,5144,Good,Calabarzon,1,920000
+Ford,Ranger,Pickup,2016,Manual,Diesel,158875,Fair,Eastern Visayas,1,345000
+Kia,Sportage,SUV,2024,Automatic,Diesel,45948,Excellent,Ilocos Region,1,1055000
+Hyundai,Tucson,SUV,2023,Automatic,Diesel,33974,Poor,Metro Manila,2,685000
+Hyundai,Starex,Van,2021,Automatic,Diesel,113943,Fair,Central Luzon,1,855000
+Hyundai,Accent,Sedan,2023,Automatic,Gasoline,36810,Good,Northern Mindanao,1,475000
+Isuzu,mu-X,SUV,2016,Automatic,Diesel,223989,Fair,Metro Manila,1,440000
+Hyundai,Starex,Van,2016,Automatic,Diesel,160999,Fair,Metro Manila,1,785000
+Mazda,BT-50,Pickup,2020,Manual,Diesel,88815,Fair,Western Visayas,1,460000
+Honda,BR-V,MPV,2019,Automatic,Gasoline,103348,Poor,Metro Manila,1,410000
+Isuzu,mu-X,SUV,2020,Automatic,Diesel,76218,Good,Metro Manila,1,900000
+Toyota,Avanza,MPV,2024,Manual,Gasoline,25454,Good,Central Visayas,1,560000
+Nissan,Urvan,Van,2021,Manual,Diesel,61187,Poor,Calabarzon,1,570000
+Suzuki,Celerio,Hatchback,2025,Automatic,Gasoline,16119,Poor,Davao Region,2,295000
+Nissan,Almera,Sedan,2021,Manual,Gasoline,49720,Fair,Western Visayas,4,335000
+Toyota,Raize,SUV,2023,Automatic,Gasoline,66705,Good,Calabarzon,2,435000
+Honda,Jazz,Hatchback,2014,CVT,Gasoline,147622,Poor,Central Luzon,2,255000
+Isuzu,D-Max,Pickup,2021,Manual,Diesel,111850,Fair,Metro Manila,1,315000
+Suzuki,Swift,Hatchback,2018,CVT,Gasoline,143735,Fair,Central Visayas,1,265000
+Hyundai,Accent,Sedan,2016,Automatic,Gasoline,151332,Poor,Central Luzon,1,195000
+Mazda,CX-5,SUV,2016,Automatic,Gasoline,139826,Poor,Central Luzon,2,455000
+Ford,EcoSport,SUV,2016,Automatic,Gasoline,127587,Fair,Metro Manila,1,295000
+Ford,EcoSport,SUV,2017,Automatic,Gasoline,135202,Good,Davao Region,1,315000
+Toyota,Hiace,Van,2021,Automatic,Diesel,64597,Good,Calabarzon,1,1065000
+Honda,BR-V,MPV,2021,CVT,Gasoline,98226,Poor,Central Luzon,1,390000
+Kia,Picanto,Hatchback,2019,Manual,Gasoline,93484,Fair,Metro Manila,4,235000
+Kia,Sportage,SUV,2020,Automatic,Diesel,109751,Excellent,Metro Manila,2,765000
+Suzuki,Dzire,Sedan,2024,Automatic,Gasoline,19571,Fair,Metro Manila,1,460000
+Subaru,XV,SUV,2024,CVT,Gasoline,26040,Fair,Davao Region,1,1070000
+Ford,Ranger,Pickup,2023,Manual,Diesel,1608,Fair,Calabarzon,2,620000
+Ford,Everest,SUV,2018,Automatic,Diesel,113208,Good,Northern Mindanao,3,670000
+Mitsubishi,Strada,Pickup,2022,Manual,Diesel,97039,Fair,Metro Manila,1,455000
+Chevrolet,Colorado,Pickup,2020,Manual,Diesel,102605,Fair,Bicol Region,4,335000
+Honda,CR-V,SUV,2021,Automatic,Gasoline,76323,Poor,Metro Manila,1,745000
+Honda,HR-V,SUV,2022,CVT,Gasoline,77230,Fair,Central Visayas,1,660000
+Mitsubishi,Strada,Pickup,2016,Automatic,Diesel,152019,Poor,Metro Manila,3,285000
+Ford,Everest,SUV,2022,Automatic,Diesel,108043,Fair,Eastern Visayas,1,640000
+Nissan,Urvan,Van,2020,Manual,Diesel,140608,Fair,Central Luzon,1,435000
+Mitsubishi,Mirage,Hatchback,2018,Manual,Gasoline,108235,Good,Northern Mindanao,1,250000
+Toyota,Hiace,Van,2022,Manual,Diesel,46883,Poor,Calabarzon,2,760000
+Mazda,BT-50,Pickup,2021,Automatic,Diesel,89909,Good,Western Visayas,1,595000
+Mitsubishi,Mirage,Hatchback,2025,CVT,Gasoline,13218,Fair,Davao Region,1,465000
+Mazda,BT-50,Pickup,2019,Manual,Diesel,33256,Poor,Eastern Visayas,1,370000
+Hyundai,Starex,Van,2017,Automatic,Diesel,64349,Poor,Metro Manila,4,725000
+Honda,Civic,Sedan,2018,Automatic,Gasoline,107846,Fair,Calabarzon,4,510000
+Honda,Jazz,Hatchback,2016,CVT,Gasoline,71836,Fair,Central Visayas,3,325000
+Honda,Brio,Hatchback,2022,Manual,Gasoline,62131,Good,Metro Manila,2,350000
+Honda,City,Sedan,2023,Automatic,Gasoline,47818,Poor,Central Luzon,1,405000
+Hyundai,Starex,Van,2018,Automatic,Diesel,153926,Good,Central Luzon,1,885000
+Suzuki,Ertiga,MPV,2023,Manual,Gasoline,68473,Fair,Ilocos Region,1,320000
+Honda,BR-V,MPV,2018,CVT,Gasoline,135321,Good,Metro Manila,2,455000
+Honda,CR-V,SUV,2025,CVT,Gasoline,1747,Good,Metro Manila,1,1750000
+Honda,CR-V,SUV,2024,CVT,Gasoline,39762,Good,Central Visayas,2,1245000
+Suzuki,Jimny,SUV,2024,Manual,Gasoline,14766,Good,Western Visayas,2,655000
+Honda,Civic,Sedan,2024,Automatic,Gasoline,34738,Good,Metro Manila,1,975000
+Toyota,Camry,Sedan,2025,Automatic,Gasoline,14137,Fair,Central Visayas,4,1365000
+Suzuki,Vitara,SUV,2016,Automatic,Gasoline,141579,Fair,Bicol Region,3,335000
+Suzuki,Jimny,SUV,2019,Automatic,Gasoline,145361,Fair,Davao Region,1,340000
+Mazda,Mazda3,Sedan,2017,Automatic,Gasoline,159859,Good,Metro Manila,1,535000
+Nissan,Juke,SUV,2016,CVT,Gasoline,229020,Fair,Calabarzon,4,240000
+Mitsubishi,Mirage,Hatchback,2022,Automatic,Gasoline,78241,Good,Metro Manila,1,340000
+Nissan,Navara,Pickup,2024,Manual,Diesel,27709,Good,Metro Manila,1,740000
+Ford,EcoSport,SUV,2020,Automatic,Gasoline,88058,Poor,Central Visayas,1,310000
+Toyota,Innova,MPV,2021,Manual,Diesel,90915,Poor,Bicol Region,2,355000
+Mazda,CX-5,SUV,2019,Automatic,Gasoline,119068,Good,Bicol Region,2,665000
+Mazda,CX-5,SUV,2018,Automatic,Gasoline,91490,Fair,Metro Manila,4,650000
+Kia,Picanto,Hatchback,2025,Manual,Gasoline,20975,Poor,Western Visayas,1,325000
+Suzuki,Celerio,Hatchback,2022,Manual,Gasoline,37926,Fair,Northern Mindanao,1,300000
+Ford,Ranger,Pickup,2024,Manual,Diesel,35172,Fair,Metro Manila,2,650000
+Suzuki,Ertiga,MPV,2025,Automatic,Gasoline,13280,Good,Western Visayas,2,590000
+Hyundai,Kona,SUV,2020,Automatic,Gasoline,121017,Poor,Metro Manila,1,340000
+Ford,Everest,SUV,2025,Automatic,Diesel,17577,Poor,Bicol Region,1,990000
+Suzuki,Swift,Hatchback,2025,Automatic,Gasoline,14979,Good,Central Luzon,1,635000
+Mazda,BT-50,Pickup,2022,Manual,Diesel,95714,Good,Calabarzon,1,490000
+Mazda,CX-3,SUV,2022,Automatic,Gasoline,51184,Good,Metro Manila,1,845000
+Ford,EcoSport,SUV,2018,Automatic,Gasoline,114309,Fair,Northern Mindanao,1,300000
+Mitsubishi,Xpander,MPV,2024,Manual,Gasoline,33693,Good,Calabarzon,4,630000
+Mazda,CX-5,SUV,2023,Automatic,Gasoline,33270,Good,Central Visayas,2,965000
+Nissan,Urvan,Van,2017,Manual,Diesel,149545,Good,Metro Manila,3,505000
+Nissan,Almera,Sedan,2025,Manual,Gasoline,19345,Good,Metro Manila,2,585000
+Honda,Brio,Hatchback,2020,Manual,Gasoline,90746,Fair,Metro Manila,2,270000
+Honda,Jazz,Hatchback,2019,Automatic,Gasoline,102217,Fair,Metro Manila,2,400000
+Kia,Sportage,SUV,2019,Automatic,Diesel,132552,Fair,Metro Manila,2,595000
+Nissan,Juke,SUV,2018,CVT,Gasoline,50912,Fair,Calabarzon,3,440000
+Subaru,XV,SUV,2025,Automatic,Gasoline,20623,Good,Metro Manila,1,1395000
+Isuzu,mu-X,SUV,2019,Automatic,Diesel,119171,Fair,Metro Manila,4,615000
+Ford,Ranger,Pickup,2017,Manual,Diesel,99543,Good,Northern Mindanao,1,505000
+Nissan,Almera,Sedan,2022,Manual,Gasoline,72830,Fair,Metro Manila,3,335000
+Honda,HR-V,SUV,2023,CVT,Gasoline,40006,Good,Ilocos Region,1,870000
+Mitsubishi,Montero Sport,SUV,2016,Automatic,Diesel,137680,Good,Calabarzon,2,675000
+Honda,HR-V,SUV,2021,Automatic,Gasoline,56464,Good,Eastern Visayas,1,740000
+Mitsubishi,Mirage G4,Sedan,2024,CVT,Gasoline,28422,Good,Metro Manila,1,525000
+Kia,Picanto,Hatchback,2020,Automatic,Gasoline,69964,Good,Metro Manila,1,380000
+Suzuki,Vitara,SUV,2022,Automatic,Gasoline,50642,Good,Central Visayas,1,680000
+Chevrolet,Colorado,Pickup,2016,Manual,Diesel,162969,Good,Metro Manila,1,405000
+Ford,Territory,SUV,2023,Automatic,Gasoline,57943,Poor,Northern Mindanao,3,400000
+Toyota,Innova,MPV,2017,Automatic,Diesel,121785,Good,Bicol Region,2,485000
+Subaru,XV,SUV,2022,Automatic,Gasoline,71439,Fair,Calabarzon,4,730000
+Toyota,Wigo,Hatchback,2018,Manual,Gasoline,106911,Fair,Calabarzon,2,225000
+Mitsubishi,Strada,Pickup,2019,Automatic,Diesel,84580,Fair,Metro Manila,2,480000
+Mazda,CX-3,SUV,2019,Automatic,Gasoline,114444,Good,Central Visayas,1,660000
+Suzuki,Ertiga,MPV,2025,Manual,Gasoline,12837,Good,Northern Mindanao,2,540000
+Mitsubishi,L300,Van,2014,Manual,Diesel,122570,Fair,Metro Manila,1,320000
+Toyota,Wigo,Hatchback,2022,Manual,Gasoline,47639,Good,Metro Manila,1,360000
+Nissan,Terra,SUV,2021,Automatic,Diesel,54984,Good,Ilocos Region,1,835000
+Honda,BR-V,MPV,2017,CVT,Gasoline,207912,Good,Metro Manila,2,360000
+Nissan,Urvan,Van,2021,Manual,Diesel,135667,Poor,Central Visayas,2,335000
+Isuzu,mu-X,SUV,2019,Automatic,Diesel,105486,Good,Metro Manila,2,750000
+Mazda,CX-5,SUV,2019,Automatic,Gasoline,91251,Good,Eastern Visayas,2,755000
+Toyota,Avanza,MPV,2015,Automatic,Gasoline,89802,Fair,Metro Manila,2,305000
+Suzuki,Vitara,SUV,2018,Automatic,Gasoline,109944,Excellent,Central Visayas,2,600000
+Mazda,BT-50,Pickup,2021,Automatic,Diesel,73438,Fair,Calabarzon,1,505000
+Suzuki,Vitara,SUV,2025,Automatic,Gasoline,9604,Good,Metro Manila,3,900000
+Kia,Stonic,SUV,2021,Automatic,Gasoline,71342,Fair,Metro Manila,2,395000
+Nissan,Urvan,Van,2015,Manual,Diesel,143152,Good,Metro Manila,4,470000
+Mazda,CX-3,SUV,2021,Automatic,Gasoline,71819,Good,Eastern Visayas,1,680000
+Nissan,Navara,Pickup,2020,Automatic,Diesel,75238,Fair,Calabarzon,1,515000
+Hyundai,Starex,Van,2019,Automatic,Diesel,138971,Poor,Davao Region,1,675000
+Hyundai,Kona,SUV,2019,Automatic,Gasoline,96917,Good,Davao Region,1,525000
+Honda,City,Sedan,2022,Automatic,Gasoline,69293,Poor,Davao Region,1,385000
+Suzuki,Dzire,Sedan,2020,Automatic,Gasoline,109627,Good,Metro Manila,1,320000
+Mitsubishi,L300,Van,2024,Manual,Diesel,34318,Excellent,Northern Mindanao,3,550000
+Kia,Picanto,Hatchback,2019,Automatic,Gasoline,69410,Fair,Calabarzon,1,335000
+Mitsubishi,Xpander,MPV,2019,Manual,Gasoline,87172,Fair,Central Visayas,1,455000
+Chevrolet,Colorado,Pickup,2017,Automatic,Diesel,121289,Good,Western Visayas,2,450000
+Ford,Everest,SUV,2020,Automatic,Diesel,84388,Good,Western Visayas,2,915000
+Toyota,Hiace,Van,2022,Automatic,Diesel,60949,Fair,Metro Manila,1,1065000
+Toyota,Corolla Altis,Sedan,2018,CVT,Gasoline,28934,Fair,Central Luzon,3,520000
+Isuzu,D-Max,Pickup,2022,Manual,Diesel,85539,Fair,Metro Manila,3,370000
+Chevrolet,Colorado,Pickup,2016,Manual,Diesel,206385,Good,Calabarzon,3,270000
+Isuzu,mu-X,SUV,2021,Automatic,Diesel,6476,Fair,Ilocos Region,3,690000
+Isuzu,mu-X,SUV,2025,Automatic,Diesel,8248,Fair,Central Visayas,1,1135000
+Hyundai,Kona,SUV,2021,Automatic,Gasoline,60077,Fair,Metro Manila,1,555000
+Kia,Picanto,Hatchback,2017,Automatic,Gasoline,94395,Good,Northern Mindanao,1,290000
+Mitsubishi,Montero Sport,SUV,2024,Automatic,Diesel,12904,Fair,Metro Manila,3,1095000
+Honda,CR-V,SUV,2021,CVT,Gasoline,94977,Fair,Davao Region,1,800000
+Subaru,Forester,SUV,2018,Automatic,Gasoline,160547,Fair,Central Visayas,3,555000
+Mitsubishi,Mirage G4,Sedan,2021,CVT,Gasoline,82854,Fair,Davao Region,1,325000
+Suzuki,Jimny,SUV,2023,Manual,Gasoline,20569,Good,Davao Region,3,570000
+Kia,Picanto,Hatchback,2021,Manual,Gasoline,73196,Excellent,Western Visayas,1,350000
+Mazda,BT-50,Pickup,2024,Automatic,Diesel,8800,Good,Metro Manila,2,860000
+Suzuki,Jimny,SUV,2023,Automatic,Gasoline,51606,Good,Calabarzon,1,655000
+Honda,Civic,Sedan,2022,CVT,Gasoline,75248,Good,Central Visayas,4,675000
+Isuzu,D-Max,Pickup,2022,Manual,Diesel,13015,Fair,Davao Region,2,430000
+Suzuki,Celerio,Hatchback,2018,Automatic,Gasoline,99663,Good,Central Visayas,1,285000
+Toyota,Wigo,Hatchback,2021,Automatic,Gasoline,104607,Fair,Calabarzon,1,240000
+Nissan,Urvan,Van,2018,Manual,Diesel,113443,Fair,Calabarzon,2,505000
+Kia,Picanto,Hatchback,2022,Automatic,Gasoline,87058,Poor,Davao Region,2,225000
+Toyota,Wigo,Hatchback,2019,Manual,Gasoline,81254,Good,Calabarzon,2,280000
+Hyundai,Kona,SUV,2025,Automatic,Gasoline,19584,Fair,Metro Manila,2,720000
+Isuzu,mu-X,SUV,2019,Automatic,Diesel,106699,Fair,Eastern Visayas,1,630000
+Mazda,BT-50,Pickup,2023,Automatic,Diesel,51147,Good,Metro Manila,2,735000
+Toyota,Hilux,Pickup,2018,Manual,Diesel,140482,Fair,Metro Manila,1,335000
+Ford,Everest,SUV,2016,Automatic,Diesel,226135,Good,Calabarzon,1,480000
+Toyota,Rush,SUV,2020,Automatic,Gasoline,96579,Fair,Calabarzon,1,465000
+Toyota,Wigo,Hatchback,2021,Automatic,Gasoline,64081,Poor,Central Luzon,2,225000
+Suzuki,Swift,Hatchback,2017,CVT,Gasoline,171774,Fair,Metro Manila,1,270000
+Suzuki,Jimny,SUV,2024,Automatic,Gasoline,28554,Good,Ilocos Region,1,680000
+Suzuki,Vitara,SUV,2017,Automatic,Gasoline,180424,Good,Central Luzon,3,375000
+Suzuki,Swift,Hatchback,2023,Automatic,Gasoline,34937,Good,Central Luzon,1,515000
+Mazda,Mazda3,Sedan,2020,Automatic,Gasoline,64061,Fair,Central Luzon,2,640000
+Toyota,Avanza,MPV,2023,Manual,Gasoline,18557,Excellent,Calabarzon,2,585000
+Toyota,Innova,MPV,2024,Automatic,Diesel,33528,Good,Calabarzon,1,835000
+Honda,City,Sedan,2016,Automatic,Gasoline,174395,Excellent,Central Luzon,1,350000
+Nissan,Navara,Pickup,2020,Manual,Diesel,78917,Excellent,Metro Manila,1,645000
+Mazda,CX-3,SUV,2022,Automatic,Gasoline,63726,Good,Central Visayas,1,800000
+Isuzu,D-Max,Pickup,2017,Automatic,Diesel,180402,Fair,Metro Manila,1,280000
+Ford,Ranger,Pickup,2025,Automatic,Diesel,14419,Good,Northern Mindanao,1,850000
+Toyota,Hiace,Van,2021,Automatic,Diesel,94907,Good,Central Visayas,2,870000
+Honda,City,Sedan,2016,CVT,Gasoline,208950,Fair,Metro Manila,2,235000
+Nissan,Navara,Pickup,2021,Automatic,Diesel,66482,Good,Calabarzon,3,605000
+Honda,Civic,Sedan,2020,CVT,Gasoline,62877,Poor,Central Visayas,1,505000
+Mazda,CX-3,SUV,2020,Automatic,Gasoline,65315,Poor,Central Luzon,2,495000
+Toyota,Hilux,Pickup,2023,Automatic,Diesel,50058,Good,Central Visayas,1,645000
+Honda,BR-V,MPV,2025,Automatic,Gasoline,7153,Excellent,Calabarzon,1,945000
+Toyota,Vios,Sedan,2020,Automatic,Gasoline,122984,Fair,Northern Mindanao,2,275000
+Nissan,Urvan,Van,2025,Manual,Diesel,9687,Excellent,Davao Region,1,1140000
+Mazda,Mazda3,Sedan,2018,Automatic,Gasoline,96110,Good,Metro Manila,2,695000
+Honda,CR-V,SUV,2022,Automatic,Gasoline,90485,Good,Metro Manila,1,945000
+Ford,Everest,SUV,2015,Automatic,Diesel,125465,Good,Ilocos Region,2,690000
+Nissan,Urvan,Van,2022,Manual,Diesel,68597,Good,Metro Manila,1,815000
+Toyota,Fortuner,SUV,2021,Manual,Diesel,61375,Good,Central Visayas,3,910000
+Toyota,Vios,Sedan,2022,Automatic,Gasoline,35962,Fair,Calabarzon,3,410000
+Hyundai,Starex,Van,2021,Automatic,Diesel,42514,Poor,Ilocos Region,2,925000
+Nissan,Urvan,Van,2015,Manual,Diesel,96466,Poor,Western Visayas,2,345000
+Subaru,XV,SUV,2025,Automatic,Gasoline,16167,Fair,Ilocos Region,1,1085000
+Mitsubishi,Mirage G4,Sedan,2025,CVT,Gasoline,7006,Excellent,Metro Manila,1,710000
+Toyota,Vios,Sedan,2021,Automatic,Gasoline,62311,Poor,Central Visayas,3,285000
+Mitsubishi,Montero Sport,SUV,2015,Automatic,Diesel,159497,Good,Central Luzon,3,615000
+Ford,Territory,SUV,2022,CVT,Gasoline,76003,Poor,Western Visayas,1,415000
+Hyundai,Tucson,SUV,2025,Automatic,Diesel,13453,Excellent,Metro Manila,1,1260000
+Toyota,Hilux,Pickup,2021,Automatic,Diesel,45609,Good,Metro Manila,1,645000
+Honda,BR-V,MPV,2024,Automatic,Gasoline,49665,Good,Northern Mindanao,2,605000
+Toyota,Rush,SUV,2020,Automatic,Gasoline,76006,Good,Central Visayas,1,560000
+Toyota,Raize,SUV,2022,Automatic,Gasoline,49440,Excellent,Metro Manila,2,525000
+Honda,City,Sedan,2025,CVT,Gasoline,19680,Excellent,Metro Manila,1,905000
+Kia,Stonic,SUV,2025,Automatic,Gasoline,16270,Excellent,Calabarzon,2,630000
+Subaru,Forester,SUV,2022,Automatic,Gasoline,71533,Fair,Metro Manila,2,945000
+Kia,Sportage,SUV,2021,Automatic,Diesel,79428,Fair,Metro Manila,1,820000
+Mitsubishi,Strada,Pickup,2017,Manual,Diesel,171714,Fair,Central Visayas,1,315000
+Suzuki,Ertiga,MPV,2016,Automatic,Gasoline,162086,Good,Calabarzon,3,285000
+Toyota,Hiace,Van,2019,Manual,Diesel,82103,Good,Central Luzon,1,930000
+Ford,Ranger,Pickup,2021,Automatic,Diesel,84679,Fair,Metro Manila,3,545000
+Hyundai,Creta,SUV,2022,Automatic,Gasoline,69020,Poor,Central Luzon,1,430000
+Toyota,Wigo,Hatchback,2018,Manual,Gasoline,61555,Poor,Central Luzon,2,175000
+Nissan,Navara,Pickup,2019,Automatic,Diesel,104296,Good,Metro Manila,2,530000
+Kia,Seltos,SUV,2022,Automatic,Gasoline,45819,Good,Metro Manila,3,625000
+Kia,Seltos,SUV,2023,Automatic,Gasoline,53191,Poor,Metro Manila,1,455000
+Isuzu,D-Max,Pickup,2020,Automatic,Diesel,66189,Fair,Metro Manila,1,445000
+Subaru,Forester,SUV,2017,Automatic,Gasoline,187203,Poor,Ilocos Region,1,400000
+Ford,Ranger,Pickup,2023,Automatic,Diesel,36616,Poor,Calabarzon,1,540000
+Mitsubishi,L300,Van,2022,Manual,Diesel,51781,Good,Metro Manila,2,515000
+Toyota,Hiace,Van,2024,Automatic,Diesel,30006,Excellent,Metro Manila,1,1505000
+Chevrolet,Colorado,Pickup,2019,Manual,Diesel,174910,Good,Central Luzon,1,330000
+Toyota,Hiace,Van,2020,Automatic,Diesel,74590,Fair,Central Luzon,2,915000
+Suzuki,Celerio,Hatchback,2021,Manual,Gasoline,86111,Poor,Metro Manila,1,230000
+Toyota,Innova,MPV,2018,Manual,Diesel,100987,Poor,Central Visayas,1,330000
+Toyota,Avanza,MPV,2018,Manual,Gasoline,54526,Poor,Calabarzon,2,270000
+Toyota,Corolla Altis,Sedan,2016,CVT,Gasoline,178368,Poor,Ilocos Region,1,270000
+Mazda,BT-50,Pickup,2018,Automatic,Diesel,93538,Good,Davao Region,2,485000
+Isuzu,mu-X,SUV,2024,Automatic,Diesel,34171,Poor,Bicol Region,1,790000
+Honda,Civic,Sedan,2020,CVT,Gasoline,57794,Poor,Northern Mindanao,3,485000
+Nissan,Terra,SUV,2025,Automatic,Diesel,13868,Excellent,Central Luzon,3,1115000
+Mitsubishi,Montero Sport,SUV,2021,Automatic,Diesel,74739,Fair,Calabarzon,2,825000
+Mazda,CX-5,SUV,2023,Automatic,Gasoline,30778,Good,Bicol Region,1,1015000
+Mazda,CX-3,SUV,2024,Automatic,Gasoline,17894,Excellent,Metro Manila,1,1175000
+Isuzu,D-Max,Pickup,2022,Automatic,Diesel,55914,Good,Central Luzon,3,495000
+Honda,CR-V,SUV,2021,Automatic,Gasoline,75913,Fair,Central Visayas,2,835000
+Toyota,Innova,MPV,2018,Automatic,Diesel,55145,Fair,Northern Mindanao,4,415000
+Toyota,Wigo,Hatchback,2017,Automatic,Gasoline,58348,Fair,Ilocos Region,1,225000
+Subaru,Forester,SUV,2020,CVT,Gasoline,25784,Good,Metro Manila,2,1135000
+Mazda,CX-3,SUV,2025,Automatic,Gasoline,17178,Fair,Metro Manila,3,975000
+Ford,Territory,SUV,2022,CVT,Gasoline,68186,Poor,Calabarzon,1,455000
+Suzuki,Swift,Hatchback,2024,CVT,Gasoline,17723,Fair,Eastern Visayas,2,460000
+Mitsubishi,L300,Van,2016,Manual,Diesel,175293,Fair,Metro Manila,2,275000
+Honda,HR-V,SUV,2022,CVT,Gasoline,24368,Excellent,Davao Region,4,795000
+Toyota,Corolla Altis,Sedan,2022,CVT,Gasoline,58826,Good,Davao Region,2,655000
+Nissan,Navara,Pickup,2017,Automatic,Diesel,114536,Poor,Calabarzon,4,310000
+Mitsubishi,Strada,Pickup,2020,Manual,Diesel,96466,Poor,Ilocos Region,4,295000
+Isuzu,D-Max,Pickup,2015,Manual,Diesel,115310,Fair,Eastern Visayas,1,285000
+Mazda,CX-5,SUV,2022,Automatic,Gasoline,38585,Fair,Metro Manila,2,930000
+Mazda,CX-3,SUV,2022,Automatic,Gasoline,55331,Fair,Ilocos Region,1,620000
+Mitsubishi,Mirage G4,Sedan,2024,CVT,Gasoline,44160,Good,Western Visayas,2,435000
+Ford,EcoSport,SUV,2021,Automatic,Gasoline,89779,Fair,Metro Manila,1,380000
+Nissan,Urvan,Van,2023,Manual,Diesel,58864,Excellent,Calabarzon,4,740000
+Ford,Territory,SUV,2025,Automatic,Gasoline,18746,Excellent,Ilocos Region,2,785000
+Toyota,Corolla Altis,Sedan,2014,Automatic,Gasoline,242254,Good,Western Visayas,2,295000
+Mitsubishi,Strada,Pickup,2025,Manual,Diesel,11991,Fair,Central Luzon,1,710000
+Ford,Territory,SUV,2021,Automatic,Gasoline,116701,Fair,Ilocos Region,3,380000
+Hyundai,Creta,SUV,2024,Automatic,Gasoline,46129,Good,Western Visayas,1,675000
+Mitsubishi,Mirage G4,Sedan,2023,Manual,Gasoline,1000,Good,Calabarzon,1,460000
+Nissan,Terra,SUV,2021,Automatic,Diesel,44589,Good,Central Visayas,2,930000
+Mitsubishi,L300,Van,2018,Manual,Diesel,66881,Fair,Davao Region,1,365000
+Mazda,BT-50,Pickup,2019,Automatic,Diesel,55266,Fair,Metro Manila,1,555000
+Suzuki,Celerio,Hatchback,2016,Automatic,Gasoline,69794,Fair,Western Visayas,2,205000
+Suzuki,Dzire,Sedan,2020,Automatic,Gasoline,77012,Excellent,Metro Manila,1,395000
+Hyundai,Tucson,SUV,2022,Automatic,Diesel,60960,Fair,Calabarzon,3,630000
+Toyota,Hilux,Pickup,2020,Manual,Diesel,39006,Good,Metro Manila,4,495000
+Isuzu,mu-X,SUV,2016,Automatic,Diesel,145079,Fair,Calabarzon,4,505000
+Isuzu,mu-X,SUV,2021,Automatic,Diesel,81654,Good,Calabarzon,1,840000
+Toyota,Innova,MPV,2025,Automatic,Diesel,18981,Good,Calabarzon,2,875000
+Toyota,Fortuner,SUV,2023,Automatic,Diesel,54458,Good,Metro Manila,1,1190000
+Ford,Territory,SUV,2022,Automatic,Gasoline,66842,Fair,Calabarzon,2,520000
+Kia,Picanto,Hatchback,2021,Automatic,Gasoline,98933,Good,Central Luzon,1,325000
+Mazda,Mazda3,Sedan,2022,Automatic,Gasoline,61596,Fair,Metro Manila,2,695000
+Hyundai,Accent,Sedan,2017,Automatic,Gasoline,136545,Fair,Davao Region,1,270000
+Honda,City,Sedan,2024,Automatic,Gasoline,20743,Fair,Central Visayas,1,595000
+Nissan,Terra,SUV,2019,Manual,Diesel,102648,Fair,Northern Mindanao,2,580000
+Suzuki,Ertiga,MPV,2016,Automatic,Gasoline,65209,Fair,Davao Region,2,300000
+Ford,Everest,SUV,2025,Automatic,Diesel,11305,Excellent,Davao Region,1,1455000
+Mitsubishi,Mirage,Hatchback,2021,Automatic,Gasoline,98577,Fair,Central Visayas,1,260000
+Honda,City,Sedan,2021,CVT,Gasoline,45334,Poor,Metro Manila,1,435000
+Toyota,Hiace,Van,2017,Automatic,Diesel,135739,Good,Metro Manila,2,895000
+Honda,BR-V,MPV,2024,Automatic,Gasoline,59294,Fair,Central Luzon,2,535000
+Toyota,Camry,Sedan,2015,Automatic,Gasoline,117346,Good,Central Luzon,1,910000
+Mitsubishi,Xpander,MPV,2020,Automatic,Gasoline,75670,Fair,Ilocos Region,2,460000
+Hyundai,Reina,Sedan,2024,Manual,Gasoline,27997,Good,Central Luzon,4,360000
+Toyota,Avanza,MPV,2025,Automatic,Gasoline,17369,Good,Metro Manila,1,740000
+Ford,Ranger,Pickup,2020,Manual,Diesel,101377,Excellent,Central Visayas,3,510000
+Kia,Picanto,Hatchback,2021,Automatic,Gasoline,65998,Good,Central Luzon,1,365000
+Hyundai,Tucson,SUV,2024,Automatic,Diesel,33763,Excellent,Davao Region,1,1010000
+Hyundai,Reina,Sedan,2025,Automatic,Gasoline,8608,Fair,Eastern Visayas,1,420000
+Mitsubishi,Xpander,MPV,2025,Automatic,Gasoline,16121,Good,Northern Mindanao,2,750000
+Toyota,Vios,Sedan,2018,Automatic,Gasoline,196583,Good,Calabarzon,2,230000
+Honda,Civic,Sedan,2023,CVT,Gasoline,41018,Fair,Central Luzon,2,770000
+Nissan,Navara,Pickup,2023,Automatic,Diesel,53472,Poor,Central Luzon,2,455000
+Nissan,Navara,Pickup,2022,Automatic,Diesel,96118,Fair,Metro Manila,3,450000
+Toyota,Hiace,Van,2025,Manual,Diesel,16425,Fair,Eastern Visayas,3,1030000
+Toyota,Wigo,Hatchback,2023,Automatic,Gasoline,51151,Excellent,Central Luzon,2,370000
+Kia,Sportage,SUV,2021,Automatic,Diesel,80739,Good,Central Visayas,1,845000
+Toyota,Rush,SUV,2024,Automatic,Gasoline,22611,Excellent,Bicol Region,3,665000
+Ford,EcoSport,SUV,2017,Automatic,Gasoline,109432,Fair,Calabarzon,2,295000
+Toyota,Fortuner,SUV,2019,Manual,Diesel,123624,Good,Central Visayas,2,720000
+Mitsubishi,Strada,Pickup,2023,Automatic,Diesel,60464,Good,Northern Mindanao,1,610000
+Mitsubishi,Mirage,Hatchback,2016,Automatic,Gasoline,96314,Poor,Metro Manila,1,225000
+Suzuki,Dzire,Sedan,2018,Automatic,Gasoline,129003,Poor,Metro Manila,1,235000
+Honda,BR-V,MPV,2018,Automatic,Gasoline,103752,Poor,Davao Region,2,335000
+Toyota,Corolla Altis,Sedan,2024,Automatic,Gasoline,24999,Excellent,Calabarzon,2,915000
+Toyota,Avanza,MPV,2019,Manual,Gasoline,94926,Fair,Calabarzon,1,360000
+Kia,Stonic,SUV,2024,Automatic,Gasoline,42197,Good,Metro Manila,2,530000
+Honda,BR-V,MPV,2020,Automatic,Gasoline,93992,Fair,Central Luzon,1,480000
+Mitsubishi,L300,Van,2025,Manual,Diesel,13470,Good,Western Visayas,1,665000
+Chevrolet,Trailblazer,SUV,2020,Automatic,Diesel,132675,Fair,Eastern Visayas,1,495000
+Nissan,Navara,Pickup,2025,Manual,Diesel,18771,Fair,Calabarzon,2,605000
+Nissan,Urvan,Van,2020,Manual,Diesel,95724,Good,Central Visayas,2,625000
+Mazda,CX-3,SUV,2024,Automatic,Gasoline,34364,Fair,Central Visayas,1,745000
+Toyota,Fortuner,SUV,2023,Automatic,Diesel,35743,Excellent,Davao Region,2,1170000
+Suzuki,Ertiga,MPV,2018,Manual,Gasoline,101391,Fair,Metro Manila,1,330000
+Subaru,XV,SUV,2018,Automatic,Gasoline,158870,Fair,Ilocos Region,1,525000
+Subaru,XV,SUV,2020,Automatic,Gasoline,89694,Good,Metro Manila,4,795000
+Mazda,CX-5,SUV,2021,Automatic,Gasoline,63215,Fair,Bicol Region,1,800000
+Ford,Ranger,Pickup,2020,Automatic,Diesel,118738,Fair,Metro Manila,2,435000
+Nissan,Juke,SUV,2019,Automatic,Gasoline,104110,Good,Ilocos Region,1,455000
+Kia,Picanto,Hatchback,2018,Manual,Gasoline,176613,Poor,Calabarzon,3,130000
+Mazda,CX-3,SUV,2023,Automatic,Gasoline,27895,Good,Central Luzon,1,990000
+Suzuki,Celerio,Hatchback,2017,Automatic,Gasoline,139199,Good,Central Luzon,1,245000
+Ford,Territory,SUV,2020,CVT,Gasoline,130077,Fair,Metro Manila,1,440000
+Honda,HR-V,SUV,2020,CVT,Gasoline,69419,Good,Metro Manila,2,800000
+Subaru,XV,SUV,2018,CVT,Gasoline,114972,Fair,Ilocos Region,3,620000
+Toyota,Hiace,Van,2017,Manual,Diesel,123806,Good,Metro Manila,1,865000
+Nissan,Terra,SUV,2023,Automatic,Diesel,32448,Fair,Metro Manila,1,925000
+Toyota,Wigo,Hatchback,2020,Automatic,Gasoline,68449,Good,Central Visayas,3,285000
+Mitsubishi,L300,Van,2022,Manual,Diesel,65319,Good,Northern Mindanao,2,445000
+Nissan,Terra,SUV,2024,Automatic,Diesel,36908,Excellent,Metro Manila,1,1185000
+Toyota,Corolla Altis,Sedan,2019,CVT,Gasoline,131734,Good,Metro Manila,1,540000
+Hyundai,Starex,Van,2017,Automatic,Diesel,154889,Fair,Ilocos Region,2,690000
+Ford,Everest,SUV,2021,Automatic,Diesel,58820,Good,Calabarzon,3,1015000
+Mazda,Mazda3,Sedan,2019,Automatic,Gasoline,92110,Good,Northern Mindanao,2,600000
+Mazda,CX-3,SUV,2021,Automatic,Gasoline,56465,Fair,Davao Region,1,665000
+Toyota,Hilux,Pickup,2018,Manual,Diesel,189805,Fair,Metro Manila,1,255000
+Isuzu,D-Max,Pickup,2022,Manual,Diesel,80372,Fair,Metro Manila,1,390000
+Mazda,CX-3,SUV,2024,Automatic,Gasoline,34193,Fair,Metro Manila,3,750000
+Toyota,Innova,MPV,2022,Manual,Diesel,75424,Fair,Metro Manila,1,505000
+Mitsubishi,Strada,Pickup,2015,Manual,Diesel,134080,Good,Central Visayas,2,390000
+Suzuki,Dzire,Sedan,2024,Automatic,Gasoline,32272,Good,Western Visayas,1,460000
+Honda,City,Sedan,2018,CVT,Gasoline,83028,Good,Metro Manila,2,495000
+Mitsubishi,L300,Van,2024,Manual,Diesel,37878,Poor,Central Luzon,1,425000
+Kia,Stonic,SUV,2025,Automatic,Gasoline,9003,Good,Western Visayas,1,585000
+Ford,Territory,SUV,2023,Automatic,Gasoline,92899,Good,Metro Manila,2,520000
+Hyundai,Starex,Van,2015,Automatic,Diesel,229518,Good,Calabarzon,3,560000
+Suzuki,Swift,Hatchback,2023,CVT,Gasoline,49614,Fair,Central Luzon,1,435000
+Honda,Brio,Hatchback,2021,CVT,Gasoline,80248,Poor,Central Visayas,1,250000
+Honda,Jazz,Hatchback,2016,Automatic,Gasoline,155023,Good,Metro Manila,1,380000
+Toyota,Corolla Altis,Sedan,2022,Automatic,Gasoline,67737,Poor,Central Luzon,2,465000
+Subaru,XV,SUV,2019,Automatic,Gasoline,90832,Good,Davao Region,2,800000
+Suzuki,Dzire,Sedan,2019,Manual,Gasoline,96839,Fair,Metro Manila,4,250000
+Honda,Civic,Sedan,2019,Automatic,Gasoline,101241,Good,Northern Mindanao,1,645000
+Mitsubishi,Mirage,Hatchback,2020,CVT,Gasoline,67273,Good,Northern Mindanao,1,340000
+Hyundai,Kona,SUV,2019,Automatic,Gasoline,92278,Good,Northern Mindanao,4,435000
+Mitsubishi,Xpander,MPV,2022,Automatic,Gasoline,43258,Good,Metro Manila,4,655000
+Nissan,Almera,Sedan,2016,Automatic,Gasoline,115843,Fair,Calabarzon,2,290000
+Toyota,Innova,MPV,2022,Manual,Diesel,46328,Fair,Calabarzon,1,595000
+Suzuki,Jimny,SUV,2025,Automatic,Gasoline,16966,Good,Northern Mindanao,1,800000
+Hyundai,Accent,Sedan,2018,Automatic,Gasoline,125994,Poor,Metro Manila,2,240000
+Kia,Sportage,SUV,2017,Automatic,Diesel,105055,Fair,Calabarzon,3,640000
+Hyundai,Accent,Sedan,2022,Manual,Gasoline,35397,Poor,Davao Region,4,270000
+Honda,Civic,Sedan,2021,Automatic,Gasoline,8922,Good,Calabarzon,4,770000
+Toyota,Innova,MPV,2016,Automatic,Diesel,166475,Fair,Metro Manila,2,385000
+Toyota,Innova,MPV,2021,Automatic,Diesel,97650,Fair,Metro Manila,3,455000
+Subaru,XV,SUV,2020,CVT,Gasoline,68407,Fair,Central Visayas,1,860000
+Honda,Civic,Sedan,2024,Automatic,Gasoline,27749,Poor,Northern Mindanao,2,615000
+Nissan,Navara,Pickup,2017,Manual,Diesel,68481,Fair,Davao Region,1,385000
+Isuzu,mu-X,SUV,2025,Automatic,Diesel,24294,Good,Calabarzon,3,1145000
+Hyundai,Kona,SUV,2024,Automatic,Gasoline,26703,Good,Western Visayas,1,805000
+Nissan,Navara,Pickup,2024,Automatic,Diesel,20534,Good,Metro Manila,2,800000
+Toyota,Corolla Altis,Sedan,2024,CVT,Gasoline,42089,Fair,Eastern Visayas,2,585000
+Mitsubishi,Xpander,MPV,2022,Manual,Gasoline,31098,Poor,Ilocos Region,3,385000
+Toyota,Corolla Altis,Sedan,2018,Automatic,Gasoline,94031,Fair,Metro Manila,2,540000
+Nissan,Navara,Pickup,2025,Automatic,Diesel,9766,Good,Davao Region,2,830000
+Ford,EcoSport,SUV,2016,Automatic,Gasoline,173723,Poor,Metro Manila,1,230000
+Mitsubishi,Mirage G4,Sedan,2015,Automatic,Gasoline,240066,Good,Metro Manila,2,180000
+Isuzu,D-Max,Pickup,2025,Automatic,Diesel,14130,Fair,Northern Mindanao,4,565000
+Suzuki,Jimny,SUV,2021,Automatic,Gasoline,35335,Good,Calabarzon,2,565000
+Suzuki,Ertiga,MPV,2019,Automatic,Gasoline,38605,Good,Northern Mindanao,1,405000
+Ford,EcoSport,SUV,2018,Automatic,Gasoline,125813,Fair,Metro Manila,1,330000
+Mitsubishi,Strada,Pickup,2021,Automatic,Diesel,48999,Good,Northern Mindanao,1,585000
+Toyota,Innova,MPV,2023,Manual,Diesel,19958,Good,Ilocos Region,1,690000
+Hyundai,Reina,Sedan,2023,Manual,Gasoline,31160,Good,Davao Region,2,355000
+Suzuki,Swift,Hatchback,2015,CVT,Gasoline,57720,Poor,Central Visayas,1,245000
+Hyundai,Kona,SUV,2021,Automatic,Gasoline,57314,Poor,Metro Manila,1,505000
+Mitsubishi,Xpander,MPV,2023,Automatic,Gasoline,49486,Good,Metro Manila,1,705000
+Kia,Picanto,Hatchback,2015,Manual,Gasoline,202600,Poor,Calabarzon,1,135000
+Mazda,Mazda3,Sedan,2019,Automatic,Gasoline,59073,Good,Calabarzon,2,705000
+Nissan,Navara,Pickup,2016,Manual,Diesel,128245,Poor,Eastern Visayas,1,310000
+Ford,Territory,SUV,2022,CVT,Gasoline,58080,Poor,Metro Manila,3,440000
+Honda,CR-V,SUV,2015,CVT,Gasoline,84094,Good,Northern Mindanao,1,765000
+Isuzu,mu-X,SUV,2020,Automatic,Diesel,33488,Fair,Western Visayas,3,685000
+Isuzu,D-Max,Pickup,2016,Automatic,Diesel,318554,Good,Metro Manila,3,235000
+Honda,Jazz,Hatchback,2014,CVT,Gasoline,278939,Good,Metro Manila,2,235000
+Nissan,Terra,SUV,2022,Manual,Diesel,24359,Good,Metro Manila,3,825000
+Toyota,Corolla Altis,Sedan,2021,CVT,Gasoline,58796,Fair,Central Luzon,3,570000
+Nissan,Terra,SUV,2018,Manual,Diesel,146474,Fair,Metro Manila,1,545000
+Ford,Everest,SUV,2024,Automatic,Diesel,30308,Poor,Metro Manila,2,1010000
+Isuzu,D-Max,Pickup,2024,Manual,Diesel,20215,Fair,Western Visayas,1,515000
+Suzuki,Ertiga,MPV,2022,Automatic,Gasoline,54006,Fair,Calabarzon,2,395000
+Suzuki,Dzire,Sedan,2025,Automatic,Gasoline,14412,Good,Metro Manila,2,550000
+Suzuki,Vitara,SUV,2018,Automatic,Gasoline,129027,Good,Metro Manila,1,530000
+Nissan,Navara,Pickup,2020,Manual,Diesel,80157,Fair,Metro Manila,1,475000
+Suzuki,Ertiga,MPV,2020,Automatic,Gasoline,96336,Fair,Davao Region,1,315000
+Suzuki,Jimny,SUV,2020,Automatic,Gasoline,48926,Good,Calabarzon,3,505000
+Mitsubishi,Strada,Pickup,2024,Manual,Diesel,21604,Fair,Central Visayas,2,605000
+Honda,BR-V,MPV,2025,CVT,Gasoline,18722,Fair,Davao Region,4,695000
+Toyota,Raize,SUV,2024,Automatic,Gasoline,46456,Fair,Metro Manila,1,465000
+Mitsubishi,Xpander,MPV,2020,Automatic,Gasoline,94724,Poor,Metro Manila,2,425000
+Mitsubishi,Xpander,MPV,2025,Manual,Gasoline,14682,Good,Central Luzon,3,695000
+Mitsubishi,Mirage,Hatchback,2022,Automatic,Gasoline,53812,Good,Bicol Region,1,350000
+Honda,BR-V,MPV,2023,Automatic,Gasoline,37056,Good,Calabarzon,2,705000
+Suzuki,Ertiga,MPV,2024,Automatic,Gasoline,22817,Good,Metro Manila,2,590000
+Ford,Territory,SUV,2021,CVT,Gasoline,92854,Good,Ilocos Region,3,465000
+Toyota,Vios,Sedan,2021,Automatic,Gasoline,118643,Good,Metro Manila,1,330000
+Mitsubishi,Montero Sport,SUV,2022,Automatic,Diesel,82780,Poor,Central Luzon,2,625000
+Ford,Ranger,Pickup,2024,Manual,Diesel,27853,Poor,Calabarzon,2,515000
+Mitsubishi,Mirage G4,Sedan,2019,Manual,Gasoline,142967,Good,Central Luzon,1,235000
+Mitsubishi,Strada,Pickup,2021,Manual,Diesel,49806,Fair,Northern Mindanao,1,495000
+Toyota,Fortuner,SUV,2024,Manual,Diesel,34820,Good,Calabarzon,1,1195000
+Mitsubishi,L300,Van,2025,Manual,Diesel,21676,Good,Northern Mindanao,1,635000
+Honda,Civic,Sedan,2025,Automatic,Gasoline,18390,Good,Eastern Visayas,3,960000
+Toyota,Wigo,Hatchback,2018,Automatic,Gasoline,106809,Good,Metro Manila,1,290000
+Toyota,Wigo,Hatchback,2021,Automatic,Gasoline,73565,Poor,Ilocos Region,2,200000
+Isuzu,mu-X,SUV,2021,Automatic,Diesel,108059,Poor,Northern Mindanao,1,485000
+Hyundai,Starex,Van,2015,Automatic,Diesel,103235,Good,Metro Manila,1,1110000
+Kia,Seltos,SUV,2025,CVT,Gasoline,13260,Good,Calabarzon,1,850000
+Toyota,Hiace,Van,2019,Manual,Diesel,92525,Fair,Metro Manila,2,810000
+Toyota,Raize,SUV,2024,Automatic,Gasoline,27517,Good,Ilocos Region,1,530000
+Toyota,Fortuner,SUV,2024,Automatic,Diesel,58754,Fair,Central Visayas,2,905000
+Honda,BR-V,MPV,2021,CVT,Gasoline,46166,Fair,Metro Manila,2,615000
+Toyota,Corolla Altis,Sedan,2021,CVT,Gasoline,85684,Fair,Metro Manila,2,550000
+Toyota,Vios,Sedan,2024,Automatic,Gasoline,23093,Good,Calabarzon,1,565000
+Toyota,Corolla Altis,Sedan,2015,Automatic,Gasoline,201845,Fair,Metro Manila,1,330000
+Toyota,Hiace,Van,2022,Automatic,Diesel,71055,Fair,Central Luzon,1,960000
+Kia,Picanto,Hatchback,2024,Manual,Gasoline,37559,Good,Central Luzon,1,425000
+Toyota,Innova,MPV,2023,Manual,Diesel,39017,Fair,Metro Manila,1,635000
+Suzuki,Vitara,SUV,2020,Automatic,Gasoline,57615,Good,Central Luzon,1,615000
+Suzuki,Swift,Hatchback,2017,Automatic,Gasoline,76717,Fair,Bicol Region,3,280000
+Toyota,Raize,SUV,2025,CVT,Gasoline,9153,Good,Central Luzon,1,670000
+Kia,Seltos,SUV,2023,Automatic,Gasoline,28712,Fair,Metro Manila,2,585000
+Honda,BR-V,MPV,2025,Automatic,Gasoline,17138,Good,Bicol Region,1,875000
+Mitsubishi,Montero Sport,SUV,2024,Automatic,Diesel,36577,Good,Metro Manila,1,1150000
+Hyundai,Kona,SUV,2022,Automatic,Gasoline,57915,Good,Calabarzon,3,605000
+Honda,Civic,Sedan,2019,CVT,Gasoline,126688,Fair,Central Visayas,1,510000
+Subaru,Forester,SUV,2016,Automatic,Gasoline,247198,Good,Western Visayas,2,525000
+Ford,EcoSport,SUV,2021,Automatic,Gasoline,94642,Excellent,Central Visayas,1,390000
+Toyota,Wigo,Hatchback,2021,Automatic,Gasoline,53673,Fair,Central Visayas,2,305000
+Mazda,BT-50,Pickup,2017,Manual,Diesel,163249,Fair,Metro Manila,2,315000
+Toyota,Rush,SUV,2019,Automatic,Gasoline,85380,Poor,Central Visayas,2,375000
+Nissan,Terra,SUV,2021,Manual,Diesel,93119,Fair,Calabarzon,1,610000
+Toyota,Fortuner,SUV,2018,Manual,Diesel,158752,Good,Metro Manila,3,610000
+Kia,Picanto,Hatchback,2017,Manual,Gasoline,127375,Poor,Calabarzon,4,180000
+Nissan,Terra,SUV,2024,Automatic,Diesel,47589,Excellent,Calabarzon,1,1105000
+Hyundai,Creta,SUV,2024,Automatic,Gasoline,34648,Fair,Northern Mindanao,2,555000
+Mazda,CX-5,SUV,2025,Automatic,Gasoline,9962,Fair,Central Luzon,1,1195000
+Toyota,Vios,Sedan,2014,Automatic,Gasoline,206085,Fair,Metro Manila,2,215000
+Hyundai,Accent,Sedan,2018,Automatic,Gasoline,2394,Poor,Metro Manila,1,275000
+Toyota,Hiace,Van,2021,Automatic,Diesel,84493,Fair,Calabarzon,1,860000
+Hyundai,Kona,SUV,2021,Automatic,Gasoline,46357,Fair,Metro Manila,2,615000
+Mazda,CX-3,SUV,2017,Automatic,Gasoline,178416,Good,Central Visayas,2,405000
+Ford,EcoSport,SUV,2021,Automatic,Gasoline,91865,Good,Ilocos Region,4,340000
+Kia,Sportage,SUV,2019,Automatic,Diesel,111860,Poor,Bicol Region,1,500000
+Toyota,Rush,SUV,2025,Automatic,Gasoline,10482,Excellent,Western Visayas,3,790000
+Nissan,Almera,Sedan,2016,Automatic,Gasoline,213527,Good,Metro Manila,1,235000
+Suzuki,Vitara,SUV,2024,Automatic,Gasoline,26684,Good,Calabarzon,2,740000
+Suzuki,Vitara,SUV,2021,Automatic,Gasoline,70518,Fair,Metro Manila,2,585000
+Honda,City,Sedan,2022,CVT,Gasoline,44376,Fair,Calabarzon,3,495000
+Toyota,Fortuner,SUV,2017,Manual,Diesel,115279,Poor,Northern Mindanao,3,485000
+Chevrolet,Trailblazer,SUV,2016,Automatic,Diesel,158141,Fair,Metro Manila,3,525000
+Ford,EcoSport,SUV,2017,Automatic,Gasoline,193602,Good,Central Visayas,1,235000
+Chevrolet,Trailblazer,SUV,2015,Automatic,Diesel,140446,Good,Metro Manila,2,705000
+Hyundai,Kona,SUV,2019,Automatic,Gasoline,120065,Poor,Metro Manila,3,340000
+Mitsubishi,Mirage G4,Sedan,2015,Automatic,Gasoline,213723,Fair,Metro Manila,1,205000
+Suzuki,Celerio,Hatchback,2023,Automatic,Gasoline,34602,Good,Western Visayas,2,345000
+Honda,City,Sedan,2019,Automatic,Gasoline,170812,Fair,Ilocos Region,2,270000
+Mitsubishi,Montero Sport,SUV,2016,Automatic,Diesel,204992,Fair,Central Visayas,1,425000
+Kia,Seltos,SUV,2021,CVT,Gasoline,25933,Good,Central Visayas,3,560000
+Ford,Ranger,Pickup,2022,Automatic,Diesel,63198,Fair,Metro Manila,1,605000
+Nissan,Urvan,Van,2022,Manual,Diesel,6143,Poor,Metro Manila,1,660000
+Mitsubishi,Montero Sport,SUV,2017,Automatic,Diesel,108345,Good,Calabarzon,2,755000
+Isuzu,D-Max,Pickup,2015,Manual,Diesel,95819,Poor,Central Visayas,2,235000
+Subaru,Forester,SUV,2025,Automatic,Gasoline,8313,Poor,Davao Region,2,1035000
+Subaru,XV,SUV,2024,Automatic,Gasoline,12632,Fair,Calabarzon,2,1115000
+Hyundai,Creta,SUV,2025,CVT,Gasoline,16436,Good,Metro Manila,2,875000
+Kia,Sportage,SUV,2020,Automatic,Diesel,69561,Good,Calabarzon,2,825000
+Hyundai,Tucson,SUV,2016,Automatic,Diesel,124880,Excellent,Metro Manila,3,640000
+Honda,Jazz,Hatchback,2018,Automatic,Gasoline,136851,Fair,Metro Manila,1,355000
+Toyota,Fortuner,SUV,2023,Manual,Diesel,40203,Good,Central Visayas,1,985000
+Nissan,Navara,Pickup,2024,Manual,Diesel,28920,Poor,Western Visayas,2,475000
+Mitsubishi,Mirage,Hatchback,2018,CVT,Gasoline,107723,Good,Calabarzon,1,340000
+Hyundai,Starex,Van,2021,Automatic,Diesel,52024,Fair,Central Visayas,2,1110000
+Hyundai,Accent,Sedan,2014,Automatic,Gasoline,260859,Poor,Metro Manila,2,140000
+Ford,EcoSport,SUV,2015,Automatic,Gasoline,225836,Good,Central Visayas,1,215000
+Honda,City,Sedan,2023,CVT,Gasoline,39946,Good,Metro Manila,1,655000
+Hyundai,Tucson,SUV,2022,Automatic,Diesel,49836,Good,Eastern Visayas,2,755000
+Toyota,Avanza,MPV,2020,Automatic,Gasoline,80135,Fair,Central Luzon,1,405000
+Isuzu,D-Max,Pickup,2018,Automatic,Diesel,101153,Good,Northern Mindanao,2,405000
+Ford,Everest,SUV,2015,Automatic,Diesel,165408,Good,Davao Region,2,620000
+Suzuki,Swift,Hatchback,2022,Automatic,Gasoline,86420,Poor,Western Visayas,2,280000
+Mazda,BT-50,Pickup,2025,Manual,Diesel,18542,Fair,Central Visayas,2,680000
+Honda,CR-V,SUV,2015,Automatic,Gasoline,187858,Fair,Davao Region,1,540000
+Toyota,Vios,Sedan,2016,Manual,Gasoline,137494,Good,Central Visayas,2,305000
+Suzuki,Celerio,Hatchback,2022,Manual,Gasoline,71335,Good,Davao Region,1,270000
+Toyota,Innova,MPV,2025,Automatic,Diesel,16202,Fair,Metro Manila,1,805000
+Nissan,Urvan,Van,2021,Manual,Diesel,63891,Good,Metro Manila,1,780000
+Toyota,Corolla Altis,Sedan,2025,Automatic,Gasoline,14811,Good,Central Visayas,4,860000
+Suzuki,Swift,Hatchback,2018,CVT,Gasoline,105354,Poor,Northern Mindanao,3,250000
+Nissan,Terra,SUV,2023,Manual,Diesel,51162,Good,Calabarzon,3,770000
+Toyota,Fortuner,SUV,2021,Manual,Diesel,52207,Fair,Central Visayas,2,880000
+Mazda,CX-5,SUV,2020,Automatic,Gasoline,100567,Poor,Eastern Visayas,2,490000
+Mitsubishi,Strada,Pickup,2020,Automatic,Diesel,102172,Fair,Northern Mindanao,3,385000
+Kia,Seltos,SUV,2023,Automatic,Gasoline,34325,Good,Northern Mindanao,4,585000
+Toyota,Wigo,Hatchback,2025,Manual,Gasoline,19583,Good,Bicol Region,1,415000
+Mitsubishi,Montero Sport,SUV,2018,Automatic,Diesel,136363,Good,Eastern Visayas,1,680000
+Ford,EcoSport,SUV,2021,Automatic,Gasoline,81233,Fair,Central Luzon,3,330000
+Kia,Seltos,SUV,2023,Automatic,Gasoline,41542,Good,Central Luzon,2,675000
+Toyota,Raize,SUV,2023,Automatic,Gasoline,38034,Good,Central Visayas,2,470000
+Hyundai,Creta,SUV,2023,Automatic,Gasoline,59050,Good,Western Visayas,3,560000
+Kia,Picanto,Hatchback,2025,Automatic,Gasoline,22505,Excellent,Ilocos Region,1,500000
+Toyota,Hilux,Pickup,2024,Manual,Diesel,18792,Good,Ilocos Region,1,640000
+Suzuki,Celerio,Hatchback,2022,Manual,Gasoline,66722,Fair,Metro Manila,1,270000
+Kia,Picanto,Hatchback,2015,Automatic,Gasoline,234710,Good,Central Visayas,1,165000
+Kia,Stonic,SUV,2023,Automatic,Gasoline,58147,Fair,Northern Mindanao,2,395000
+Toyota,Avanza,MPV,2016,Manual,Gasoline,174823,Fair,Metro Manila,2,255000
+Hyundai,Tucson,SUV,2024,Automatic,Diesel,26125,Good,Calabarzon,1,1000000
+Kia,Sportage,SUV,2017,Automatic,Diesel,85503,Good,Metro Manila,1,810000
+Suzuki,Vitara,SUV,2016,Automatic,Gasoline,180339,Fair,Central Luzon,1,340000
+Subaru,Forester,SUV,2017,CVT,Gasoline,90813,Good,Metro Manila,1,975000
+Mitsubishi,Mirage,Hatchback,2021,CVT,Gasoline,60603,Fair,Northern Mindanao,1,310000
+Suzuki,Ertiga,MPV,2025,Automatic,Gasoline,17038,Fair,Metro Manila,1,590000
+Toyota,Rush,SUV,2019,Automatic,Gasoline,103844,Fair,Calabarzon,1,445000
+Suzuki,Jimny,SUV,2023,Manual,Gasoline,8416,Fair,Calabarzon,1,590000
+Mazda,Mazda3,Sedan,2018,Automatic,Gasoline,79761,Good,Northern Mindanao,2,570000
+Mazda,BT-50,Pickup,2018,Manual,Diesel,67752,Fair,Central Visayas,2,420000
+Nissan,Terra,SUV,2024,Manual,Diesel,20158,Fair,Calabarzon,3,790000
+Mitsubishi,Mirage,Hatchback,2022,Automatic,Gasoline,54019,Good,Metro Manila,3,385000
+Toyota,Camry,Sedan,2015,Automatic,Gasoline,160231,Good,Western Visayas,2,765000
+Subaru,Forester,SUV,2025,Automatic,Gasoline,16956,Fair,Metro Manila,2,1295000
+Toyota,Avanza,MPV,2020,Manual,Gasoline,123997,Good,Central Visayas,1,300000
+Ford,Everest,SUV,2025,Automatic,Diesel,16360,Good,Calabarzon,1,1480000
+Mazda,Mazda3,Sedan,2019,Automatic,Gasoline,96753,Poor,Bicol Region,2,430000
+Suzuki,Swift,Hatchback,2015,CVT,Gasoline,242506,Good,Western Visayas,4,185000
+Hyundai,Kona,SUV,2021,Automatic,Gasoline,101011,Fair,Metro Manila,2,470000
+Mitsubishi,L300,Van,2024,Manual,Diesel,14396,Good,Central Luzon,1,575000
+Nissan,Almera,Sedan,2023,Manual,Gasoline,38473,Poor,Central Luzon,1,325000
+Suzuki,Vitara,SUV,2025,Automatic,Gasoline,5551,Excellent,Eastern Visayas,1,930000
+Mitsubishi,Mirage G4,Sedan,2020,CVT,Gasoline,148741,Good,Davao Region,1,260000
+Mazda,BT-50,Pickup,2021,Manual,Diesel,79390,Good,Metro Manila,4,480000
+Mitsubishi,Mirage,Hatchback,2017,Automatic,Gasoline,166530,Poor,Metro Manila,2,165000
+Toyota,Hilux,Pickup,2023,Automatic,Diesel,25887,Fair,Eastern Visayas,1,555000
+Mazda,CX-5,SUV,2022,Automatic,Gasoline,52310,Fair,Eastern Visayas,1,820000
+Honda,Civic,Sedan,2025,CVT,Gasoline,17024,Good,Northern Mindanao,1,1020000
+Suzuki,Dzire,Sedan,2019,Manual,Gasoline,62440,Good,Calabarzon,2,320000
+Toyota,Innova,MPV,2018,Automatic,Diesel,42940,Good,Calabarzon,2,570000
+Mitsubishi,L300,Van,2014,Manual,Diesel,146471,Fair,Calabarzon,2,275000
+Isuzu,mu-X,SUV,2016,Automatic,Diesel,160570,Good,Calabarzon,2,590000
+Mitsubishi,Mirage G4,Sedan,2020,CVT,Gasoline,98068,Good,Ilocos Region,1,340000
+Mitsubishi,Montero Sport,SUV,2025,Automatic,Diesel,15380,Excellent,Metro Manila,1,1495000
+Suzuki,Swift,Hatchback,2017,CVT,Gasoline,115896,Good,Bicol Region,3,340000
+Ford,Everest,SUV,2022,Automatic,Diesel,79398,Good,Western Visayas,3,865000
+Nissan,Terra,SUV,2020,Automatic,Diesel,34204,Excellent,Calabarzon,2,900000
+Mazda,CX-5,SUV,2024,Automatic,Gasoline,40739,Fair,Calabarzon,1,1000000
+Hyundai,Kona,SUV,2020,Automatic,Gasoline,97838,Good,Central Luzon,1,540000
+Ford,Everest,SUV,2020,Automatic,Diesel,95981,Poor,Metro Manila,1,690000
+Kia,Picanto,Hatchback,2024,Automatic,Gasoline,18913,Fair,Metro Manila,1,470000
+Toyota,Rush,SUV,2021,Automatic,Gasoline,121305,Fair,Davao Region,2,340000
+Honda,BR-V,MPV,2019,Automatic,Gasoline,147514,Excellent,Davao Region,2,415000
+Hyundai,Reina,Sedan,2022,Automatic,Gasoline,51166,Fair,Metro Manila,4,295000
+Mitsubishi,Mirage,Hatchback,2024,CVT,Gasoline,30010,Good,Central Visayas,3,435000
+Chevrolet,Trailblazer,SUV,2017,Automatic,Diesel,144796,Fair,Calabarzon,2,575000
+Nissan,Almera,Sedan,2024,Manual,Gasoline,21047,Good,Metro Manila,2,535000
+Mitsubishi,Xpander,MPV,2018,Automatic,Gasoline,116820,Fair,Calabarzon,2,445000
+Mitsubishi,Montero Sport,SUV,2021,Automatic,Diesel,62453,Good,Central Luzon,4,890000
+Suzuki,Celerio,Hatchback,2025,Manual,Gasoline,17870,Poor,Calabarzon,1,305000
+Toyota,Avanza,MPV,2024,Manual,Gasoline,29049,Fair,Metro Manila,2,490000
+Mitsubishi,Montero Sport,SUV,2024,Automatic,Diesel,39643,Good,Northern Mindanao,1,1115000
+Mitsubishi,Mirage,Hatchback,2024,Manual,Gasoline,15362,Fair,Central Luzon,1,360000
+Suzuki,Vitara,SUV,2021,Automatic,Gasoline,77967,Fair,Western Visayas,2,530000
+Hyundai,Tucson,SUV,2019,Automatic,Diesel,109436,Poor,Calabarzon,2,460000
+Honda,Jazz,Hatchback,2014,CVT,Gasoline,177308,Fair,Calabarzon,1,320000
+Toyota,Rush,SUV,2020,Automatic,Gasoline,70310,Fair,Calabarzon,1,490000
+Suzuki,Swift,Hatchback,2016,CVT,Gasoline,100880,Poor,Central Luzon,3,245000
+Suzuki,Swift,Hatchback,2022,CVT,Gasoline,83406,Fair,Ilocos Region,2,330000
+Hyundai,Accent,Sedan,2023,Manual,Gasoline,37253,Good,Bicol Region,3,350000
+Mitsubishi,Mirage G4,Sedan,2025,Automatic,Gasoline,14423,Excellent,Calabarzon,2,580000
+Mazda,CX-3,SUV,2021,Automatic,Gasoline,70771,Fair,Central Visayas,4,575000
+Ford,Ranger,Pickup,2022,Manual,Diesel,100867,Excellent,Metro Manila,2,525000
+Mitsubishi,Xpander,MPV,2018,Automatic,Gasoline,115674,Good,Western Visayas,2,490000
+Toyota,Avanza,MPV,2020,Automatic,Gasoline,94879,Good,Metro Manila,2,460000
+Suzuki,Swift,Hatchback,2019,Automatic,Gasoline,123932,Good,Central Luzon,1,355000
+Nissan,Navara,Pickup,2016,Manual,Diesel,179154,Good,Calabarzon,1,335000
+Kia,Seltos,SUV,2021,Automatic,Gasoline,65915,Fair,Calabarzon,1,570000
+Nissan,Almera,Sedan,2018,Manual,Gasoline,163695,Poor,Davao Region,1,175000
+Mitsubishi,Mirage G4,Sedan,2023,CVT,Gasoline,27362,Good,Metro Manila,1,510000
+Suzuki,Ertiga,MPV,2025,Manual,Gasoline,10638,Good,Central Luzon,1,605000
+Toyota,Innova,MPV,2019,Automatic,Diesel,99149,Good,Western Visayas,1,555000
+Mitsubishi,Mirage G4,Sedan,2022,CVT,Gasoline,45772,Fair,Calabarzon,1,375000
+Suzuki,Celerio,Hatchback,2021,Automatic,Gasoline,78467,Fair,Metro Manila,2,285000
+Toyota,Innova,MPV,2022,Automatic,Diesel,43528,Good,Metro Manila,2,705000
+Nissan,Almera,Sedan,2021,Automatic,Gasoline,82970,Good,Calabarzon,1,410000
+Isuzu,mu-X,SUV,2024,Automatic,Diesel,31585,Good,Metro Manila,1,1175000
+Mazda,Mazda3,Sedan,2024,Automatic,Gasoline,17210,Good,Metro Manila,3,885000
+Subaru,XV,SUV,2023,CVT,Gasoline,38756,Good,Metro Manila,3,1110000
+Toyota,Vios,Sedan,2016,Automatic,Gasoline,109908,Poor,Northern Mindanao,1,240000
+Mazda,CX-3,SUV,2017,Automatic,Gasoline,121203,Good,Metro Manila,1,630000
+Subaru,Forester,SUV,2017,CVT,Gasoline,45971,Fair,Western Visayas,2,715000
+Mitsubishi,Xpander,MPV,2020,Automatic,Gasoline,98950,Fair,Davao Region,2,455000
+Suzuki,Swift,Hatchback,2018,CVT,Gasoline,90764,Poor,Central Luzon,4,255000
+Toyota,Camry,Sedan,2018,Automatic,Gasoline,119821,Good,Metro Manila,1,1070000
+Nissan,Juke,SUV,2017,CVT,Gasoline,181372,Good,Metro Manila,2,360000
+Mitsubishi,Montero Sport,SUV,2023,Automatic,Diesel,42637,Good,Davao Region,2,1040000
+Isuzu,D-Max,Pickup,2025,Automatic,Diesel,18805,Good,Central Visayas,3,615000
+Suzuki,Celerio,Hatchback,2016,Automatic,Gasoline,257184,Fair,Central Luzon,2,145000
+Suzuki,Celerio,Hatchback,2016,Manual,Gasoline,100505,Good,Calabarzon,3,215000
+Toyota,Hilux,Pickup,2017,Automatic,Diesel,208264,Good,Metro Manila,1,315000
+Toyota,Innova,MPV,2019,Manual,Diesel,91868,Poor,Metro Manila,2,405000
+Toyota,Corolla Altis,Sedan,2017,Automatic,Gasoline,171383,Good,Northern Mindanao,3,360000
+Mitsubishi,Mirage G4,Sedan,2014,Manual,Gasoline,159022,Good,Metro Manila,1,250000
+Kia,Seltos,SUV,2023,CVT,Gasoline,51702,Fair,Western Visayas,2,540000
+Mazda,BT-50,Pickup,2024,Automatic,Diesel,19901,Poor,Ilocos Region,1,560000
+Mazda,Mazda3,Sedan,2021,Automatic,Gasoline,42893,Fair,Central Visayas,2,695000
+Chevrolet,Colorado,Pickup,2018,Automatic,Diesel,164561,Good,Northern Mindanao,1,340000
+Toyota,Wigo,Hatchback,2022,Automatic,Gasoline,98794,Good,Western Visayas,4,235000
+Toyota,Camry,Sedan,2023,Automatic,Gasoline,12251,Good,Calabarzon,2,1425000
+Hyundai,Kona,SUV,2022,Automatic,Gasoline,51665,Fair,Metro Manila,2,605000
+Hyundai,Creta,SUV,2024,CVT,Gasoline,26816,Good,Metro Manila,2,780000
+Toyota,Hilux,Pickup,2019,Manual,Diesel,102274,Fair,Bicol Region,2,365000
+Mitsubishi,Strada,Pickup,2025,Automatic,Diesel,10417,Excellent,Northern Mindanao,2,850000
+Honda,Brio,Hatchback,2019,Automatic,Gasoline,61630,Poor,Central Visayas,2,225000
+Toyota,Hilux,Pickup,2018,Manual,Diesel,202356,Fair,Central Luzon,2,255000
+Isuzu,mu-X,SUV,2015,Automatic,Diesel,78671,Good,Metro Manila,3,700000
+Toyota,Camry,Sedan,2016,Automatic,Gasoline,180690,Fair,Calabarzon,1,625000
+Suzuki,Swift,Hatchback,2016,CVT,Gasoline,159094,Good,Central Visayas,2,295000
+Suzuki,Swift,Hatchback,2020,Automatic,Gasoline,44214,Fair,Metro Manila,2,385000
+Mazda,CX-3,SUV,2024,Automatic,Gasoline,34870,Poor,Calabarzon,2,630000
+Nissan,Almera,Sedan,2025,Manual,Gasoline,23223,Fair,Eastern Visayas,2,425000
+Toyota,Avanza,MPV,2023,Manual,Gasoline,43292,Good,Western Visayas,1,450000
+Honda,City,Sedan,2022,CVT,Gasoline,66028,Good,Bicol Region,1,510000
+Toyota,Corolla Altis,Sedan,2019,CVT,Gasoline,122267,Fair,Ilocos Region,1,455000
+Mitsubishi,Mirage,Hatchback,2025,CVT,Gasoline,13766,Good,Eastern Visayas,1,490000
+Isuzu,D-Max,Pickup,2023,Manual,Diesel,43183,Good,Metro Manila,3,480000
+Toyota,Camry,Sedan,2024,Automatic,Gasoline,52069,Excellent,Central Luzon,1,1450000
+Honda,Civic,Sedan,2018,Automatic,Gasoline,80488,Good,Central Luzon,1,700000
+Mitsubishi,Montero Sport,SUV,2025,Automatic,Diesel,23459,Good,Central Visayas,1,1270000
+Mazda,CX-3,SUV,2025,Automatic,Gasoline,19856,Fair,Metro Manila,2,925000
+Nissan,Urvan,Van,2023,Manual,Diesel,63194,Good,Metro Manila,1,855000
+Honda,HR-V,SUV,2024,Automatic,Gasoline,38481,Fair,Metro Manila,2,880000
+Suzuki,Dzire,Sedan,2020,Manual,Gasoline,98473,Poor,Central Luzon,1,225000
+Honda,Civic,Sedan,2018,CVT,Gasoline,108686,Fair,Metro Manila,1,575000
+Toyota,Wigo,Hatchback,2020,Manual,Gasoline,69764,Fair,Northern Mindanao,1,255000
+Suzuki,Ertiga,MPV,2023,Automatic,Gasoline,50278,Fair,Metro Manila,1,440000
+Toyota,Camry,Sedan,2016,Automatic,Gasoline,136813,Fair,Metro Manila,3,700000
+Kia,Sportage,SUV,2020,Automatic,Diesel,127456,Good,Central Visayas,1,680000
+Suzuki,Swift,Hatchback,2025,Automatic,Gasoline,13664,Excellent,Ilocos Region,3,610000
+Toyota,Rush,SUV,2023,Automatic,Gasoline,76716,Poor,Metro Manila,1,435000
+Hyundai,Tucson,SUV,2024,Automatic,Diesel,20178,Good,Metro Manila,1,1020000
+Kia,Stonic,SUV,2021,Automatic,Gasoline,96640,Good,Central Visayas,1,345000
+Mitsubishi,Xpander,MPV,2022,Automatic,Gasoline,41084,Fair,Calabarzon,2,565000
+Mitsubishi,Strada,Pickup,2025,Manual,Diesel,7853,Poor,Eastern Visayas,2,530000
+Hyundai,Tucson,SUV,2020,Automatic,Diesel,55468,Poor,Metro Manila,2,540000
+Toyota,Fortuner,SUV,2018,Automatic,Diesel,189141,Poor,Calabarzon,1,405000
+Toyota,Hiace,Van,2023,Manual,Diesel,49146,Good,Northern Mindanao,1,1040000
+Honda,Brio,Hatchback,2025,CVT,Gasoline,11399,Excellent,Northern Mindanao,1,555000
+Hyundai,Reina,Sedan,2020,Automatic,Gasoline,99012,Good,Central Luzon,1,295000
+Mazda,CX-5,SUV,2024,Automatic,Gasoline,25992,Good,Central Visayas,4,995000
+Suzuki,Dzire,Sedan,2021,Manual,Gasoline,33554,Fair,Metro Manila,3,335000
+Toyota,Vios,Sedan,2014,Automatic,Gasoline,173321,Excellent,Western Visayas,2,290000
+Suzuki,Swift,Hatchback,2021,Automatic,Gasoline,75576,Good,Metro Manila,3,410000
+Toyota,Corolla Altis,Sedan,2015,CVT,Gasoline,136368,Good,Central Luzon,3,450000

@@ -44,7 +44,9 @@ class _GCashPaymentFormState extends State<GCashPaymentForm> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: isDark ? ColorConstants.surfaceDark : ColorConstants.surfaceLight,
+        color: isDark
+            ? ColorConstants.surfaceDark
+            : ColorConstants.surfaceLight,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Form(
@@ -91,7 +93,9 @@ class _GCashPaymentFormState extends State<GCashPaymentForm> {
             children: [
               Text(
                 'Pay with GCash',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 'Enter your GCash mobile number',
@@ -104,10 +108,7 @@ class _GCashPaymentFormState extends State<GCashPaymentForm> {
             ],
           ),
         ),
-        IconButton(
-          onPressed: widget.onCancel,
-          icon: const Icon(Icons.close),
-        ),
+        IconButton(onPressed: widget.onCancel, icon: const Icon(Icons.close)),
       ],
     );
   }
@@ -134,7 +135,7 @@ class _GCashPaymentFormState extends State<GCashPaymentForm> {
           ),
           const SizedBox(height: 4),
           Text(
-            '₱${widget.amount.toStringAsFixed(2)}',
+            '₱${widget.amount.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
             style: theme.textTheme.headlineMedium?.copyWith(
               color: ColorConstants.primary,
               fontWeight: FontWeight.bold,
@@ -186,7 +187,9 @@ class _GCashPaymentFormState extends State<GCashPaymentForm> {
             onPressed: widget.isProcessing ? null : widget.onCancel,
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Cancel'),
           ),
@@ -199,13 +202,18 @@ class _GCashPaymentFormState extends State<GCashPaymentForm> {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF007DFE),
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: widget.isProcessing
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Text('Pay Now'),
           ),
@@ -218,7 +226,11 @@ class _GCashPaymentFormState extends State<GCashPaymentForm> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.lock_outline, size: 14, color: ColorConstants.textSecondaryLight),
+        Icon(
+          Icons.lock_outline,
+          size: 14,
+          color: ColorConstants.textSecondaryLight,
+        ),
         const SizedBox(width: 6),
         Text(
           'You will receive an OTP to confirm payment',

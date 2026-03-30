@@ -124,7 +124,7 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
     final success = await widget.controller.submitForm(form);
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
         const SnackBar(
           content: Text('Form submitted successfully!'),
           backgroundColor: ColorConstants.success,
@@ -385,13 +385,22 @@ class _MyFormRealtimeTabState extends State<MyFormRealtimeTab> {
     ValueChanged<bool?> onChanged,
     bool isDisabled,
   ) {
-    return CheckboxListTile(
-      value: value,
-      onChanged: isDisabled ? null : onChanged,
-      title: Text(label),
-      controlAffinity: ListTileControlAffinity.leading,
-      contentPadding: EdgeInsets.zero,
-      dense: true,
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return CheckboxListTile(
+          value: value,
+          onChanged: isDisabled ? null : (v) {
+            onChanged(v);
+            setState(() {
+              value = v ?? false;
+            });
+          },
+          title: Text(label),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+        );
+      }
     );
   }
 }

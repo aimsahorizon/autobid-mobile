@@ -1,0 +1,235 @@
+================================================================================
+AUTOBID MOBILE: THE ULTIMATE BEGINNER-FRIENDLY MASTERY GUIDE (V2)
+================================================================================
+
+Welcome to the deep dive. This document is designed to take you from "I know a little bit" to "I understand exactly how every file works". 
+
+We will not just list features; we will dissect them. We will look at the exact code, explain the "scary" terms, and show you the journey of data from your finger tap to the database and back.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. CONCEPT DICTIONARY (Read this first!)
+   - Future, Stream, Json, Repository, Injection, Singleton, RPC.
+
+2. THE "BRAIN" OF THE APP (Main & DI)
+   - How the app starts.
+   - How pieces find each other.
+
+3. FEATURE A: AUTHENTICATION (The Gatekeeper)
+   - Deep dive: Login Controller Logic.
+   - Deep dive: Supabase Auth & RLS.
+   - Deep dive: The KYC "Transaction".
+
+4. FEATURE B: BROWSING & SEARCH (The Showroom)
+   - Deep dive: Database Views (The Secret Weapon).
+   - Deep dive: The Filter Logic (Building SQL in Dart).
+
+5. FEATURE C: REAL-TIME BIDDING (The Action)
+   - Deep dive: Streams & WebSockets.
+   - Deep dive: The "Snipe Guard" (Server-side Logic).
+
+6. FEATURE D: SELLING (The Creator)
+   - Deep dive: Handling Photos (Uploads & URLs).
+   - Deep dive: The "Draft" System.
+
+7. FEATURE E: TRANSACTIONS (The Deal)
+   - Deep dive: Complex Joins (Connecting Tables).
+   - Deep dive: State Machines (Sold -> Paid -> Delivered).
+
+================================================================================
+1. CONCEPT DICTIONARY
+================================================================================
+
+Before we look at code, let's define the tools we use.
+
+**1. FUTURE (`Future<String>`)**
+   - **Analogy:** Ordering a pizza. You call (start the function), they say "it'll be 30 mins" (return a Future). You can do other things while waiting. When it arrives, you open the box (using `await` or `.then`).
+   - **In Code:** Any network call (Supabase) is a Future because it takes time.
+
+**2. STREAM (`Stream<List<Auction>>`)**
+   - **Analogy:** A conveyer belt or a radio station. Unlike a pizza (one-time event), a stream keeps sending data indefinitely.
+   - **In Code:** Real-time bidding. You "subscribe" to the stream, and every time someone bids, a new piece of data comes down the pipe to update your screen.
+
+**3. JSON (`Map<String, dynamic>`)**
+   - **Analogy:** Shipping container. The database speaks SQL, Dart speaks Objects. To talk, they pack data into a universal text format called JSON.
+   - **In Code:** `fromJson` unpacks the container into a Dart class (`ListingModel`). `toJson` packs it up to send to the server.
+
+**4. REPOSITORY PATTERN**
+   - **Analogy:** A waiter. You (the UI) just want "Steak" (Data). You don't care if the waiter gets it from the kitchen (Server), the freezer (Cache), or the store (Local DB). You just ask the Repository.
+   - **In Code:** `AuthRepository` hides the complexity of Supabase from the Login Page.
+
+**5. DEPENDENCY INJECTION (DI)**
+   - **Analogy:** A toolbox. Instead of building a hammer every time you need one, you reach into the toolbox (`GetIt`) and grab the one that's already there.
+   - **In Code:** `GetIt.instance<AuthRepository>()` gives you the ready-to-use repository.
+
+**6. RPC (Remote Procedure Call)**
+   - **Analogy:** A magic spell on the server. Instead of writing complex logic on the phone (which can be hacked), we write a function *inside* the database. The phone just sends the command "Cast Fireball" (call RPC).
+   - **In Code:** `supabase.rpc('place_bid')` runs a secure SQL function to handle money and time logic.
+
+================================================================================
+2. THE "BRAIN" OF THE APP (Startup & Setup)
+================================================================================
+
+**FILE: `lib/main.dart`**
+This is the entry point.
+- `WidgetsFlutterBinding.ensureInitialized()`: "Hey Flutter, get ready."
+- `initDependencies()`: Calls our DI setup (see below).
+- `SupabaseConfig.initialize()`: Connects to the cloud using secrets from `.env`.
+- `runApp(const App())`: Launches the UI.
+
+**FILE: `lib/app/di/app_module.dart`**
+This is the "Toolbox" setup.
+- **`sl` (Service Locator):** Our shortcut to `GetIt`.
+- **`registerLazySingleton`:** "Create this object ONLY when someone asks for it, then keep it alive forever."
+  - We do this for `SupabaseClient` (we need one connection always open).
+  - We do this for `AuthRepository` (we want to share the login state).
+- **Module Init:** It calls `initAuthModule()`, `initBidsModule()`, etc. Each module adds its own tools to the box.
+
+================================================================================
+3. FEATURE A: AUTHENTICATION
+================================================================================
+
+**THE LOGIC: `LoginController` (lib/modules/auth/presentation/controllers/login_controller.dart)**
+This file manages the *state* of the login screen.
+- **`signIn(username, password)`**:
+  1. Sets `_isLoading = true` (Spinner shows).
+  2. Calls `signInUseCase(username, password)`.
+  3. **`result.fold(...)`**: This is a fancy "If/Else".
+     - Left side (Failure): `_setError(failure)`.
+     - Right side (Success): Save "Remember Me" preference, update `_userEmail`, and move to OTP step.
+
+**THE DATA: `AuthRemoteDataSource` (lib/modules/auth/data/datasources/auth_remote_datasource.dart)**
+This does the heavy lifting.
+- **`signInWithUsername`**:
+  - *Problem:* Supabase Auth login requires Email, but our users log in with Username.
+  - *Solution:*
+    1. `_supabase.from('users').select('email').eq('username', username)`: First, ask the DB "What is the email for this username?"
+    2. `_supabase.auth.signInWithPassword(email, password)`: Now use that email to really log in.
+    - *Why?* This keeps the UX friendly (Usernames) while using standard secure Auth (Emails).
+
+**THE SECURITY: `register_user_with_kyc_v2` (Supabase RPC)**
+- *Problem:* Registration is complex. We need to create an Auth User AND a Database Record (with ID photos, address, etc.). If one fails, the other must fail too.
+- *Solution:* We send ALL data to this RPC. It runs a SQL Transaction:
+  ```sql
+  BEGIN
+    INSERT INTO auth.users ...
+    INSERT INTO public.users (name, address, id_photos...)
+    IF error -> ROLLBACK (Undo everything)
+  END
+  ```
+
+================================================================================
+4. FEATURE B: BROWSING & SEARCH
+================================================================================
+
+**THE SECRET WEAPON: Database Views**
+- *File:* `supabase/migrations/...auction_browse_view.sql` (Concept)
+- *File:* `AuctionSupabaseDataSource` (Dart Code)
+- A "View" is a virtual table. `auction_browse_listings` joins:
+  - `auctions` (Price, End Time)
+  - `auction_vehicles` (Engine, Brand)
+  - `auction_photos` (Images)
+- *Why?* Without this, the phone would have to make 3 slow requests for every car. With this, it makes 1 fast request.
+
+**THE FILTER LOGIC: `_fetchFromView` inside `AuctionSupabaseDataSource`**
+This code dynamically builds a SQL query based on what the user selected.
+```dart
+var query = _supabase.from('auction_browse_listings').select();
+
+// Did user type a search term?
+if (filter.searchQuery != null) {
+  // .or() means "Match Title OR Description"
+  // .ilike() means "Case-insensitive match" (Find 'honda' in 'Honda Civic')
+  query = query.or('title.ilike.%query%, description.ilike.%query%');
+}
+
+// Did user select a Price Range?
+if (filter.priceMax != null) {
+  // .lte() means "Less Than or Equal"
+  query = query.lte('current_price', filter.priceMax);
+}
+```
+- The result is a highly optimized SQL query sent to the server.
+
+================================================================================
+5. FEATURE C: REAL-TIME BIDDING
+================================================================================
+
+**THE STREAM: `streamAuctionUpdates`**
+- Code: `_supabase.from('auctions').stream(primaryKey: ['id']).eq('id', auctionId)`
+- *How it works:*
+  - The app opens a WebSocket (a persistent 2-way phone line to the server).
+  - It says "Tell me when Row #123 changes".
+  - When *anyone* bids, Supabase pushes the new row to this phone line.
+  - The Flutter UI wraps this in a `StreamBuilder`. When data arrives, it rebuilds *only* the price widget.
+
+**THE SNIPE GUARD (Server-Side Logic)**
+- *Concept:* If someone bids in the last 5 minutes, extend the auction by 5 minutes. This prevents "Sniping" (stealing a win at 0:01 seconds).
+- *Implementation:* This is NOT in Flutter code (too risky). It is in the `place_bid` RPC on Supabase.
+  ```sql
+  -- Pseudocode inside Supabase
+  IF (now() > auction.end_time - interval '5 minutes') THEN
+    UPDATE auctions SET end_time = end_time + interval '5 minutes';
+  END IF;
+  ```
+
+================================================================================
+6. FEATURE D: SELLING (Creating Listings)
+================================================================================
+
+**HANDLING PHOTOS: `ListingModel` & `_parsePhotoUrls`**
+- *File:* `lib/modules/lists/data/models/listing_model.dart`
+- Photos are stored in a JSON column in the database because a car can have unlimited photos.
+- **`_parsePhotoUrls`**:
+  - Input (DB): `{"exterior": ["url1.jpg", "url2.jpg"], "interior": ["url3.jpg"]}`
+  - Output (Dart): `Map<String, List<String>>`
+  - This helper method ensures that if the DB sends weird data (like a null list), the app doesn't crash.
+
+**THE DRAFT SYSTEM**
+- *Context:* Filling out a car listing takes time. Users might stop halfway.
+- We use a separate table `listing_drafts`.
+- When "Save Draft" is clicked:
+  - We validate nothing. (It's okay to have missing fields in a draft).
+  - We save to `listing_drafts`.
+- When "Submit" is clicked:
+  - We validate EVERYTHING.
+  - We move data from `listing_drafts` -> `auctions` table.
+  - We set status to `pending_approval`.
+
+================================================================================
+7. FEATURE E: TRANSACTIONS (The Deal)
+================================================================================
+
+**COMPLEX JOINS: `TransactionSupabaseDataSource`**
+- *File:* `lib/modules/transactions/data/datasources/transaction_supabase_datasource.dart`
+- *The Query:*
+  ```dart
+  .select('''
+    id,
+    status,
+    seller_rejection_reason,
+    auctions!inner( ... ) -- This !inner means "Join"
+  ''')
+  ```
+- *Why `!inner`?* It forces a rigorous SQL INNER JOIN. If a transaction exists but the auction was deleted (data corruption), this query will safely return nothing instead of crashing with half-data.
+
+**THE STATE MACHINE**
+- A transaction isn't just "Sold". It flows:
+  1. `in_transaction` (Winner decided, waiting for steps)
+  2. `payment_verified` (Buyer paid deposit/full amount)
+  3. `meetup_scheduled` (Chat used to pick a place)
+  4. `handed_over` (Keys exchanged)
+  5. `sold` (Final complete state)
+- Or it can branch to `deal_failed` if anyone cancels.
+- The app uses the `status` string to decide which UI buttons to show (e.g., if `meetup_scheduled`, show "Confirm Handover" button).
+
+================================================================================
+FINAL ADVICE FOR YOU
+================================================================================
+1. **Don't panic about the size.** Focus on one feature at a time.
+2. **Follow the data.** Start at the UI button, Ctrl+Click the function, and follow it down to the Datasource.
+3. **Use the "Search" tool.** If you see a function `place_bid`, search the codebase for it. If it's not in Flutter, it's an RPC in Supabase (check `migrations` folder).
+
+You are now equipped with the map to the city. Go explore!
+================================================================================

@@ -1,8 +1,5 @@
 /// Token types in the system
-enum TokenType {
-  bidding,
-  listing,
-}
+enum TokenType { bidding, listing }
 
 /// Extension for token type display
 extension TokenTypeExtension on TokenType {
@@ -19,10 +16,10 @@ extension TokenTypeExtension on TokenType {
 /// Subscription plan types
 enum SubscriptionPlan {
   free,
-  proBasicMonthly,
-  proPlusMonthly,
-  proBasicYearly,
-  proPlusYearly,
+  silverMonthly,
+  silverYearly,
+  goldMonthly,
+  goldYearly,
 }
 
 /// Extension for subscription plan details
@@ -31,14 +28,14 @@ extension SubscriptionPlanExtension on SubscriptionPlan {
     switch (this) {
       case SubscriptionPlan.free:
         return 'Free';
-      case SubscriptionPlan.proBasicMonthly:
-        return 'Pro Basic';
-      case SubscriptionPlan.proPlusMonthly:
-        return 'Pro Plus';
-      case SubscriptionPlan.proBasicYearly:
-        return 'Pro Basic (Yearly)';
-      case SubscriptionPlan.proPlusYearly:
-        return 'Pro Plus (Yearly)';
+      case SubscriptionPlan.silverMonthly:
+        return 'Silver';
+      case SubscriptionPlan.silverYearly:
+        return 'Silver (Yearly)';
+      case SubscriptionPlan.goldMonthly:
+        return 'Gold';
+      case SubscriptionPlan.goldYearly:
+        return 'Gold (Yearly)';
     }
   }
 
@@ -46,14 +43,14 @@ extension SubscriptionPlanExtension on SubscriptionPlan {
     switch (this) {
       case SubscriptionPlan.free:
         return 0;
-      case SubscriptionPlan.proBasicMonthly:
+      case SubscriptionPlan.silverMonthly:
         return 199;
-      case SubscriptionPlan.proPlusMonthly:
+      case SubscriptionPlan.silverYearly:
+        return 1990;
+      case SubscriptionPlan.goldMonthly:
         return 499;
-      case SubscriptionPlan.proBasicYearly:
-        return 1699;
-      case SubscriptionPlan.proPlusYearly:
-        return 4499;
+      case SubscriptionPlan.goldYearly:
+        return 4990;
     }
   }
 
@@ -61,11 +58,11 @@ extension SubscriptionPlanExtension on SubscriptionPlan {
     switch (this) {
       case SubscriptionPlan.free:
         return 10;
-      case SubscriptionPlan.proBasicMonthly:
-      case SubscriptionPlan.proBasicYearly:
-        return 50;
-      case SubscriptionPlan.proPlusMonthly:
-      case SubscriptionPlan.proPlusYearly:
+      case SubscriptionPlan.silverMonthly:
+      case SubscriptionPlan.silverYearly:
+        return 60;
+      case SubscriptionPlan.goldMonthly:
+      case SubscriptionPlan.goldYearly:
         return 250;
     }
   }
@@ -74,32 +71,44 @@ extension SubscriptionPlanExtension on SubscriptionPlan {
     switch (this) {
       case SubscriptionPlan.free:
         return 1;
-      case SubscriptionPlan.proBasicMonthly:
-      case SubscriptionPlan.proBasicYearly:
+      case SubscriptionPlan.silverMonthly:
+      case SubscriptionPlan.silverYearly:
         return 3;
-      case SubscriptionPlan.proPlusMonthly:
-      case SubscriptionPlan.proPlusYearly:
+      case SubscriptionPlan.goldMonthly:
+      case SubscriptionPlan.goldYearly:
         return 10;
     }
   }
 
+  bool get includesAutoBid {
+    switch (this) {
+      case SubscriptionPlan.goldMonthly:
+      case SubscriptionPlan.goldYearly:
+        return true;
+      case SubscriptionPlan.free:
+      case SubscriptionPlan.silverMonthly:
+      case SubscriptionPlan.silverYearly:
+        return false;
+    }
+  }
+
   bool get isYearly {
-    return this == SubscriptionPlan.proBasicYearly ||
-           this == SubscriptionPlan.proPlusYearly;
+    return this == SubscriptionPlan.silverYearly ||
+        this == SubscriptionPlan.goldYearly;
   }
 
   String toJson() {
     switch (this) {
       case SubscriptionPlan.free:
         return 'free';
-      case SubscriptionPlan.proBasicMonthly:
-        return 'pro_basic_monthly';
-      case SubscriptionPlan.proPlusMonthly:
-        return 'pro_plus_monthly';
-      case SubscriptionPlan.proBasicYearly:
-        return 'pro_basic_yearly';
-      case SubscriptionPlan.proPlusYearly:
-        return 'pro_plus_yearly';
+      case SubscriptionPlan.silverMonthly:
+        return 'silver_monthly';
+      case SubscriptionPlan.silverYearly:
+        return 'silver_yearly';
+      case SubscriptionPlan.goldMonthly:
+        return 'gold_monthly';
+      case SubscriptionPlan.goldYearly:
+        return 'gold_yearly';
     }
   }
 
@@ -107,14 +116,18 @@ extension SubscriptionPlanExtension on SubscriptionPlan {
     switch (value) {
       case 'free':
         return SubscriptionPlan.free;
+      case 'silver_monthly':
       case 'pro_basic_monthly':
-        return SubscriptionPlan.proBasicMonthly;
-      case 'pro_plus_monthly':
-        return SubscriptionPlan.proPlusMonthly;
+        return SubscriptionPlan.silverMonthly;
+      case 'silver_yearly':
       case 'pro_basic_yearly':
-        return SubscriptionPlan.proBasicYearly;
+        return SubscriptionPlan.silverYearly;
+      case 'gold_monthly':
+      case 'pro_plus_monthly':
+        return SubscriptionPlan.goldMonthly;
+      case 'gold_yearly':
       case 'pro_plus_yearly':
-        return SubscriptionPlan.proPlusYearly;
+        return SubscriptionPlan.goldYearly;
       default:
         return SubscriptionPlan.free;
     }

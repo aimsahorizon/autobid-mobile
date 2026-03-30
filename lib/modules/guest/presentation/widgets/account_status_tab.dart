@@ -6,28 +6,25 @@ import '../widgets/account_status_card.dart';
 class AccountStatusTab extends StatefulWidget {
   final GuestController controller;
 
-  const AccountStatusTab({
-    super.key,
-    required this.controller,
-  });
+  const AccountStatusTab({super.key, required this.controller});
 
   @override
   State<AccountStatusTab> createState() => _AccountStatusTabState();
 }
 
 class _AccountStatusTabState extends State<AccountStatusTab> {
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     super.dispose();
   }
 
   void _handleCheckStatus() {
     if (_formKey.currentState!.validate()) {
-      widget.controller.checkAccountStatus(_emailController.text.trim());
+      widget.controller.checkAccountStatus(_identifierController.text.trim());
     }
   }
 
@@ -68,7 +65,7 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Enter your email to check your KYC verification status',
+          'Enter your email or username to check your KYC status',
           style: theme.textTheme.bodyMedium?.copyWith(
             color: isDark
                 ? ColorConstants.textSecondaryDark
@@ -85,22 +82,21 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
       child: Column(
         children: [
           TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
+            controller: _identifierController,
             decoration: InputDecoration(
-              labelText: 'Email Address',
-              hintText: 'Enter your registered email',
-              prefixIcon: const Icon(Icons.email_outlined),
+              labelText: 'Email or Username',
+              hintText: 'Enter registered email or username',
+              prefixIcon: const Icon(Icons.person_outline),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your email';
+                return 'Please enter your email or username';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                return 'Please enter a valid email';
+              if (value.length < 3) {
+                return 'Identifier too short';
               }
               return null;
             },
@@ -137,15 +133,152 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
       return const SizedBox.shrink();
     }
 
+    // Show error message if there was a failure
+    if (widget.controller.errorMessage != null &&
+        widget.controller.statusEmail != null) {
+      return _buildErrorMessage(theme, isDark, widget.controller.errorMessage!);
+    }
+
     if (widget.controller.accountStatus == null) {
       return _buildNoStatusMessage(theme, isDark);
     }
 
-    return AccountStatusCard(status: widget.controller.accountStatus!);
+    return AccountStatusCard(
+      status: widget.controller.accountStatus!,
+      onAppeal: () => _showAppealDialog(context),
+    );
+  }
+
+  void _showAppealDialog(BuildContext context) {
+    final appealController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.gavel_rounded, color: ColorConstants.warning),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text('Submit Appeal', style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Explain why your KYC rejection should be reconsidered. Your existing documents will be re-reviewed.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: appealController,
+                maxLines: 4,
+                maxLength: 500,
+                decoration: InputDecoration(
+                  hintText: 'Describe your reason for appeal...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please provide a reason for your appeal';
+                  }
+                  if (value.trim().length < 20) {
+                    return 'Please provide more detail (at least 20 characters)';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ListenableBuilder(
+            listenable: widget.controller,
+            builder: (context, _) {
+              return FilledButton(
+                onPressed: widget.controller.isSubmittingAppeal
+                    ? null
+                    : () async {
+                        if (!formKey.currentState!.validate()) return;
+                        await widget.controller.submitAppeal(
+                          appealController.text.trim(),
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(dialogContext);
+                          if (widget.controller.appealSubmitted) {
+                            ScaffoldMessenger.of(context)
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Appeal submitted successfully',
+                                  ),
+                                  backgroundColor: ColorConstants.success,
+                                ),
+                              );
+                          }
+                        }
+                      },
+                child: widget.controller.isSubmittingAppeal
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Submit Appeal'),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorMessage(ThemeData theme, bool isDark, String message) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ColorConstants.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ColorConstants.error.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: ColorConstants.error, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Something went wrong. Please try again.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: ColorConstants.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildNoStatusMessage(ThemeData theme, bool isDark) {
-    if (_emailController.text.isEmpty) {
+    if (_identifierController.text.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -154,21 +287,15 @@ class _AccountStatusTabState extends State<AccountStatusTab> {
       decoration: BoxDecoration(
         color: ColorConstants.info.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: ColorConstants.info.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: ColorConstants.info.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: ColorConstants.info,
-            size: 24,
-          ),
+          Icon(Icons.info_outline, color: ColorConstants.info, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'No account found with this email. Please register first.',
+              'No account found with this identifier. Please register first.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: ColorConstants.info,
               ),

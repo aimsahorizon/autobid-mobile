@@ -84,6 +84,7 @@ class PhilippineLocations {
       'Rodriguez',
       'Angono',
     ],
+    'Zamboanga del Sur': ['Zamboanga City'],
   };
 
   /// Get all provinces

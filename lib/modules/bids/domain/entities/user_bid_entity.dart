@@ -20,6 +20,9 @@ class UserBidEntity {
   /// Car model (e.g., Supra, Civic)
   final String model;
 
+  /// Car variant (e.g., 3.0 Premium, Type R)
+  final String? variant;
+
   /// User's highest bid amount on this auction
   final double userBidAmount;
 
@@ -51,6 +54,9 @@ class UserBidEntity {
   /// in buyer views)
   final String? sellerId;
 
+  /// Note attached to standby status (e.g., released reason)
+  final String? standbyNote;
+
   const UserBidEntity({
     required this.id,
     required this.auctionId,
@@ -58,6 +64,7 @@ class UserBidEntity {
     required this.year,
     required this.make,
     required this.model,
+    this.variant,
     required this.userBidAmount,
     required this.currentHighestBid,
     required this.endTime,
@@ -68,10 +75,11 @@ class UserBidEntity {
     required this.canAccess,
     this.transactionStatus,
     this.sellerId,
+    this.standbyNote,
   });
 
-  /// Get formatted car name (e.g., "2020 Toyota Supra")
-  String get carName => '$year $make $model';
+  /// Get formatted car name (e.g., "2020 Toyota Supra 3.0 Premium")
+  String get carName => '$year $make $model ${variant ?? ''}'.trim();
 
   /// Check if auction has ended
   bool get hasEnded => DateTime.now().isAfter(endTime);
@@ -96,4 +104,7 @@ enum UserBidStatus {
 
   /// Deal was cancelled by buyer or fell through
   cancelled,
+
+  /// User opted to stand by for this auction
+  standby,
 }

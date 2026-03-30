@@ -11,6 +11,9 @@ class AuctionDetailEntity {
   final bool showReservePrice;
   final double minBidIncrement;
   final bool enableIncrementalBidding;
+  final String biddingType;
+  final String? exclusiveTier;
+  final double depositAmount;
   final int watchersCount;
   final int biddersCount;
   final int totalBids;
@@ -18,6 +21,9 @@ class AuctionDetailEntity {
   final String status; // 'active', 'ended', 'sold'
   final CarPhotosEntity photos;
   final bool hasUserDeposited;
+
+  // Documents
+  final String? deedOfSaleUrl;
 
   // Anti-snipe guard configuration
   /// When enabled, auction extends if bid placed near end time (default: true)
@@ -77,6 +83,7 @@ class AuctionDetailEntity {
 
   // Step 6: Documentation & Location
   final String? plateNumber;
+  final String? chassisNumber;
   final String? orcrStatus;
   final String? registrationStatus;
   final DateTime? registrationExpiry;
@@ -95,6 +102,9 @@ class AuctionDetailEntity {
     required this.minimumBid,
     required this.minBidIncrement,
     required this.enableIncrementalBidding,
+    this.biddingType = 'open',
+    this.exclusiveTier,
+    this.depositAmount = 0,
     this.reservePrice,
     required this.isReserveMet,
     required this.showReservePrice,
@@ -105,6 +115,7 @@ class AuctionDetailEntity {
     required this.status,
     required this.photos,
     required this.hasUserDeposited,
+    this.deedOfSaleUrl,
     this.snipeGuardEnabled = true,
     this.snipeGuardThresholdSeconds = 300,
     this.snipeGuardExtendSeconds = 300,
@@ -145,6 +156,7 @@ class AuctionDetailEntity {
     this.warrantyDetails,
     this.usageType,
     this.plateNumber,
+    this.chassisNumber,
     this.orcrStatus,
     this.registrationStatus,
     this.registrationExpiry,
@@ -172,6 +184,84 @@ class AuctionDetailEntity {
 
   /// Backwards compatibility getter
   String get make => brand;
+
+  /// Create a copy with a different status
+  static AuctionDetailEntity copyWithStatus(
+    AuctionDetailEntity source,
+    String newStatus,
+  ) {
+    return AuctionDetailEntity(
+      id: source.id,
+      carImageUrl: source.carImageUrl,
+      currentBid: source.currentBid,
+      minimumBid: source.minimumBid,
+      minBidIncrement: source.minBidIncrement,
+      enableIncrementalBidding: source.enableIncrementalBidding,
+      biddingType: source.biddingType,
+      exclusiveTier: source.exclusiveTier,
+      depositAmount: source.depositAmount,
+      reservePrice: source.reservePrice,
+      isReserveMet: source.isReserveMet,
+      showReservePrice: source.showReservePrice,
+      watchersCount: source.watchersCount,
+      biddersCount: source.biddersCount,
+      totalBids: source.totalBids,
+      endTime: source.endTime,
+      status: newStatus,
+      photos: source.photos,
+      hasUserDeposited: source.hasUserDeposited,
+      deedOfSaleUrl: source.deedOfSaleUrl,
+      snipeGuardEnabled: source.snipeGuardEnabled,
+      snipeGuardThresholdSeconds: source.snipeGuardThresholdSeconds,
+      snipeGuardExtendSeconds: source.snipeGuardExtendSeconds,
+      brand: source.brand,
+      model: source.model,
+      variant: source.variant,
+      year: source.year,
+      engineType: source.engineType,
+      engineDisplacement: source.engineDisplacement,
+      cylinderCount: source.cylinderCount,
+      horsepower: source.horsepower,
+      torque: source.torque,
+      transmission: source.transmission,
+      fuelType: source.fuelType,
+      driveType: source.driveType,
+      length: source.length,
+      width: source.width,
+      height: source.height,
+      wheelbase: source.wheelbase,
+      groundClearance: source.groundClearance,
+      seatingCapacity: source.seatingCapacity,
+      doorCount: source.doorCount,
+      fuelTankCapacity: source.fuelTankCapacity,
+      curbWeight: source.curbWeight,
+      grossWeight: source.grossWeight,
+      exteriorColor: source.exteriorColor,
+      paintType: source.paintType,
+      rimType: source.rimType,
+      rimSize: source.rimSize,
+      tireSize: source.tireSize,
+      tireBrand: source.tireBrand,
+      condition: source.condition,
+      mileage: source.mileage,
+      previousOwners: source.previousOwners,
+      hasModifications: source.hasModifications,
+      modificationsDetails: source.modificationsDetails,
+      hasWarranty: source.hasWarranty,
+      warrantyDetails: source.warrantyDetails,
+      usageType: source.usageType,
+      plateNumber: source.plateNumber,
+      chassisNumber: source.chassisNumber,
+      orcrStatus: source.orcrStatus,
+      registrationStatus: source.registrationStatus,
+      registrationExpiry: source.registrationExpiry,
+      province: source.province,
+      cityMunicipality: source.cityMunicipality,
+      description: source.description,
+      knownIssues: source.knownIssues,
+      features: source.features,
+    );
+  }
 }
 
 /// Holds categorized car photos

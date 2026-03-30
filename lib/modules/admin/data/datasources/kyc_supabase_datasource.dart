@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/kyc_document_model.dart';
 import '../models/kyc_stats_model.dart';
@@ -601,9 +602,9 @@ class KycSupabaseDataSource {
         updatedAt: DateTime.parse(json['updated_at'] as String),
       );
     } catch (e, stackTrace) {
-      print('[KYC] ERROR parsing KYC document: $e');
-      print('[KYC] Stack trace: $stackTrace');
-      print('[KYC] JSON keys: ${json.keys.toList()}');
+      debugPrint('[KYC] ERROR parsing KYC document: $e');
+      debugPrint('[KYC] Stack trace: $stackTrace');
+      debugPrint('[KYC] JSON keys: ${json.keys.toList()}');
       rethrow;
     }
   }
