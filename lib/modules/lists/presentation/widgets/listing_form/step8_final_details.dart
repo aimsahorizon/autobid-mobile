@@ -861,35 +861,35 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 24),
 
-        // Allow Installment Payments
-        const Text(
-          'Installment Payments',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: SwitchListTile(
-            title: const Text('Allow Installment Payments'),
-            subtitle: Text(
-              _allowsInstallment
-                  ? 'Buyers can propose installment plans during the transaction'
-                  : 'Only one-time full payment accepted',
-              style: const TextStyle(fontSize: 12),
-            ),
-            secondary: Icon(
-              _allowsInstallment ? Icons.calendar_month : Icons.payment,
-              color: _allowsInstallment ? Colors.green : Colors.grey,
-            ),
-            value: _allowsInstallment,
-            onChanged: (value) {
-              setState(() {
-                _allowsInstallment = value;
-              });
-              _updateDraft();
-            },
-          ),
-        ),
-        const SizedBox(height: 24),
+        // // Allow Installment Payments
+        // const Text(
+        //   'Installment Payments',
+        //   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        // ),
+        // const SizedBox(height: 8),
+        // Card(
+        //   child: SwitchListTile(
+        //     title: const Text('Allow Installment Payments'),
+        //     subtitle: Text(
+        //       _allowsInstallment
+        //           ? 'Buyers can propose installment plans during the transaction'
+        //           : 'Only one-time full payment accepted',
+        //       style: const TextStyle(fontSize: 12),
+        //     ),
+        //     secondary: Icon(
+        //       _allowsInstallment ? Icons.calendar_month : Icons.payment,
+        //       color: _allowsInstallment ? Colors.green : Colors.grey,
+        //     ),
+        //     value: _allowsInstallment,
+        //     onChanged: (value) {
+        //       setState(() {
+        //         _allowsInstallment = value;
+        //       });
+        //       _updateDraft();
+        //     },
+        //   ),
+        // ),
+        // const SizedBox(height: 24),
 
         // Summary Box
         Container(
@@ -1374,11 +1374,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           'Buyer Deposit',
           '₱${_calculateDeposit(double.tryParse(_startingPriceController.text)).toStringAsFixed(0)}',
         ),
-        const Divider(),
-        _summaryRow(
-          'Installment',
-          _allowsInstallment ? '✅ Allowed' : '❌ Not Allowed',
-        ),
+        // const Divider(),
+        // _summaryRow(
+        //   'Installment',
+        //   _allowsInstallment ? '✅ Allowed' : '❌ Not Allowed',
+        // ),
         const Divider(),
         _summaryRow(
           'Launch Mode',
