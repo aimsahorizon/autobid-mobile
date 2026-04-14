@@ -4,6 +4,30 @@ cmake_minimum_required(VERSION 3.10)
 set(EPHEMERAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ephemeral")
 
 # Configuration provided via flutter tool.
+if(NOT EXISTS "${EPHEMERAL_DIR}/generated_config.cmake")
+  message(WARNING
+    "Missing Flutter Linux generated config: ${EPHEMERAL_DIR}/generated_config.cmake\n"
+    "Run 'flutter pub get' and then 'flutter build linux' to regenerate ephemeral build files."
+  )
+
+  # Keep CMake configuration alive for IDE tooling even when Flutter-generated
+  # Linux build artifacts have not been created yet.
+  set(FLUTTER_LIBRARY "${EPHEMERAL_DIR}/libflutter_linux_gtk.so")
+  set(FLUTTER_LIBRARY ${FLUTTER_LIBRARY} PARENT_SCOPE)
+  set(FLUTTER_ICU_DATA_FILE "${EPHEMERAL_DIR}/icudtl.dat" PARENT_SCOPE)
+  set(PROJECT_BUILD_DIR "${PROJECT_DIR}/build/" PARENT_SCOPE)
+  set(AOT_LIBRARY "${PROJECT_DIR}/build/lib/libapp.so" PARENT_SCOPE)
+
+  add_library(flutter INTERFACE)
+  add_custom_target(flutter_assemble
+    COMMAND ${CMAKE_COMMAND} -E echo
+      "Flutter Linux ephemeral files are missing. Run 'flutter build linux'."
+    VERBATIM
+  )
+  add_dependencies(flutter flutter_assemble)
+  return()
+endif()
+
 include(${EPHEMERAL_DIR}/generated_config.cmake)
 
 # TODO: Move the rest of this into files in ephemeral. See
