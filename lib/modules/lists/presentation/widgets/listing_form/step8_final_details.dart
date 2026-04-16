@@ -315,13 +315,14 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           },
         ),
         const SizedBox(height: 8),
-        Text(
-          '${_descriptionController.text.length}/50 characters minimum',
-          style: TextStyle(
-            fontSize: 12,
-            color: _descriptionController.text.length >= 50
-                ? Colors.green
-                : Colors.grey,
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _descriptionController,
+          builder: (context, value, _) => Text(
+            '${value.text.length}/50 characters minimum',
+            style: TextStyle(
+              fontSize: 12,
+              color: value.text.length >= 50 ? Colors.green : Colors.grey,
+            ),
           ),
         ),
         const SizedBox(height: 16),

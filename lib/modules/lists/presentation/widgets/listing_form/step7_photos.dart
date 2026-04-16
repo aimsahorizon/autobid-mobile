@@ -373,7 +373,7 @@ class _Step7PhotosState extends State<Step7Photos> {
                     Text(
                       hasDocument
                           ? 'Document uploaded'
-                          : 'Upload your deed of sale document',
+                          : 'Supported formats: PDF, JPG',
                       style: TextStyle(
                         fontSize: 12,
                         color: hasDocument
@@ -1064,38 +1064,6 @@ class _Step7PhotosState extends State<Step7Photos> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Deed of Sale Section - At the top for visibility
-                  _buildDeedOfSaleSection(isDark),
-                  const SizedBox(height: 8),
-                  // Divider
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Divider(
-                          color: ColorConstants.primary.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          'Vehicle Photos',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: isDark
-                                ? ColorConstants.textSecondaryDark
-                                : ColorConstants.textSecondaryLight,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Divider(
-                          color: ColorConstants.primary.withValues(alpha: 0.3),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
                   // Photo Categories
                   ...PhotoCategories.categoryGroups.keys.map((groupName) {
                     final categoryCount =
@@ -1118,6 +1086,11 @@ class _Step7PhotosState extends State<Step7Photos> {
                             ),
                           ),
                         ),
+                        // Deed of Sale section inside Documents group
+                        if (groupName == 'Documents') ...[
+                          _buildDeedOfSaleSection(isDark),
+                          const SizedBox(height: 12),
+                        ],
                         ...groupCategories.map((categoryDisplayName) {
                           final categoryKey = PhotoCategories.toKey(
                             categoryDisplayName,
