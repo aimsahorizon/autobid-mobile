@@ -24,6 +24,7 @@ import 'customer_support_page.dart';
 import 'faq_page.dart';
 import 'legal_page.dart';
 import 'user_reviews_page.dart';
+import 'kyc_details_page.dart';
 import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -42,6 +43,78 @@ class ProfilePage extends StatefulWidget {
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _KycTile extends StatelessWidget {
+  final VoidCallback onTap;
+  const _KycTile({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: isDark ? ColorConstants.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark
+                  ? ColorConstants.borderDark
+                  : ColorConstants.borderLight,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: ColorConstants.primary.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.verified_user_outlined,
+                  color: ColorConstants.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'KYC Verification',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'View your identity verification details',
+                      style: TextStyle(
+                        color: ColorConstants.textSecondaryLight,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: ColorConstants.textSecondaryLight,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ProfilePageState extends State<ProfilePage> {
@@ -272,6 +345,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _navigateToKycDetails() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const KycDetailsPage()),
+    );
+  }
+
   void _navigateToReviews() {
     Navigator.push(
       context,
@@ -408,6 +488,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       onUpdateEmail: _navigateToUpdateEmail,
                       onChangePassword: _navigateToChangePassword,
                     ),
+                    const SizedBox(height: 16),
+                    _KycTile(onTap: _navigateToKycDetails),
                     const SizedBox(height: 16),
                     SupportSection(
                       onCustomerSupport: _navigateToCustomerSupport,
