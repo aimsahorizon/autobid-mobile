@@ -58,9 +58,9 @@ class UserProfileModel extends UserProfileEntity {
       email: json['email'] as String? ?? '',
       province: addressData?['province'] as String?,
       city: addressData?['city'] as String?,
-      // Map barangay from address_line2 or dedicated field if available later
-      // Current schema: address_line1, address_line2, city, province, postal_code
-      barangay: addressData?['address_line2'] as String?,
+      barangay: (addressData?['barangay'] as String?)?.isNotEmpty == true
+          ? addressData!['barangay'] as String
+          : addressData?['address_line2'] as String?,
     );
   }
 
