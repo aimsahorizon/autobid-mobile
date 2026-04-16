@@ -97,7 +97,6 @@ class _KycDetailsPageState extends State<KycDetailsPage> {
             _InfoRow('Last Name', _data!['last_name']),
             _InfoRow('Date of Birth', _formatDate(_data!['date_of_birth'])),
             _InfoRow('Sex', _capitalize(_data!['sex'])),
-            _InfoRow('Phone', _data!['phone_number']),
           ],
         ),
         const SizedBox(height: 16),
