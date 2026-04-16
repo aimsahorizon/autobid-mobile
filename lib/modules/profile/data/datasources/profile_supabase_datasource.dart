@@ -364,4 +364,97 @@ class ProfileSupabaseDataSource {
       return null;
     }
   }
+
+  /// Fetch the current user's KYC data (personal info + documents).
+  /// Returns a merged map from `users`, `user_addresses`, and `kyc_documents`.
+  Future<Map<String, dynamic>?> getMyKycData() async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) return null;
+
+    // ── 1. Fetch user row (with email fallback) ─────────────────────────────
+    Map<String, dynamic>? userRow = await _supabase
+        .from('users')
+        .select(
+          'id, first_name, last_name, middle_name, date_of_birth, sex, '
+          'phone_number, accepted_terms_at, accepted_privacy_at',
+        )
+        .eq('id', currentUser.id)
+        .maybeSingle();
+
+    if (userRow == null && currentUser.email != null) {
+      userRow = await _supabase
+          .from('users')
+          .select(
+            'id, first_name, last_name, middle_name, date_of_birth, sex, '
+            'phone_number, accepted_terms_at, accepted_privacy_at',
+          )
+          .eq('email', currentUser.email!)
+          .maybeSingle();
+    }
+
+    final userId = userRow?['id'] as String? ?? currentUser.id;
+
+    // ── 2. Fetch default address separately ─────────────────────────────────
+    final addressList = await _supabase
+        .from('user_addresses')
+        .select('region, province, city, barangay, street_address, zipcode')
+        .eq('user_id', userId);
+
+    Map<String, dynamic> address = {};
+    if (addressList.isNotEmpty) {
+      // Prefer the default address if the column exists and is flagged
+      final rows = addressList.cast<Map<String, dynamic>>();
+      address = rows.firstWhere(
+        (r) => r['is_default'] == true,
+        orElse: () => rows.first,
+      );
+    }
+
+    // ── 3. Fetch all KYC documents (most recent first) ───────────────────────
+    final kycList = await _supabase
+        .from('kyc_documents')
+        .select(
+          'id, user_id, status_id, '
+          'national_id_number, national_id_front_url, national_id_back_url, '
+          'secondary_gov_id_type, secondary_gov_id_number, '
+          'secondary_gov_id_front_url, secondary_gov_id_back_url, '
+          'proof_of_address_type, proof_of_address_url, '
+          'selfie_with_id_url, document_type, '
+          'submitted_at, reviewed_at, reviewed_by, '
+          'rejection_reason, admin_notes, expires_at, '
+          'created_at, updated_at, '
+          'kyc_statuses(status_name)',
+        )
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+
+    Map<String, dynamic>? latestKyc;
+    String? kycStatusName;
+
+    if (kycList.isNotEmpty) {
+      latestKyc = Map<String, dynamic>.from(
+        (kycList as List).first as Map<String, dynamic>,
+      );
+      // Resolve status name from joined kyc_statuses
+      final statusData = latestKyc['kyc_statuses'];
+      if (statusData is Map<String, dynamic>) {
+        kycStatusName = statusData['status_name'] as String?;
+      } else if (statusData is List && statusData.isNotEmpty) {
+        kycStatusName =
+            (statusData.first as Map<String, dynamic>)['status_name']
+                as String?;
+      }
+      kycStatusName ??= 'pending';
+    }
+
+    if (userRow == null && latestKyc == null) return null;
+
+    return {
+      ...?userRow,
+      'address': address,
+      'kyc': latestKyc,
+      'kyc_all': kycList,
+      'kyc_status': kycStatusName,
+    };
+  }
 }
