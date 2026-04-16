@@ -376,7 +376,7 @@ class ProfileSupabaseDataSource {
         .from('users')
         .select(
           'id, first_name, last_name, middle_name, date_of_birth, sex, '
-          'phone_number, accepted_terms_at, accepted_privacy_at',
+          'accepted_terms_at, accepted_privacy_at',
         )
         .eq('id', currentUser.id)
         .maybeSingle();
@@ -386,7 +386,7 @@ class ProfileSupabaseDataSource {
           .from('users')
           .select(
             'id, first_name, last_name, middle_name, date_of_birth, sex, '
-            'phone_number, accepted_terms_at, accepted_privacy_at',
+            'accepted_terms_at, accepted_privacy_at',
           )
           .eq('email', currentUser.email!)
           .maybeSingle();
