@@ -49,6 +49,7 @@ dependencies:
 
   # Image picker for camera/gallery
   image_picker: ^1.1.2
+  file_picker: ^8.1.2
 
   # Local storage for settings
   shared_preferences: ^2.3.3
