@@ -24,6 +24,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   late TextEditingController _reservePriceController;
   late TextEditingController _bidIncrementController;
 
+  final _priceFormKey = GlobalKey<FormState>();
+  double? _bidIncrement;
+
   List<String> _features = [];
   String _biddingType = 'open'; // 'open', 'exclusive', or 'mystery'
   String? _exclusiveTier; // 'silver', 'gold', or 'silver_gold'
@@ -55,6 +58,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _bidIncrementController = TextEditingController(
       text: _formatDouble(draft?.bidIncrement ?? draft?.minBidIncrement ?? 100),
     );
+    _bidIncrement = double.tryParse(_bidIncrementController.text);
     _features = draft?.features ?? [];
     _biddingType = draft?.biddingType ?? 'open';
     _exclusiveTier = draft?.exclusiveTier;
@@ -72,7 +76,7 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _issuesController.addListener(_updateDraft);
     _startingPriceController.addListener(_updateDraft);
     _reservePriceController.addListener(_updateDraft);
-    _bidIncrementController.addListener(_updateDraft);
+    _bidIncrementController.addListener(_onBidIncrementChanged);
   }
 
   String? _formatDouble(double? value) {
@@ -92,6 +96,17 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _reservePriceController.dispose();
     _bidIncrementController.dispose();
     super.dispose();
+  }
+
+  void _onBidIncrementChanged() {
+    final parsed = double.tryParse(_bidIncrementController.text);
+    if (parsed != _bidIncrement) {
+      setState(() => _bidIncrement = parsed);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _priceFormKey.currentState?.validate();
+      });
+    }
+    _updateDraft();
   }
 
   void _updateDraft() {
@@ -377,21 +392,57 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
         const SizedBox(height: 16),
 
-        // AI Price Predictor
+        // Bid Increment — must be set before prices
+        const Text(
+          'Bid Increment (₱) *',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Set this first — starting & reserve prices must be multiples of this value',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 8),
+        FormFieldWidget(
+          controller: _bidIncrementController,
+          label: 'Bid Increment',
+          hint: 'e.g., 100, 500, 1000',
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          validator: (v) {
+            if (v?.isEmpty ?? true) return 'Required';
+            final value = double.tryParse(v!);
+            if (value == null) return 'Invalid amount';
+            if (value < 100) return 'Minimum increment is ₱100';
+            if (value % 100 != 0) return 'Must be a multiple of ₱100';
+            return null;
+          },
+        ),
+        const SizedBox(height: 8),
+        _buildIncrementSuggestions(0),
+        const SizedBox(height: 24),
+
+        // AI Price Predictor (disabled until bid increment is set)
         AiPricePredictor(
           draft: draft,
+          bidIncrement: _bidIncrement,
           onApplyPrice: (price) {
-            final reserve = price * 1.1; // Default reserve 10% higher
+            final bi = (_bidIncrement ?? 100).toInt();
+            final roundedPrice = ((price / bi).round() * bi).toDouble();
+            final roundedReserve = ((roundedPrice * 1.1 / bi).round() * bi)
+                .toDouble();
             setState(() {
-              _startingPriceController.text = price.toStringAsFixed(0);
-              _reservePriceController.text = reserve.toStringAsFixed(0);
+              _startingPriceController.text = roundedPrice.toStringAsFixed(0);
+              _reservePriceController.text = roundedReserve.toStringAsFixed(0);
             });
             _updateDraft();
-
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _priceFormKey.currentState?.validate();
+            });
             (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Applied suggested price: ₱${price.toStringAsFixed(0)}',
+                  'Applied suggested price: ₱${roundedPrice.toStringAsFixed(0)}',
                 ),
                 backgroundColor: Colors.green,
               ),
@@ -400,47 +451,67 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         ),
 
         const SizedBox(height: 16),
-        FormFieldWidget(
-          controller: _startingPriceController,
-          label: 'Starting Price (₱) *',
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) {
-            if (v?.isEmpty ?? true) return 'Required';
-            final start = double.tryParse(v!);
-            if (start == null) return 'Invalid price';
-            if (start % 100 != 0) return 'Must be a multiple of ₱100';
-
-            if (_reservePriceController.text.isNotEmpty) {
-              final reserve = double.tryParse(_reservePriceController.text);
-              if (reserve != null && start >= reserve) {
-                return 'Must be lower than reserve price';
-              }
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        FormFieldWidget(
-          controller: _reservePriceController,
-          label: 'Reserve Price (₱)',
-          hint: 'Optional minimum acceptable price',
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) {
-            if (v == null || v.isEmpty) return null; // Optional
-            final reserve = double.tryParse(v);
-            if (reserve == null) return 'Invalid price';
-            if (reserve % 100 != 0) return 'Must be a multiple of ₱100';
-
-            if (_startingPriceController.text.isNotEmpty) {
-              final start = double.tryParse(_startingPriceController.text);
-              if (start != null && reserve <= start) {
-                return 'Must be higher than starting price';
-              }
-            }
-            return null;
-          },
+        Form(
+          key: _priceFormKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FormFieldWidget(
+                controller: _startingPriceController,
+                label: 'Starting Price (₱) *',
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                enabled: _bidIncrement != null && _bidIncrement! > 0,
+                validator: (v) {
+                  if (_bidIncrement == null || _bidIncrement! <= 0) return null;
+                  if (v?.isEmpty ?? true) return 'Required';
+                  final start = double.tryParse(v!);
+                  if (start == null) return 'Invalid price';
+                  final bi = _bidIncrement!.toInt();
+                  if (start.toInt() % bi != 0) {
+                    return 'Must be a multiple of ₱$bi';
+                  }
+                  if (_reservePriceController.text.isNotEmpty) {
+                    final reserve = double.tryParse(
+                      _reservePriceController.text,
+                    );
+                    if (reserve != null && start >= reserve) {
+                      return 'Must be lower than reserve price';
+                    }
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              FormFieldWidget(
+                controller: _reservePriceController,
+                label: 'Reserve Price (₱)',
+                hint: 'Optional minimum acceptable price',
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                enabled: _bidIncrement != null && _bidIncrement! > 0,
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  if (_bidIncrement == null || _bidIncrement! <= 0) return null;
+                  final reserve = double.tryParse(v);
+                  if (reserve == null) return 'Invalid price';
+                  final bi = _bidIncrement!.toInt();
+                  if (reserve.toInt() % bi != 0) {
+                    return 'Must be a multiple of ₱$bi';
+                  }
+                  if (_startingPriceController.text.isNotEmpty) {
+                    final start = double.tryParse(
+                      _startingPriceController.text,
+                    );
+                    if (start != null && reserve <= start) {
+                      return 'Must be higher than starting price';
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 32),
         const Divider(),
@@ -796,36 +867,6 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
-
-        // Minimum Bid Increment
-        const Text(
-          'Minimum Bid Increment (₱) *',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Minimum gap between bids (must be in multiples of ₱100)',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        const SizedBox(height: 8),
-        FormFieldWidget(
-          controller: _bidIncrementController,
-          label: 'Bid Increment',
-          hint: 'e.g., 100, 500, 1000',
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          validator: (v) {
-            if (v?.isEmpty ?? true) return 'Required';
-            final value = double.tryParse(v!);
-            if (value == null) return 'Invalid amount';
-            if (value < 100) return 'Minimum increment is ₱100';
-            if (value % 100 != 0) return 'Must be a multiple of ₱100';
-            return null;
-          },
-        ),
-        const SizedBox(height: 8),
-        _buildIncrementSuggestions(startingPrice),
         const SizedBox(height: 24),
 
         // Deposit Amount (auto-calculated)

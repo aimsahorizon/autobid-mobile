@@ -7,11 +7,13 @@ import '../../../domain/entities/listing_draft_entity.dart';
 class AiPricePredictor extends StatefulWidget {
   final ListingDraftEntity draft;
   final Function(double price) onApplyPrice;
+  final double? bidIncrement;
 
   const AiPricePredictor({
     super.key,
     required this.draft,
     required this.onApplyPrice,
+    this.bidIncrement,
   });
 
   @override
@@ -138,10 +140,16 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                 ],
               ),
               ElevatedButton(
-                onPressed: () => widget.onApplyPrice(_predictedPrice!),
+                onPressed:
+                    widget.bidIncrement != null && widget.bidIncrement! > 0
+                    ? () => widget.onApplyPrice(_predictedPrice!)
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ColorConstants.primary,
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: ColorConstants.primary.withValues(
+                    alpha: 0.3,
+                  ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
@@ -149,7 +157,11 @@ class _AiPricePredictorState extends State<AiPricePredictor> {
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text('Apply Suggested'),
+                child: Text(
+                  widget.bidIncrement != null && widget.bidIncrement! > 0
+                      ? 'Apply Suggested'
+                      : 'Set increment first',
+                ),
               ),
             ],
           ),
