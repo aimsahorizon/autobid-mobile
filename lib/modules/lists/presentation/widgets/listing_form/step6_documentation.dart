@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -31,6 +33,7 @@ class _Step6DocumentationState extends State<Step6Documentation> {
   String? _orcrStatus;
   String? _registrationStatus;
   DateTime? _registrationExpiry;
+  bool _isUploadingDeed = false;
 
   // Validation State
   Timer? _debounce;
@@ -419,6 +422,228 @@ class _Step6DocumentationState extends State<Step6Documentation> {
           provinceValidator: (v) => v == null ? 'Required' : null,
           cityValidator: (v) => v == null ? 'Required' : null,
           barangayValidator: (v) => v == null ? 'Required' : null,
+        ),
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 16),
+        _buildDeedOfSaleSection(context),
+      ],
+    );
+  }
+
+  // ─── Deed of Sale ──────────────────────────────────────────────────────────
+
+  Future<void> _pickDeedOfSale(BuildContext context) async {
+    setState(() => _isUploadingDeed = true);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+        withData: false,
+        withReadStream: false,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final picked = result.files.first;
+      final extension = (picked.extension ?? '').toLowerCase();
+      const allowed = ['jpg', 'jpeg', 'png', 'pdf'];
+      if (!allowed.contains(extension)) {
+        if (context.mounted) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(
+              content: Text('Unsupported format. Use JPG, PNG, or PDF.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      final path = picked.path;
+      if (path == null) return;
+
+      final url = await widget.controller.uploadDeedOfSale(path);
+      if (context.mounted) {
+        if (url != null) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(
+              content: Text('Deed of sale uploaded successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.controller.errorMessage ??
+                    'Failed to upload deed of sale',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingDeed = false);
+    }
+  }
+
+  Future<void> _removeDeedOfSale(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Deed of Sale?'),
+        content: const Text(
+          'Are you sure you want to remove the uploaded document?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !context.mounted) return;
+    final ok = await widget.controller.removeDeedOfSale();
+    if (context.mounted) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(ok ? 'Deed of sale removed' : 'Failed to remove'),
+          backgroundColor: ok ? Colors.orange : Colors.red,
+        ),
+      );
+    }
+  }
+
+  Widget _buildDeedOfSaleSection(BuildContext context) {
+    final deedUrl = widget.controller.currentDraft?.deedOfSaleUrl;
+    final hasDoc = deedUrl != null && deedUrl.isNotEmpty;
+    final isPdf = hasDoc && deedUrl.toLowerCase().endsWith('.pdf');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Deed of Sale (Optional)',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Accepted formats: JPG, PNG, PDF',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        if (hasDoc) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.green.withValues(alpha: 0.4),
+                width: 2,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isPdf ? Icons.picture_as_pdf : Icons.image,
+                  color: isPdf ? Colors.red : Colors.blue,
+                  size: 36,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isPdf ? 'PDF Document' : 'Image Document',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const Text(
+                        'Uploaded',
+                        style: TextStyle(color: Colors.green, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  tooltip: 'Remove',
+                  onPressed: () => _removeDeedOfSale(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isUploadingDeed
+                  ? null
+                  : () => _pickDeedOfSale(context),
+              icon: _isUploadingDeed
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.swap_horiz),
+              label: Text(
+                _isUploadingDeed ? 'Uploading...' : 'Replace Document',
+              ),
+            ),
+          ),
+        ] else ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isUploadingDeed
+                  ? null
+                  : () => _pickDeedOfSale(context),
+              icon: _isUploadingDeed
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.upload_file),
+              label: Text(
+                _isUploadingDeed ? 'Uploading...' : 'Upload Deed of Sale',
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        const Text(
+          'The deed of sale helps verify ownership and speeds up the transaction process.',
+          style: TextStyle(
+            fontSize: 11,
+            fontStyle: FontStyle.italic,
+            color: Colors.grey,
+          ),
         ),
       ],
     );

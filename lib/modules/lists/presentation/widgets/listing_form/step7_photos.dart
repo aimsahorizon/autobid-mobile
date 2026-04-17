@@ -17,9 +17,6 @@ class Step7Photos extends StatefulWidget {
 }
 
 class _Step7PhotosState extends State<Step7Photos> {
-  // AI Detection logic moved to CreateListingPage
-  bool _isUploadingDeedOfSale = false;
-
   Future<void> _setFeaturedPhoto(BuildContext context, String photoUrl) async {
     await widget.controller.setCoverPhoto(photoUrl);
     if (!context.mounted) return;
@@ -94,6 +91,24 @@ class _Step7PhotosState extends State<Step7Photos> {
         if (context.mounted) {
           (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
             const SnackBar(content: Text('No image selected')),
+          );
+        }
+        return;
+      }
+
+      // Validate format (only images accepted here)
+      final ext = pickedFile.path.split('.').last.toLowerCase();
+      const allowedExts = ['jpg', 'jpeg', 'png', 'heic', 'heif', 'webp'];
+      if (!allowedExts.contains(ext)) {
+        debugPrint('DEBUG [Step7Photos]: Unsupported format: $ext');
+        if (context.mounted) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Unsupported format (.$ext). Please use JPG, PNG, or HEIC.',
+              ),
+              backgroundColor: Colors.red,
+            ),
           );
         }
         return;
@@ -200,349 +215,6 @@ class _Step7PhotosState extends State<Step7Photos> {
         'DEBUG [Step7Photos]: ========================================',
       );
     }
-  }
-
-  Future<void> _pickDeedOfSale(BuildContext context) async {
-    // Directly open camera for document capture
-    setState(() => _isUploadingDeedOfSale = true);
-
-    try {
-      final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 2048,
-        maxHeight: 2048,
-        imageQuality: 90,
-      );
-
-      if (pickedFile == null) {
-        if (context.mounted) {
-          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-            const SnackBar(content: Text('No file selected')),
-          );
-        }
-        return;
-      }
-
-      // Crop the deed of sale (fallback to uncropped if cropper fails)
-      File documentFile = File(pickedFile.path);
-      try {
-        final croppedFile = await ImageHelper.cropImage(
-          file: documentFile,
-          title: 'Crop Deed of Sale',
-        );
-
-        if (croppedFile == null) return;
-        documentFile = croppedFile;
-      } catch (cropError) {
-        debugPrint(
-          'DEBUG [Step7Photos]: Deed cropper failed ($cropError), using original',
-        );
-      }
-
-      final url = await widget.controller.uploadDeedOfSale(documentFile.path);
-
-      if (context.mounted) {
-        if (url != null) {
-          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-            const SnackBar(
-              content: Text('Deed of sale uploaded successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-            SnackBar(
-              content: Text(
-                widget.controller.errorMessage ??
-                    'Failed to upload deed of sale',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isUploadingDeedOfSale = false);
-      }
-    }
-  }
-
-  /// Remove the uploaded deed of sale
-  Future<void> _removeDeedOfSale(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Deed of Sale?'),
-        content: const Text(
-          'Are you sure you want to remove the uploaded deed of sale document?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true || !context.mounted) return;
-
-    final success = await widget.controller.removeDeedOfSale();
-
-    if (context.mounted) {
-      if (success) {
-        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-          const SnackBar(
-            content: Text('Deed of sale removed'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      } else {
-        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to remove deed of sale'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Build the deed of sale upload section
-  Widget _buildDeedOfSaleSection(bool isDark) {
-    final deedOfSaleUrl = widget.controller.currentDraft?.deedOfSaleUrl;
-    final hasDocument = deedOfSaleUrl != null && deedOfSaleUrl.isNotEmpty;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark
-            ? ColorConstants.surfaceLight.withValues(alpha: 0.2)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: hasDocument
-              ? Colors.green.withValues(alpha: 0.5)
-              : ColorConstants.primary.withValues(alpha: 0.3),
-          width: hasDocument ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                hasDocument ? Icons.description : Icons.upload_file,
-                color: hasDocument ? Colors.green : ColorConstants.primary,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Deed of Sale (Optional)',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      hasDocument
-                          ? 'Document uploaded'
-                          : 'Supported formats: PDF, JPG',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: hasDocument
-                            ? Colors.green
-                            : (isDark
-                                  ? ColorConstants.textSecondaryDark
-                                  : ColorConstants.textSecondaryLight),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (hasDocument)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check, color: Colors.green, size: 16),
-                      SizedBox(width: 4),
-                      Text(
-                        'Uploaded',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (hasDocument) ...[
-            // Preview section for uploaded document
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.2)
-                    : Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => _showFullImage(context, deedOfSaleUrl),
-                    child: Icon(
-                      deedOfSaleUrl.toLowerCase().endsWith('.pdf')
-                          ? Icons.picture_as_pdf
-                          : Icons.image,
-                      color: deedOfSaleUrl.toLowerCase().endsWith('.pdf')
-                          ? Colors.red
-                          : Colors.blue,
-                      size: 40,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          deedOfSaleUrl.toLowerCase().endsWith('.pdf')
-                              ? 'PDF Document'
-                              : 'Image Document',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Tap icon to view',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark
-                                ? ColorConstants.textSecondaryDark
-                                : ColorConstants.textSecondaryLight,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    onPressed: () => _removeDeedOfSale(context),
-                    tooltip: 'Remove document',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Replace button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _isUploadingDeedOfSale
-                    ? null
-                    : () => _pickDeedOfSale(context),
-                icon: _isUploadingDeedOfSale
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.swap_horiz),
-                label: Text(
-                  _isUploadingDeedOfSale ? 'Uploading...' : 'Replace Document',
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: ColorConstants.primary,
-                  side: BorderSide(color: ColorConstants.primary),
-                ),
-              ),
-            ),
-          ] else ...[
-            // Upload button when no document exists
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isUploadingDeedOfSale
-                    ? null
-                    : () => _pickDeedOfSale(context),
-                icon: _isUploadingDeedOfSale
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.upload_file),
-                label: Text(
-                  _isUploadingDeedOfSale
-                      ? 'Uploading...'
-                      : 'Upload Deed of Sale',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ColorConstants.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            'The deed of sale helps verify ownership and speeds up the transaction process.',
-            style: TextStyle(
-              fontSize: 11,
-              fontStyle: FontStyle.italic,
-              color: isDark
-                  ? ColorConstants.textSecondaryDark
-                  : ColorConstants.textSecondaryLight,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _showSamplePhoto(BuildContext context, String category) async {
@@ -1086,11 +758,6 @@ class _Step7PhotosState extends State<Step7Photos> {
                             ),
                           ),
                         ),
-                        // Deed of Sale section inside Documents group
-                        if (groupName == 'Documents') ...[
-                          _buildDeedOfSaleSection(isDark),
-                          const SizedBox(height: 12),
-                        ],
                         ...groupCategories.map((categoryDisplayName) {
                           final categoryKey = PhotoCategories.toKey(
                             categoryDisplayName,
