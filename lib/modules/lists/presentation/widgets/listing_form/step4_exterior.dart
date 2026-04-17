@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../../../core/utils/thousands_separator_formatter.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
@@ -159,6 +161,8 @@ class _Step4ExteriorState extends State<Step4Exterior> {
           controller: _rimSizeController,
           label: 'Rim Size',
           hint: 'e.g., 16", 17"',
+          keyboardType: TextInputType.number,
+          inputFormatters: [const ThousandsSeparatorInputFormatter()],
         ),
         const SizedBox(height: 16),
         FormFieldWidget(

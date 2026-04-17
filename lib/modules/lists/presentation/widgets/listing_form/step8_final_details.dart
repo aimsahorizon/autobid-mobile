@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/utils/thousands_separator_formatter.dart';
 import '../../controllers/listing_draft_controller.dart';
 import 'form_field_widget.dart';
 import 'ai_price_predictor.dart';
@@ -80,11 +81,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   }
 
   String? _formatDouble(double? value) {
-    if (value == null) return null;
-    if (value == value.truncateToDouble()) {
-      return value.toInt().toString();
-    }
-    return value.toString();
+    return ThousandsSeparatorInputFormatter.formatDouble(value).isEmpty
+        ? null
+        : ThousandsSeparatorInputFormatter.formatDouble(value);
   }
 
   @override
@@ -99,7 +98,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
   }
 
   void _onBidIncrementChanged() {
-    final parsed = double.tryParse(_bidIncrementController.text);
+    final parsed = ThousandsSeparatorInputFormatter.parseDouble(
+      _bidIncrementController.text,
+    );
     if (parsed != _bidIncrement) {
       setState(() => _bidIncrement = parsed);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -125,12 +126,16 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         features: _features.isEmpty ? null : _features,
         startingPrice: () {
           if (_startingPriceController.text.isEmpty) return null;
-          final parsed = double.tryParse(_startingPriceController.text);
+          final parsed = ThousandsSeparatorInputFormatter.parseDouble(
+            _startingPriceController.text,
+          );
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
         reservePrice: () {
           if (_reservePriceController.text.isEmpty) return null;
-          final parsed = double.tryParse(_reservePriceController.text);
+          final parsed = ThousandsSeparatorInputFormatter.parseDouble(
+            _reservePriceController.text,
+          );
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
         auctionEndDate: _auctionEndDate?.toUtc(),
@@ -148,16 +153,22 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
         exclusiveTier: _biddingType == 'exclusive' ? _exclusiveTier : null,
         bidIncrement: () {
           if (_bidIncrementController.text.isEmpty) return null;
-          final parsed = double.tryParse(_bidIncrementController.text);
+          final parsed = ThousandsSeparatorInputFormatter.parseDouble(
+            _bidIncrementController.text,
+          );
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
         minBidIncrement: () {
           if (_bidIncrementController.text.isEmpty) return null;
-          final parsed = double.tryParse(_bidIncrementController.text);
+          final parsed = ThousandsSeparatorInputFormatter.parseDouble(
+            _bidIncrementController.text,
+          );
           return (parsed != null && parsed > 0) ? parsed : null;
         }(),
         depositAmount: _calculateDeposit(
-          double.tryParse(_startingPriceController.text),
+          ThousandsSeparatorInputFormatter.parseDouble(
+            _startingPriceController.text,
+          ),
         ),
         enableIncrementalBidding: _enableIncrementalBidding,
         allowsInstallment: _allowsInstallment,
@@ -408,10 +419,10 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
           label: 'Bid Increment',
           hint: 'e.g., 100, 500, 1000',
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [const ThousandsSeparatorInputFormatter()],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
-            final value = double.tryParse(v!);
+            final value = ThousandsSeparatorInputFormatter.parseDouble(v!);
             if (value == null) return 'Invalid amount';
             if (value < 100) return 'Minimum increment is ₱100';
             if (value % 100 != 0) return 'Must be a multiple of ₱100';
@@ -432,8 +443,14 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
             final roundedReserve = ((roundedPrice * 1.1 / bi).round() * bi)
                 .toDouble();
             setState(() {
-              _startingPriceController.text = roundedPrice.toStringAsFixed(0);
-              _reservePriceController.text = roundedReserve.toStringAsFixed(0);
+              _startingPriceController.text =
+                  ThousandsSeparatorInputFormatter.formatInt(
+                    roundedPrice.toInt(),
+                  );
+              _reservePriceController.text =
+                  ThousandsSeparatorInputFormatter.formatInt(
+                    roundedReserve.toInt(),
+                  );
             });
             _updateDraft();
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -460,21 +477,24 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                 controller: _startingPriceController,
                 label: 'Starting Price (₱) *',
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [const ThousandsSeparatorInputFormatter()],
                 enabled: _bidIncrement != null && _bidIncrement! > 0,
                 validator: (v) {
                   if (_bidIncrement == null || _bidIncrement! <= 0) return null;
                   if (v?.isEmpty ?? true) return 'Required';
-                  final start = double.tryParse(v!);
+                  final start = ThousandsSeparatorInputFormatter.parseDouble(
+                    v!,
+                  );
                   if (start == null) return 'Invalid price';
                   final bi = _bidIncrement!.toInt();
                   if (start.toInt() % bi != 0) {
                     return 'Must be a multiple of ₱$bi';
                   }
                   if (_reservePriceController.text.isNotEmpty) {
-                    final reserve = double.tryParse(
-                      _reservePriceController.text,
-                    );
+                    final reserve =
+                        ThousandsSeparatorInputFormatter.parseDouble(
+                          _reservePriceController.text,
+                        );
                     if (reserve != null && start >= reserve) {
                       return 'Must be lower than reserve price';
                     }
@@ -488,19 +508,21 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
                 label: 'Reserve Price (₱)',
                 hint: 'Optional minimum acceptable price',
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [const ThousandsSeparatorInputFormatter()],
                 enabled: _bidIncrement != null && _bidIncrement! > 0,
                 validator: (v) {
                   if (v == null || v.isEmpty) return null;
                   if (_bidIncrement == null || _bidIncrement! <= 0) return null;
-                  final reserve = double.tryParse(v);
+                  final reserve = ThousandsSeparatorInputFormatter.parseDouble(
+                    v,
+                  );
                   if (reserve == null) return 'Invalid price';
                   final bi = _bidIncrement!.toInt();
                   if (reserve.toInt() % bi != 0) {
                     return 'Must be a multiple of ₱$bi';
                   }
                   if (_startingPriceController.text.isNotEmpty) {
-                    final start = double.tryParse(
+                    final start = ThousandsSeparatorInputFormatter.parseDouble(
                       _startingPriceController.text,
                     );
                     if (start != null && reserve <= start) {

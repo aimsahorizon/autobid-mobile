@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../../core/utils/thousands_separator_formatter.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'combo_box_widget.dart';
@@ -29,7 +30,9 @@ class _Step5ConditionState extends State<Step5Condition> {
   void initState() {
     super.initState();
     final draft = widget.controller.currentDraft!;
-    _mileageController = TextEditingController(text: draft.mileage?.toString());
+    _mileageController = TextEditingController(
+      text: ThousandsSeparatorInputFormatter.formatInt(draft.mileage),
+    );
     _ownersController = TextEditingController(
       text: draft.previousOwners?.toString(),
     );
@@ -94,9 +97,9 @@ class _Step5ConditionState extends State<Step5Condition> {
         tireSize: draft.tireSize,
         tireBrand: draft.tireBrand,
         condition: _condition,
-        mileage: _mileageController.text.isEmpty
-            ? null
-            : int.tryParse(_mileageController.text),
+        mileage: ThousandsSeparatorInputFormatter.parseInt(
+          _mileageController.text,
+        ),
         previousOwners: _ownersController.text.isEmpty
             ? null
             : int.tryParse(_ownersController.text),
@@ -151,10 +154,10 @@ class _Step5ConditionState extends State<Step5Condition> {
           controller: _mileageController,
           label: 'Mileage (km) *',
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [const ThousandsSeparatorInputFormatter()],
           validator: (v) {
             if (v?.isEmpty ?? true) return 'Required';
-            final val = int.tryParse(v!);
+            final val = ThousandsSeparatorInputFormatter.parseInt(v!);
             if (val == null || val < 0) return 'Must be a non-negative number';
             return null;
           },

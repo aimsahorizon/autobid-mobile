@@ -16,7 +16,25 @@ class Step7Photos extends StatefulWidget {
   State<Step7Photos> createState() => _Step7PhotosState();
 }
 
-class _Step7PhotosState extends State<Step7Photos> {
+class _Step7PhotosState extends State<Step7Photos>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: PhotoCategories.categoryGroups.length,
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   Future<void> _setFeaturedPhoto(BuildContext context, String photoUrl) async {
     await widget.controller.setCoverPhoto(photoUrl);
     if (!context.mounted) return;
@@ -732,183 +750,197 @@ class _Step7PhotosState extends State<Step7Photos> {
                 ],
               ),
             ),
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? ColorConstants.backgroundDark
+                    : ColorConstants.backgroundSecondaryLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                padding: const EdgeInsets.all(4),
+                indicator: BoxDecoration(
+                  color: isDark ? ColorConstants.surfaceDark : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                labelColor: ColorConstants.primary,
+                unselectedLabelColor: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+                tabs: PhotoCategories.categoryGroups.keys
+                    .map((g) => Tab(text: g))
+                    .toList(),
+              ),
+            ),
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // Photo Categories
-                  ...PhotoCategories.categoryGroups.keys.map((groupName) {
-                    final categoryCount =
-                        PhotoCategories.categoryGroups[groupName]!;
-                    final groupCategories = _getCategoriesForGroup(
-                      groupName,
-                      categoryCount,
-                    );
+              child: TabBarView(
+                controller: _tabController,
+                children: PhotoCategories.categoryGroups.keys.map((groupName) {
+                  final categoryCount =
+                      PhotoCategories.categoryGroups[groupName]!;
+                  final groupCategories = _getCategoriesForGroup(
+                    groupName,
+                    categoryCount,
+                  );
+                  return ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: groupCategories.map((categoryDisplayName) {
+                      final categoryKey = PhotoCategories.toKey(
+                        categoryDisplayName,
+                      );
+                      final categoryPhotos = photoUrls[categoryKey] ?? [];
+                      final hasPhoto = categoryPhotos.isNotEmpty;
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text(
-                            groupName,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? ColorConstants.surfaceLight.withValues(
+                                  alpha: 0.1,
+                                )
+                              : Colors.white,
+                          border: Border.all(
+                            color: hasPhoto
+                                ? Colors.green.withValues(alpha: 0.3)
+                                : (isDark
+                                      ? ColorConstants.surfaceLight
+                                      : ColorConstants
+                                            .backgroundSecondaryLight),
+                            width: hasPhoto ? 2 : 1,
                           ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        ...groupCategories.map((categoryDisplayName) {
-                          final categoryKey = PhotoCategories.toKey(
-                            categoryDisplayName,
-                          );
-                          final categoryPhotos = photoUrls[categoryKey] ?? [];
-                          final hasPhoto = categoryPhotos.isNotEmpty;
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? ColorConstants.surfaceLight.withValues(
-                                      alpha: 0.1,
-                                    )
-                                  : Colors.white,
-                              border: Border.all(
-                                color: hasPhoto
-                                    ? Colors.green.withValues(alpha: 0.3)
-                                    : (isDark
-                                          ? ColorConstants.surfaceLight
-                                          : ColorConstants
-                                                .backgroundSecondaryLight),
-                                width: hasPhoto ? 2 : 1,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header row
+                            Row(
                               children: [
-                                // Header row
-                                Row(
-                                  children: [
-                                    Icon(
-                                      hasPhoto
-                                          ? Icons.check_circle
-                                          : Icons.add_a_photo,
-                                      color: hasPhoto
-                                          ? Colors.green
-                                          : ColorConstants.primary,
-                                      size: 24,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            categoryDisplayName,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                          if (hasPhoto)
-                                            Text(
-                                              '${categoryPhotos.length} photo${categoryPhotos.length > 1 ? 's' : ''}',
-                                              style: const TextStyle(
-                                                color: Colors.green,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.info_outline,
-                                        size: 20,
-                                      ),
-                                      tooltip: 'View sample',
-                                      onPressed: () => _showSamplePhoto(
-                                        context,
+                                Icon(
+                                  hasPhoto
+                                      ? Icons.check_circle
+                                      : Icons.add_a_photo,
+                                  color: hasPhoto
+                                      ? Colors.green
+                                      : ColorConstants.primary,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
                                         categoryDisplayName,
-                                      ),
-                                    ),
-                                    ElevatedButton.icon(
-                                      onPressed: () => _pickImage(
-                                        context,
-                                        categoryDisplayName,
-                                      ),
-                                      icon: Icon(
-                                        hasPhoto
-                                            ? Icons.swap_horiz
-                                            : Icons.add_photo_alternate,
-                                        size: 18,
-                                      ),
-                                      label: Text(
-                                        hasPhoto ? 'Replace' : 'Upload',
-                                      ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: hasPhoto
-                                            ? Colors.orange
-                                            : ColorConstants.primary,
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                      if (hasPhoto)
+                                        Text(
+                                          '${categoryPhotos.length} photo${categoryPhotos.length > 1 ? 's' : ''}',
+                                          style: const TextStyle(
+                                            color: Colors.green,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                                // Photo previews
-                                if (hasPhoto) ...[
-                                  const SizedBox(height: 12),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: categoryPhotos
-                                        .asMap()
-                                        .entries
-                                        .map((entry) {
-                                          final index = entry.key;
-                                          final photoUrl = entry.value;
-
-                                          return _buildPhotoPreview(
-                                            context,
-                                            photoUrl,
-                                            categoryDisplayName,
-                                            index,
-                                            isDark,
-                                            photoUrl == selectedCoverPhotoUrl,
-                                          );
-                                        })
-                                        .toList(),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.info_outline,
+                                    size: 20,
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    photoUrlHintText(
-                                      categoryPhotos,
-                                      selectedCoverPhotoUrl,
-                                    ),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: isDark
-                                          ? ColorConstants.textSecondaryDark
-                                          : ColorConstants.textSecondaryLight,
+                                  tooltip: 'View sample',
+                                  onPressed: () => _showSamplePhoto(
+                                    context,
+                                    categoryDisplayName,
+                                  ),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: () =>
+                                      _pickImage(context, categoryDisplayName),
+                                  icon: Icon(
+                                    hasPhoto
+                                        ? Icons.swap_horiz
+                                        : Icons.add_photo_alternate,
+                                    size: 18,
+                                  ),
+                                  label: Text(hasPhoto ? 'Replace' : 'Upload'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: hasPhoto
+                                        ? Colors.orange
+                                        : ColorConstants.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
                                     ),
                                   ),
-                                ],
+                                ),
                               ],
                             ),
-                          );
-                        }),
-                        const SizedBox(height: 16),
-                      ],
-                    );
-                  }),
-                ],
+                            // Photo previews
+                            if (hasPhoto) ...[
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: categoryPhotos.asMap().entries.map((
+                                  entry,
+                                ) {
+                                  final index = entry.key;
+                                  final photoUrl = entry.value;
+                                  return _buildPhotoPreview(
+                                    context,
+                                    photoUrl,
+                                    categoryDisplayName,
+                                    index,
+                                    isDark,
+                                    photoUrl == selectedCoverPhotoUrl,
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                photoUrlHintText(
+                                  categoryPhotos,
+                                  selectedCoverPhotoUrl,
+                                ),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? ColorConstants.textSecondaryDark
+                                      : ColorConstants.textSecondaryLight,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }).toList(),
               ),
             ),
           ],

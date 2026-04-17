@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../../core/utils/thousands_separator_formatter.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
@@ -29,27 +30,39 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
   void initState() {
     super.initState();
     final draft = widget.controller.currentDraft!;
-    _lengthController = TextEditingController(text: draft.length?.toString());
-    _widthController = TextEditingController(text: draft.width?.toString());
-    _heightController = TextEditingController(text: draft.height?.toString());
+    _lengthController = TextEditingController(
+      text: ThousandsSeparatorInputFormatter.formatDouble(draft.length),
+    );
+    _widthController = TextEditingController(
+      text: ThousandsSeparatorInputFormatter.formatDouble(draft.width),
+    );
+    _heightController = TextEditingController(
+      text: ThousandsSeparatorInputFormatter.formatDouble(draft.height),
+    );
     _wheelbaseController = TextEditingController(
-      text: draft.wheelbase?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatDouble(draft.wheelbase),
     );
     _clearanceController = TextEditingController(
-      text: draft.groundClearance?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatDouble(
+        draft.groundClearance,
+      ),
     );
     _seatingController = TextEditingController(
-      text: draft.seatingCapacity?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatInt(draft.seatingCapacity),
     );
-    _doorController = TextEditingController(text: draft.doorCount?.toString());
+    _doorController = TextEditingController(
+      text: ThousandsSeparatorInputFormatter.formatInt(draft.doorCount),
+    );
     _fuelTankController = TextEditingController(
-      text: draft.fuelTankCapacity?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatDouble(
+        draft.fuelTankCapacity,
+      ),
     );
     _curbWeightController = TextEditingController(
-      text: draft.curbWeight?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatDouble(draft.curbWeight),
     );
     _grossWeightController = TextEditingController(
-      text: draft.grossWeight?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatDouble(draft.grossWeight),
     );
 
     for (var controller in [
@@ -103,36 +116,36 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
         transmission: draft.transmission,
         fuelType: draft.fuelType,
         driveType: draft.driveType,
-        length: _lengthController.text.isEmpty
-            ? null
-            : double.tryParse(_lengthController.text),
-        width: _widthController.text.isEmpty
-            ? null
-            : double.tryParse(_widthController.text),
-        height: _heightController.text.isEmpty
-            ? null
-            : double.tryParse(_heightController.text),
-        wheelbase: _wheelbaseController.text.isEmpty
-            ? null
-            : double.tryParse(_wheelbaseController.text),
-        groundClearance: _clearanceController.text.isEmpty
-            ? null
-            : double.tryParse(_clearanceController.text),
-        seatingCapacity: _seatingController.text.isEmpty
-            ? null
-            : int.tryParse(_seatingController.text),
-        doorCount: _doorController.text.isEmpty
-            ? null
-            : int.tryParse(_doorController.text),
-        fuelTankCapacity: _fuelTankController.text.isEmpty
-            ? null
-            : double.tryParse(_fuelTankController.text),
-        curbWeight: _curbWeightController.text.isEmpty
-            ? null
-            : double.tryParse(_curbWeightController.text),
-        grossWeight: _grossWeightController.text.isEmpty
-            ? null
-            : double.tryParse(_grossWeightController.text),
+        length: ThousandsSeparatorInputFormatter.parseDouble(
+          _lengthController.text,
+        ),
+        width: ThousandsSeparatorInputFormatter.parseDouble(
+          _widthController.text,
+        ),
+        height: ThousandsSeparatorInputFormatter.parseDouble(
+          _heightController.text,
+        ),
+        wheelbase: ThousandsSeparatorInputFormatter.parseDouble(
+          _wheelbaseController.text,
+        ),
+        groundClearance: ThousandsSeparatorInputFormatter.parseDouble(
+          _clearanceController.text,
+        ),
+        seatingCapacity: ThousandsSeparatorInputFormatter.parseInt(
+          _seatingController.text,
+        ),
+        doorCount: ThousandsSeparatorInputFormatter.parseInt(
+          _doorController.text,
+        ),
+        fuelTankCapacity: ThousandsSeparatorInputFormatter.parseDouble(
+          _fuelTankController.text,
+        ),
+        curbWeight: ThousandsSeparatorInputFormatter.parseDouble(
+          _curbWeightController.text,
+        ),
+        grossWeight: ThousandsSeparatorInputFormatter.parseDouble(
+          _grossWeightController.text,
+        ),
         exteriorColor: draft.exteriorColor,
         paintType: draft.paintType,
         rimType: draft.rimType,
@@ -179,7 +192,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           label: 'Length (mm) *',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            const ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
           validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
@@ -189,7 +202,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           label: 'Width (mm) *',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            const ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
           validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
@@ -199,7 +212,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           label: 'Height (mm) *',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            const ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
           validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
         ),
@@ -209,7 +222,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           label: 'Wheelbase (mm)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            const ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
         ),
         const SizedBox(height: 16),
@@ -218,7 +231,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           label: 'Ground Clearance (mm)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            const ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
         ),
         const SizedBox(height: 16),
@@ -226,14 +239,14 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           controller: _seatingController,
           label: 'Seating Capacity',
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [const ThousandsSeparatorInputFormatter()],
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
           controller: _doorController,
           label: 'Door Count',
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [const ThousandsSeparatorInputFormatter()],
         ),
         const SizedBox(height: 16),
         FormFieldWidget(
@@ -241,7 +254,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           label: 'Fuel Tank Capacity (L)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            const ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
         ),
         const SizedBox(height: 16),
@@ -250,7 +263,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           label: 'Curb Weight (kg)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            const ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
         ),
         const SizedBox(height: 16),
@@ -259,7 +272,7 @@ class _Step3DimensionsState extends State<Step3Dimensions> {
           label: 'Gross Weight (kg)',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            const ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
         ),
       ],

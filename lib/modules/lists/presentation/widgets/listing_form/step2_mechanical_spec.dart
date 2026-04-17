@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../../core/utils/thousands_separator_formatter.dart';
 import '../../controllers/listing_draft_controller.dart';
 import '../../../domain/entities/listing_draft_entity.dart';
 import 'form_field_widget.dart';
@@ -30,15 +31,19 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
     super.initState();
     final draft = widget.controller.currentDraft!;
     _displacementController = TextEditingController(
-      text: draft.engineDisplacement?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatDouble(
+        draft.engineDisplacement,
+      ),
     );
     _cylinderController = TextEditingController(
-      text: draft.cylinderCount?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatInt(draft.cylinderCount),
     );
     _horsepowerController = TextEditingController(
-      text: draft.horsepower?.toString(),
+      text: ThousandsSeparatorInputFormatter.formatInt(draft.horsepower),
     );
-    _torqueController = TextEditingController(text: draft.torque?.toString());
+    _torqueController = TextEditingController(
+      text: ThousandsSeparatorInputFormatter.formatInt(draft.torque),
+    );
     _engineType = draft.engineType;
     _transmission = draft.transmission;
     _fuelType = draft.fuelType;
@@ -72,18 +77,18 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
         variant: draft.variant,
         year: draft.year,
         engineType: _engineType,
-        engineDisplacement: _displacementController.text.isEmpty
-            ? null
-            : double.tryParse(_displacementController.text),
-        cylinderCount: _cylinderController.text.isEmpty
-            ? null
-            : int.tryParse(_cylinderController.text),
-        horsepower: _horsepowerController.text.isEmpty
-            ? null
-            : int.tryParse(_horsepowerController.text),
-        torque: _torqueController.text.isEmpty
-            ? null
-            : int.tryParse(_torqueController.text),
+        engineDisplacement: ThousandsSeparatorInputFormatter.parseDouble(
+          _displacementController.text,
+        ),
+        cylinderCount: ThousandsSeparatorInputFormatter.parseInt(
+          _cylinderController.text,
+        ),
+        horsepower: ThousandsSeparatorInputFormatter.parseInt(
+          _horsepowerController.text,
+        ),
+        torque: ThousandsSeparatorInputFormatter.parseInt(
+          _torqueController.text,
+        ),
         transmission: _transmission,
         fuelType: _fuelType,
         driveType: _driveType,
@@ -162,11 +167,11 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           hint: 'e.g., 2.0',
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            ThousandsSeparatorInputFormatter(allowDecimal: true),
           ],
           validator: (v) {
             if (v == null || v.isEmpty) return null;
-            final val = double.tryParse(v);
+            final val = ThousandsSeparatorInputFormatter.parseDouble(v);
             if (val == null || val <= 0) return 'Must be a positive number';
             return null;
           },
@@ -176,10 +181,10 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           controller: _cylinderController,
           label: 'Cylinder Count',
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [const ThousandsSeparatorInputFormatter()],
           validator: (v) {
             if (v == null || v.isEmpty) return null;
-            final val = int.tryParse(v);
+            final val = ThousandsSeparatorInputFormatter.parseInt(v);
             if (val == null || val <= 0) return 'Must be a positive number';
             return null;
           },
@@ -189,10 +194,10 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           controller: _horsepowerController,
           label: 'Horsepower (HP)',
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [const ThousandsSeparatorInputFormatter()],
           validator: (v) {
             if (v == null || v.isEmpty) return null;
-            final val = int.tryParse(v);
+            final val = ThousandsSeparatorInputFormatter.parseInt(v);
             if (val == null || val <= 0) return 'Must be a positive number';
             return null;
           },
@@ -202,10 +207,10 @@ class _Step2MechanicalSpecState extends State<Step2MechanicalSpec> {
           controller: _torqueController,
           label: 'Torque (Nm)',
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [const ThousandsSeparatorInputFormatter()],
           validator: (v) {
             if (v == null || v.isEmpty) return null;
-            final val = int.tryParse(v);
+            final val = ThousandsSeparatorInputFormatter.parseInt(v);
             if (val == null || val <= 0) return 'Must be a positive number';
             return null;
           },
