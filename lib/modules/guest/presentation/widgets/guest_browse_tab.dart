@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/guest_controller.dart';
-import 'guest_auction_card.dart';
+import 'package:autobid_mobile/modules/guest/presentation/controllers/guest_controller.dart';
+import 'package:autobid_mobile/modules/guest/presentation/widgets/guest_auction_card.dart';
 
 class GuestBrowseTab extends StatelessWidget {
   final GuestController controller;

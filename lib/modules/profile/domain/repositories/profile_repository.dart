@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../entities/user_profile_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_profile_entity.dart';
 
 /// Abstract repository for profile operations
 abstract class ProfileRepository {

@@ -1,9 +1,9 @@
 import 'package:get_it/get_it.dart';
-import 'data/datasources/location_remote_datasource.dart';
-import 'data/repositories/location_repository_impl.dart';
-import 'domain/repositories/location_repository.dart';
-import 'domain/usecases/location_usecases.dart';
-import 'presentation/bloc/location_bloc.dart';
+import 'package:autobid_mobile/modules/location/data/datasources/location_remote_datasource.dart';
+import 'package:autobid_mobile/modules/location/data/repositories/location_repository_impl.dart';
+import 'package:autobid_mobile/modules/location/domain/repositories/location_repository.dart';
+import 'package:autobid_mobile/modules/location/domain/usecases/location_usecases.dart';
+import 'package:autobid_mobile/modules/location/presentation/bloc/location_bloc.dart';
 
 final sl = GetIt.instance;
 

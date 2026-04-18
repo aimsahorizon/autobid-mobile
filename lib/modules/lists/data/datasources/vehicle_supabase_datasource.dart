@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/vehicle_entities.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/vehicle_entities.dart';
 
 class VehicleSupabaseDataSource {
   final SupabaseClient _supabase;

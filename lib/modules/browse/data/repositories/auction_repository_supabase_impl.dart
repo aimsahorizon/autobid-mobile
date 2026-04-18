@@ -1,8 +1,8 @@
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/auction_entity.dart';
-import '../../domain/entities/auction_filter.dart';
-import '../../domain/repositories/auction_repository.dart';
-import '../datasources/auction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_filter.dart';
+import 'package:autobid_mobile/modules/browse/domain/repositories/auction_repository.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/auction_supabase_datasource.dart';
 
 /// Supabase implementation of AuctionRepository
 class AuctionRepositorySupabaseImpl implements AuctionRepository {

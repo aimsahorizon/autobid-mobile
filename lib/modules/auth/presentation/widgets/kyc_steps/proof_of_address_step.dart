@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../controllers/kyc_registration_controller.dart';
-import '../image_picker_card.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/kyc_registration_controller.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/image_picker_card.dart';
 
 class ProofOfAddressStep extends StatefulWidget {
   final KYCRegistrationController controller;

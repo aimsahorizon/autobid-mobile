@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../../../profile/presentation/pages/legal_page.dart';
-import '../../controllers/kyc_registration_controller.dart';
+import 'package:autobid_mobile/modules/profile/presentation/pages/legal_page.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/kyc_registration_controller.dart';
 
 class AccountInfoStep extends StatefulWidget {
   final KYCRegistrationController controller;

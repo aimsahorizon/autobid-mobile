@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/transaction_entity.dart';
-import '../../domain/entities/transaction_review_entity.dart';
-import '../../domain/entities/agreement_field_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_review_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/agreement_field_entity.dart';
 
 /// Supabase datasource for real-time transaction data
 // ... (omitting lines for brevity in explanation, but including them in actual call)

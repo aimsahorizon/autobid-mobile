@@ -1,4 +1,4 @@
-import '../../domain/entities/installment_plan_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/installment_plan_entity.dart';
 
 /// Data model for installment plans with JSON serialization
 class InstallmentPlanModel {

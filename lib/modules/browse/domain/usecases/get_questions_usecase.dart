@@ -1,7 +1,7 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../entities/qa_entity.dart';
-import '../repositories/auction_detail_repository.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/repositories/auction_detail_repository.dart';
 
 /// UseCase for getting Q&A questions for an auction
 class GetQuestionsUseCase {

@@ -1,4 +1,4 @@
-import '../../domain/entities/notification_entity.dart';
+import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
 
 /// Abstract datasource interface for notifications
 abstract class INotificationDataSource {

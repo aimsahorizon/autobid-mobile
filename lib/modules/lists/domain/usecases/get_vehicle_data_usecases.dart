@@ -1,7 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../repositories/vehicle_repository.dart';
-import '../entities/vehicle_entities.dart';
+import 'package:autobid_mobile/modules/lists/domain/repositories/vehicle_repository.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/vehicle_entities.dart';
 
 class GetVehicleBrandsUseCase {
   final VehicleRepository repository;

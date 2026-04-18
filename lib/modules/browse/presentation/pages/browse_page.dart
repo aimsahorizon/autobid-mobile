@@ -3,22 +3,18 @@ import 'package:flutter/services.dart'; // Import services for SystemUiOverlaySt
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../../lists/presentation/pages/active_listing_detail_page.dart';
-import '../../../lists/presentation/pages/approved_listing_detail_page.dart';
-import '../../../lists/domain/entities/listing_detail_entity.dart';
-import '../../../lists/domain/entities/seller_listing_entity.dart';
-import '../../../notifications/notifications_module.dart';
-import '../../../notifications/presentation/pages/notifications_page.dart';
-import '../../data/datasources/auction_supabase_datasource.dart';
-import '../../domain/entities/auction_detail_entity.dart';
-import '../controllers/auction_detail_controller.dart';
-import '../controllers/browse_controller.dart';
-import '../controllers/buyer_invites_controller.dart';
-import '../widgets/auction_card.dart';
-import 'buyer_invites_page.dart';
-import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
-import '../widgets/auction_filter_sheet.dart';
-import 'auction_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/active_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/approved_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_detail_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/auction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/presentation/controllers/auction_detail_controller.dart';
+import 'package:autobid_mobile/modules/browse/presentation/controllers/browse_controller.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_card.dart';
+import 'package:autobid_mobile/modules/notifications/presentation/widgets/notification_bell_widget.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_filter_sheet.dart';
+import 'package:autobid_mobile/modules/browse/presentation/pages/auction_detail_page.dart';
 
 class BrowsePage extends StatefulWidget {
   final BrowseController controller;

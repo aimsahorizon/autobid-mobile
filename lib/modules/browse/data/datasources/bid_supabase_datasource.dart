@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
 
 /// Supabase datasource for bid operations
 /// Handles placing bids, getting bid history, and managing deposits
@@ -341,6 +341,26 @@ class BidSupabaseDataSource {
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Failed to place sealed bid: $e');
+    }
+  }
+
+  /// Get mystery participants (alias + timestamp) for active mystery auction (bid history tab)
+  Future<List<Map<String, dynamic>>> getMysteryParticipants({
+    required String auctionId,
+  }) async {
+    try {
+      final response = await _supabase.rpc(
+        'get_mystery_participants',
+        params: {'p_auction_id': auctionId},
+      );
+      if (response == null) return [];
+      final list = response as List<dynamic>;
+      return list.map((e) => e as Map<String, dynamic>).toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to get mystery participants: ${e.message}');
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('Failed to get mystery participants: $e');
     }
   }
 

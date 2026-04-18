@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
 
 bool _isAssetPath(String url) => url.startsWith('assets/');
 

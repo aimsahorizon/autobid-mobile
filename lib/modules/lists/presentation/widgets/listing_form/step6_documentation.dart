@@ -2,11 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
-import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
-import '../../../domain/usecases/validate_plate_number_usecase.dart';
-import 'form_field_widget.dart';
-import 'province_city_picker.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/validate_plate_number_usecase.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listing_form/form_field_widget.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listing_form/province_city_picker.dart';
 
 class Step6Documentation extends StatefulWidget {
   final ListingDraftController controller;

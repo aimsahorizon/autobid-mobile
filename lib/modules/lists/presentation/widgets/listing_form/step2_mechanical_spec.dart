@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../../../../../core/utils/thousands_separator_formatter.dart';
-import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
-import 'form_field_widget.dart';
-import 'combo_box_widget.dart';
+import 'package:autobid_mobile/core/utils/thousands_separator_formatter.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listing_form/form_field_widget.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listing_form/combo_box_widget.dart';
 
 class Step2MechanicalSpec extends StatefulWidget {
   final ListingDraftController controller;

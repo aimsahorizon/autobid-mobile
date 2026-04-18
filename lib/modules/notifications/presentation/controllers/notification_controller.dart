@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../domain/entities/notification_entity.dart';
-import '../../domain/usecases/get_notifications_usecase.dart';
-import '../../domain/usecases/get_unread_count_usecase.dart';
-import '../../domain/usecases/mark_as_read_usecase.dart';
-import '../../domain/usecases/mark_all_as_read_usecase.dart';
-import '../../domain/usecases/delete_notification_usecase.dart';
-import '../../domain/usecases/respond_to_invite_usecase.dart';
-import '../../data/datasources/notification_datasource.dart';
+import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/get_notifications_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/get_unread_count_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/mark_as_read_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/mark_all_as_read_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/delete_notification_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/respond_to_invite_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/data/datasources/notification_datasource.dart';
 
 /// Controller for managing notification state
 /// Refactored to use Clean Architecture with UseCases

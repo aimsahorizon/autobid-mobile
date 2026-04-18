@@ -2,8 +2,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:autobid_mobile/core/error/exceptions.dart';
-import '../models/user_model.dart';
-import '../models/kyc_registration_model.dart';
+import 'package:autobid_mobile/modules/auth/data/models/user_model.dart';
+import 'package:autobid_mobile/modules/auth/data/models/kyc_registration_model.dart';
 
 abstract class AuthRemoteDataSource {
   Future<UserModel?> getCurrentUser();

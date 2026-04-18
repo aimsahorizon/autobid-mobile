@@ -1,12 +1,12 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../../../../core/network/network_info.dart';
-import '../../domain/entities/auction_detail_entity.dart';
-import '../../domain/entities/bid_history_entity.dart';
-import '../../domain/entities/bid_queue_entity.dart';
-import '../../domain/entities/qa_entity.dart';
-import '../../domain/repositories/auction_detail_repository.dart';
-import '../datasources/auction_detail_remote_datasource.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_history_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/repositories/auction_detail_repository.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/auction_detail_remote_datasource.dart';
 
 /// Implementation of AuctionDetailRepository using remote data source
 class AuctionDetailRepositoryImpl implements AuctionDetailRepository {

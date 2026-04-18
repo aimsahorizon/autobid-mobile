@@ -1,4 +1,4 @@
-import '../entities/virtual_wallet_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
 abstract class VirtualWalletRepository {
   Future<VirtualWalletEntity> getOrCreateWallet(String userId);

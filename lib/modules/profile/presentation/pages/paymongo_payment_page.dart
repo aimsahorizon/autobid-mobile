@@ -5,8 +5,8 @@ import 'package:autobid_mobile/core/services/paymongo_service.dart';
 import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
-import '../../domain/entities/pricing_entity.dart';
-import '../../data/datasources/pricing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/pricing_supabase_datasource.dart';
 import 'package:autobid_mobile/modules/browse/presentation/widgets/payment/virtual_wallet_payment_form.dart';
 import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
@@ -246,9 +246,6 @@ class _PayMongoPaymentPageState extends State<PayMongoPaymentPage> {
       throw PayMongoException('Failed to get GCash checkout URL');
     }
 
-    // Open GCash checkout URL in external browser
-    final uri = Uri.parse(checkoutUrl);
-    if (!mounted) return;
     // Show checkout URL and instruct user to complete payment
     throw PayMongoException(
       'GCash live payments require a browser redirect. Please use card payment in demo mode, or integrate url_launcher for production.',

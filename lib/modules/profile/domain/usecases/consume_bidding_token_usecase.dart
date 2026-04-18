@@ -1,4 +1,4 @@
-import '../repositories/pricing_repository.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/pricing_repository.dart';
 
 /// Use case to consume a bidding token
 class ConsumeBiddingTokenUsecase {

@@ -1,4 +1,4 @@
-import '../../domain/entities/payment_attempt_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/payment_attempt_entity.dart';
 
 class PaymentAttemptModel {
   final String id;

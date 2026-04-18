@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
 
 abstract class TransactionRepository {
   Future<Either<Failure, TransactionEntity?>> getTransaction(

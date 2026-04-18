@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import '../utils/id_parser_util.dart';
+import 'package:autobid_mobile/core/utils/id_parser_util.dart';
 
 /// Data extracted from ID documents by AI
 class ExtractedIdData {

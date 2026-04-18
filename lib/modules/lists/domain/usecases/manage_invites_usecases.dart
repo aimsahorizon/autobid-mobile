@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../../../browse/data/datasources/invites_supabase_datasource.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/invites_supabase_datasource.dart';
 
 class GetAuctionInvitesUseCase {
   final InvitesSupabaseDatasource datasource;

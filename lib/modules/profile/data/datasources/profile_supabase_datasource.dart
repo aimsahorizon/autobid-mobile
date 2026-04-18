@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/user_profile_model.dart';
-import '../../domain/entities/user_review_entity.dart';
+import 'package:autobid_mobile/modules/profile/data/models/user_profile_model.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_review_entity.dart';
 
 /// Supabase data source for user profile operations
 /// Handles profile CRUD operations and image uploads to Supabase Storage

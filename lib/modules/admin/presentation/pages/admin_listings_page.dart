@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/admin_listing_entity.dart';
-import '../../domain/entities/admin_enums.dart';
-import '../controllers/admin_controller.dart';
-import 'admin_listing_review_page.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_listing_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_enums.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/admin_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_listing_review_page.dart';
 
 /// Admin page for managing all listings by status
 class AdminListingsPage extends StatefulWidget {

@@ -7,7 +7,7 @@ import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import 'package:autobid_mobile/core/theme/app_theme.dart';
 import 'package:autobid_mobile/core/utils/navigator_key.dart';
 import 'package:autobid_mobile/core/widgets/session_timeout_manager.dart';
-import 'router/app_router.dart';
+import 'package:autobid_mobile/app/router/app_router.dart';
 
 class App extends StatefulWidget {
   const App({super.key});

@@ -3,19 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import '../../domain/usecases/send_email_otp_usecase.dart';
-import '../../domain/usecases/send_phone_otp_usecase.dart';
-import '../../domain/usecases/verify_email_otp_usecase.dart';
-import '../../domain/usecases/verify_phone_otp_usecase.dart';
-import '../../domain/usecases/check_national_id_exists_usecase.dart';
-import '../../domain/usecases/check_secondary_id_exists_usecase.dart';
-import '../../data/datasources/auth_remote_datasource.dart';
-import '../../data/models/kyc_registration_model.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/send_email_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/send_phone_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/verify_email_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/verify_phone_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/check_national_id_exists_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/check_secondary_id_exists_usecase.dart';
+import 'package:autobid_mobile/modules/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:autobid_mobile/modules/auth/data/models/kyc_registration_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/services/ai_id_extraction_service.dart';
 import 'package:autobid_mobile/core/services/file_encryption_service.dart';
 import 'package:autobid_mobile/core/utils/philippine_id_validators.dart';
-import '../../data/datasources/demo_data_generator.dart';
+import 'package:autobid_mobile/modules/auth/data/datasources/demo_data_generator.dart';
 
 enum KYCStep {
   accountInfo, // Step 1: Username, email, phone, password, T&C
@@ -632,8 +632,9 @@ class KYCRegistrationController extends ChangeNotifier {
 
     // Strict Format Check
     if (!PhilippineIdValidator.validateNationalId(_nationalIdNumber!)) {
-      if (reportError)
+      if (reportError) {
         setError('Invalid National ID format. Must be 16 digits (PCN).');
+      }
       return false;
     }
 

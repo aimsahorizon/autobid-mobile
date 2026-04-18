@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../../domain/entities/listing_detail_entity.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_detail_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
 
 class ListingInfoSection extends StatefulWidget {
   final ListingDetailEntity listing;

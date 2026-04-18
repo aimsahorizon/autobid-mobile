@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../domain/entities/notification_entity.dart';
-import '../controllers/notification_controller.dart';
-import '../controllers/notification_action_handler.dart';
+import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
+import 'package:autobid_mobile/modules/notifications/presentation/controllers/notification_controller.dart';
+import 'package:autobid_mobile/modules/notifications/presentation/controllers/notification_action_handler.dart';
 
 /// Filter options for the notification list
 enum NotificationFilter { all, unread, bids, auctions, transactions, messages }

@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../../../../core/network/network_info.dart';
-import '../../domain/entities/account_status_entity.dart';
-import '../../domain/repositories/guest_repository.dart';
-import '../datasources/guest_remote_datasource.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
+import 'package:autobid_mobile/modules/guest/domain/entities/account_status_entity.dart';
+import 'package:autobid_mobile/modules/guest/domain/repositories/guest_repository.dart';
+import 'package:autobid_mobile/modules/guest/data/datasources/guest_remote_datasource.dart';
 
 /// Implementation of GuestRepository using remote data source
 class GuestRepositoryImpl implements GuestRepository {

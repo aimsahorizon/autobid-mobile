@@ -7,8 +7,8 @@ import 'package:autobid_mobile/core/services/paymongo_service.dart';
 import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../data/datasources/deposit_supabase_datasource.dart';
-import '../widgets/payment/virtual_wallet_payment_form.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/payment/virtual_wallet_payment_form.dart';
 import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
 /// Deposit payment page for auction participation

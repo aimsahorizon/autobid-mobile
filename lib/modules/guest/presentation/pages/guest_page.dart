@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
-import '../controllers/guest_controller.dart';
-import '../widgets/guest_browse_tab.dart';
-import '../widgets/account_status_tab.dart';
+import 'package:autobid_mobile/modules/guest/presentation/controllers/guest_controller.dart';
+import 'package:autobid_mobile/modules/guest/presentation/widgets/guest_browse_tab.dart';
+import 'package:autobid_mobile/modules/guest/presentation/widgets/account_status_tab.dart';
 
 class GuestPage extends StatefulWidget {
   final GuestController controller;

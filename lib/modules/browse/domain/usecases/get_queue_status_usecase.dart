@@ -1,7 +1,7 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../entities/bid_queue_entity.dart';
-import '../repositories/auction_detail_repository.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/repositories/auction_detail_repository.dart';
 
 /// UseCase for getting the current queue status for an auction.
 ///

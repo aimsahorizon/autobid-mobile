@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/widgets/user_profile_bottom_sheet.dart';
-import '../../controllers/transaction_realtime_controller.dart';
-import '../../../domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
 
 /// Seller Form Tab - Role-specific form for vehicle sellers
 /// Focuses on document preparation, vehicle condition, and handover details

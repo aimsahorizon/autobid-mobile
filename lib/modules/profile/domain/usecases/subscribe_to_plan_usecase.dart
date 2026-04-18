@@ -1,8 +1,8 @@
-import '../entities/pricing_entity.dart';
-import '../repositories/pricing_repository.dart';
-import '../../data/datasources/pricing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/pricing_repository.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/pricing_supabase_datasource.dart';
 
-export '../../data/datasources/pricing_supabase_datasource.dart'
+export 'package:autobid_mobile/modules/profile/data/datasources/pricing_supabase_datasource.dart'
     show SubscriptionChangeException;
 
 /// Use case to subscribe to a plan

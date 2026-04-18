@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../domain/entities/installment_plan_entity.dart';
-import '../../../domain/entities/installment_payment_entity.dart';
-import '../../../domain/entities/payment_attempt_entity.dart';
-import '../../controllers/installment_controller.dart';
-import '../../controllers/transaction_realtime_controller.dart';
-import '../../../domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/installment_plan_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/installment_payment_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/payment_attempt_entity.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/installment_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
 
 /// Installment Tracker Tab — shows payment plan progress, payment history,
 /// and action buttons for buyers (submit payment) and sellers (confirm/reject).
@@ -904,11 +904,10 @@ class _InstallmentTrackerTabState extends State<InstallmentTrackerTab>
             'Amount: RM ${attempt.amount.toStringAsFixed(2)}',
             style: const TextStyle(fontSize: 12),
           ),
-          if (attempt.createdAt != null)
-            Text(
-              'Submitted: ${_formatDateTime(attempt.createdAt!)}',
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
-            ),
+          Text(
+            'Submitted: ${_formatDateTime(attempt.createdAt)}',
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
+          ),
           if (attempt.rejectionReason != null &&
               attempt.rejectionReason!.isNotEmpty) ...[
             const SizedBox(height: 4),

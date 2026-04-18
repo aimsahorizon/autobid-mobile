@@ -1,4 +1,4 @@
-import '../repositories/auction_repository.dart';
+import 'package:autobid_mobile/modules/browse/domain/repositories/auction_repository.dart';
 
 class StreamActiveAuctionsUseCase {
   final AuctionRepository repository;

@@ -1,4 +1,4 @@
-import '../repositories/seller_repository.dart';
+import 'package:autobid_mobile/modules/lists/domain/repositories/seller_repository.dart';
 
 class ValidatePlateNumberUseCase {
   final SellerRepository repository;

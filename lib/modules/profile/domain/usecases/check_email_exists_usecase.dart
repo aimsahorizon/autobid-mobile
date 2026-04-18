@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../repositories/profile_repository.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/profile_repository.dart';
 
 class CheckEmailExistsUseCase {
   final ProfileRepository repository;

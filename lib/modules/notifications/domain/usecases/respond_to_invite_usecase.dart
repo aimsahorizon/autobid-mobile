@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../repositories/notification_repository.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/notifications/domain/repositories/notification_repository.dart';
 
 class RespondToInviteUseCase {
   final NotificationRepository repository;

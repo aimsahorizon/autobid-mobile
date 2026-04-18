@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../../browse/data/datasources/qa_supabase_datasource.dart';
-import '../../../browse/domain/entities/qa_entity.dart';
-import '../../domain/entities/auction_monitor_entity.dart';
-import '../controllers/auction_monitor_controller.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/qa_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/auction_monitor_entity.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/auction_monitor_controller.dart';
 
 /// Admin page for monitoring live auctions, bid activity, and Q&A.
 class AuctionMonitorPage extends StatefulWidget {

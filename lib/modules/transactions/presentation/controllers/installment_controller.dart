@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../data/datasources/installment_supabase_datasource.dart';
-import '../../domain/entities/installment_plan_entity.dart';
-import '../../domain/entities/installment_payment_entity.dart';
-import '../../domain/entities/payment_attempt_entity.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/installment_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/installment_plan_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/installment_payment_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/payment_attempt_entity.dart';
 
 /// Controller for managing installment plan state and operations
 class InstallmentController extends ChangeNotifier {

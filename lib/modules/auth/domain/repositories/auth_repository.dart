@@ -1,7 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../entities/user_entity.dart';
-import '../entities/kyc_registration_entity.dart';
+import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
+import 'package:autobid_mobile/modules/auth/domain/entities/kyc_registration_entity.dart';
 
 abstract class AuthRepository {
   Future<Either<Failure, UserEntity?>> getCurrentUser();

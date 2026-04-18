@@ -1,4 +1,4 @@
-import '../../domain/entities/user_profile_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_profile_entity.dart';
 
 /// Data model for user profile that handles JSON serialization
 class UserProfileModel extends UserProfileEntity {

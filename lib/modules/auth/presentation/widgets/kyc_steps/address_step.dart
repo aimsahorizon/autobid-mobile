@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import '../../../../../../app/di/app_module.dart';
-import '../../../../location/domain/entities/location_entities.dart';
-import '../../../../location/presentation/bloc/location_bloc.dart';
-import '../../../../location/presentation/bloc/location_event.dart';
-import '../../../../location/presentation/bloc/location_state.dart';
-import '../../controllers/kyc_registration_controller.dart';
+import 'package:autobid_mobile/modules/location/domain/entities/location_entities.dart';
+import 'package:autobid_mobile/modules/location/presentation/bloc/location_bloc.dart';
+import 'package:autobid_mobile/modules/location/presentation/bloc/location_event.dart';
+import 'package:autobid_mobile/modules/location/presentation/bloc/location_state.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/kyc_registration_controller.dart';
 
 class AddressStep extends StatefulWidget {
   final KYCRegistrationController controller;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/login_controller.dart';
-import '../controllers/login_otp_controller.dart';
-import '../widgets/otp_input_fields.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/login_controller.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/login_otp_controller.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/otp_input_fields.dart';
 
 class LoginOtpPage extends StatefulWidget {
   final String email;

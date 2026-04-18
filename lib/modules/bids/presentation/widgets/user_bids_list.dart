@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/user_bid_entity.dart';
-import 'user_bid_card.dart';
+import 'package:autobid_mobile/modules/bids/domain/entities/user_bid_entity.dart';
+import 'package:autobid_mobile/modules/bids/presentation/widgets/user_bid_card.dart';
 
 /// Grid/List widget for displaying user bids
 /// Shows loading state, empty state, or grid/list of bid cards

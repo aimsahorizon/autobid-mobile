@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/admin_listing_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_listing_entity.dart';
 
 /// Admin datasource for managing listings and users
 class AdminSupabaseDataSource {

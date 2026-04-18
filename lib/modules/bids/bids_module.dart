@@ -1,11 +1,11 @@
 import 'package:get_it/get_it.dart';
-import 'data/datasources/bids_remote_datasource.dart';
-import 'data/datasources/user_bids_supabase_datasource.dart';
-import 'data/repositories/bids_repository_impl.dart';
-import 'domain/repositories/bids_repository.dart';
-import 'domain/usecases/get_user_bids_usecase.dart';
-import 'domain/usecases/stream_user_bids_usecase.dart';
-import 'presentation/controllers/bids_controller.dart';
+import 'package:autobid_mobile/modules/bids/data/datasources/bids_remote_datasource.dart';
+import 'package:autobid_mobile/modules/bids/data/datasources/user_bids_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/bids/data/repositories/bids_repository_impl.dart';
+import 'package:autobid_mobile/modules/bids/domain/repositories/bids_repository.dart';
+import 'package:autobid_mobile/modules/bids/domain/usecases/get_user_bids_usecase.dart';
+import 'package:autobid_mobile/modules/bids/domain/usecases/stream_user_bids_usecase.dart';
+import 'package:autobid_mobile/modules/bids/presentation/controllers/bids_controller.dart';
 // Ensure AuthModule is available for AuthRepository
 
 /// Initialize Bids module dependencies

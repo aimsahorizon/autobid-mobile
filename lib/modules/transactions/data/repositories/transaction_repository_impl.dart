@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/transaction_entity.dart';
-import '../../domain/repositories/transaction_repository.dart';
-import '../datasources/transaction_remote_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/repositories/transaction_repository.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_remote_datasource.dart';
 
 class TransactionRepositoryImpl implements TransactionRepository {
   final TransactionRemoteDataSource remoteDataSource;

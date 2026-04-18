@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'ipaymongo_service.dart';
+import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
 
 /// PayMongo payment service for handling payments
 /// Documentation: https://developers.paymongo.com/docs

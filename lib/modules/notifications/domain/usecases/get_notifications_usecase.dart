@@ -1,7 +1,7 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../entities/notification_entity.dart';
-import '../repositories/notification_repository.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
+import 'package:autobid_mobile/modules/notifications/domain/repositories/notification_repository.dart';
 
 /// UseCase for getting all notifications for a user
 class GetNotificationsUseCase {

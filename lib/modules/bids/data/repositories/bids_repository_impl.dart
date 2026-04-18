@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/user_bid_entity.dart';
-import '../../domain/repositories/bids_repository.dart';
-import '../datasources/bids_remote_datasource.dart';
+import 'package:autobid_mobile/modules/bids/domain/entities/user_bid_entity.dart';
+import 'package:autobid_mobile/modules/bids/domain/repositories/bids_repository.dart';
+import 'package:autobid_mobile/modules/bids/data/datasources/bids_remote_datasource.dart';
 
 class BidsRepositoryImpl implements BidsRepository {
   final BidsRemoteDataSource remoteDataSource;

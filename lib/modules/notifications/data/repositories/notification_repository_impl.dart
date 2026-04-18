@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../../../../core/network/network_info.dart';
-import '../../domain/entities/notification_entity.dart';
-import '../../domain/repositories/notification_repository.dart';
-import '../datasources/notification_datasource.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
+import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
+import 'package:autobid_mobile/modules/notifications/domain/repositories/notification_repository.dart';
+import 'package:autobid_mobile/modules/notifications/data/datasources/notification_datasource.dart';
 
 /// Implementation of NotificationRepository using datasource
 class NotificationRepositoryImpl implements NotificationRepository {

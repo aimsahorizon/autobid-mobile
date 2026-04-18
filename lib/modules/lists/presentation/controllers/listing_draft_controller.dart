@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
-import '../../data/models/listing_draft_model.dart';
-import '../../domain/usecases/draft_management_usecases.dart';
-import '../../domain/usecases/submission_usecases.dart';
-import '../../domain/usecases/media_management_usecases.dart';
-import '../../domain/usecases/get_vehicle_data_usecases.dart';
-import '../../domain/entities/vehicle_entities.dart';
-import '../../../profile/domain/usecases/get_user_profile_usecase.dart';
+import 'package:autobid_mobile/modules/lists/data/models/listing_draft_model.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/draft_management_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/submission_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/media_management_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/get_vehicle_data_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/vehicle_entities.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_profile_usecase.dart';
 import 'package:autobid_mobile/core/services/car_api_service.dart';
 
 /// Controller for managing listing draft creation and editing
@@ -529,8 +529,9 @@ class ListingDraftController extends ChangeNotifier {
 
   /// Remove deed of sale document
   Future<bool> removeDeedOfSale() async {
-    if (_currentDraft == null || _currentDraft!.deedOfSaleUrl == null)
+    if (_currentDraft == null || _currentDraft!.deedOfSaleUrl == null) {
       return false;
+    }
 
     final result = await _deleteDeedOfSaleUseCase.call(
       _currentDraft!.deedOfSaleUrl!,

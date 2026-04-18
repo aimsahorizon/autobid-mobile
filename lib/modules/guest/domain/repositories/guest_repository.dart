@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../entities/account_status_entity.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/guest/domain/entities/account_status_entity.dart';
 
 /// Repository interface for guest mode operations
 abstract class GuestRepository {

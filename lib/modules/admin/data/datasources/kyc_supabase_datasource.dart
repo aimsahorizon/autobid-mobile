@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/kyc_document_model.dart';
-import '../models/kyc_stats_model.dart';
+import 'package:autobid_mobile/modules/admin/data/models/kyc_document_model.dart';
+import 'package:autobid_mobile/modules/admin/data/models/kyc_stats_model.dart';
 
 class KycSupabaseDataSource {
   final SupabaseClient _supabase;

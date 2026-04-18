@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/account_status_entity.dart';
-import '../../domain/usecases/check_account_status_usecase.dart';
-import '../../domain/usecases/get_guest_auction_listings_usecase.dart';
-import '../../domain/usecases/submit_kyc_appeal_usecase.dart';
+import 'package:autobid_mobile/modules/guest/domain/entities/account_status_entity.dart';
+import 'package:autobid_mobile/modules/guest/domain/usecases/check_account_status_usecase.dart';
+import 'package:autobid_mobile/modules/guest/domain/usecases/get_guest_auction_listings_usecase.dart';
+import 'package:autobid_mobile/modules/guest/domain/usecases/submit_kyc_appeal_usecase.dart';
 
 /// Controller for guest mode operations
 /// Refactored to use Clean Architecture with UseCases

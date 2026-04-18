@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/review_controller.dart';
-import '../../domain/entities/user_review_entity.dart';
+import 'package:autobid_mobile/modules/profile/presentation/controllers/review_controller.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_review_entity.dart';
 
 /// A compact review card used in both the profile summary and the full reviews page.
 class ReviewCard extends StatelessWidget {

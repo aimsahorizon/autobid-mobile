@@ -1,5 +1,5 @@
-import 'listing_detail_entity.dart';
-import 'seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_detail_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
 
 /// Represents a car listing draft that can be saved at any step
 /// Supports the 9-step create listing flow with partial data

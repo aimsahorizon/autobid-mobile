@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../domain/usecases/send_password_reset_usecase.dart';
-import '../../domain/usecases/verify_otp_usecase.dart';
-import '../../domain/usecases/reset_password_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/send_password_reset_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/verify_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/reset_password_usecase.dart';
 
 enum ForgotPasswordStep { enterUsername, verifyOtp, setNewPassword, success }
 

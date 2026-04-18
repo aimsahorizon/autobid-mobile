@@ -1,5 +1,5 @@
-import '../entities/kyc_stats_entity.dart';
-import '../repositories/kyc_repository.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_stats_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/repositories/kyc_repository.dart';
 
 class GetKycStatsUseCase {
   final KycRepository _repository;

@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/auction_model.dart';
-import '../models/auction_detail_model.dart';
-import '../../domain/entities/auction_filter.dart';
-import 'deposit_supabase_datasource.dart' show DepositSupabaseDataSource;
+import 'package:autobid_mobile/modules/browse/data/models/auction_model.dart';
+import 'package:autobid_mobile/modules/browse/data/models/auction_detail_model.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_filter.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart' show DepositSupabaseDataSource;
 
 /// Supabase datasource for auction operations
 /// Handles fetching, filtering, and managing auctions from vehicles table

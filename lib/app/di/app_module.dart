@@ -2,22 +2,22 @@ import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import '../../core/config/supabase_config.dart';
-import '../../core/services/file_encryption_service.dart';
-import '../../core/services/ai_id_extraction_service.dart';
-import '../../core/services/price_prediction_service.dart';
-import '../../core/network/network_info.dart';
+import 'package:autobid_mobile/core/config/supabase_config.dart';
+import 'package:autobid_mobile/core/services/file_encryption_service.dart';
+import 'package:autobid_mobile/core/services/ai_id_extraction_service.dart';
+import 'package:autobid_mobile/core/services/price_prediction_service.dart';
+import 'package:autobid_mobile/core/network/network_info.dart';
 // Import module initializers
-import '../../modules/auth/auth_module.dart';
-import '../../modules/profile/profile_module.dart';
-import '../../modules/bids/bids_module.dart';
-import '../../modules/browse/browse_module.dart';
-import '../../modules/notifications/notifications_module.dart';
-import '../../modules/lists/lists_module.dart';
-import '../../modules/admin/admin_module.dart';
-import '../../modules/transactions/transactions_module.dart';
-import '../../modules/guest/guest_module.dart';
-import '../../modules/location/location_module.dart';
+import 'package:autobid_mobile/modules/auth/auth_module.dart';
+import 'package:autobid_mobile/modules/profile/profile_module.dart';
+import 'package:autobid_mobile/modules/bids/bids_module.dart';
+import 'package:autobid_mobile/modules/browse/browse_module.dart';
+import 'package:autobid_mobile/modules/notifications/notifications_module.dart';
+import 'package:autobid_mobile/modules/lists/lists_module.dart';
+import 'package:autobid_mobile/modules/admin/admin_module.dart';
+import 'package:autobid_mobile/modules/transactions/transactions_module.dart';
+import 'package:autobid_mobile/modules/guest/guest_module.dart';
+import 'package:autobid_mobile/modules/location/location_module.dart';
 
 final sl = GetIt.instance;
 

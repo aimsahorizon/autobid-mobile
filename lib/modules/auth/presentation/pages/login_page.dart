@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
-import '../../auth_routes.dart';
-import '../../../guest/guest_routes.dart';
-import '../controllers/login_controller.dart';
-import '../controllers/login_otp_controller.dart';
-import '../widgets/auth_text_field.dart';
-import '../widgets/auth_error_message.dart';
-import '../widgets/auth_loading_button.dart';
-import 'login_otp_page.dart';
+import 'package:autobid_mobile/modules/auth/auth_routes.dart';
+import 'package:autobid_mobile/modules/guest/guest_routes.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/login_controller.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/login_otp_controller.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/auth_text_field.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/auth_error_message.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/auth_loading_button.dart';
+import 'package:autobid_mobile/modules/auth/presentation/pages/login_otp_page.dart';
 
 class LoginPage extends StatefulWidget {
   final LoginController controller;

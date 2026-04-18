@@ -2,14 +2,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import '../../domain/entities/seller_listing_entity.dart';
-import '../../domain/usecases/get_seller_listings_usecase.dart';
-import '../../domain/usecases/stream_seller_listings_usecase.dart';
-import '../../domain/usecases/submission_usecases.dart';
-import '../../domain/usecases/delete_listing_usecase.dart';
-import '../../domain/usecases/manage_invites_usecases.dart';
-import '../../../auth/domain/repositories/auth_repository.dart';
-import '../../../browse/data/datasources/invites_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/get_seller_listings_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/stream_seller_listings_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/submission_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/delete_listing_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/manage_invites_usecases.dart';
+import 'package:autobid_mobile/modules/auth/domain/repositories/auth_repository.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/invites_supabase_datasource.dart';
 
 /// Controller for managing seller listings across all tabs
 class ListsController extends ChangeNotifier {

@@ -2,21 +2,21 @@ import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'data/datasources/notification_datasource.dart';
-import 'data/datasources/notification_supabase_datasource.dart';
-import 'data/repositories/notification_repository_impl.dart';
-import 'domain/repositories/notification_repository.dart';
-import 'domain/usecases/get_notifications_usecase.dart';
-import 'domain/usecases/get_unread_count_usecase.dart';
-import 'domain/usecases/mark_as_read_usecase.dart';
-import 'domain/usecases/mark_all_as_read_usecase.dart';
-import 'domain/usecases/delete_notification_usecase.dart';
-import 'domain/usecases/get_unread_notifications_usecase.dart';
-import 'domain/usecases/respond_to_invite_usecase.dart';
-import 'presentation/controllers/notification_controller.dart';
+import 'package:autobid_mobile/modules/notifications/data/datasources/notification_datasource.dart';
+import 'package:autobid_mobile/modules/notifications/data/datasources/notification_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:autobid_mobile/modules/notifications/domain/repositories/notification_repository.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/get_notifications_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/get_unread_count_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/mark_as_read_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/mark_all_as_read_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/delete_notification_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/get_unread_notifications_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/domain/usecases/respond_to_invite_usecase.dart';
+import 'package:autobid_mobile/modules/notifications/presentation/controllers/notification_controller.dart';
 
 // Export the controller so it can be used by other modules
-export 'presentation/controllers/notification_controller.dart';
+export 'package:autobid_mobile/modules/notifications/presentation/controllers/notification_controller.dart';
 
 /// Initialize Notifications module dependencies
 Future<void> initNotificationsModule() async {

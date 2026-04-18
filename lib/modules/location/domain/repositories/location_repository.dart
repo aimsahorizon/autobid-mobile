@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../entities/location_entities.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/location/domain/entities/location_entities.dart';
 
 abstract class LocationRepository {
   Future<Either<Failure, List<RegionEntity>>> getRegions();

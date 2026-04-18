@@ -1,4 +1,4 @@
-import '../../domain/entities/location_entities.dart';
+import 'package:autobid_mobile/modules/location/domain/entities/location_entities.dart';
 
 class RegionModel extends RegionEntity {
   const RegionModel({required super.id, required super.name, super.code});

@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/support_ticket_model.dart';
-import '../../domain/entities/support_ticket_entity.dart';
+import 'package:autobid_mobile/modules/profile/data/models/support_ticket_model.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/support_ticket_entity.dart';
 import 'dart:io';
 
 class SupportSupabaseDatasource {

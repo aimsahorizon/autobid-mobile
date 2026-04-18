@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../domain/entities/listing_detail_entity.dart';
-import '../../data/datasources/listing_supabase_datasource.dart';
-import '../widgets/detail_sections/listing_cover_section.dart';
-import '../widgets/detail_sections/listing_info_section.dart';
-import '../controllers/listing_draft_controller.dart';
-import 'create_listing_page.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_detail_entity.dart';
+import 'package:autobid_mobile/modules/lists/data/datasources/listing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/detail_sections/listing_cover_section.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/detail_sections/listing_info_section.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/create_listing_page.dart';
 
 class RejectedListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;

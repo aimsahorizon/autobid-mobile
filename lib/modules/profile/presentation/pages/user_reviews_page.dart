@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/review_controller.dart';
-import '../widgets/reviews_section.dart';
+import 'package:autobid_mobile/modules/profile/presentation/controllers/review_controller.dart';
+import 'package:autobid_mobile/modules/profile/presentation/widgets/reviews_section.dart';
 
 /// Full-page view of all reviews received by the current user.
 class UserReviewsPage extends StatefulWidget {

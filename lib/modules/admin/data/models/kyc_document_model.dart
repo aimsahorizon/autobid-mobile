@@ -1,4 +1,4 @@
-import '../../domain/entities/kyc_document_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_document_entity.dart';
 
 class KycDocumentModel extends KycDocumentEntity {
   const KycDocumentModel({

@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/utils/image_helper.dart';
-import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
-import '../../../data/datasources/sample_photo_guide_datasource.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/data/datasources/sample_photo_guide_datasource.dart';
 
 class Step7Photos extends StatefulWidget {
   final ListingDraftController controller;

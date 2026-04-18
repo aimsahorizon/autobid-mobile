@@ -1,4 +1,4 @@
-import 'seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
 
 /// Complete listing details combining seller listing status with full car specifications
 /// This entity is used when viewing detailed information about any listing
@@ -198,7 +198,7 @@ class ListingDetailEntity {
 
   /// Get cover photo URL (stored selection, or first photo as fallback)
   String? get coverPhotoUrl {
-    if (_storedCoverPhotoUrl != null && _storedCoverPhotoUrl!.isNotEmpty) {
+    if (_storedCoverPhotoUrl != null && _storedCoverPhotoUrl.isNotEmpty) {
       return _storedCoverPhotoUrl;
     }
     if (photoUrls == null || photoUrls!.isEmpty) return null;

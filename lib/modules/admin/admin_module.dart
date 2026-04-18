@@ -2,22 +2,22 @@ import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'data/datasources/admin_supabase_datasource.dart';
-import 'data/datasources/kyc_supabase_datasource.dart';
-import 'data/datasources/auction_monitor_supabase_datasource.dart';
-import 'data/datasources/admin_transaction_datasource.dart';
-import 'data/repositories/kyc_repository_impl.dart';
-import 'domain/repositories/kyc_repository.dart';
-import 'domain/usecases/get_kyc_stats_usecase.dart';
-import 'domain/usecases/get_kyc_submissions_usecase.dart';
-import 'domain/usecases/get_kyc_document_usecase.dart';
-import 'domain/usecases/approve_kyc_usecase.dart';
-import 'domain/usecases/reject_kyc_usecase.dart';
-import 'domain/usecases/get_document_url_usecase.dart';
-import 'presentation/controllers/admin_controller.dart';
-import 'presentation/controllers/kyc_controller.dart';
-import 'presentation/controllers/auction_monitor_controller.dart';
-import 'presentation/controllers/admin_transaction_controller.dart';
+import 'package:autobid_mobile/modules/admin/data/datasources/admin_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/admin/data/datasources/kyc_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/admin/data/datasources/auction_monitor_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/admin/data/datasources/admin_transaction_datasource.dart';
+import 'package:autobid_mobile/modules/admin/data/repositories/kyc_repository_impl.dart';
+import 'package:autobid_mobile/modules/admin/domain/repositories/kyc_repository.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/get_kyc_stats_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/get_kyc_submissions_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/get_kyc_document_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/approve_kyc_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/reject_kyc_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/get_document_url_usecase.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/admin_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/kyc_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/auction_monitor_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/admin_transaction_controller.dart';
 
 /// Initialize Admin module dependencies
 Future<void> initAdminModule() async {

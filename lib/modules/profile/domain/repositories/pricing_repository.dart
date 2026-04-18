@@ -1,4 +1,4 @@
-import '../entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
 
 /// Repository interface for pricing and token management
 abstract class PricingRepository {

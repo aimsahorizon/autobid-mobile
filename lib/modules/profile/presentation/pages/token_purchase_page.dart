@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/pricing_entity.dart';
-import '../controllers/pricing_controller.dart';
-import 'paymongo_payment_page.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/presentation/controllers/pricing_controller.dart';
+import 'package:autobid_mobile/modules/profile/presentation/pages/paymongo_payment_page.dart';
 
 class TokenPurchasePage extends StatefulWidget {
   final String userId;

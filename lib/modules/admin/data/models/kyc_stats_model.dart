@@ -1,4 +1,4 @@
-import '../../domain/entities/kyc_stats_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_stats_entity.dart';
 
 class KycStatsModel extends KycStatsEntity {
   const KycStatsModel({

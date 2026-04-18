@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../../browse/presentation/controllers/auction_detail_controller.dart';
-import '../../../browse/presentation/pages/auction_detail_page.dart';
-import '../../../transactions/presentation/controllers/transaction_realtime_controller.dart';
-import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
-import '../../domain/entities/notification_entity.dart';
+import 'package:autobid_mobile/modules/browse/presentation/controllers/auction_detail_controller.dart';
+import 'package:autobid_mobile/modules/browse/presentation/pages/auction_detail_page.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/pages/pre_transaction_realtime_page.dart';
+import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
 
 /// Handles notification tap actions by navigating to the relevant screen
 /// based on the notification type and related entity.

@@ -1,4 +1,4 @@
-import '../../domain/repositories/bids_repository.dart';
+import 'package:autobid_mobile/modules/bids/domain/repositories/bids_repository.dart';
 
 class StreamUserBidsUseCase {
   final BidsRepository repository;

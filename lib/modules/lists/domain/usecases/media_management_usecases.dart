@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../repositories/seller_repository.dart';
+import 'package:autobid_mobile/modules/lists/domain/repositories/seller_repository.dart';
 
 class UploadListingPhotoUseCase {
   final SellerRepository repository;

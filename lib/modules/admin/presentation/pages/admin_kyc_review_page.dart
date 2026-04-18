@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/kyc_document_entity.dart';
-import '../controllers/kyc_controller.dart';
-import '../widgets/kyc_document_viewer.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_document_entity.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/kyc_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/widgets/kyc_document_viewer.dart';
 
 class AdminKycReviewPage extends StatefulWidget {
   final KycController controller;

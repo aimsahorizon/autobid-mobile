@@ -1,5 +1,5 @@
-import '../entities/pricing_entity.dart';
-import '../repositories/pricing_repository.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/pricing_repository.dart';
 
 /// Use case to get user's token balance
 class GetTokenBalanceUsecase {

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../lists/data/models/listing_model.dart';
+import 'package:autobid_mobile/modules/lists/data/models/listing_model.dart';
 
 /// Data source for transaction-related operations
 /// Queries the dedicated auction_transactions table for seller-buyer transactions

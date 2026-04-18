@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/admin_listing_entity.dart';
-import '../../domain/entities/admin_enums.dart';
-import '../controllers/admin_controller.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_listing_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_enums.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/admin_controller.dart';
 
 /// Admin page for reviewing listing details
 class AdminListingReviewPage extends StatefulWidget {

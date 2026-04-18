@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/admin_listing_entity.dart';
-import '../../domain/entities/admin_enums.dart';
-import '../../data/datasources/admin_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_listing_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_enums.dart';
+import 'package:autobid_mobile/modules/admin/data/datasources/admin_supabase_datasource.dart';
 
 /// Admin controller for managing listings and dashboard.
 /// 

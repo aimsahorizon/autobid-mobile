@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 // ...existing code...
-import '../../controllers/listing_draft_controller.dart';
-import 'form_field_widget.dart';
-import 'combo_box_widget.dart';
-import 'package:autobid_mobile/core/services/car_api_service.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listing_form/form_field_widget.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listing_form/combo_box_widget.dart';
 
 class Step1BasicInfo extends StatefulWidget {
   final ListingDraftController controller;

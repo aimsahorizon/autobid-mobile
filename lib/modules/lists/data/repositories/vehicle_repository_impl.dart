@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/vehicle_entities.dart';
-import '../../domain/repositories/vehicle_repository.dart';
-import '../datasources/vehicle_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/vehicle_entities.dart';
+import 'package:autobid_mobile/modules/lists/domain/repositories/vehicle_repository.dart';
+import 'package:autobid_mobile/modules/lists/data/datasources/vehicle_supabase_datasource.dart';
 
 class VehicleRepositoryImpl implements VehicleRepository {
   final VehicleSupabaseDataSource dataSource;

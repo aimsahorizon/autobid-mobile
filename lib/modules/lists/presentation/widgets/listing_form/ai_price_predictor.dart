@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import '../../../../../../core/constants/color_constants.dart';
 import '../../../../../../core/services/price_prediction_service.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
 
 class AiPricePredictor extends StatefulWidget {
   final ListingDraftEntity draft;

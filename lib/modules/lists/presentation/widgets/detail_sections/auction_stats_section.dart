@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:intl/intl.dart';
-import '../../../domain/entities/listing_detail_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_detail_entity.dart';
 
 class AuctionStatsSection extends StatelessWidget {
   final ListingDetailEntity listing;

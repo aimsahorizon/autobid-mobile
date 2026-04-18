@@ -1,7 +1,7 @@
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/support_ticket_entity.dart';
-import '../../domain/repositories/support_repository.dart';
-import '../datasources/support_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/support_ticket_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/support_repository.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/support_supabase_datasource.dart';
 
 class SupportRepositorySupabaseImpl implements SupportRepository {
   final SupportSupabaseDatasource datasource;

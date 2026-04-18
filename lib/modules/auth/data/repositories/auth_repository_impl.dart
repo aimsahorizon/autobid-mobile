@@ -2,12 +2,12 @@ import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/error/exceptions.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/user_entity.dart';
-import '../../domain/entities/kyc_registration_entity.dart';
-import '../../domain/repositories/auth_repository.dart';
-import '../datasources/auth_remote_datasource.dart';
-import '../datasources/auth_local_datasource.dart';
-import '../models/kyc_registration_model.dart';
+import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
+import 'package:autobid_mobile/modules/auth/domain/entities/kyc_registration_entity.dart';
+import 'package:autobid_mobile/modules/auth/domain/repositories/auth_repository.dart';
+import 'package:autobid_mobile/modules/auth/data/datasources/auth_remote_datasource.dart';
+import 'package:autobid_mobile/modules/auth/data/datasources/auth_local_datasource.dart';
+import 'package:autobid_mobile/modules/auth/data/models/kyc_registration_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;

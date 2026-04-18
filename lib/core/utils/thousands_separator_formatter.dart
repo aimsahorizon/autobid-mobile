@@ -70,7 +70,7 @@ class ThousandsSeparatorInputFormatter extends TextInputFormatter {
       return _addCommas(value.toInt().toString());
     }
     final parts = value.toString().split('.');
-    return _addCommas(parts[0]) + '.' + parts[1];
+    return '${_addCommas(parts[0])}.${parts[1]}';
   }
 
   /// Format an int value with commas for display in a TextEditingController.

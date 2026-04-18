@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../data/datasources/invites_supabase_datasource.dart';
-import '../../domain/usecases/buyer_invite_usecases.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/invites_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/buyer_invite_usecases.dart';
 
 /// Controller for managing buyer's received auction invites
 /// Handles loading, streaming, accepting, and rejecting invites

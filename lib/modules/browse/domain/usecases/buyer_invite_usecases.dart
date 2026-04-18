@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../../data/datasources/invites_supabase_datasource.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/invites_supabase_datasource.dart';
 
 /// Use case for buyers to list their pending auction invites
 class ListMyInvitesUseCase {

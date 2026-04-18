@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../domain/entities/user_profile_entity.dart';
-import '../../domain/repositories/profile_repository.dart';
-import '../../domain/usecases/upload_profile_photo_usecase.dart';
-import '../../domain/usecases/upload_cover_photo_usecase.dart';
-import '../../domain/usecases/update_profile_with_photo_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_profile_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/profile_repository.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/upload_profile_photo_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/upload_cover_photo_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/update_profile_with_photo_usecase.dart';
 
-import '../../domain/usecases/change_password_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/change_password_usecase.dart';
 
 /// Controller for managing profile state
 /// Refactored to use Clean Architecture with UseCases

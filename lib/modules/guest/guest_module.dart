@@ -1,12 +1,12 @@
 import 'package:get_it/get_it.dart';
-import 'data/datasources/guest_supabase_datasource.dart';
-import 'data/datasources/guest_remote_datasource.dart';
-import 'data/repositories/guest_repository_impl.dart';
-import 'domain/repositories/guest_repository.dart';
-import 'domain/usecases/check_account_status_usecase.dart';
-import 'domain/usecases/get_guest_auction_listings_usecase.dart';
-import 'domain/usecases/submit_kyc_appeal_usecase.dart';
-import 'presentation/controllers/guest_controller.dart';
+import 'package:autobid_mobile/modules/guest/data/datasources/guest_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/guest/data/datasources/guest_remote_datasource.dart';
+import 'package:autobid_mobile/modules/guest/data/repositories/guest_repository_impl.dart';
+import 'package:autobid_mobile/modules/guest/domain/repositories/guest_repository.dart';
+import 'package:autobid_mobile/modules/guest/domain/usecases/check_account_status_usecase.dart';
+import 'package:autobid_mobile/modules/guest/domain/usecases/get_guest_auction_listings_usecase.dart';
+import 'package:autobid_mobile/modules/guest/domain/usecases/submit_kyc_appeal_usecase.dart';
+import 'package:autobid_mobile/modules/guest/presentation/controllers/guest_controller.dart';
 
 /// Initialize Guest module dependencies
 /// Following Clean Architecture with proper DI setup

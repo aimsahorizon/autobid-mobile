@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../domain/entities/listing_detail_entity.dart';
-import '../widgets/detail_sections/listing_cover_section.dart';
-import '../widgets/detail_sections/listing_info_section.dart';
-import '../widgets/detail_sections/auction_stats_section.dart';
-import '../widgets/detail_sections/qa_section.dart';
-import '../widgets/detail_sections/seller_bid_history_section.dart';
-import '../widgets/detail_sections/bid_queue_live_section.dart';
-import '../../data/datasources/listing_supabase_datasource.dart';
-import '../widgets/invite_management_dialog.dart';
-import '../controllers/lists_controller.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_detail_entity.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/detail_sections/listing_cover_section.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/detail_sections/listing_info_section.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/detail_sections/auction_stats_section.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/detail_sections/qa_section.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/detail_sections/seller_bid_history_section.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/detail_sections/bid_queue_live_section.dart';
+import 'package:autobid_mobile/modules/lists/data/datasources/listing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/invite_management_dialog.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/lists_controller.dart';
 
 class ActiveListingDetailPage extends StatefulWidget {
   final ListingDetailEntity listing;

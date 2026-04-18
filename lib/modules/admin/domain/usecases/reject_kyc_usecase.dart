@@ -1,4 +1,4 @@
-import '../repositories/kyc_repository.dart';
+import 'package:autobid_mobile/modules/admin/domain/repositories/kyc_repository.dart';
 
 class RejectKycUseCase {
   final KycRepository _repository;

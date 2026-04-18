@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../data/datasources/profile_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/profile_supabase_datasource.dart';
 
 class KycDetailsPage extends StatefulWidget {
   const KycDetailsPage({super.key});

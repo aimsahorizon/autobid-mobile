@@ -1,7 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../entities/listing_draft_entity.dart';
-import '../repositories/seller_repository.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/repositories/seller_repository.dart';
 
 class SaveDraftUseCase {
   final SellerRepository repository;

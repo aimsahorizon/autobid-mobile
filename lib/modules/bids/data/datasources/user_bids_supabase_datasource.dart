@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:async/async.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/user_bid_entity.dart';
-import 'bids_remote_datasource.dart';
+import 'package:autobid_mobile/modules/bids/domain/entities/user_bid_entity.dart';
+import 'package:autobid_mobile/modules/bids/data/datasources/bids_remote_datasource.dart';
 
 /// Supabase datasource for user's bid history
 /// Fetches user's active, won, lost, and cancelled bids from database

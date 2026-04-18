@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../domain/entities/seller_listing_entity.dart';
-import '../../domain/entities/listing_detail_entity.dart';
-import 'listing_card.dart';
-import '../../data/datasources/listing_supabase_datasource.dart';
-import '../controllers/listing_draft_controller.dart';
-import '../pages/active_listing_detail_page.dart';
-import '../pages/pending_listing_detail_page.dart';
-import '../pages/approved_listing_detail_page.dart';
-import '../pages/draft_listing_detail_page.dart';
-import '../pages/ended_listing_detail_page.dart';
-import '../pages/cancelled_listing_detail_page.dart';
-import '../pages/rejected_listing_detail_page.dart';
-import '../../../transactions/presentation/pages/pre_transaction_realtime_page.dart';
-import '../../../transactions/transactions_module.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_detail_entity.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listing_card.dart';
+import 'package:autobid_mobile/modules/lists/data/datasources/listing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/active_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/pending_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/approved_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/draft_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/ended_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/cancelled_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/rejected_listing_detail_page.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/pages/pre_transaction_realtime_page.dart';
+import 'package:autobid_mobile/modules/transactions/transactions_module.dart';
 
 class ListingsGrid extends StatelessWidget {
   final List<SellerListingEntity> listings;

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/forgot_password_controller.dart';
-import '../widgets/auth_text_field.dart';
-import '../widgets/auth_error_message.dart';
-import '../widgets/auth_loading_button.dart';
-import '../widgets/otp_input_fields.dart';
-import '../widgets/icon_header.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/forgot_password_controller.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/auth_text_field.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/auth_error_message.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/auth_loading_button.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/otp_input_fields.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/icon_header.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   final ForgotPasswordController controller;

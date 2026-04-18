@@ -5,16 +5,16 @@ import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
 import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import 'package:autobid_mobile/modules/auth/auth_routes.dart';
-import '../controllers/transaction_realtime_controller.dart';
-import '../controllers/installment_controller.dart';
-import '../../domain/entities/transaction_entity.dart';
-import '../../data/datasources/installment_supabase_datasource.dart';
-import '../../data/datasources/transaction_supabase_datasource.dart';
-import '../widgets/transaction_realtime/chat_realtime_tab.dart';
-import '../widgets/transaction_realtime/progress_realtime_tab.dart';
-import '../widgets/transaction_realtime/unified_agreement_tab.dart';
-import '../widgets/transaction_realtime/installment_tracker_tab.dart';
-import '../widgets/transaction_realtime/deposit_payment_tab.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/installment_controller.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/installment_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/widgets/transaction_realtime/chat_realtime_tab.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/widgets/transaction_realtime/progress_realtime_tab.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/widgets/transaction_realtime/unified_agreement_tab.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/widgets/transaction_realtime/installment_tracker_tab.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/widgets/transaction_realtime/deposit_payment_tab.dart';
 
 /// Real-time Pre-Transaction Page
 /// Supports live chat and form updates between buyer and seller
@@ -1470,7 +1470,7 @@ class _PreTransactionRealtimePageState
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: selectedReason,
+                  initialValue: selectedReason,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/controllers/theme_controller.dart';
-import '../../auth_routes.dart';
-import '../../domain/usecases/manage_local_auth_usecase.dart';
-import '../controllers/onboarding_controller.dart';
-import '../widgets/onboarding_slide.dart';
-import '../widgets/page_indicators.dart';
-import '../widgets/onboarding_navigation_buttons.dart';
+import 'package:autobid_mobile/modules/auth/auth_routes.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/manage_local_auth_usecase.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/onboarding_controller.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/onboarding_slide.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/page_indicators.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/onboarding_navigation_buttons.dart';
 
 class OnboardingPage extends StatefulWidget {
   final ThemeController themeController;

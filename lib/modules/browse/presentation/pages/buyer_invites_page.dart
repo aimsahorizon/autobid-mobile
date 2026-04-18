@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/buyer_invites_controller.dart';
-import '../controllers/browse_controller.dart';
+import 'package:autobid_mobile/modules/browse/presentation/controllers/buyer_invites_controller.dart';
+import 'package:autobid_mobile/modules/browse/presentation/controllers/browse_controller.dart';
 
 /// Page for buyers to view and respond to auction invites
 class BuyerInvitesPage extends StatefulWidget {

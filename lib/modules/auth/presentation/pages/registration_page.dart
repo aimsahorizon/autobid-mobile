@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
-import '../controllers/kyc_registration_controller.dart';
-import '../../auth_routes.dart';
-import '../widgets/kyc_steps/national_id_step.dart';
-import '../widgets/kyc_steps/selfie_with_id_step.dart';
-import '../widgets/kyc_steps/secondary_id_step.dart';
-import '../widgets/kyc_steps/personal_info_step.dart';
-import '../widgets/kyc_steps/account_info_step.dart';
-import '../widgets/kyc_steps/otp_verification_step.dart';
-import '../widgets/kyc_steps/address_step.dart';
-import '../widgets/kyc_steps/proof_of_address_step.dart';
-import '../widgets/kyc_steps/review_step.dart';
-import '../widgets/auth_error_message.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/kyc_registration_controller.dart';
+import 'package:autobid_mobile/modules/auth/auth_routes.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/national_id_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/selfie_with_id_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/secondary_id_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/personal_info_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/account_info_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/otp_verification_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/address_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/proof_of_address_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/kyc_steps/review_step.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/auth_error_message.dart';
 
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});

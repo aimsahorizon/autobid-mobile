@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/kyc_document_entity.dart';
-import '../../domain/entities/kyc_stats_entity.dart';
-import '../../domain/usecases/get_kyc_stats_usecase.dart';
-import '../../domain/usecases/get_kyc_submissions_usecase.dart';
-import '../../domain/usecases/get_kyc_document_usecase.dart';
-import '../../domain/usecases/approve_kyc_usecase.dart';
-import '../../domain/usecases/reject_kyc_usecase.dart';
-import '../../domain/usecases/get_document_url_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_document_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_stats_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/get_kyc_stats_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/get_kyc_submissions_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/get_kyc_document_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/approve_kyc_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/reject_kyc_usecase.dart';
+import 'package:autobid_mobile/modules/admin/domain/usecases/get_document_url_usecase.dart';
 
 class KycController extends ChangeNotifier {
   final GetKycStatsUseCase _getKycStatsUseCase;

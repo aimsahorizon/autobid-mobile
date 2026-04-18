@@ -1,13 +1,13 @@
-import '../../domain/entities/auction_detail_entity.dart';
-import '../../domain/entities/bid_history_entity.dart';
-import '../../domain/entities/bid_queue_entity.dart';
-import '../../domain/entities/qa_entity.dart';
-import 'auction_detail_remote_datasource.dart';
-import 'auction_supabase_datasource.dart';
-import 'bid_supabase_datasource.dart';
-import 'qa_supabase_datasource.dart';
-import 'user_preferences_supabase_datasource.dart';
-import 'deposit_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_history_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/auction_detail_remote_datasource.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/auction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/bid_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/qa_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/user_preferences_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart';
 
 /// Composite data source that aggregates existing specialized data sources
 /// Following the pattern from TransactionCompositeSupabaseDataSource

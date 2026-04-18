@@ -1,4 +1,4 @@
-import '../../domain/entities/notification_entity.dart';
+import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
 
 /// Model for serializing/deserializing notification data from Supabase
 class NotificationModel extends NotificationEntity {

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
-import '../../domain/entities/transaction_status_entity.dart';
-import '../controllers/buyer_seller_transactions_controller.dart';
-import '../controllers/transaction_realtime_controller.dart';
-import '../pages/pre_transaction_realtime_page.dart';
-import '../../../lists/presentation/widgets/listings_grid.dart';
-import '../../../lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_status_entity.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/buyer_seller_transactions_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/pages/pre_transaction_realtime_page.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listings_grid.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
-import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
+import 'package:autobid_mobile/modules/notifications/presentation/widgets/notification_bell_widget.dart';
 
 /// Page for status-based transactions with buyer/seller perspective
 /// Displays in the Transactions bottom nav tab

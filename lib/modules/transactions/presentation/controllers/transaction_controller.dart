@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/transaction_entity.dart';
-import '../../domain/usecases/get_transaction_usecases.dart';
-import '../../domain/usecases/manage_transaction_usecases.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/usecases/get_transaction_usecases.dart';
+import 'package:autobid_mobile/modules/transactions/domain/usecases/manage_transaction_usecases.dart';
 
 /// Controller for managing transaction state and actions
 /// Handles chat, forms, timeline, and transaction lifecycle
@@ -18,7 +18,6 @@ class TransactionController extends ChangeNotifier {
   final AcceptVehicleUseCase _acceptVehicleUseCase;
   final RejectVehicleUseCase _rejectVehicleUseCase;
   final GetBuyerAcceptanceDeadlineUseCase _getDeadlineUseCase;
-  final CheckAutoAcceptUseCase _checkAutoAcceptUseCase;
   final EnableAutoAcceptDemoUseCase _enableAutoAcceptDemoUseCase;
 
   TransactionController({
@@ -34,7 +33,6 @@ class TransactionController extends ChangeNotifier {
     required AcceptVehicleUseCase acceptVehicleUseCase,
     required RejectVehicleUseCase rejectVehicleUseCase,
     required GetBuyerAcceptanceDeadlineUseCase getDeadlineUseCase,
-    required CheckAutoAcceptUseCase checkAutoAcceptUseCase,
     required EnableAutoAcceptDemoUseCase enableAutoAcceptDemoUseCase,
   }) : _getTransactionUseCase = getTransactionUseCase,
        _getChatMessagesUseCase = getChatMessagesUseCase,
@@ -48,7 +46,6 @@ class TransactionController extends ChangeNotifier {
        _acceptVehicleUseCase = acceptVehicleUseCase,
        _rejectVehicleUseCase = rejectVehicleUseCase,
        _getDeadlineUseCase = getDeadlineUseCase,
-       _checkAutoAcceptUseCase = checkAutoAcceptUseCase,
        _enableAutoAcceptDemoUseCase = enableAutoAcceptDemoUseCase;
 
   // State
@@ -248,8 +245,9 @@ class TransactionController extends ChangeNotifier {
 
   /// Submit to admin for approval
   Future<bool> submitToAdmin() async {
-    if (_transaction == null || !_transaction!.readyForAdminReview)
+    if (_transaction == null || !_transaction!.readyForAdminReview) {
       return false;
+    }
 
     _isProcessing = true;
     notifyListeners();

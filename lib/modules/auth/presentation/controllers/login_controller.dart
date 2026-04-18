@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../profile/domain/usecases/check_email_exists_usecase.dart';
-import '../../../profile/domain/usecases/get_user_profile_by_email_usecase.dart';
-import '../../domain/usecases/sign_in_usecase.dart';
-import '../../domain/usecases/sign_in_with_google_usecase.dart';
-import '../../domain/usecases/manage_local_auth_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/check_email_exists_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_profile_by_email_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/sign_in_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/sign_in_with_google_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/manage_local_auth_usecase.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 
 enum LoginStep { credentials, otpVerification, completed }

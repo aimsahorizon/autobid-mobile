@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/installment_plan_model.dart';
-import '../models/installment_payment_model.dart';
-import '../models/payment_attempt_model.dart';
-import '../../domain/entities/installment_plan_entity.dart';
-import '../../domain/entities/installment_payment_entity.dart';
-import '../../domain/entities/payment_attempt_entity.dart';
+import 'package:autobid_mobile/modules/transactions/data/models/installment_plan_model.dart';
+import 'package:autobid_mobile/modules/transactions/data/models/installment_payment_model.dart';
+import 'package:autobid_mobile/modules/transactions/data/models/payment_attempt_model.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/installment_plan_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/installment_payment_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/payment_attempt_entity.dart';
 
 /// Datasource for managing installment plans and payments via Supabase
 class InstallmentSupabaseDatasource {

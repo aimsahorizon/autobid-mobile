@@ -1,5 +1,5 @@
-import '../entities/bid_queue_entity.dart';
-import '../repositories/auction_detail_repository.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/repositories/auction_detail_repository.dart';
 
 /// UseCase for streaming real-time queue cycle updates for an auction.
 ///

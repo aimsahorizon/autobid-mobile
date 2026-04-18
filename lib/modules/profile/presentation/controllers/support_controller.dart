@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/support_ticket_entity.dart';
-import '../../domain/usecases/get_support_categories_usecase.dart';
-import '../../domain/usecases/get_user_tickets_usecase.dart';
-import '../../domain/usecases/get_ticket_by_id_usecase.dart';
-import '../../domain/usecases/create_support_ticket_usecase.dart';
-import '../../domain/usecases/add_ticket_message_usecase.dart';
-import '../../domain/usecases/update_ticket_status_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/support_ticket_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_support_categories_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_tickets_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_ticket_by_id_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/create_support_ticket_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/add_ticket_message_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/update_ticket_status_usecase.dart';
 
 class SupportController extends ChangeNotifier {
   final GetSupportCategoriesUsecase getSupportCategoriesUsecase;

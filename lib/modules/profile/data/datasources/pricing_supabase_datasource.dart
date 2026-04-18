@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/pricing_entity.dart';
-import '../models/pricing_model.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/data/models/pricing_model.dart';
 
 /// Exception for subscription change failures
 class SubscriptionChangeException implements Exception {

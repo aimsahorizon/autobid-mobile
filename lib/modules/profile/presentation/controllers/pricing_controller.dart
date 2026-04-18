@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/pricing_entity.dart';
-import '../../domain/usecases/get_token_balance_usecase.dart';
-import '../../domain/usecases/get_user_subscription_usecase.dart';
-import '../../domain/usecases/get_token_packages_usecase.dart';
-import '../../domain/usecases/purchase_token_package_usecase.dart';
-import '../../domain/usecases/subscribe_to_plan_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_token_balance_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_subscription_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/get_token_packages_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/purchase_token_package_usecase.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/subscribe_to_plan_usecase.dart';
 
 /// Controller for pricing and token management
 class PricingController extends ChangeNotifier {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/auction_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_entity.dart';
 
 bool _isAssetPath(String url) => url.startsWith('assets/');
 

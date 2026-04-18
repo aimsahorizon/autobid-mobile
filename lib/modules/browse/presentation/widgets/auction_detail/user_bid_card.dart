@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/widgets/user_profile_bottom_sheet.dart';
-import '../../../domain/entities/user_bid_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/user_bid_entity.dart';
 
 class UserBidCard extends StatefulWidget {
   final UserBidEntity bid;

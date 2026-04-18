@@ -1,5 +1,5 @@
-import '../entities/support_ticket_entity.dart';
-import '../repositories/support_repository.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/support_ticket_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/support_repository.dart';
 
 class AddTicketMessageUsecase {
   final SupportRepository repository;

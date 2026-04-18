@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/app/di/app_module.dart';
-import '../../../notifications/presentation/widgets/notification_bell_widget.dart';
-import '../../domain/entities/seller_listing_entity.dart';
-import '../controllers/lists_controller.dart';
-import '../controllers/listing_draft_controller.dart';
-import '../widgets/listings_grid.dart';
-import '../widgets/invite_management_dialog.dart';
-import 'create_listing_page.dart';
+import 'package:autobid_mobile/modules/notifications/presentation/widgets/notification_bell_widget.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/lists_controller.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/listings_grid.dart';
+import 'package:autobid_mobile/modules/lists/presentation/widgets/invite_management_dialog.dart';
+import 'package:autobid_mobile/modules/lists/presentation/pages/create_listing_page.dart';
 
 class ListsPage extends StatefulWidget {
   final ListsController? controller;

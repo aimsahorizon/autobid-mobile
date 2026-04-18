@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../repositories/profile_repository.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/profile_repository.dart';
 
 /// UseCase for uploading profile photo
 class UploadProfilePhotoUseCase {

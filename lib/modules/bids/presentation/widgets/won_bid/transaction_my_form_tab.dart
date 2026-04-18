@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../controllers/buyer_transaction_controller.dart';
-import 'fill_form_dialog.dart';
+import 'package:autobid_mobile/modules/bids/presentation/controllers/buyer_transaction_controller.dart';
+import 'package:autobid_mobile/modules/bids/presentation/widgets/won_bid/fill_form_dialog.dart';
 
 class TransactionMyFormTab extends StatelessWidget {
   final BuyerTransactionController controller;

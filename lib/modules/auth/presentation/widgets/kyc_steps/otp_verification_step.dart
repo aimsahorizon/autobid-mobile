@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../controllers/kyc_registration_controller.dart';
-import '../otp_input_fields.dart';
+import 'package:autobid_mobile/modules/auth/presentation/controllers/kyc_registration_controller.dart';
+import 'package:autobid_mobile/modules/auth/presentation/widgets/otp_input_fields.dart';
 
 class OtpVerificationStep extends StatefulWidget {
   final KYCRegistrationController controller;

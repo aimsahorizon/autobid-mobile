@@ -1,4 +1,4 @@
-import '../../domain/entities/account_status_entity.dart';
+import 'package:autobid_mobile/modules/guest/domain/entities/account_status_entity.dart';
 
 /// Remote data source interface for guest operations
 abstract class GuestRemoteDataSource {

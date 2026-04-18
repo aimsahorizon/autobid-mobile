@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/admin_transaction_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_transaction_entity.dart';
 
 /// Supabase datasource for admin transaction management
 class AdminTransactionDataSource {

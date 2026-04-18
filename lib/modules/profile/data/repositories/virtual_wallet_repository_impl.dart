@@ -1,6 +1,6 @@
-import '../../domain/entities/virtual_wallet_entity.dart';
-import '../../domain/repositories/virtual_wallet_repository.dart';
-import '../datasources/virtual_wallet_datasource.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/virtual_wallet_repository.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/virtual_wallet_datasource.dart';
 
 class VirtualWalletRepositoryImpl implements VirtualWalletRepository {
   final VirtualWalletDatasource datasource;

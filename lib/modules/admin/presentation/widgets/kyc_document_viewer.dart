@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../presentation/controllers/kyc_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/kyc_controller.dart';
 
 class KycDocumentViewer extends StatefulWidget {
   final String title;

@@ -1,4 +1,4 @@
-import '../../domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
 
 /// Model for user token balance with JSON serialization
 class TokenBalanceModel extends TokenBalanceEntity {

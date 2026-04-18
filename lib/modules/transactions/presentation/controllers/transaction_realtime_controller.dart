@@ -6,11 +6,11 @@ import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/virtual_wallet_service.dart';
 import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
-import '../../domain/entities/transaction_entity.dart';
-import '../../domain/entities/transaction_review_entity.dart';
-import '../../data/datasources/transaction_realtime_datasource.dart';
-import '../../data/datasources/buyer_transaction_supabase_datasource.dart';
-import '../../domain/entities/agreement_field_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_review_entity.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_realtime_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/buyer_transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/agreement_field_entity.dart';
 
 /// Controller for real-time transaction management
 // ... (omitting lines for brevity in explanation, but including them in actual call)

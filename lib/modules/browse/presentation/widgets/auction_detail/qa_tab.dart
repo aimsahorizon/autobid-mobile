@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/utils/auction_alias_generator.dart';
-import '../../../domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
 
 class QATab extends StatefulWidget {
   final List<QAEntity> questions;

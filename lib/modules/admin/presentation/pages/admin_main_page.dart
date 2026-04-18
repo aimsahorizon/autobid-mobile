@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/admin_controller.dart';
-import '../controllers/kyc_controller.dart';
-import '../controllers/admin_transaction_controller.dart';
-import '../../admin_module.dart';
-import 'admin_dashboard_page.dart';
-import 'admin_listings_page.dart';
-import 'admin_users_page.dart';
-import 'admin_kyc_page.dart';
-import 'admin_auction_monitor_page.dart';
-import 'admin_transactions_page.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/admin_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/kyc_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/admin_transaction_controller.dart';
+import 'package:autobid_mobile/modules/admin/admin_module.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_dashboard_page.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_listings_page.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_users_page.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_kyc_page.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_auction_monitor_page.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_transactions_page.dart';
 
 /// Main admin page with tabs for different admin functions
 class AdminMainPage extends StatefulWidget {

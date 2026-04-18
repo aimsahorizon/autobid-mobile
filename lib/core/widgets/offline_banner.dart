@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/color_constants.dart';
-import '../controllers/network_status_controller.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
+import 'package:autobid_mobile/core/controllers/network_status_controller.dart';
 
 class OfflineBanner extends StatelessWidget {
   final NetworkStatusController controller;

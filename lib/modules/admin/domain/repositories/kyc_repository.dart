@@ -1,5 +1,5 @@
-import '../entities/kyc_document_entity.dart';
-import '../entities/kyc_stats_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_document_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_stats_entity.dart';
 
 abstract class KycRepository {
   Future<KycStatsEntity> getKycStats();

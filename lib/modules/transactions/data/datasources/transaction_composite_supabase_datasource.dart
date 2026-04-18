@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/transaction_entity.dart';
-import '../../domain/entities/buyer_transaction_entity.dart' as buyer;
-import 'transaction_remote_datasource.dart';
-import 'transaction_supabase_datasource.dart';
-import 'chat_supabase_datasource.dart';
-import 'seller_transaction_supabase_datasource.dart';
-import 'buyer_transaction_supabase_datasource.dart';
-import 'timeline_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/buyer_transaction_entity.dart' as buyer;
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_remote_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/chat_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/seller_transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/buyer_transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/timeline_supabase_datasource.dart';
 
 class TransactionCompositeSupabaseDataSource
     implements TransactionRemoteDataSource {

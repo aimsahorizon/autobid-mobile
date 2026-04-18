@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // import 'package:google_fonts/google_fonts.dart';
-import '../constants/color_constants.dart';
+import 'package:autobid_mobile/core/constants/color_constants.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {

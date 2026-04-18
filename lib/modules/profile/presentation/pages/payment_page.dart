@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
-import '../../domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
 
 /// Payment page for processing token package purchases
 class PaymentPage extends StatefulWidget {

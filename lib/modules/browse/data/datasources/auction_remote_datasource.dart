@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:autobid_mobile/core/services/supabase_service.dart';
-import '../../domain/entities/auction_filter.dart';
-import '../models/auction_model.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_filter.dart';
+import 'package:autobid_mobile/modules/browse/data/models/auction_model.dart';
 
 /// Remote data source for auctions using Supabase
 class AuctionRemoteDataSource {

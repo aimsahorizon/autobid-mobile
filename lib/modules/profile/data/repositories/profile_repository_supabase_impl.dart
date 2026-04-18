@@ -4,9 +4,9 @@ import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
 
-import '../../domain/entities/user_profile_entity.dart';
-import '../../domain/repositories/profile_repository.dart';
-import '../datasources/profile_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_profile_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/profile_repository.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/profile_supabase_datasource.dart';
 
 /// Supabase implementation of ProfileRepository
 /// Handles user profile operations with real Supabase backend

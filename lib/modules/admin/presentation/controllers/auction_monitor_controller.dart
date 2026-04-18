@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../data/datasources/auction_monitor_supabase_datasource.dart';
-import '../../domain/entities/auction_monitor_entity.dart';
+import 'package:autobid_mobile/modules/admin/data/datasources/auction_monitor_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/auction_monitor_entity.dart';
 
 /// Controller for admin auction monitoring
 /// Provides real-time tracking of active auctions and bid activity

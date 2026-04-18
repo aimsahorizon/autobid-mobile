@@ -1,4 +1,4 @@
-import '../../domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
 
 /// Data model for auction detail that handles JSON serialization
 class AuctionDetailModel extends AuctionDetailEntity {

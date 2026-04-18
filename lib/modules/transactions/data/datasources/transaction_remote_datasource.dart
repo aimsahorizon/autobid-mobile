@@ -1,4 +1,4 @@
-import '../../domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
 
 abstract class TransactionRemoteDataSource {
   Future<TransactionEntity?> getTransaction(String transactionId);

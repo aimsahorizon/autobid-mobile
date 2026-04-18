@@ -4,13 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
 import 'package:autobid_mobile/modules/auth/auth_routes.dart';
-import '../../controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
 import 'package:autobid_mobile/core/constants/policy_constants.dart';
-import '../../controllers/installment_controller.dart';
-import '../../../domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/installment_controller.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
 
 /// Progress tab - shows transaction timeline and status
 class ProgressRealtimeTab extends StatefulWidget {

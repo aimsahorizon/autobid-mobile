@@ -1,4 +1,4 @@
-import '../../domain/entities/auction_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_entity.dart';
 
 /// Data model for auction that handles JSON serialization
 /// Maps to Supabase 'auctions' table

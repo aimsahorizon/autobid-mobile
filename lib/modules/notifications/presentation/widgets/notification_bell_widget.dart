@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
-import '../controllers/notification_controller.dart';
-import '../pages/notifications_page.dart';
+import 'package:autobid_mobile/modules/notifications/presentation/controllers/notification_controller.dart';
+import 'package:autobid_mobile/modules/notifications/presentation/pages/notifications_page.dart';
 
 /// Reusable notification bell icon with unread badge.
 /// Listens to [NotificationController] for live unread count.

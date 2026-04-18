@@ -1,8 +1,8 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../../domain/entities/location_entities.dart';
-import '../../domain/repositories/location_repository.dart';
-import '../datasources/location_remote_datasource.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/location/domain/entities/location_entities.dart';
+import 'package:autobid_mobile/modules/location/domain/repositories/location_repository.dart';
+import 'package:autobid_mobile/modules/location/data/datasources/location_remote_datasource.dart';
 
 class LocationRepositoryImpl implements LocationRepository {
   final LocationRemoteDataSource remoteDataSource;

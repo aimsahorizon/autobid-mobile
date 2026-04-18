@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../../../browse/data/datasources/qa_supabase_datasource.dart';
-import '../../../../browse/domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/browse/data/datasources/qa_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
 
 class QASection extends StatefulWidget {
   final String listingId;

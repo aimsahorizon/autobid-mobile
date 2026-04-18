@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../entities/seller_listing_entity.dart';
-import '../entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
 
 abstract class SellerRepository {
   Future<Either<Failure, Map<ListingStatus, List<SellerListingEntity>>>> getSellerListings(String sellerId);

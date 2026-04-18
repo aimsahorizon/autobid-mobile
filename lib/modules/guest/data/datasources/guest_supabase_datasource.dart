@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/account_status_entity.dart';
-import '../models/account_status_model.dart';
-import 'guest_remote_datasource.dart';
+import 'package:autobid_mobile/modules/guest/domain/entities/account_status_entity.dart';
+import 'package:autobid_mobile/modules/guest/data/models/account_status_model.dart';
+import 'package:autobid_mobile/modules/guest/data/datasources/guest_remote_datasource.dart';
 
 /// Data source for guest mode operations
 /// Handles account status checking from Supabase

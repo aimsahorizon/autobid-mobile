@@ -1,4 +1,4 @@
-import '../../domain/entities/kyc_registration_entity.dart';
+import 'package:autobid_mobile/modules/auth/domain/entities/kyc_registration_entity.dart';
 
 class KycRegistrationModel extends KycRegistrationEntity {
   const KycRegistrationModel({

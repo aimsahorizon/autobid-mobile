@@ -1,6 +1,6 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
-import '../repositories/auth_repository.dart';
+import 'package:autobid_mobile/modules/auth/domain/repositories/auth_repository.dart';
 
 class SendPhoneOtpUseCase {
   final AuthRepository repository;

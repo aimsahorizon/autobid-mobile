@@ -1,4 +1,4 @@
-import '../../domain/entities/support_ticket_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/support_ticket_entity.dart';
 
 /// Model for support ticket category
 class SupportCategoryModel extends SupportCategoryEntity {

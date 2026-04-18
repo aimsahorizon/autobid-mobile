@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'notification_datasource.dart';
-import '../models/notification_model.dart';
+import 'package:autobid_mobile/modules/notifications/data/datasources/notification_datasource.dart';
+import 'package:autobid_mobile/modules/notifications/data/models/notification_model.dart';
 
 /// Supabase data source for notifications
 class NotificationSupabaseDataSource implements INotificationDataSource {

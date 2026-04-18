@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/usecases/location_usecases.dart';
-import 'location_event.dart';
-import 'location_state.dart';
+import 'package:autobid_mobile/modules/location/domain/usecases/location_usecases.dart';
+import 'package:autobid_mobile/modules/location/presentation/bloc/location_event.dart';
+import 'package:autobid_mobile/modules/location/presentation/bloc/location_state.dart';
 
 class LocationBloc extends Bloc<LocationEvent, LocationState> {
   final GetRegionsUseCase getRegions;

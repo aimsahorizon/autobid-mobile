@@ -1,5 +1,5 @@
-import '../entities/auction_entity.dart';
-import '../entities/auction_filter.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_filter.dart';
 
 /// Abstract repository for auction operations
 /// Defines contract for data layer implementation

@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/location_models.dart';
+import 'package:autobid_mobile/modules/location/data/models/location_models.dart';
 
 abstract class LocationRemoteDataSource {
   Future<List<RegionModel>> getRegions();

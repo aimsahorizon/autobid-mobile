@@ -1,23 +1,23 @@
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/services/car_api_service.dart';
-import 'presentation/controllers/lists_controller.dart';
-import 'presentation/controllers/listing_draft_controller.dart';
-import 'data/datasources/listing_supabase_datasource.dart';
-import 'data/datasources/vehicle_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/lists_controller.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/data/datasources/listing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/lists/data/datasources/vehicle_supabase_datasource.dart';
 
-import 'domain/usecases/draft_management_usecases.dart';
-import 'domain/usecases/submission_usecases.dart';
-import 'domain/usecases/delete_listing_usecase.dart';
-import 'domain/usecases/media_management_usecases.dart';
-import 'data/repositories/seller_repository_impl.dart';
-import 'data/repositories/vehicle_repository_impl.dart';
-import 'domain/repositories/seller_repository.dart';
-import 'domain/repositories/vehicle_repository.dart';
-import 'domain/usecases/get_seller_listings_usecase.dart';
-import 'domain/usecases/stream_seller_listings_usecase.dart';
-import 'domain/usecases/validate_plate_number_usecase.dart';
-import 'domain/usecases/get_vehicle_data_usecases.dart';
-import 'domain/usecases/manage_invites_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/draft_management_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/submission_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/delete_listing_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/media_management_usecases.dart';
+import 'package:autobid_mobile/modules/lists/data/repositories/seller_repository_impl.dart';
+import 'package:autobid_mobile/modules/lists/data/repositories/vehicle_repository_impl.dart';
+import 'package:autobid_mobile/modules/lists/domain/repositories/seller_repository.dart';
+import 'package:autobid_mobile/modules/lists/domain/repositories/vehicle_repository.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/get_seller_listings_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/stream_seller_listings_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/validate_plate_number_usecase.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/get_vehicle_data_usecases.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/manage_invites_usecases.dart';
 
 /// Initialize Lists module dependencies
 Future<void> initListsModule() async {

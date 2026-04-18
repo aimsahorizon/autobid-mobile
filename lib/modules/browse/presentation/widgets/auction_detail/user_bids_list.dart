@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../../domain/entities/user_bid_entity.dart';
-import 'user_bid_card.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/user_bid_entity.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/user_bid_card.dart';
 
 class UserBidsList extends StatelessWidget {
   final List<UserBidEntity> bids;

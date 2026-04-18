@@ -1,7 +1,7 @@
-import '../../domain/entities/auction_detail_entity.dart';
-import '../../domain/entities/bid_history_entity.dart';
-import '../../domain/entities/bid_queue_entity.dart';
-import '../../domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_history_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
 
 /// Remote data source interface for auction detail operations
 abstract class AuctionDetailRemoteDataSource {

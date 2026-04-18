@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/admin_transaction_entity.dart';
-import '../controllers/admin_transaction_controller.dart';
-import 'admin_transaction_review_page.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_transaction_entity.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/admin_transaction_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_transaction_review_page.dart';
 
 /// Admin page for managing transaction reviews
 class AdminTransactionsPage extends StatefulWidget {

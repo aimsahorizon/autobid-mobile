@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/modules/browse/presentation/pages/deposit_payment_page.dart';
-import '../../controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
 
 /// Gate widget that requires the buyer to pay a deposit
 /// before accessing transaction tabs (Chat, Agreement, Progress).

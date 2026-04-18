@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/auction_monitor_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/auction_monitor_entity.dart';
 
 /// Supabase datasource for admin auction monitoring
 /// Provides real-time bid tracking and auction activity monitoring

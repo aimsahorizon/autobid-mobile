@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/admin_controller.dart';
-import 'admin_listing_review_page.dart';
+import 'package:autobid_mobile/modules/admin/presentation/controllers/admin_controller.dart';
+import 'package:autobid_mobile/modules/admin/presentation/pages/admin_listing_review_page.dart';
 
 /// Admin dashboard with stats and pending listings
 class AdminDashboardPage extends StatefulWidget {

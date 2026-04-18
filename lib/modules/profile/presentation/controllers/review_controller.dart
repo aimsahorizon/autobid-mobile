@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../data/datasources/profile_supabase_datasource.dart';
-import '../../domain/entities/user_review_entity.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/profile_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_review_entity.dart';
 
 /// Controller for managing user reviews state in the profile section.
 class ReviewController extends ChangeNotifier {

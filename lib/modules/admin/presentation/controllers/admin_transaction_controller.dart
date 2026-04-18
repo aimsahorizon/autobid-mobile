@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import '../../data/datasources/admin_transaction_datasource.dart';
-import '../../domain/entities/admin_transaction_entity.dart';
+import 'package:autobid_mobile/modules/admin/data/datasources/admin_transaction_datasource.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/admin_transaction_entity.dart';
 
 /// Controller for admin transaction management
 class AdminTransactionController extends ChangeNotifier {

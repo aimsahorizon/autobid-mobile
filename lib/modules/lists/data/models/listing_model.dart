@@ -1,5 +1,5 @@
-import '../../domain/entities/seller_listing_entity.dart';
-import '../../domain/entities/listing_detail_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_detail_entity.dart';
 
 /// Data model for listings with JSON serialization
 /// Converts between database JSON and domain entities

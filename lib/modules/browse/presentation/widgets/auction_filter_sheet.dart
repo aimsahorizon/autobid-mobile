@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/auction_filter.dart';
-import '../../domain/entities/filter_options.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_filter.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/filter_options.dart';
 
 /// Comprehensive filter bottom sheet for auction browsing
 /// Provides all filtering options with professional UX

@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../controllers/transaction_realtime_controller.dart';
-import '../../controllers/installment_controller.dart';
-import '../../../domain/entities/transaction_entity.dart';
-import '../../../domain/entities/agreement_field_entity.dart';
-import '../../../domain/entities/installment_plan_entity.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/installment_controller.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/agreement_field_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/installment_plan_entity.dart';
 
 /// Unified collaborative agreement tab that replaces separate seller/buyer forms.
 /// Both parties can add, edit, and delete fields until they lock.
@@ -1662,10 +1662,10 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
                 const SizedBox(height: 8),
                 if (widget.readOnly && hasPlan)
                   // Locked — agreement locked/finalized
-                  _buildLockedSummary(plan!, isDark)
+                  _buildLockedSummary(plan, isDark)
                 else if (hasPlan && !_editing)
                   // Plan exists, show summary + edit button
-                  _buildPlanSummary(plan!, isDark)
+                  _buildPlanSummary(plan, isDark)
                 else if (!widget.readOnly)
                   // No plan or editing — show form
                   _buildPlanForm(isDark, isUpdate: hasPlan),
@@ -1808,7 +1808,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
           children: [
             Expanded(
               child: DropdownButtonFormField<int>(
-                value: _installments,
+                initialValue: _installments,
                 isDense: true,
                 decoration: const InputDecoration(
                   labelText: 'Gives',
@@ -1828,7 +1828,7 @@ class _InstallmentToggleState extends State<_InstallmentToggle> {
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonFormField<String>(
-                value: _frequency,
+                initialValue: _frequency,
                 isDense: true,
                 decoration: const InputDecoration(
                   labelText: 'Frequency',

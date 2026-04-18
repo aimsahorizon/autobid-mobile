@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/modules/transactions/domain/entities/buyer_transaction_entity.dart';
-import 'buyer_transaction_controller.dart';
+import 'package:autobid_mobile/modules/bids/presentation/controllers/buyer_transaction_controller.dart';
 
 /// Demo controller that auto-plays the entire transaction flow
 /// Simulates buyer actions: form submission, chat messages, confirmations

@@ -1,7 +1,7 @@
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/pricing_entity.dart';
-import '../../domain/repositories/pricing_repository.dart';
-import '../datasources/pricing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/repositories/pricing_repository.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/pricing_supabase_datasource.dart';
 
 /// Implementation of PricingRepository using Supabase
 class PricingRepositoryImpl implements PricingRepository {

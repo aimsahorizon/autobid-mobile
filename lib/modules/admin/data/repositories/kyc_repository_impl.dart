@@ -1,8 +1,8 @@
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/kyc_document_entity.dart';
-import '../../domain/entities/kyc_stats_entity.dart';
-import '../../domain/repositories/kyc_repository.dart';
-import '../datasources/kyc_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_document_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/entities/kyc_stats_entity.dart';
+import 'package:autobid_mobile/modules/admin/domain/repositories/kyc_repository.dart';
+import 'package:autobid_mobile/modules/admin/data/datasources/kyc_supabase_datasource.dart';
 
 class KycRepositoryImpl implements KycRepository {
   final KycSupabaseDataSource _dataSource;

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/location_entities.dart';
+import 'package:autobid_mobile/modules/location/domain/entities/location_entities.dart';
 
 abstract class LocationState extends Equatable {
   const LocationState();

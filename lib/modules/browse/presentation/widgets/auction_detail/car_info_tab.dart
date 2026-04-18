@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../../domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
 
 String _formatNumber(double number) {
   return number

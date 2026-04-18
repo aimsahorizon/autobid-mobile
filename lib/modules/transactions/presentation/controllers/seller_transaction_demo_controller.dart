@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../domain/entities/transaction_entity.dart';
-import 'transaction_controller.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_controller.dart';
 
 /// Demo controller for seller transaction auto-play
 /// Simulates seller actions: form submission, chat, confirmations

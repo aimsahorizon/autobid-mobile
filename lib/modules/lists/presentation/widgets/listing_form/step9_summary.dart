@@ -4,8 +4,8 @@ import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
 import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
-import '../../controllers/listing_draft_controller.dart';
-import '../../../domain/entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/presentation/controllers/listing_draft_controller.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
 
 class Step9Summary extends StatelessWidget {
   final ListingDraftController controller;
@@ -385,10 +385,12 @@ class Step9Summary extends StatelessWidget {
         0;
     final items = <_DetailItem>[];
     if (count > 0) items.add(_DetailItem('Photos', '$count / 56 uploaded'));
-    if (draft.coverPhotoUrl != null)
+    if (draft.coverPhotoUrl != null) {
       items.add(_DetailItem('Cover Photo', 'Selected'));
-    if (draft.deedOfSaleUrl != null)
+    }
+    if (draft.deedOfSaleUrl != null) {
       items.add(_DetailItem('Deed of Sale', 'Uploaded'));
+    }
     return items;
   }
 

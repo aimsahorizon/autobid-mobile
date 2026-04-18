@@ -1,4 +1,4 @@
-import '../entities/support_ticket_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/support_ticket_entity.dart';
 
 abstract class SupportRepository {
   /// Get all support categories

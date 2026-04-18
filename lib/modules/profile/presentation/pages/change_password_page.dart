@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../controllers/profile_controller.dart';
+import 'package:autobid_mobile/modules/profile/presentation/controllers/profile_controller.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   final ProfileController controller;

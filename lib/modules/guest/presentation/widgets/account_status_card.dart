@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/account_status_entity.dart';
+import 'package:autobid_mobile/modules/guest/domain/entities/account_status_entity.dart';
 
 class AccountStatusCard extends StatelessWidget {
   final AccountStatusEntity status;

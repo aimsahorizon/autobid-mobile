@@ -5,7 +5,7 @@ import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/services/paymongo_service.dart';
 import 'package:autobid_mobile/core/services/paymongo_mock_service.dart';
 import 'package:autobid_mobile/core/services/ipaymongo_service.dart';
-import '../../domain/entities/pricing_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
 import 'package:autobid_mobile/modules/browse/presentation/widgets/payment/virtual_wallet_payment_form.dart';
 import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 

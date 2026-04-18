@@ -1,21 +1,21 @@
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'data/datasources/transaction_remote_datasource.dart';
-import 'data/datasources/transaction_composite_supabase_datasource.dart';
-import 'data/datasources/transaction_supabase_datasource.dart';
-import 'data/datasources/transaction_realtime_datasource.dart';
-import 'data/datasources/seller_transaction_supabase_datasource.dart';
-import 'data/datasources/buyer_transaction_supabase_datasource.dart';
-import 'data/datasources/chat_supabase_datasource.dart';
-import 'data/datasources/timeline_supabase_datasource.dart';
-import 'data/repositories/transaction_repository_impl.dart';
-import 'domain/repositories/transaction_repository.dart';
-import 'domain/usecases/get_transaction_usecases.dart';
-import 'domain/usecases/manage_transaction_usecases.dart';
-import 'presentation/controllers/transaction_controller.dart';
-import 'presentation/controllers/transaction_realtime_controller.dart';
-import 'presentation/controllers/transactions_status_controller.dart';
-import 'presentation/controllers/buyer_seller_transactions_controller.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_remote_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_composite_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_realtime_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/seller_transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/buyer_transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/chat_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/timeline_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/repositories/transaction_repository_impl.dart';
+import 'package:autobid_mobile/modules/transactions/domain/repositories/transaction_repository.dart';
+import 'package:autobid_mobile/modules/transactions/domain/usecases/get_transaction_usecases.dart';
+import 'package:autobid_mobile/modules/transactions/domain/usecases/manage_transaction_usecases.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/transactions_status_controller.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/controllers/buyer_seller_transactions_controller.dart';
 
 /// Initialize Transactions module dependencies
 Future<void> initTransactionsModule() async {
@@ -78,7 +78,6 @@ Future<void> initTransactionsModule() async {
       acceptVehicleUseCase: sl(),
       rejectVehicleUseCase: sl(),
       getDeadlineUseCase: sl(),
-      checkAutoAcceptUseCase: sl(),
       enableAutoAcceptDemoUseCase: sl(),
     ),
   );

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../domain/usecases/send_email_otp_usecase.dart';
-import '../../domain/usecases/send_phone_otp_usecase.dart';
-import '../../domain/usecases/verify_email_otp_usecase.dart';
-import '../../domain/usecases/verify_phone_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/send_email_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/send_phone_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/verify_email_otp_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/verify_phone_otp_usecase.dart';
 
 class LoginOtpController extends ChangeNotifier {
   final SendEmailOtpUseCase sendEmailOtpUseCase;

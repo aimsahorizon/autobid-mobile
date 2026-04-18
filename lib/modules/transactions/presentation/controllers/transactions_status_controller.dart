@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../domain/entities/transaction_status_entity.dart';
-import '../../../lists/domain/entities/seller_listing_entity.dart';
-import '../../data/datasources/transaction_supabase_datasource.dart';
-import '../../data/datasources/transaction_realtime_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_status_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_realtime_datasource.dart';
 
 /// Controller for status-based transactions (in_transaction, sold, deal_failed)
 /// Manages listing transactions in the Transactions bottom nav tab

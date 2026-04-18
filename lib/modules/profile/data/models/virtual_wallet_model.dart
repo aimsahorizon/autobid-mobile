@@ -1,4 +1,4 @@
-import '../../domain/entities/virtual_wallet_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/virtual_wallet_entity.dart';
 
 class VirtualWalletModel {
   final String id;

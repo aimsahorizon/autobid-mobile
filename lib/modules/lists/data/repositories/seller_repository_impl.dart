@@ -4,10 +4,10 @@ import 'package:async/async.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:autobid_mobile/core/error/failures.dart';
 import 'package:autobid_mobile/core/network/network_info.dart';
-import '../../domain/entities/seller_listing_entity.dart';
-import '../../domain/entities/listing_draft_entity.dart';
-import '../../domain/repositories/seller_repository.dart';
-import '../datasources/listing_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/repositories/seller_repository.dart';
+import 'package:autobid_mobile/modules/lists/data/datasources/listing_supabase_datasource.dart';
 
 class SellerRepositoryImpl implements SellerRepository {
   final ListingSupabaseDataSource dataSource;

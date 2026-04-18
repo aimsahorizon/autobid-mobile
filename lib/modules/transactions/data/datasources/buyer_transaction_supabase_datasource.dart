@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/buyer_transaction_entity.dart';
+import 'package:autobid_mobile/modules/transactions/domain/entities/buyer_transaction_entity.dart';
 
 /// Supabase datasource for buyer transaction operations
 /// Handles buyer-side transaction management for won auctions

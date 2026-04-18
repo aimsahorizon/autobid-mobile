@@ -1,4 +1,4 @@
-import '../../domain/entities/listing_draft_entity.dart';
+import 'package:autobid_mobile/modules/lists/domain/entities/listing_draft_entity.dart';
 
 /// Data model for listing drafts with JSON serialization
 /// Converts between database JSON and domain entity

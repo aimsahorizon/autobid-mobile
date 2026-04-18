@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../domain/entities/auction_entity.dart';
-import '../../domain/entities/auction_filter.dart';
-import '../../domain/repositories/auction_repository.dart';
-import '../../domain/usecases/stream_active_auctions_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_filter.dart';
+import 'package:autobid_mobile/modules/browse/domain/repositories/auction_repository.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_active_auctions_usecase.dart';
 
 class BrowseController extends ChangeNotifier {
   final AuctionRepository _repository;

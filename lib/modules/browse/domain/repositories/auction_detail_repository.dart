@@ -1,9 +1,9 @@
 import 'package:fpdart/fpdart.dart';
-import '../../../../core/error/failures.dart';
-import '../entities/auction_detail_entity.dart';
-import '../entities/bid_history_entity.dart';
-import '../entities/bid_queue_entity.dart';
-import '../entities/qa_entity.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_history_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
 
 /// Repository interface for auction detail operations
 /// Handles detailed auction data, bidding, Q&A, and user preferences

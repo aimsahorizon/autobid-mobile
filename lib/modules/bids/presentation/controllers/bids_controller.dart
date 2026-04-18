@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../domain/entities/user_bid_entity.dart';
-import '../../domain/usecases/get_user_bids_usecase.dart';
-import '../../domain/usecases/stream_user_bids_usecase.dart';
-import '../../../auth/domain/repositories/auth_repository.dart';
+import 'package:autobid_mobile/modules/bids/domain/entities/user_bid_entity.dart';
+import 'package:autobid_mobile/modules/bids/domain/usecases/get_user_bids_usecase.dart';
+import 'package:autobid_mobile/modules/bids/domain/usecases/stream_user_bids_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/repositories/auth_repository.dart';
 
 /// Controller for managing user's bid history state
 /// Handles loading and categorizing bids by status (active, won, lost)

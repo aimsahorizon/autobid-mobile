@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../domain/usecases/sign_up_usecase.dart';
+import 'package:autobid_mobile/modules/auth/domain/usecases/sign_up_usecase.dart';
 
 class RegistrationController extends ChangeNotifier {
   final SignUpUseCase signUpUseCase;

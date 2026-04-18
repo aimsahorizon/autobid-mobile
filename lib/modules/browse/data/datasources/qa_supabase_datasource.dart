@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
 
 class QASupabaseDataSource {
   final SupabaseClient client;

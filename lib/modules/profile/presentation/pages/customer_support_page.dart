@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../domain/entities/support_ticket_entity.dart';
-import '../controllers/support_controller.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/support_ticket_entity.dart';
+import 'package:autobid_mobile/modules/profile/presentation/controllers/support_controller.dart';
 
 class CustomerSupportPage extends StatefulWidget {
   const CustomerSupportPage({super.key});
