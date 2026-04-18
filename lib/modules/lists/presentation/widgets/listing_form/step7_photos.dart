@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
@@ -19,6 +20,7 @@ class Step7Photos extends StatefulWidget {
 class _Step7PhotosState extends State<Step7Photos>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isUploadingDeed = false;
 
   @override
   void initState() {
@@ -34,6 +36,228 @@ class _Step7PhotosState extends State<Step7Photos>
     _tabController.dispose();
     super.dispose();
   }
+
+  // ─── Deed of Sale ───────────────────────────────────────────────────────────
+
+  Future<void> _pickDeedOfSale(BuildContext context) async {
+    setState(() => _isUploadingDeed = true);
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+        withData: false,
+        withReadStream: false,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final picked = result.files.first;
+      final extension = (picked.extension ?? '').toLowerCase();
+      const allowed = ['jpg', 'jpeg', 'png', 'pdf'];
+      if (!allowed.contains(extension)) {
+        if (context.mounted) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(
+              content: Text('Unsupported format. Use JPG, PNG, or PDF.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      final path = picked.path;
+      if (path == null) return;
+
+      final url = await widget.controller.uploadDeedOfSale(path);
+      if (context.mounted) {
+        if (url != null) {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            const SnackBar(
+              content: Text('Deed of sale uploaded successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+            SnackBar(
+              content: Text(
+                widget.controller.errorMessage ??
+                    'Failed to upload deed of sale',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingDeed = false);
+    }
+  }
+
+  Future<void> _removeDeedOfSale(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Deed of Sale?'),
+        content: const Text(
+          'Are you sure you want to remove the uploaded document?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !context.mounted) return;
+    final ok = await widget.controller.removeDeedOfSale();
+    if (context.mounted) {
+      (ScaffoldMessenger.of(context)..clearSnackBars()).showSnackBar(
+        SnackBar(
+          content: Text(ok ? 'Deed of sale removed' : 'Failed to remove'),
+          backgroundColor: ok ? Colors.orange : Colors.red,
+        ),
+      );
+    }
+  }
+
+  Widget _buildDeedOfSaleSection(BuildContext context) {
+    final deedUrl = widget.controller.currentDraft?.deedOfSaleUrl;
+    final hasDoc = deedUrl != null && deedUrl.isNotEmpty;
+    final isPdf = hasDoc && deedUrl.toLowerCase().endsWith('.pdf');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(),
+        const SizedBox(height: 8),
+        const Text(
+          'Deed of Sale (Optional)',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Accepted formats: JPG, PNG, PDF',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        if (hasDoc) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.green.withValues(alpha: 0.4),
+                width: 2,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isPdf ? Icons.picture_as_pdf : Icons.image,
+                  color: isPdf ? Colors.red : Colors.blue,
+                  size: 36,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isPdf ? 'PDF Document' : 'Image Document',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const Text(
+                        'Uploaded',
+                        style: TextStyle(color: Colors.green, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  tooltip: 'Remove',
+                  onPressed: () => _removeDeedOfSale(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isUploadingDeed
+                  ? null
+                  : () => _pickDeedOfSale(context),
+              icon: _isUploadingDeed
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.swap_horiz),
+              label: Text(
+                _isUploadingDeed ? 'Uploading...' : 'Replace Document',
+              ),
+            ),
+          ),
+        ] else ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isUploadingDeed
+                  ? null
+                  : () => _pickDeedOfSale(context),
+              icon: _isUploadingDeed
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.upload_file),
+              label: Text(
+                _isUploadingDeed ? 'Uploading...' : 'Upload Deed of Sale',
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        const Text(
+          'The deed of sale helps verify ownership and speeds up the transaction process.',
+          style: TextStyle(
+            fontSize: 11,
+            fontStyle: FontStyle.italic,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
 
   Future<void> _setFeaturedPhoto(BuildContext context, String photoUrl) async {
     await widget.controller.setCoverPhoto(photoUrl);
@@ -798,147 +1022,172 @@ class _Step7PhotosState extends State<Step7Photos>
                     groupName,
                     categoryCount,
                   );
-                  return ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: groupCategories.map((categoryDisplayName) {
-                      final categoryKey = PhotoCategories.toKey(
-                        categoryDisplayName,
-                      );
-                      final categoryPhotos = photoUrls[categoryKey] ?? [];
-                      final hasPhoto = categoryPhotos.isNotEmpty;
+                  return ListenableBuilder(
+                    listenable: widget.controller,
+                    builder: (context, _) {
+                      final tabPhotoUrls =
+                          widget.controller.currentDraft?.photoUrls ?? {};
+                      final tabCoverUrl =
+                          widget.controller.currentDraft?.coverPhotoUrl;
+                      final theme = Theme.of(context);
+                      final tabIsDark = theme.brightness == Brightness.dark;
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? ColorConstants.surfaceLight.withValues(
-                                  alpha: 0.1,
-                                )
-                              : Colors.white,
-                          border: Border.all(
-                            color: hasPhoto
-                                ? Colors.green.withValues(alpha: 0.3)
-                                : (isDark
-                                      ? ColorConstants.surfaceLight
-                                      : ColorConstants
-                                            .backgroundSecondaryLight),
-                            width: hasPhoto ? 2 : 1,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header row
-                            Row(
-                              children: [
-                                Icon(
-                                  hasPhoto
-                                      ? Icons.check_circle
-                                      : Icons.add_a_photo,
+                      return ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          ...groupCategories.map((categoryDisplayName) {
+                            final categoryKey = PhotoCategories.toKey(
+                              categoryDisplayName,
+                            );
+                            final categoryPhotos =
+                                tabPhotoUrls[categoryKey] ?? [];
+                            final hasPhoto = categoryPhotos.isNotEmpty;
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: tabIsDark
+                                    ? ColorConstants.surfaceLight.withValues(
+                                        alpha: 0.1,
+                                      )
+                                    : Colors.white,
+                                border: Border.all(
                                   color: hasPhoto
-                                      ? Colors.green
-                                      : ColorConstants.primary,
-                                  size: 24,
+                                      ? Colors.green.withValues(alpha: 0.3)
+                                      : (tabIsDark
+                                            ? ColorConstants.surfaceLight
+                                            : ColorConstants
+                                                  .backgroundSecondaryLight),
+                                  width: hasPhoto ? 2 : 1,
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Header row
+                                  Row(
                                     children: [
-                                      Text(
-                                        categoryDisplayName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 15,
+                                      Icon(
+                                        hasPhoto
+                                            ? Icons.check_circle
+                                            : Icons.add_a_photo,
+                                        color: hasPhoto
+                                            ? Colors.green
+                                            : ColorConstants.primary,
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              categoryDisplayName,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                            if (hasPhoto)
+                                              Text(
+                                                '${categoryPhotos.length} photo${categoryPhotos.length > 1 ? 's' : ''}',
+                                                style: const TextStyle(
+                                                  color: Colors.green,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                          ],
                                         ),
                                       ),
-                                      if (hasPhoto)
-                                        Text(
-                                          '${categoryPhotos.length} photo${categoryPhotos.length > 1 ? 's' : ''}',
-                                          style: const TextStyle(
-                                            color: Colors.green,
-                                            fontSize: 12,
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.info_outline,
+                                          size: 20,
+                                        ),
+                                        tooltip: 'View sample',
+                                        onPressed: () => _showSamplePhoto(
+                                          context,
+                                          categoryDisplayName,
+                                        ),
+                                      ),
+                                      ElevatedButton.icon(
+                                        onPressed: () => _pickImage(
+                                          context,
+                                          categoryDisplayName,
+                                        ),
+                                        icon: Icon(
+                                          hasPhoto
+                                              ? Icons.swap_horiz
+                                              : Icons.add_photo_alternate,
+                                          size: 18,
+                                        ),
+                                        label: Text(
+                                          hasPhoto ? 'Replace' : 'Upload',
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: hasPhoto
+                                              ? Colors.orange
+                                              : ColorConstants.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
                                           ),
                                         ),
+                                      ),
                                     ],
                                   ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.info_outline,
-                                    size: 20,
-                                  ),
-                                  tooltip: 'View sample',
-                                  onPressed: () => _showSamplePhoto(
-                                    context,
-                                    categoryDisplayName,
-                                  ),
-                                ),
-                                ElevatedButton.icon(
-                                  onPressed: () =>
-                                      _pickImage(context, categoryDisplayName),
-                                  icon: Icon(
-                                    hasPhoto
-                                        ? Icons.swap_horiz
-                                        : Icons.add_photo_alternate,
-                                    size: 18,
-                                  ),
-                                  label: Text(hasPhoto ? 'Replace' : 'Upload'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: hasPhoto
-                                        ? Colors.orange
-                                        : ColorConstants.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
+                                  // Photo previews
+                                  if (hasPhoto) ...[
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: categoryPhotos
+                                          .asMap()
+                                          .entries
+                                          .map((entry) {
+                                            final index = entry.key;
+                                            final photoUrl = entry.value;
+                                            return _buildPhotoPreview(
+                                              context,
+                                              photoUrl,
+                                              categoryDisplayName,
+                                              index,
+                                              tabIsDark,
+                                              photoUrl == tabCoverUrl,
+                                            );
+                                          })
+                                          .toList(),
                                     ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            // Photo previews
-                            if (hasPhoto) ...[
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: categoryPhotos.asMap().entries.map((
-                                  entry,
-                                ) {
-                                  final index = entry.key;
-                                  final photoUrl = entry.value;
-                                  return _buildPhotoPreview(
-                                    context,
-                                    photoUrl,
-                                    categoryDisplayName,
-                                    index,
-                                    isDark,
-                                    photoUrl == selectedCoverPhotoUrl,
-                                  );
-                                }).toList(),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      photoUrlHintText(
+                                        categoryPhotos,
+                                        tabCoverUrl,
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: tabIsDark
+                                            ? ColorConstants.textSecondaryDark
+                                            : ColorConstants.textSecondaryLight,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                photoUrlHintText(
-                                  categoryPhotos,
-                                  selectedCoverPhotoUrl,
-                                ),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark
-                                      ? ColorConstants.textSecondaryDark
-                                      : ColorConstants.textSecondaryLight,
-                                ),
-                              ),
-                            ],
+                            );
+                          }),
+                          if (groupName == 'Documents') ...[
+                            _buildDeedOfSaleSection(context),
+                            const SizedBox(height: 16),
                           ],
-                        ),
+                        ],
                       );
-                    }).toList(),
+                    },
                   );
                 }).toList(),
               ),

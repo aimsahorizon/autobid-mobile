@@ -59,7 +59,9 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
     _bidIncrementController = TextEditingController(
       text: _formatDouble(draft?.bidIncrement ?? draft?.minBidIncrement ?? 100),
     );
-    _bidIncrement = double.tryParse(_bidIncrementController.text);
+    _bidIncrement = ThousandsSeparatorInputFormatter.parseDouble(
+      _bidIncrementController.text,
+    );
     _features = draft?.features ?? [];
     _biddingType = draft?.biddingType ?? 'open';
     _exclusiveTier = draft?.exclusiveTier;
@@ -208,7 +210,11 @@ class _Step8FinalDetailsState extends State<Step8FinalDetails> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final startingPrice = double.tryParse(_startingPriceController.text) ?? 0;
+    final startingPrice =
+        ThousandsSeparatorInputFormatter.parseDouble(
+          _startingPriceController.text,
+        ) ??
+        0;
 
     return ListView(
       padding: const EdgeInsets.all(16),
