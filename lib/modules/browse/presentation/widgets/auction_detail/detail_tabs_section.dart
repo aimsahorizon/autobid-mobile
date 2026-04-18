@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
-import '../../../domain/entities/auction_detail_entity.dart';
-import '../../../domain/entities/bid_history_entity.dart';
-import '../../../domain/entities/qa_entity.dart';
-import 'bid_history_tab.dart';
-import 'car_info_tab.dart';
-import 'qa_tab.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_history_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/bids/domain/entities/mystery_tiebreaker_session_entity.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/bid_history_tab.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/car_info_tab.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/qa_tab.dart';
 
 /// Container widget managing three main tabs in auction detail page
 /// Tabs: Bid History (auction timeline), Car Info (static), Q&A (interactive)
@@ -30,6 +31,7 @@ class DetailTabsSection extends StatelessWidget {
   final Function(String questionId) onToggleLike;
   final bool isMystery;
   final bool isMysteryEnded;
+  final List<MysteryParticipantEntity> mysteryParticipants;
 
   const DetailTabsSection({
     super.key,
@@ -42,6 +44,7 @@ class DetailTabsSection extends StatelessWidget {
     this.isLoadingQA = false,
     this.isMystery = false,
     this.isMysteryEnded = false,
+    this.mysteryParticipants = const [],
   });
 
   @override
@@ -102,6 +105,7 @@ class DetailTabsSection extends StatelessWidget {
                   isLoading: isLoadingBidHistory,
                   isMystery: isMystery,
                   isMysteryEnded: isMysteryEnded,
+                  mysteryParticipants: mysteryParticipants,
                 ),
                 // Car Info Tab: Static car details and specs
                 CarInfoTab(auction: auction),

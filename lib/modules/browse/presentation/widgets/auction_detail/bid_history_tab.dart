@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/utils/auction_alias_generator.dart';
-import '../../../domain/entities/bid_history_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_history_entity.dart';
+import 'package:autobid_mobile/modules/bids/domain/entities/mystery_tiebreaker_session_entity.dart';
 
 /// Displays chronological bid history for an auction
 /// Shows all bids placed on this auction in timeline format
@@ -17,6 +18,7 @@ class BidHistoryTab extends StatelessWidget {
   final bool isLoading;
   final bool isMystery;
   final bool isMysteryEnded;
+  final List<MysteryParticipantEntity> mysteryParticipants;
 
   const BidHistoryTab({
     super.key,
@@ -24,6 +26,7 @@ class BidHistoryTab extends StatelessWidget {
     this.isLoading = false,
     this.isMystery = false,
     this.isMysteryEnded = false,
+    this.mysteryParticipants = const [],
   });
 
   @override
@@ -35,7 +38,9 @@ class BidHistoryTab extends StatelessWidget {
 
     // Mystery auction: bids are sealed until ended
     if (isMystery && !isMysteryEnded) {
-      return _buildSealedState(context);
+      return mysteryParticipants.isNotEmpty
+          ? _buildParticipantsList(context)
+          : _buildSealedState(context);
     }
 
     // Show empty state if no bids have been placed
@@ -53,6 +58,116 @@ class BidHistoryTab extends StatelessWidget {
         isLatest: index == 0, // First item is the latest/highest bid
       ),
     );
+  }
+
+  /// Participants list for active mystery auctions (alias + submit time, no amounts)
+  Widget _buildParticipantsList(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Header explanation
+        Container(
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.deepPurple.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.lock_outline,
+                size: 18,
+                color: Colors.deepPurple,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${mysteryParticipants.length} bid${mysteryParticipants.length == 1 ? '' : 's'} submitted · Amounts revealed after auction ends',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...mysteryParticipants.map((p) {
+          final alias = AuctionAliasGenerator.generate(p.auctionId, p.bidderId);
+          final timeAgo = _formatTimeAgo(p.submittedAt);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? ColorConstants.surfaceDark : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.06),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person_outline,
+                    size: 20,
+                    color: Colors.deepPurple,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    alias,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 12,
+                      color: Colors.grey.shade500,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      timeAgo,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  String _formatTimeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   /// Sealed state for mystery auctions (bids hidden until end)

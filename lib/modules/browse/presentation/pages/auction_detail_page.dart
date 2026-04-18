@@ -5,16 +5,17 @@ import 'package:autobid_mobile/core/config/supabase_config.dart';
 import 'package:autobid_mobile/core/constants/policy_constants.dart';
 import 'package:autobid_mobile/core/widgets/policy_acceptance_dialog.dart';
 import 'package:autobid_mobile/core/services/policy_penalty_datasource.dart';
-import '../../../bids/data/datasources/user_bids_supabase_datasource.dart';
-import '../controllers/auction_detail_controller.dart';
-import '../../domain/entities/auction_detail_entity.dart';
-import '../widgets/auction_detail/auction_cover_photo.dart';
-import '../widgets/auction_detail/bidding_info_section.dart';
-import '../widgets/auction_detail/car_photos_section.dart';
-import '../widgets/auction_detail/bidding_card_section.dart';
-import '../widgets/auction_detail/mystery_bidding_card.dart';
-import '../widgets/auction_detail/mystery_tiebreaker_widget.dart';
-import '../widgets/auction_detail/detail_tabs_section.dart';
+import 'package:autobid_mobile/modules/bids/data/datasources/user_bids_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/bids/domain/entities/mystery_tiebreaker_session_entity.dart';
+import 'package:autobid_mobile/modules/browse/presentation/controllers/auction_detail_controller.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/auction_cover_photo.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/bidding_info_section.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/car_photos_section.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/bidding_card_section.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/mystery_bidding_card.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/mystery_tiebreaker_widget.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_detail/detail_tabs_section.dart';
 
 class AuctionDetailPage extends StatefulWidget {
   final String auctionId;
@@ -510,6 +511,8 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
                         isMysteryEnded:
                             widget.controller.mysteryBidStatus?.auctionEnded ??
                             false,
+                        mysteryParticipants:
+                            widget.controller.mysteryParticipants,
                       ),
                       const SizedBox(height: 32),
                     ],
@@ -710,6 +713,13 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
 
     final isWinner = widget.controller.isCurrentUserWinner;
     final hasBid = widget.controller.hasUserBid;
+
+    // Seller tiebreaker pending state
+    if (widget.controller.mysteryBidStatus?.isSeller == true &&
+        auction is AuctionDetailEntity &&
+        auction.biddingType == 'mystery') {
+      return _buildSellerTiebreakerState(auction, theme, isDark);
+    }
 
     // Won state
     if (isWinner) {
@@ -918,6 +928,278 @@ class _AuctionDetailPageState extends State<AuctionDetailPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildSellerTiebreakerState(
+    AuctionDetailEntity auction,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    final session = widget.controller.tiebreakerSession;
+    final isLoading = widget.controller.isLoadingMysteryStatus;
+
+    String statusLabel(String? status) {
+      switch (status) {
+        case 'waiting_ready':
+          return 'Waiting for participants to ready up';
+        case 'rps_in_progress':
+          return 'Rock-Paper-Scissors in progress';
+        case 'wheel_in_progress':
+          return 'Wheel of Names spinning';
+        case 'completed':
+          return 'Resolved — transaction opening soon';
+        case 'dq_all':
+          return 'All participants disqualified — cascading';
+        default:
+          return 'Tiebreaker pending';
+      }
+    }
+
+    String typeLabel(String? type) =>
+        type == 'rps' ? 'Rock-Paper-Scissors (2-way)' : 'Wheel of Names (3+)';
+
+    Color statusColor(String? status) {
+      switch (status) {
+        case 'completed':
+          return ColorConstants.success;
+        case 'dq_all':
+          return ColorConstants.error;
+        default:
+          return ColorConstants.warning;
+      }
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Auction Ended'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: isLoading
+                ? null
+                : () => widget.controller.loadAuctionDetail(widget.auctionId),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.deepPurple.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.hourglass_top_rounded,
+                    size: 48,
+                    color: Colors.deepPurple,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Mystery Tiebreaker in Progress',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    auction.carName,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: isDark
+                          ? ColorConstants.textSecondaryDark
+                          : ColorConstants.textSecondaryLight,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            if (isLoading && session == null)
+              const Center(child: CircularProgressIndicator())
+            else if (session == null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Bidding has ended. Waiting for tiebreaker data…\nPull to refresh.',
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else ...[
+              // Type chip
+              Wrap(
+                spacing: 8,
+                children: [
+                  Chip(
+                    avatar: const Icon(Icons.games, size: 16),
+                    label: Text(typeLabel(session.type.name)),
+                    backgroundColor: Colors.deepPurple.withValues(alpha: 0.12),
+                    labelStyle: const TextStyle(
+                      color: Colors.deepPurple,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                  Chip(
+                    label: Text(statusLabel(session.status.name)),
+                    backgroundColor: statusColor(
+                      session.status.name,
+                    ).withValues(alpha: 0.12),
+                    labelStyle: TextStyle(
+                      color: statusColor(session.status.name),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Info cards
+              _buildInfoRow(
+                theme,
+                isDark,
+                icon: Icons.group,
+                label: 'Tied Participants',
+                value: '${session.initialTiedCount}',
+              ),
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                theme,
+                isDark,
+                icon: Icons.check_circle_outline,
+                label: 'Ready',
+                value:
+                    '${session.readyAliases.length} / ${session.initialTiedCount}',
+              ),
+              ...[
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                theme,
+                isDark,
+                icon: Icons.timer_outlined,
+                label: 'Ready Deadline',
+                value: _formatDeadline(session.readyDeadline),
+              ),
+            ],
+              if (session.type == TiebreakerType.rps &&
+                  session.rpsCurrentRound > 0) ...[
+                const SizedBox(height: 8),
+                _buildInfoRow(
+                  theme,
+                  isDark,
+                  icon: Icons.repeat,
+                  label: 'RPS Rounds Played',
+                  value: '${session.rpsCurrentRound}',
+                ),
+              ],
+              const SizedBox(height: 20),
+            ],
+
+            // Notice
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: ColorConstants.success.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: ColorConstants.success.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: ColorConstants.success,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'The transaction will open automatically once the tiebreaker is resolved. You don\'t need to do anything right now.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: ColorConstants.success,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    ThemeData theme,
+    bool isDark, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.deepPurple),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: isDark
+                    ? ColorConstants.textSecondaryDark
+                    : ColorConstants.textSecondaryLight,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDeadline(DateTime deadline) {
+    final now = DateTime.now();
+    final diff = deadline.difference(now);
+    if (diff.isNegative) return 'Expired';
+    if (diff.inHours > 0) {
+      return '${diff.inHours}h ${diff.inMinutes.remainder(60)}m left';
+    }
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m left';
+    return '${diff.inSeconds}s left';
   }
 
   Widget _buildErrorState() {

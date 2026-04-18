@@ -1,34 +1,36 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../domain/entities/auction_detail_entity.dart';
-import '../../domain/entities/bid_history_entity.dart';
-import '../../domain/entities/bid_queue_entity.dart';
-import '../../domain/entities/qa_entity.dart';
-import '../../domain/usecases/get_auction_detail_usecase.dart';
-import '../../domain/usecases/get_bid_history_usecase.dart';
-import '../../domain/usecases/place_bid_usecase.dart';
-import '../../domain/usecases/get_questions_usecase.dart';
-import '../../domain/usecases/post_question_usecase.dart';
-import '../../domain/usecases/like_question_usecase.dart';
-import '../../domain/usecases/unlike_question_usecase.dart';
-import '../../domain/usecases/get_bid_increment_usecase.dart';
-import '../../domain/usecases/upsert_bid_increment_usecase.dart';
-import '../../domain/usecases/process_deposit_usecase.dart';
-import '../../domain/usecases/stream_auction_updates_usecase.dart';
-import '../../domain/usecases/stream_bid_updates_usecase.dart';
-import '../../domain/usecases/stream_qa_updates_usecase.dart';
-import '../../domain/usecases/save_auto_bid_settings_usecase.dart';
-import '../../domain/usecases/get_auto_bid_settings_usecase.dart';
-import '../../domain/usecases/deactivate_auto_bid_usecase.dart';
-import '../../domain/usecases/raise_hand_usecase.dart';
-import '../../domain/usecases/lower_hand_usecase.dart';
-import '../../domain/usecases/submit_turn_bid_usecase.dart';
-import '../../domain/usecases/get_queue_status_usecase.dart';
-import '../../domain/usecases/stream_queue_updates_usecase.dart';
-import '../../domain/usecases/place_mystery_bid_usecase.dart';
-import '../../domain/usecases/get_mystery_bid_status_usecase.dart';
-import '../../domain/entities/mystery_bid_entity.dart';
-import '../../../profile/domain/usecases/consume_bidding_token_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_detail_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_history_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/bid_queue_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/qa_entity.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_auction_detail_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_bid_history_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/place_bid_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_questions_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/post_question_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/like_question_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/unlike_question_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_bid_increment_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/upsert_bid_increment_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/process_deposit_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_auction_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_bid_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_qa_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/save_auto_bid_settings_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_auto_bid_settings_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/deactivate_auto_bid_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/raise_hand_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/lower_hand_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/submit_turn_bid_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_queue_status_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/stream_queue_updates_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/place_mystery_bid_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/usecases/get_mystery_bid_status_usecase.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/mystery_bid_entity.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/consume_bidding_token_usecase.dart';
+import 'package:autobid_mobile/modules/bids/domain/entities/mystery_tiebreaker_session_entity.dart';
+import 'package:autobid_mobile/modules/bids/data/datasources/mystery_tiebreaker_datasource.dart';
 
 /// Controller for managing auction detail page state
 /// Handles loading auction details, bid history timeline, and Q&A
@@ -146,6 +148,8 @@ class AuctionDetailController extends ChangeNotifier {
   // Mystery bid state
   MysteryBidStatusEntity? _mysteryBidStatus;
   bool _isLoadingMysteryStatus = false;
+  List<MysteryParticipantEntity> _mysteryParticipants = [];
+  TiebreakerSessionEntity? _tiebreakerSession;
 
   // Public getters
   AuctionDetailEntity? get auction => _auction;
@@ -165,6 +169,9 @@ class AuctionDetailController extends ChangeNotifier {
   MysteryBidStatusEntity? get mysteryBidStatus => _mysteryBidStatus;
   bool get isLoadingMysteryStatus => _isLoadingMysteryStatus;
   bool get isMysteryAuction => _auction?.biddingType == 'mystery';
+  List<MysteryParticipantEntity> get mysteryParticipants =>
+      _mysteryParticipants;
+  TiebreakerSessionEntity? get tiebreakerSession => _tiebreakerSession;
 
   /// Whether the current user won the auction (highest winning bid belongs to them)
   bool get isCurrentUserWinner {
@@ -641,7 +648,7 @@ class AuctionDetailController extends ChangeNotifier {
     try {
       final result = await _getMysteryBidStatusUseCase(
         auctionId: auctionId,
-        userId: _userId!,
+        userId: _userId,
       );
       result.fold(
         (failure) {
@@ -651,6 +658,25 @@ class AuctionDetailController extends ChangeNotifier {
           _mysteryBidStatus = MysteryBidStatusEntity.fromJson(data);
         },
       );
+      // Load participants list for active mystery (bid history tab)
+      if (_mysteryBidStatus?.auctionEnded == false) {
+        try {
+          _mysteryParticipants = await MysteryTiebreakerDatasource.instance
+              .getParticipants(auctionId);
+        } catch (e) {
+          debugPrint('Failed to load mystery participants: $e');
+        }
+      }
+      // Load tiebreaker session for seller when auction has ended (tiebreaker in progress)
+      if (_mysteryBidStatus?.isSeller == true ||
+          _mysteryBidStatus?.auctionEnded == true) {
+        try {
+          _tiebreakerSession = await MysteryTiebreakerDatasource.instance
+              .getSession(auctionId);
+        } catch (e) {
+          debugPrint('Failed to load tiebreaker session: $e');
+        }
+      }
     } catch (e) {
       debugPrint('Error loading mystery bid status: $e');
     } finally {

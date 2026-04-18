@@ -3,6 +3,26 @@ import 'package:flutter/services.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/modules/browse/domain/entities/mystery_bid_entity.dart';
 
+/// Formats a numeric text field with comma separators (e.g. 1,250,000).
+class _NumberCommaFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.isEmpty) return newValue.copyWith(text: '');
+    final formatted = digits.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 /// Sealed-bid card for mystery auctions.
 /// Bidders can only bid ONCE. Everything is hidden during the auction.
 class MysteryBiddingCard extends StatefulWidget {
@@ -211,7 +231,7 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
         TextField(
           controller: _bidController,
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: [_NumberCommaFormatter()],
           decoration: InputDecoration(
             labelText: 'Your Bid Amount',
             prefixText: '₱ ',
@@ -305,7 +325,8 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
     bool isDark, {
     bool isEdit = false,
   }) {
-    final amount = double.tryParse(_bidController.text) ?? 0;
+    final amount =
+        double.tryParse(_bidController.text.replaceAll(',', '')) ?? 0;
 
     return Column(
       children: [
@@ -453,8 +474,11 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
             onPressed: () {
               setState(() {
                 _isEditing = true;
-                _bidController.text =
-                    status.userBidAmount?.toStringAsFixed(0) ?? '';
+                final raw = status.userBidAmount?.toStringAsFixed(0) ?? '';
+                _bidController.text = raw.replaceAllMapped(
+                  RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                  (m) => '${m[1]},',
+                );
               });
             },
             style: OutlinedButton.styleFrom(
@@ -719,7 +743,7 @@ class _MysteryBiddingCardState extends State<MysteryBiddingCard> {
   }
 
   void _onSubmitPressed() {
-    final text = _bidController.text.trim();
+    final text = _bidController.text.trim().replaceAll(',', '');
     if (text.isEmpty) return;
     final amount = double.tryParse(text);
     if (amount == null || amount < widget.minimumBid) {
