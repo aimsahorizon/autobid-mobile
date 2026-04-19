@@ -14,7 +14,6 @@ import 'package:autobid_mobile/modules/bids/bids_module.dart';
 import 'package:autobid_mobile/modules/browse/browse_module.dart';
 import 'package:autobid_mobile/modules/notifications/notifications_module.dart';
 import 'package:autobid_mobile/modules/lists/lists_module.dart';
-import 'package:autobid_mobile/modules/admin/admin_module.dart';
 import 'package:autobid_mobile/modules/transactions/transactions_module.dart';
 import 'package:autobid_mobile/modules/guest/guest_module.dart';
 import 'package:autobid_mobile/modules/location/location_module.dart';
@@ -47,7 +46,6 @@ Future<void> initDependencies() async {
   await initBrowseModule();
   await initNotificationsModule();
   await initListsModule();
-    await initAdminModule();
     await initTransactionsModule();
     await initGuestModule();
   }
