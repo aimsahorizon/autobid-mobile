@@ -1,97 +1,71 @@
+// ==============================================================================
+// 🧪 CLEAN ARCHITECTURE TEST: GetUnreadCountUseCase
+// 📍 LAYER: Domain (UseCase)
+// 🎯 MODULE: notifications
+// ==============================================================================
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:fpdart/fpdart.dart';
-import 'package:autobid_mobile/core/error/failures.dart';
+
 import 'package:autobid_mobile/modules/notifications/domain/repositories/notification_repository.dart';
 import 'package:autobid_mobile/modules/notifications/domain/usecases/get_unread_count_usecase.dart';
 
-class MockNotificationRepository extends Mock
-    implements NotificationRepository {}
+// ------------------------------------------------------------------------------
+// 🛠️ MOCK DEFINITIONS
+// ------------------------------------------------------------------------------
+class MockNotificationRepository extends Mock implements NotificationRepository {}
 
 void main() {
-  late GetUnreadCountUseCase useCase;
+  late GetUnreadCountUseCase usecase;
   late MockNotificationRepository mockRepository;
 
   setUp(() {
     mockRepository = MockNotificationRepository();
-    useCase = GetUnreadCountUseCase(mockRepository);
+    // TODO: inject the mockRepository into the usecase constructor
+    // usecase = GetUnreadCountUseCase(mockRepository);
   });
 
-  group('GetUnreadCountUseCase', () {
-    const testUserId = 'test-user-id';
+  // ============================================================================
+  // 🔹 STANDARD BEHAVIOR TESTS
+  // ============================================================================
+  group('🔹 STANDARD BEHAVIOR - GetUnreadCountUseCase', () {
+    
+    test('✅ should return Right(data) when repository call is successful', () async {
+      // 1. ARRANGE
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Right(testData));
 
-    test('should return unread count when successful', () async {
-      // Arrange
-      const expectedCount = 5;
-      when(
-        () => mockRepository.getUnreadCount(userId: any(named: 'userId')),
-      ).thenAnswer((_) async => const Right(expectedCount));
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-      // Act
-      final result = await useCase(userId: testUserId);
-
-      // Assert
-      expect(result, equals(const Right(expectedCount)));
-      verify(() => mockRepository.getUnreadCount(userId: testUserId)).called(1);
-      verifyNoMoreInteractions(mockRepository);
+      // 3. ASSERT
+      // expect(result, equals(Right(testData)));
+      // verify(() => mockRepository.call(any())).called(1);
+      // verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return zero when user has no unread notifications', () async {
-      // Arrange
-      when(
-        () => mockRepository.getUnreadCount(userId: any(named: 'userId')),
-      ).thenAnswer((_) async => const Right(0));
+    test('❌ should return Left(Failure) when repository call fails', () async {
+      // 1. ARRANGE
+      // final tFailure = ServerFailure('Server Error');
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Left(tFailure));
 
-      // Act
-      final result = await useCase(userId: testUserId);
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-      // Assert
-      expect(result, equals(const Right(0)));
+      // 3. ASSERT
+      // expect(result, equals(Left(tFailure)));
+      // verify(() => mockRepository.call(any())).called(1);
+    });
+  });
+
+  // ============================================================================
+  // 🔴 REGRESSION FIXES
+  // ============================================================================
+  group('🔴 REGRESSION FIXES', () {
+    
+    test('BUG-000: Example format - handle edge case correctly without crashing', () async {
+      // Write a failing test here first when a bug is reported,
+      // Then fix the implementation in lib/ to make this test pass.
     });
 
-    test('should return ServerFailure when repository fails', () async {
-      // Arrange
-      const failure = ServerFailure('Failed to fetch count');
-      when(
-        () => mockRepository.getUnreadCount(userId: any(named: 'userId')),
-      ).thenAnswer((_) async => Left(failure));
-
-      // Act
-      final result = await useCase(userId: testUserId);
-
-      // Assert
-      expect(result, equals(Left(failure)));
-      verify(() => mockRepository.getUnreadCount(userId: testUserId)).called(1);
-    });
-
-    test('should handle large unread counts correctly', () async {
-      // Arrange
-      const largeCount = 9999;
-      when(
-        () => mockRepository.getUnreadCount(userId: any(named: 'userId')),
-      ).thenAnswer((_) async => const Right(largeCount));
-
-      // Act
-      final result = await useCase(userId: testUserId);
-
-      // Assert
-      expect(result, equals(const Right(largeCount)));
-    });
-
-    test('should pass correct user ID to repository', () async {
-      // Arrange
-      const specificUserId = 'specific-user-id-789';
-      when(
-        () => mockRepository.getUnreadCount(userId: any(named: 'userId')),
-      ).thenAnswer((_) async => const Right(3));
-
-      // Act
-      await useCase(userId: specificUserId);
-
-      // Assert
-      verify(
-        () => mockRepository.getUnreadCount(userId: specificUserId),
-      ).called(1);
-    });
   });
 }

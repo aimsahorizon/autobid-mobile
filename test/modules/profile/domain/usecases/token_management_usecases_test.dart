@@ -3,7 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/get_token_balance_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/get_token_packages_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/purchase_token_package_usecase.dart';
-import 'package:autobid_mobile/modules/profile/domain/usecases/consume_listing_token_usecase.dart';
+
 import 'package:autobid_mobile/modules/profile/domain/usecases/consume_bidding_token_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/repositories/pricing_repository.dart';
 import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
@@ -14,7 +14,7 @@ void main() {
   late GetTokenBalanceUsecase getTokenBalanceUseCase;
   late GetTokenPackagesUsecase getTokenPackagesUseCase;
   late PurchaseTokenPackageUsecase purchaseTokenPackageUseCase;
-  late ConsumeListingTokenUsecase consumeListingTokenUseCase;
+  
   late ConsumeBiddingTokenUsecase consumeBiddingTokenUseCase;
   late MockPricingRepository mockRepository;
 
@@ -27,9 +27,7 @@ void main() {
     purchaseTokenPackageUseCase = PurchaseTokenPackageUsecase(
       repository: mockRepository,
     );
-    consumeListingTokenUseCase = ConsumeListingTokenUsecase(
-      repository: mockRepository,
-    );
+    
     consumeBiddingTokenUseCase = ConsumeBiddingTokenUsecase(
       repository: mockRepository,
     );
@@ -37,7 +35,6 @@ void main() {
 
   const testUserId = 'user-123';
   const testPackageId = 'pkg-starter';
-  const testReferenceId = 'ref-listing-123';
 
   final testBalance = TokenBalanceEntity(
     userId: testUserId,
@@ -309,96 +306,7 @@ void main() {
     });
   });
 
-  group('ConsumeListingTokenUsecase', () {
-    test('should consume listing token successfully', () async {
-      // Arrange
-      when(
-        () => mockRepository.consumeListingToken(
-          userId: testUserId,
-          referenceId: testReferenceId,
-        ),
-      ).thenAnswer((_) async => true);
-
-      // Act
-      final result = await consumeListingTokenUseCase(
-        userId: testUserId,
-        referenceId: testReferenceId,
-      );
-
-      // Assert
-      expect(result, true);
-
-      verify(
-        () => mockRepository.consumeListingToken(
-          userId: testUserId,
-          referenceId: testReferenceId,
-        ),
-      ).called(1);
-    });
-
-    test('should return false when insufficient tokens', () async {
-      // Arrange
-      when(
-        () => mockRepository.consumeListingToken(
-          userId: any(named: 'userId'),
-          referenceId: any(named: 'referenceId'),
-        ),
-      ).thenAnswer((_) async => false);
-
-      // Act
-      final result = await consumeListingTokenUseCase(
-        userId: testUserId,
-        referenceId: testReferenceId,
-      );
-
-      // Assert
-      expect(result, false);
-    });
-
-    test('should throw exception when consumption fails', () async {
-      // Arrange
-      when(
-        () => mockRepository.consumeListingToken(
-          userId: any(named: 'userId'),
-          referenceId: any(named: 'referenceId'),
-        ),
-      ).thenThrow(Exception('Failed to consume token'));
-
-      // Act & Assert
-      expect(
-        () => consumeListingTokenUseCase(
-          userId: testUserId,
-          referenceId: testReferenceId,
-        ),
-        throwsException,
-      );
-    });
-
-    test('should pass correct reference id for listing', () async {
-      // Arrange
-      const listingId = 'listing-456';
-      when(
-        () => mockRepository.consumeListingToken(
-          userId: testUserId,
-          referenceId: listingId,
-        ),
-      ).thenAnswer((_) async => true);
-
-      // Act
-      await consumeListingTokenUseCase(
-        userId: testUserId,
-        referenceId: listingId,
-      );
-
-      // Assert
-      verify(
-        () => mockRepository.consumeListingToken(
-          userId: testUserId,
-          referenceId: listingId,
-        ),
-      ).called(1);
-    });
-  });
+  
 
   group('ConsumeBiddingTokenUsecase', () {
     test('should consume bidding token successfully', () async {

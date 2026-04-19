@@ -14,8 +14,7 @@ class TestPricingSupabaseDatasource extends PricingSupabaseDatasource {
   bool biddingRpcCalled = false;
   bool listingRpcCalled = false;
 
-  TestPricingSupabaseDatasource({required SupabaseClient supabase})
-    : super(supabase: supabase);
+  TestPricingSupabaseDatasource({required super.supabase});
 
   @override
   Future<Map<String, dynamic>?> fetchTokenBalanceRow(String userId) async {

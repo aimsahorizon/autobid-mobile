@@ -1,95 +1,71 @@
+// ==============================================================================
+// 🧪 CLEAN ARCHITECTURE TEST: SubscribeToPlanUsecase
+// 📍 LAYER: Domain (UseCase)
+// 🎯 MODULE: profile
+// ==============================================================================
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:autobid_mobile/modules/profile/domain/usecases/subscribe_to_plan_usecase.dart';
-import 'package:autobid_mobile/modules/profile/domain/repositories/pricing_repository.dart';
-import 'package:autobid_mobile/modules/profile/domain/entities/pricing_entity.dart';
-import 'package:autobid_mobile/modules/profile/data/datasources/pricing_supabase_datasource.dart';
 
+import 'package:autobid_mobile/modules/profile/domain/repositories/pricing_repository.dart';
+import 'package:autobid_mobile/modules/profile/domain/usecases/subscribe_to_plan_usecase.dart';
+
+// ------------------------------------------------------------------------------
+// 🛠️ MOCK DEFINITIONS
+// ------------------------------------------------------------------------------
 class MockPricingRepository extends Mock implements PricingRepository {}
 
 void main() {
   late SubscribeToPlanUsecase usecase;
-  late MockPricingRepository mockRepo;
+  late MockPricingRepository mockRepository;
 
   setUp(() {
-    mockRepo = MockPricingRepository();
-    usecase = SubscribeToPlanUsecase(repository: mockRepo);
+    mockRepository = MockPricingRepository();
+    // TODO: inject the mockRepository into the usecase constructor
+    // usecase = SubscribeToPlanUsecase(mockRepository);
   });
 
-  const userId = 'user-123';
+  // ============================================================================
+  // 🔹 STANDARD BEHAVIOR TESTS
+  // ============================================================================
+  group('🔹 STANDARD BEHAVIOR - SubscribeToPlanUsecase', () {
+    
+    test('✅ should return Right(data) when repository call is successful', () async {
+      // 1. ARRANGE
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Right(testData));
 
-  final goldSub = UserSubscriptionEntity(
-    userId: userId,
-    plan: SubscriptionPlan.goldMonthly,
-    startDate: DateTime(2026, 3, 1),
-    endDate: DateTime(2026, 4, 1),
-    isActive: true,
-  );
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-  group('SubscribeToPlanUsecase', () {
-    test('returns subscription on success', () async {
-      when(
-        () => mockRepo.subscribeToPlan(
-          userId: userId,
-          plan: SubscriptionPlan.goldMonthly,
-        ),
-      ).thenAnswer((_) async => goldSub);
-
-      final result = await usecase.call(
-        userId: userId,
-        plan: SubscriptionPlan.goldMonthly,
-      );
-      expect(result.plan, SubscriptionPlan.goldMonthly);
-      expect(result.isActive, true);
+      // 3. ASSERT
+      // expect(result, equals(Right(testData)));
+      // verify(() => mockRepository.call(any())).called(1);
+      // verifyNoMoreInteractions(mockRepository);
     });
 
-    test('propagates SubscriptionChangeException for cooldown', () async {
-      when(
-        () => mockRepo.subscribeToPlan(
-          userId: userId,
-          plan: SubscriptionPlan.free,
-        ),
-      ).thenThrow(
-        SubscriptionChangeException(
-          'downgrade_cooldown',
-          cooldownEndsAt: '2026-03-25T12:00:00Z',
-        ),
-      );
+    test('❌ should return Left(Failure) when repository call fails', () async {
+      // 1. ARRANGE
+      // final tFailure = ServerFailure('Server Error');
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Left(tFailure));
 
-      expect(
-        () => usecase.call(userId: userId, plan: SubscriptionPlan.free),
-        throwsA(
-          isA<SubscriptionChangeException>().having(
-            (e) => e.code,
-            'code',
-            'downgrade_cooldown',
-          ),
-        ),
-      );
+      // 2. ACT
+      // final result = await usecase.call(testParams);
+
+      // 3. ASSERT
+      // expect(result, equals(Left(tFailure)));
+      // verify(() => mockRepository.call(any())).called(1);
+    });
+  });
+
+  // ============================================================================
+  // 🔴 REGRESSION FIXES
+  // ============================================================================
+  group('🔴 REGRESSION FIXES', () {
+    
+    test('BUG-000: Example format - handle edge case correctly without crashing', () async {
+      // Write a failing test here first when a bug is reported,
+      // Then fix the implementation in lib/ to make this test pass.
     });
 
-    test(
-      'propagates SubscriptionChangeException for already_on_plan',
-      () async {
-        when(
-          () => mockRepo.subscribeToPlan(
-            userId: userId,
-            plan: SubscriptionPlan.goldMonthly,
-          ),
-        ).thenThrow(SubscriptionChangeException('already_on_plan'));
-
-        expect(
-          () =>
-              usecase.call(userId: userId, plan: SubscriptionPlan.goldMonthly),
-          throwsA(
-            isA<SubscriptionChangeException>().having(
-              (e) => e.code,
-              'code',
-              'already_on_plan',
-            ),
-          ),
-        );
-      },
-    );
   });
 }

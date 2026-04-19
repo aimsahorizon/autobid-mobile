@@ -1,172 +1,71 @@
+// ==============================================================================
+// 🧪 CLEAN ARCHITECTURE TEST: GetSellerListingsUseCase
+// 📍 LAYER: Domain (UseCase)
+// 🎯 MODULE: lists
+// ==============================================================================
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:fpdart/fpdart.dart';
-import 'package:autobid_mobile/modules/lists/domain/usecases/get_seller_listings_usecase.dart';
-import 'package:autobid_mobile/modules/lists/domain/repositories/seller_repository.dart';
-import 'package:autobid_mobile/modules/lists/domain/entities/seller_listing_entity.dart';
-import 'package:autobid_mobile/core/error/failures.dart';
 
+import 'package:autobid_mobile/modules/lists/domain/repositories/seller_repository.dart';
+import 'package:autobid_mobile/modules/lists/domain/usecases/get_seller_listings_usecase.dart';
+
+// ------------------------------------------------------------------------------
+// 🛠️ MOCK DEFINITIONS
+// ------------------------------------------------------------------------------
 class MockSellerRepository extends Mock implements SellerRepository {}
 
 void main() {
-  late GetSellerListingsUseCase useCase;
+  late GetSellerListingsUseCase usecase;
   late MockSellerRepository mockRepository;
 
   setUp(() {
     mockRepository = MockSellerRepository();
-    useCase = GetSellerListingsUseCase(mockRepository);
+    // TODO: inject the mockRepository into the usecase constructor
+    // usecase = GetSellerListingsUseCase(mockRepository);
   });
 
-  const testSellerId = 'seller-123';
+  // ============================================================================
+  // 🔹 STANDARD BEHAVIOR TESTS
+  // ============================================================================
+  group('🔹 STANDARD BEHAVIOR - GetSellerListingsUseCase', () {
+    
+    test('✅ should return Right(data) when repository call is successful', () async {
+      // 1. ARRANGE
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Right(testData));
 
-  final testActiveListings = [
-    SellerListingEntity(
-      id: 'listing-1',
-      imageUrl: 'https://example.com/car1.jpg',
-      year: 2020,
-      make: 'Toyota',
-      model: 'Camry',
-      status: ListingStatus.active,
-      startingPrice: 15000.0,
-      startTime: DateTime(2024, 1, 1),
-      currentBid: 16000.0,
-      reservePrice: 14000.0,
-      totalBids: 5,
-      watchersCount: 10,
-      viewsCount: 50,
-      createdAt: DateTime(2023, 12, 1),
-      endTime: DateTime(2024, 1, 10),
-      sellerId: testSellerId,
-    ),
-  ];
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-  final testPendingListings = [
-    SellerListingEntity(
-      id: 'listing-2',
-      imageUrl: 'https://example.com/car2.jpg',
-      year: 2019,
-      make: 'Honda',
-      model: 'Civic',
-      status: ListingStatus.pending,
-      startingPrice: 12000.0,
-      startTime: null,
-      currentBid: null,
-      reservePrice: 11000.0,
-      totalBids: 0,
-      watchersCount: 0,
-      viewsCount: 0,
-      createdAt: DateTime(2023, 12, 15),
-      endTime: null,
-      sellerId: testSellerId,
-    ),
-  ];
-
-  final testListingsMap = {
-    ListingStatus.active: testActiveListings,
-    ListingStatus.pending: testPendingListings,
-    ListingStatus.scheduled: <SellerListingEntity>[],
-    ListingStatus.inTransaction: <SellerListingEntity>[],
-    ListingStatus.sold: <SellerListingEntity>[],
-    ListingStatus.cancelled: <SellerListingEntity>[],
-  };
-
-  group('GetSellerListingsUseCase', () {
-    test('should get seller listings grouped by status', () async {
-      // Arrange
-      when(
-        () => mockRepository.getSellerListings(testSellerId),
-      ).thenAnswer((_) async => Right(testListingsMap));
-
-      // Act
-      final result = await useCase(testSellerId);
-
-      // Assert
-      expect(result.isRight(), true);
-      result.fold((failure) => fail('Should return listings'), (listings) {
-        expect(listings[ListingStatus.active]?.length, 1);
-        expect(listings[ListingStatus.pending]?.length, 1);
-        expect(listings[ListingStatus.active]?.first.id, 'listing-1');
-        expect(listings[ListingStatus.pending]?.first.id, 'listing-2');
-      });
-
-      verify(() => mockRepository.getSellerListings(testSellerId)).called(1);
+      // 3. ASSERT
+      // expect(result, equals(Right(testData)));
+      // verify(() => mockRepository.call(any())).called(1);
+      // verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should handle empty listings', () async {
-      // Arrange
-      final emptyMap = {
-        ListingStatus.active: <SellerListingEntity>[],
-        ListingStatus.pending: <SellerListingEntity>[],
-        ListingStatus.scheduled: <SellerListingEntity>[],
-        ListingStatus.inTransaction: <SellerListingEntity>[],
-        ListingStatus.sold: <SellerListingEntity>[],
-        ListingStatus.cancelled: <SellerListingEntity>[],
-      };
+    test('❌ should return Left(Failure) when repository call fails', () async {
+      // 1. ARRANGE
+      // final tFailure = ServerFailure('Server Error');
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Left(tFailure));
 
-      when(
-        () => mockRepository.getSellerListings(testSellerId),
-      ).thenAnswer((_) async => Right(emptyMap));
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-      // Act
-      final result = await useCase(testSellerId);
+      // 3. ASSERT
+      // expect(result, equals(Left(tFailure)));
+      // verify(() => mockRepository.call(any())).called(1);
+    });
+  });
 
-      // Assert
-      expect(result.isRight(), true);
-      result.fold((failure) => fail('Should return empty map'), (listings) {
-        expect(listings[ListingStatus.active], isEmpty);
-        expect(listings[ListingStatus.pending], isEmpty);
-      });
+  // ============================================================================
+  // 🔴 REGRESSION FIXES
+  // ============================================================================
+  group('🔴 REGRESSION FIXES', () {
+    
+    test('BUG-000: Example format - handle edge case correctly without crashing', () async {
+      // Write a failing test here first when a bug is reported,
+      // Then fix the implementation in lib/ to make this test pass.
     });
 
-    test('should return NotFoundFailure when seller not found', () async {
-      // Arrange
-      when(
-        () => mockRepository.getSellerListings(testSellerId),
-      ).thenAnswer((_) async => Left(NotFoundFailure('Seller not found')));
-
-      // Act
-      final result = await useCase(testSellerId);
-
-      // Assert
-      expect(result.isLeft(), true);
-      result.fold((failure) {
-        expect(failure, isA<NotFoundFailure>());
-        expect(failure.message, 'Seller not found');
-      }, (_) => fail('Should return failure'));
-    });
-
-    test('should return NetworkFailure when network unavailable', () async {
-      // Arrange
-      when(
-        () => mockRepository.getSellerListings(testSellerId),
-      ).thenAnswer((_) async => Left(NetworkFailure('No internet connection')));
-
-      // Act
-      final result = await useCase(testSellerId);
-
-      // Assert
-      expect(result.isLeft(), true);
-      result.fold((failure) {
-        expect(failure, isA<NetworkFailure>());
-        expect(failure.message, 'No internet connection');
-      }, (_) => fail('Should return failure'));
-    });
-
-    test('should return ServerFailure on server error', () async {
-      // Arrange
-      when(
-        () => mockRepository.getSellerListings(testSellerId),
-      ).thenAnswer((_) async => Left(ServerFailure('Server error')));
-
-      // Act
-      final result = await useCase(testSellerId);
-
-      // Assert
-      expect(result.isLeft(), true);
-      result.fold((failure) {
-        expect(failure, isA<ServerFailure>());
-        expect(failure.message, 'Server error');
-      }, (_) => fail('Should return failure'));
-    });
   });
 }

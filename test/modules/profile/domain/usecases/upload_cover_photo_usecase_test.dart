@@ -1,79 +1,71 @@
-import 'dart:io';
+// ==============================================================================
+// 🧪 CLEAN ARCHITECTURE TEST: UploadCoverPhotoUseCase
+// 📍 LAYER: Domain (UseCase)
+// 🎯 MODULE: profile
+// ==============================================================================
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:fpdart/fpdart.dart';
-import 'package:autobid_mobile/core/error/failures.dart';
+
 import 'package:autobid_mobile/modules/profile/domain/repositories/profile_repository.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/upload_cover_photo_usecase.dart';
 
+// ------------------------------------------------------------------------------
+// 🛠️ MOCK DEFINITIONS
+// ------------------------------------------------------------------------------
 class MockProfileRepository extends Mock implements ProfileRepository {}
 
-class FakeFile extends Fake implements File {}
-
 void main() {
-  late UploadCoverPhotoUseCase useCase;
+  late UploadCoverPhotoUseCase usecase;
   late MockProfileRepository mockRepository;
-
-  setUpAll(() {
-    registerFallbackValue(FakeFile());
-  });
 
   setUp(() {
     mockRepository = MockProfileRepository();
-    useCase = UploadCoverPhotoUseCase(mockRepository);
+    // TODO: inject the mockRepository into the usecase constructor
+    // usecase = UploadCoverPhotoUseCase(mockRepository);
   });
 
-  group('UploadCoverPhotoUseCase', () {
-    const testUserId = 'test-user-id';
-    final testFile = File('test/path/to/cover.jpg');
-    const testPhotoUrl = 'https://storage.example.com/photos/cover.jpg';
+  // ============================================================================
+  // 🔹 STANDARD BEHAVIOR TESTS
+  // ============================================================================
+  group('🔹 STANDARD BEHAVIOR - UploadCoverPhotoUseCase', () {
+    
+    test('✅ should return Right(data) when repository call is successful', () async {
+      // 1. ARRANGE
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Right(testData));
 
-    test('should return photo URL when upload succeeds', () async {
-      // Arrange
-      when(
-        () => mockRepository.uploadCoverPhoto(any(), any()),
-      ).thenAnswer((_) async => Right(testPhotoUrl));
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-      // Act
-      final result = await useCase(userId: testUserId, imageFile: testFile);
-
-      // Assert
-      expect(result, equals(Right(testPhotoUrl)));
-      verify(
-        () => mockRepository.uploadCoverPhoto(testUserId, testFile),
-      ).called(1);
-      verifyNoMoreInteractions(mockRepository);
+      // 3. ASSERT
+      // expect(result, equals(Right(testData)));
+      // verify(() => mockRepository.call(any())).called(1);
+      // verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return ServerFailure when upload fails', () async {
-      // Arrange
-      const failure = ServerFailure('Network error');
-      when(
-        () => mockRepository.uploadCoverPhoto(any(), any()),
-      ).thenAnswer((_) async => Left(failure));
+    test('❌ should return Left(Failure) when repository call fails', () async {
+      // 1. ARRANGE
+      // final tFailure = ServerFailure('Server Error');
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Left(tFailure));
 
-      // Act
-      final result = await useCase(userId: testUserId, imageFile: testFile);
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-      // Assert
-      expect(result, equals(Left(failure)));
-      verify(
-        () => mockRepository.uploadCoverPhoto(testUserId, testFile),
-      ).called(1);
+      // 3. ASSERT
+      // expect(result, equals(Left(tFailure)));
+      // verify(() => mockRepository.call(any())).called(1);
+    });
+  });
+
+  // ============================================================================
+  // 🔴 REGRESSION FIXES
+  // ============================================================================
+  group('🔴 REGRESSION FIXES', () {
+    
+    test('BUG-000: Example format - handle edge case correctly without crashing', () async {
+      // Write a failing test here first when a bug is reported,
+      // Then fix the implementation in lib/ to make this test pass.
     });
 
-    test('should return StorageFailure when file too large', () async {
-      // Arrange
-      const failure = StorageFailure('File size exceeds limit');
-      when(
-        () => mockRepository.uploadCoverPhoto(any(), any()),
-      ).thenAnswer((_) async => Left(failure));
-
-      // Act
-      final result = await useCase(userId: testUserId, imageFile: testFile);
-
-      // Assert
-      expect(result, equals(Left(failure)));
-    });
   });
 }

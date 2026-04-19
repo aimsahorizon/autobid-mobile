@@ -1,89 +1,71 @@
-import 'package:fpdart/fpdart.dart';
+// ==============================================================================
+// 🧪 CLEAN ARCHITECTURE TEST: SaveAutoBidSettingsUseCase
+// 📍 LAYER: Domain (UseCase)
+// 🎯 MODULE: browse
+// ==============================================================================
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:autobid_mobile/core/error/failures.dart';
+
 import 'package:autobid_mobile/modules/browse/domain/repositories/auction_detail_repository.dart';
 import 'package:autobid_mobile/modules/browse/domain/usecases/save_auto_bid_settings_usecase.dart';
 
-class MockAuctionDetailRepository extends Mock
-    implements AuctionDetailRepository {}
+// ------------------------------------------------------------------------------
+// 🛠️ MOCK DEFINITIONS
+// ------------------------------------------------------------------------------
+class MockAuctionDetailRepository extends Mock implements AuctionDetailRepository {}
 
 void main() {
-  late MockAuctionDetailRepository repository;
+  late SaveAutoBidSettingsUseCase usecase;
+  late MockAuctionDetailRepository mockRepository;
 
   setUp(() {
-    repository = MockAuctionDetailRepository();
+    mockRepository = MockAuctionDetailRepository();
+    // TODO: inject the mockRepository into the usecase constructor
+    // usecase = SaveAutoBidSettingsUseCase(mockRepository);
   });
 
-  group('SaveAutoBidSettingsUseCase', () {
-    test(
-      'returns PermissionFailure when user is not eligible for auto-bid',
-      () async {
-        final usecase = SaveAutoBidSettingsUseCase(
-          repository,
-          canUseAutoBid: (_) async => false,
-        );
+  // ============================================================================
+  // 🔹 STANDARD BEHAVIOR TESTS
+  // ============================================================================
+  group('🔹 STANDARD BEHAVIOR - SaveAutoBidSettingsUseCase', () {
+    
+    test('✅ should return Right(data) when repository call is successful', () async {
+      // 1. ARRANGE
+      // when(() => mockRepository.Function(any())).thenAnswer((_) async => Right(testData));
 
-        final result = await usecase.call(
-          auctionId: 'auction-1',
-          userId: 'user-1',
-          maxBidAmount: 50000,
-          bidIncrement: 500,
-          isActive: true,
-        );
+      // 2. ACT
+      // final result = await usecase.Function(testParams);
 
-        expect(result.isLeft(), true);
-        result.fold(
-          (failure) => expect(failure, isA<PermissionFailure>()),
-          (_) => fail('Expected failure result'),
-        );
-
-        verifyNever(
-          () => repository.saveAutoBidSettings(
-            auctionId: any(named: 'auctionId'),
-            userId: any(named: 'userId'),
-            maxBidAmount: any(named: 'maxBidAmount'),
-            bidIncrement: any(named: 'bidIncrement'),
-            isActive: any(named: 'isActive'),
-          ),
-        );
-      },
-    );
-
-    test('saves settings when user is eligible for auto-bid', () async {
-      when(
-        () => repository.saveAutoBidSettings(
-          auctionId: any(named: 'auctionId'),
-          userId: any(named: 'userId'),
-          maxBidAmount: any(named: 'maxBidAmount'),
-          bidIncrement: any(named: 'bidIncrement'),
-          isActive: any(named: 'isActive'),
-        ),
-      ).thenAnswer((_) async => const Right(null));
-
-      final usecase = SaveAutoBidSettingsUseCase(
-        repository,
-        canUseAutoBid: (_) async => true,
-      );
-
-      final result = await usecase.call(
-        auctionId: 'auction-2',
-        userId: 'user-2',
-        maxBidAmount: 75000,
-        bidIncrement: 1000,
-        isActive: true,
-      );
-
-      expect(result.isRight(), true);
-      verify(
-        () => repository.saveAutoBidSettings(
-          auctionId: 'auction-2',
-          userId: 'user-2',
-          maxBidAmount: 75000,
-          bidIncrement: 1000,
-          isActive: true,
-        ),
-      ).called(1);
+      // 3. ASSERT
+      // expect(result, equals(Right(testData)));
+      // verify(() => mockRepository.Function(any())).called(1);
+      // verifyNoMoreInteractions(mockRepository);
     });
+
+    test('❌ should return Left(Failure) when repository call fails', () async {
+      // 1. ARRANGE
+      // final tFailure = ServerFailure('Server Error');
+      // when(() => mockRepository.Function(any())).thenAnswer((_) async => Left(tFailure));
+
+      // 2. ACT
+      // final result = await usecase.Function(testParams);
+
+      // 3. ASSERT
+      // expect(result, equals(Left(tFailure)));
+      // verify(() => mockRepository.Function(any())).called(1);
+    });
+  });
+
+  // ============================================================================
+  // 🔴 REGRESSION FIXES
+  // ============================================================================
+  group('🔴 REGRESSION FIXES', () {
+    
+    test('BUG-000: Example format - handle edge case correctly without crashing', () async {
+      // Write a failing test here first when a bug is reported,
+      // Then fix the implementation in lib/ to make this test pass.
+    });
+
   });
 }

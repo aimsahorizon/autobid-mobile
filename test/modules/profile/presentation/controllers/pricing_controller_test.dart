@@ -7,7 +7,6 @@ import 'package:autobid_mobile/modules/profile/domain/usecases/get_user_subscrip
 import 'package:autobid_mobile/modules/profile/domain/usecases/get_token_packages_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/purchase_token_package_usecase.dart';
 import 'package:autobid_mobile/modules/profile/domain/usecases/subscribe_to_plan_usecase.dart';
-import 'package:autobid_mobile/modules/profile/data/datasources/pricing_supabase_datasource.dart';
 
 class MockGetTokenBalance extends Mock implements GetTokenBalanceUsecase {}
 

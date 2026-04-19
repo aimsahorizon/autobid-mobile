@@ -96,7 +96,6 @@ void main() {
       acceptVehicleUseCase: mockAcceptVehicleUseCase,
       rejectVehicleUseCase: mockRejectVehicleUseCase,
       getDeadlineUseCase: mockGetDeadlineUseCase,
-      checkAutoAcceptUseCase: mockCheckAutoAcceptUseCase,
       enableAutoAcceptDemoUseCase: mockEnableAutoAcceptDemoUseCase,
     );
   });
@@ -453,7 +452,6 @@ void main() {
         acceptVehicleUseCase: mockAcceptVehicleUseCase,
         rejectVehicleUseCase: mockRejectVehicleUseCase,
         getDeadlineUseCase: mockGetDeadlineUseCase,
-        checkAutoAcceptUseCase: mockCheckAutoAcceptUseCase,
         enableAutoAcceptDemoUseCase: mockEnableAutoAcceptDemoUseCase,
       );
 

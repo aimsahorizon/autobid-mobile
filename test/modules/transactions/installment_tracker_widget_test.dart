@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'package:autobid_mobile/modules/transactions/presentation/controllers/installment_controller.dart';
-import 'package:autobid_mobile/modules/transactions/presentation/controllers/transaction_realtime_controller.dart';
 import 'package:autobid_mobile/modules/transactions/data/datasources/installment_supabase_datasource.dart';
 import 'package:autobid_mobile/modules/transactions/data/datasources/transaction_realtime_datasource.dart';
 import 'package:autobid_mobile/modules/transactions/domain/entities/transaction_entity.dart';

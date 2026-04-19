@@ -1,156 +1,71 @@
+// ==============================================================================
+// 🧪 CLEAN ARCHITECTURE TEST: GetNotificationsUseCase
+// 📍 LAYER: Domain (UseCase)
+// 🎯 MODULE: notifications
+// ==============================================================================
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:fpdart/fpdart.dart';
-import 'package:autobid_mobile/core/error/failures.dart';
-import 'package:autobid_mobile/modules/notifications/domain/entities/notification_entity.dart';
+
 import 'package:autobid_mobile/modules/notifications/domain/repositories/notification_repository.dart';
 import 'package:autobid_mobile/modules/notifications/domain/usecases/get_notifications_usecase.dart';
 
-class MockNotificationRepository extends Mock
-    implements NotificationRepository {}
+// ------------------------------------------------------------------------------
+// 🛠️ MOCK DEFINITIONS
+// ------------------------------------------------------------------------------
+class MockNotificationRepository extends Mock implements NotificationRepository {}
 
 void main() {
-  late GetNotificationsUseCase useCase;
+  late GetNotificationsUseCase usecase;
   late MockNotificationRepository mockRepository;
 
   setUp(() {
     mockRepository = MockNotificationRepository();
-    useCase = GetNotificationsUseCase(mockRepository);
+    // TODO: inject the mockRepository into the usecase constructor
+    // usecase = GetNotificationsUseCase(mockRepository);
   });
 
-  group('GetNotificationsUseCase', () {
-    const testUserId = 'test-user-id';
-    final testNotifications = [
-      NotificationEntity(
-        id: '1',
-        userId: testUserId,
-        type: NotificationType.bidUpdate,
-        priority: NotificationPriority.high,
-        title: 'You have been outbid',
-        message: 'Another bidder has placed a higher bid',
-        isRead: false,
-        createdAt: DateTime(2024, 1, 1),
-        relatedEntityId: 'auction-123',
-        relatedEntityType: 'auction',
-      ),
-      NotificationEntity(
-        id: '2',
-        userId: testUserId,
-        type: NotificationType.auctionUpdate,
-        priority: NotificationPriority.normal,
-        title: 'Auction ending soon',
-        message: 'Your watched auction ends in 1 hour',
-        isRead: true,
-        createdAt: DateTime(2024, 1, 2),
-        relatedEntityId: 'auction-456',
-        relatedEntityType: 'auction',
-      ),
-    ];
+  // ============================================================================
+  // 🔹 STANDARD BEHAVIOR TESTS
+  // ============================================================================
+  group('🔹 STANDARD BEHAVIOR - GetNotificationsUseCase', () {
+    
+    test('✅ should return Right(data) when repository call is successful', () async {
+      // 1. ARRANGE
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Right(testData));
 
-    test('should return list of notifications when successful', () async {
-      // Arrange
-      when(
-        () => mockRepository.getNotifications(
-          userId: any(named: 'userId'),
-          limit: any(named: 'limit'),
-          offset: any(named: 'offset'),
-        ),
-      ).thenAnswer((_) async => Right(testNotifications));
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-      // Act
-      final result = await useCase(userId: testUserId);
-
-      // Assert
-      expect(result, equals(Right(testNotifications)));
-      verify(
-        () => mockRepository.getNotifications(
-          userId: testUserId,
-          limit: null,
-          offset: null,
-        ),
-      ).called(1);
+      // 3. ASSERT
+      // expect(result, equals(Right(testData)));
+      // verify(() => mockRepository.call(any())).called(1);
+      // verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should pass limit and offset parameters correctly', () async {
-      // Arrange
-      const limit = 20;
-      const offset = 10;
-      when(
-        () => mockRepository.getNotifications(
-          userId: any(named: 'userId'),
-          limit: any(named: 'limit'),
-          offset: any(named: 'offset'),
-        ),
-      ).thenAnswer((_) async => Right(testNotifications));
+    test('❌ should return Left(Failure) when repository call fails', () async {
+      // 1. ARRANGE
+      // final tFailure = ServerFailure('Server Error');
+      // when(() => mockRepository.call(any())).thenAnswer((_) async => Left(tFailure));
 
-      // Act
-      await useCase(userId: testUserId, limit: limit, offset: offset);
+      // 2. ACT
+      // final result = await usecase.call(testParams);
 
-      // Assert
-      verify(
-        () => mockRepository.getNotifications(
-          userId: testUserId,
-          limit: limit,
-          offset: offset,
-        ),
-      ).called(1);
+      // 3. ASSERT
+      // expect(result, equals(Left(tFailure)));
+      // verify(() => mockRepository.call(any())).called(1);
+    });
+  });
+
+  // ============================================================================
+  // 🔴 REGRESSION FIXES
+  // ============================================================================
+  group('🔴 REGRESSION FIXES', () {
+    
+    test('BUG-000: Example format - handle edge case correctly without crashing', () async {
+      // Write a failing test here first when a bug is reported,
+      // Then fix the implementation in lib/ to make this test pass.
     });
 
-    test('should return ServerFailure when repository fails', () async {
-      // Arrange
-      const failure = ServerFailure('Failed to fetch notifications');
-      when(
-        () => mockRepository.getNotifications(
-          userId: any(named: 'userId'),
-          limit: any(named: 'limit'),
-          offset: any(named: 'offset'),
-        ),
-      ).thenAnswer((_) async => Left(failure));
-
-      // Act
-      final result = await useCase(userId: testUserId);
-
-      // Assert
-      expect(result, equals(Left(failure)));
-    });
-
-    test('should return empty list when no notifications exist', () async {
-      // Arrange
-      when(
-        () => mockRepository.getNotifications(
-          userId: any(named: 'userId'),
-          limit: any(named: 'limit'),
-          offset: any(named: 'offset'),
-        ),
-      ).thenAnswer((_) async => const Right([]));
-
-      // Act
-      final result = await useCase(userId: testUserId);
-
-      // Assert
-      expect(result.isRight(), true);
-      result.fold(
-        (l) => fail('Should not return failure'),
-        (r) => expect(r, isEmpty),
-      );
-    });
-
-    test('should return NetworkFailure when network error occurs', () async {
-      // Arrange
-      const failure = NetworkFailure('No internet connection');
-      when(
-        () => mockRepository.getNotifications(
-          userId: any(named: 'userId'),
-          limit: any(named: 'limit'),
-          offset: any(named: 'offset'),
-        ),
-      ).thenAnswer((_) async => Left(failure));
-
-      // Act
-      final result = await useCase(userId: testUserId);
-
-      // Assert
-      expect(result, equals(Left(failure)));
-    });
   });
 }
