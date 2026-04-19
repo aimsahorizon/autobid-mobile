@@ -1,90 +1,56 @@
+// ==============================================================================
+// 🧪 CLEAN ARCHITECTURE TEST: SignInUseCase
+// 📍 LAYER: Domain (UseCase)
+// 🎯 MODULE: auth
+// ==============================================================================
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:autobid_mobile/core/error/failures.dart';
+import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
 import 'package:autobid_mobile/modules/auth/domain/usecases/sign_in_usecase.dart';
 import 'package:autobid_mobile/modules/auth/domain/repositories/auth_repository.dart';
-import 'package:autobid_mobile/modules/auth/domain/entities/user_entity.dart';
-import 'package:autobid_mobile/core/error/failures.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
-  late SignInUseCase useCase;
+  late SignInUseCase usecase;
   late MockAuthRepository mockRepository;
-
-  const testUsername = 'testuser';
-  const testPassword = 'password123';
-  const testUser = UserEntity(
-    id: 'user-123',
-    email: 'test@example.com',
-    username: testUsername,
-  );
 
   setUp(() {
     mockRepository = MockAuthRepository();
-    useCase = SignInUseCase(mockRepository);
+    usecase = SignInUseCase(mockRepository);
   });
 
-  group('SignInUseCase', () {
-    test('should return UserEntity when sign in is successful', () async {
-      // Arrange
-      when(
-        () => mockRepository.signInWithUsername(any(), any()),
-      ).thenAnswer((_) async => const Right(testUser));
+  const testUser = UserEntity(
+    id: 'test-123',
+    email: 'test@example.com',
+    username: 'testuser',
+  );
 
-      // Act
-      final result = await useCase(testUsername, testPassword);
+  group('🔹 STANDARD BEHAVIOR - SignInUseCase', () {
+    const testUsername = 'testuser';
+    const testPassword = 'password123';
 
-      // Assert
+    test('✅ should return Right(UserEntity) when repository call is successful', () async {
+      when(() => mockRepository.signInWithUsername(testUsername, testPassword)).thenAnswer((_) async => const Right(testUser));
+      final result = await usecase.call(testUsername, testPassword);
       expect(result, equals(const Right(testUser)));
-      verify(
-        () => mockRepository.signInWithUsername(testUsername, testPassword),
-      ).called(1);
+      verify(() => mockRepository.signInWithUsername(testUsername, testPassword)).called(1);
+      verifyNoMoreInteractions(mockRepository);
     });
 
-    test('should return AuthFailure when credentials are invalid', () async {
-      // Arrange
-      const failure = AuthFailure('Invalid username or password');
-      when(
-        () => mockRepository.signInWithUsername(any(), any()),
-      ).thenAnswer((_) async => const Left(failure));
-
-      // Act
-      final result = await useCase(testUsername, testPassword);
-
-      // Assert
-      expect(result, equals(const Left(failure)));
-      verify(
-        () => mockRepository.signInWithUsername(testUsername, testPassword),
-      ).called(1);
+    test('❌ should return Left(Failure) when repository call fails', () async {
+      const tFailure = ServerFailure('Invalid credentials');
+      when(() => mockRepository.signInWithUsername(testUsername, testPassword)).thenAnswer((_) async => const Left(tFailure));
+      final result = await usecase.call(testUsername, testPassword);
+      expect(result, equals(const Left(tFailure)));
+      verify(() => mockRepository.signInWithUsername(testUsername, testPassword)).called(1);
     });
+  });
 
-    test('should return NetworkFailure when network error occurs', () async {
-      // Arrange
-      const failure = NetworkFailure('No internet connection');
-      when(
-        () => mockRepository.signInWithUsername(any(), any()),
-      ).thenAnswer((_) async => const Left(failure));
-
-      // Act
-      final result = await useCase(testUsername, testPassword);
-
-      // Assert
-      expect(result, equals(const Left(failure)));
-    });
-
-    test('should return ServerFailure when server error occurs', () async {
-      // Arrange
-      const failure = ServerFailure('Server error occurred');
-      when(
-        () => mockRepository.signInWithUsername(any(), any()),
-      ).thenAnswer((_) async => const Left(failure));
-
-      // Act
-      final result = await useCase(testUsername, testPassword);
-
-      // Assert
-      expect(result, equals(const Left(failure)));
-    });
+  group('🔴 REGRESSION FIXES', () {
+    test('BUG-000: Placeholder for future regression tests', () {});
   });
 }
