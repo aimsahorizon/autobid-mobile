@@ -93,9 +93,9 @@ Future<void> initAuthModule() async {
 
   sl.registerFactory(() => RegistrationController(signUpUseCase: sl()));
 
-  sl.registerFactory(
+  sl.registerLazySingleton(
     () => KYCRegistrationController(
-      authDataSource: sl(), // Needs AuthRemoteDataSource
+      authDataSource: sl(),
       sendEmailOtpUseCase: sl(),
       sendPhoneOtpUseCase: sl(),
       verifyEmailOtpUseCase: sl(),
@@ -103,7 +103,6 @@ Future<void> initAuthModule() async {
       checkNationalIdExistsUseCase: sl(),
       checkSecondaryIdExistsUseCase: sl(),
       sharedPreferences: sl(),
-      aiService: sl(),
     ),
   );
 }
