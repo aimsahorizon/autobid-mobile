@@ -8,8 +8,14 @@ bool _isAssetPath(String url) => url.startsWith('assets/');
 class AuctionCard extends StatelessWidget {
   final AuctionEntity auction;
   final VoidCallback? onTap;
+  final bool isListLayout;
 
-  const AuctionCard({super.key, required this.auction, this.onTap});
+  const AuctionCard({
+    super.key,
+    required this.auction,
+    this.onTap,
+    this.isListLayout = false,
+  });
 
   String _formatTimeRemaining() {
     final minutes = auction.timeRemainingMinutes;
@@ -43,6 +49,7 @@ class AuctionCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 0,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
@@ -53,69 +60,126 @@ class AuctionCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildImage(),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildCarName(theme),
-                  const SizedBox(height: 4),
-                  _buildSellerInfo(theme, isDark),
-                  const SizedBox(height: 8),
-                  _buildCurrentBid(theme),
-                  const SizedBox(height: 12),
-                  _buildStats(theme, isDark),
-                ],
-              ),
-            ),
-          ],
-        ),
+        child: isListLayout ? _buildListLayout(theme, isDark) : _buildGridLayout(theme, isDark),
       ),
     );
   }
 
-  Widget _buildImage() {
+  Widget _buildListLayout(ThemeData theme, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            height: 90,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _buildImage(isListLayout: true),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCarName(theme),
+                const SizedBox(height: 4),
+                _buildSellerInfo(theme, isDark),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildCurrentBid(theme),
+                    _buildTimeRemaining(),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _buildStats(theme, isDark),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGridLayout(ThemeData theme, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildImage(),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCarName(theme),
+                const SizedBox(height: 4),
+                _buildSellerInfo(theme, isDark),
+                const Spacer(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildCurrentBid(theme),
+                    _buildTimeRemaining(),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _buildStats(theme, isDark),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImage({bool isListLayout = false}) {
     final isExclusive = auction.visibility == 'exclusive';
     final isMystery = auction.visibility == 'mystery';
 
     return Stack(
+      fit: StackFit.expand,
       children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: _isAssetPath(auction.carImageUrl)
-              ? Image.asset(
-                  auction.carImageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: ColorConstants.backgroundSecondaryLight,
-                    child: const Icon(
-                      Icons.directions_car,
-                      size: 48,
-                      color: ColorConstants.textSecondaryLight,
-                    ),
-                  ),
-                )
-              : CachedNetworkImage(
-                  imageUrl: auction.carImageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: ColorConstants.backgroundSecondaryLight,
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: ColorConstants.backgroundSecondaryLight,
-                    child: const Icon(
-                      Icons.directions_car,
-                      size: 48,
-                      color: ColorConstants.textSecondaryLight,
-                    ),
-                  ),
-                ),
-        ),
+        isListLayout
+            ? _isAssetPath(auction.carImageUrl)
+                ? Image.asset(auction.carImageUrl, fit: BoxFit.cover)
+                : CachedNetworkImage(imageUrl: auction.carImageUrl, fit: BoxFit.cover)
+            : AspectRatio(
+                aspectRatio: 16 / 9,
+                child: _isAssetPath(auction.carImageUrl)
+                    ? Image.asset(
+                        auction.carImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: ColorConstants.backgroundSecondaryLight,
+                          child: const Icon(
+                            Icons.directions_car,
+                            size: 48,
+                            color: ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: auction.carImageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: ColorConstants.backgroundSecondaryLight,
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: ColorConstants.backgroundSecondaryLight,
+                          child: const Icon(
+                            Icons.directions_car,
+                            size: 48,
+                            color: ColorConstants.textSecondaryLight,
+                          ),
+                        ),
+                      ),
+              ),
         Positioned(
           top: 8,
           left: 8,
@@ -165,7 +229,13 @@ class AuctionCard extends StatelessWidget {
   Widget _buildCarName(ThemeData theme) {
     return Text(
       auction.carName,
-      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+        height: 1.2,
+      ),
     );
   }
 
@@ -181,12 +251,12 @@ class AuctionCard extends StatelessWidget {
           ClipOval(
             child: CachedNetworkImage(
               imageUrl: auction.sellerProfileImageUrl!,
-              width: 18,
-              height: 18,
+              width: 14,
+              height: 14,
               fit: BoxFit.cover,
               errorWidget: (context, url, error) => Icon(
                 Icons.person,
-                size: 16,
+                size: 14,
                 color: isDark
                     ? ColorConstants.textSecondaryDark
                     : ColorConstants.textSecondaryLight,
@@ -196,12 +266,12 @@ class AuctionCard extends StatelessWidget {
         else
           Icon(
             Icons.person,
-            size: 16,
+            size: 14,
             color: isDark
                 ? ColorConstants.textSecondaryDark
                 : ColorConstants.textSecondaryLight,
           ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 4),
         Expanded(
           child: Text(
             sellerName,
@@ -211,7 +281,7 @@ class AuctionCard extends StatelessWidget {
               color: isDark
                   ? ColorConstants.textSecondaryDark
                   : ColorConstants.textSecondaryLight,
-              fontWeight: FontWeight.w500,
+              fontSize: 11,
             ),
           ),
         ),
@@ -222,67 +292,58 @@ class AuctionCard extends StatelessWidget {
   Widget _buildCurrentBid(ThemeData theme) {
     final isMystery = auction.visibility == 'mystery';
 
-    return Row(
-      children: [
-        if (isMystery) ...[
-          const Icon(Icons.lock_outline, size: 16, color: Colors.deepPurple),
+    if (isMystery) {
+      return Text(
+        '₱${_formatPrice(auction.currentBid)}',
+        style: theme.textTheme.titleMedium?.copyWith(
+          color: Colors.deepPurple,
+          fontWeight: FontWeight.bold,
+          fontSize: 15,
+        ),
+      );
+    }
+    return Text(
+      '₱${_formatPrice(auction.currentBid)}',
+      style: theme.textTheme.titleMedium?.copyWith(
+        color: ColorConstants.primary,
+        fontWeight: FontWeight.bold,
+        fontSize: 15,
+      ),
+    );
+  }
+
+  Widget _buildTimeRemaining() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: auction.hasEnded
+            ? ColorConstants.error.withValues(alpha: 0.1)
+            : ColorConstants.success.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.access_time_rounded,
+            size: 12,
+            color: auction.hasEnded
+                ? ColorConstants.error
+                : ColorConstants.success,
+          ),
           const SizedBox(width: 4),
           Text(
-            'Starting at ',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.deepPurple,
-              fontWeight: FontWeight.w500,
+            _formatTimeRemaining(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: auction.hasEnded
+                  ? ColorConstants.error
+                  : ColorConstants.success,
             ),
           ),
-          Text(
-            '₱${_formatPrice(auction.currentBid)}',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: Colors.deepPurple,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ] else
-          Text(
-            '₱${_formatPrice(auction.currentBid)}',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: ColorConstants.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: auction.hasEnded
-                ? ColorConstants.error.withValues(alpha: 0.1)
-                : ColorConstants.success.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.access_time_rounded,
-                size: 14,
-                color: auction.hasEnded
-                    ? ColorConstants.error
-                    : ColorConstants.success,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                _formatTimeRemaining(),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: auction.hasEnded
-                      ? ColorConstants.error
-                      : ColorConstants.success,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

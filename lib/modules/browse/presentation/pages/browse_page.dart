@@ -43,10 +43,6 @@ class _BrowsePageState extends State<BrowsePage> {
     super.dispose();
   }
 
-  void _handleSearch(String query) {
-    _controller.updateSearchQuery(query);
-  }
-
   void _openFilterSheet() {
     showModalBottomSheet(
       context: context,
@@ -160,9 +156,27 @@ class _BrowsePageState extends State<BrowsePage> {
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: Text(
-            'Browse Auctions',
-            style: TextStyle(color: theme.textTheme.titleLarge?.color),
+          toolbarHeight: 70,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Browse Auction',
+                style: TextStyle(
+                  color: theme.textTheme.titleLarge?.color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+              const Text(
+                'Explore available vehicles\nand start bidding',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  height: 1.2,
+                ),
+              ),
+            ],
           ),
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -172,41 +186,12 @@ class _BrowsePageState extends State<BrowsePage> {
                 (isDarkMode ? Colors.white : Colors.black),
           ),
           actions: [
-            const NotificationBellWidget(),
-            // Filter button with badge showing active filter count
-            Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.filter_list_rounded),
-                  onPressed: _openFilterSheet,
-                  tooltip: 'Filter',
-                ),
-                if (_controller.hasActiveFilters)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: ColorConstants.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${_controller.activeFilterCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {
+                // Focus search or show dialog
+              },
+              tooltip: 'Search',
             ),
             IconButton(
               icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
@@ -218,40 +203,41 @@ class _BrowsePageState extends State<BrowsePage> {
               onPressed: () => _controller.loadAuctions(),
               tooltip: 'Refresh',
             ),
+            const NotificationBellWidget(),
           ],
         ),
         body: Column(
           children: [
+            // FILTERS & SORTING block
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _searchController,
-                onSubmitted: _handleSearch,
-                decoration: InputDecoration(
-                  hintText: 'Search cars by brand, model, color, location...',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded),
-                          onPressed: () {
-                            _searchController.clear();
-                            _controller.updateSearchQuery('');
-                            setState(() {});
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor:
-                      theme.inputDecorationTheme.fillColor ??
-                      (isDarkMode
-                          ? ColorConstants.surfaceVariantDark
-                          : ColorConstants.backgroundSecondaryLight),
-                  border: OutlineInputBorder(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: InkWell(
+                onTap: _openFilterSheet, // Re-use bottom sheet for now
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: ColorConstants.primary,
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'FILTERS & SORTING',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Colors.white,
+                      ),
+                    ],
                   ),
                 ),
-                onChanged: (value) => setState(() {}),
               ),
             ),
             // Active filter chips
