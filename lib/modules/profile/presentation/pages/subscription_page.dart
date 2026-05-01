@@ -19,6 +19,8 @@ class SubscriptionPage extends StatefulWidget {
 }
 
 class _SubscriptionPageState extends State<SubscriptionPage> {
+  int _selectedTabIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -101,6 +103,33 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     }
   }
 
+  Widget _buildTabButton(String title, int index, bool isDark) {
+    final isSelected = _selectedTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedTabIndex = index;
+          });
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? ColorConstants.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -118,7 +147,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Current subscription card
                 if (widget.controller.subscription != null)
@@ -137,75 +166,70 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Free plan
-                _PlanCard(
-                  plan: SubscriptionPlan.free,
-                  isCurrentPlan:
-                      widget.controller.currentPlan == SubscriptionPlan.free,
-                  onSubscribe: () => _subscribeToPlan(SubscriptionPlan.free),
-                  isDark: isDark,
-                ),
-                const SizedBox(height: 16),
-
-                // Silver plans
-                Text(
-                  'Silver Plans',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _PlanCard(
-                  plan: SubscriptionPlan.silverMonthly,
-                  isCurrentPlan:
-                      widget.controller.currentPlan ==
-                      SubscriptionPlan.silverMonthly,
-                  onSubscribe: () =>
-                      _subscribeToPlan(SubscriptionPlan.silverMonthly),
-                  isDark: isDark,
-                ),
-                const SizedBox(height: 12),
-                _PlanCard(
-                  plan: SubscriptionPlan.silverYearly,
-                  isCurrentPlan:
-                      widget.controller.currentPlan ==
-                      SubscriptionPlan.silverYearly,
-                  onSubscribe: () =>
-                      _subscribeToPlan(SubscriptionPlan.silverYearly),
-                  isDark: isDark,
-                  savingsPercent: 16,
+                  child: Row(
+                    children: [
+                      _buildTabButton('FREE', 0, isDark),
+                      _buildTabButton('SILVER', 1, isDark),
+                      _buildTabButton('GOLD', 2, isDark),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
 
-                // Gold plans
-                Text(
-                  'Gold Plans',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                if (_selectedTabIndex == 0) ...[
+                  _PlanCard(
+                    plan: SubscriptionPlan.free,
+                    isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.free,
+                    onSubscribe: () => _subscribeToPlan(SubscriptionPlan.free),
+                    isDark: isDark,
+                    titleOverride: 'Package One',
+                    subtitleOverride: 'Standard',
                   ),
-                ),
-                const SizedBox(height: 12),
-                _PlanCard(
-                  plan: SubscriptionPlan.goldMonthly,
-                  isCurrentPlan:
-                      widget.controller.currentPlan ==
-                      SubscriptionPlan.goldMonthly,
-                  onSubscribe: () =>
-                      _subscribeToPlan(SubscriptionPlan.goldMonthly),
-                  isDark: isDark,
-                  isRecommended: true,
-                ),
-                const SizedBox(height: 12),
-                _PlanCard(
-                  plan: SubscriptionPlan.goldYearly,
-                  isCurrentPlan:
-                      widget.controller.currentPlan ==
-                      SubscriptionPlan.goldYearly,
-                  onSubscribe: () =>
-                      _subscribeToPlan(SubscriptionPlan.goldYearly),
-                  isDark: isDark,
-                  savingsPercent: 16,
-                ),
+                ] else if (_selectedTabIndex == 1) ...[
+                  _PlanCard(
+                    plan: SubscriptionPlan.silverMonthly,
+                    isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.silverMonthly,
+                    onSubscribe: () => _subscribeToPlan(SubscriptionPlan.silverMonthly),
+                    isDark: isDark,
+                    titleOverride: 'Package One',
+                    subtitleOverride: 'Monthly',
+                  ),
+                  const SizedBox(height: 16),
+                  _PlanCard(
+                    plan: SubscriptionPlan.silverYearly,
+                    isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.silverYearly,
+                    onSubscribe: () => _subscribeToPlan(SubscriptionPlan.silverYearly),
+                    isDark: isDark,
+                    titleOverride: 'Package Two',
+                    subtitleOverride: 'Yearly',
+                  ),
+                ] else if (_selectedTabIndex == 2) ...[
+                  _PlanCard(
+                    plan: SubscriptionPlan.goldMonthly,
+                    isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.goldMonthly,
+                    onSubscribe: () => _subscribeToPlan(SubscriptionPlan.goldMonthly),
+                    isDark: isDark,
+                    titleOverride: 'Package One',
+                    subtitleOverride: 'Monthly',
+                  ),
+                  const SizedBox(height: 16),
+                  _PlanCard(
+                    plan: SubscriptionPlan.goldYearly,
+                    isCurrentPlan: widget.controller.currentPlan == SubscriptionPlan.goldYearly,
+                    onSubscribe: () => _subscribeToPlan(SubscriptionPlan.goldYearly),
+                    isDark: isDark,
+                    isRecommended: true,
+                    savingsPercent: 16,
+                    titleOverride: 'Package Two',
+                    subtitleOverride: 'Yearly',
+                  ),
+                ],
               ],
             ),
           );
@@ -312,6 +336,8 @@ class _PlanCard extends StatelessWidget {
   final bool isDark;
   final bool isRecommended;
   final int? savingsPercent;
+  final String titleOverride;
+  final String subtitleOverride;
 
   const _PlanCard({
     required this.plan,
@@ -320,159 +346,156 @@ class _PlanCard extends StatelessWidget {
     required this.isDark,
     this.isRecommended = false,
     this.savingsPercent,
+    required this.titleOverride,
+    required this.subtitleOverride,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark
-            ? ColorConstants.surfaceDark
-            : ColorConstants.surfaceLight,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isCurrentPlan || isRecommended
-              ? ColorConstants.primary
-              : (isDark
-                    ? ColorConstants.borderDark
-                    : ColorConstants.borderLight),
-          width: isCurrentPlan || isRecommended ? 2 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final List<Widget> leftFeatures = [
+      _FeatureRow(icon: Icons.gavel, text: '${plan.biddingTokens} bidding tokens'),
+      const SizedBox(height: 8),
+      _FeatureRow(icon: Icons.format_list_bulleted, text: '${plan.listingTokens} listing tokens'),
+    ];
+
+    final List<Widget> rightFeatures = [];
+    if (plan.includesAutoBid) {
+      rightFeatures.add(const _FeatureRow(icon: Icons.auto_awesome, text: 'Auto-bid access'));
+      rightFeatures.add(const SizedBox(height: 8));
+    }
+    if (plan != SubscriptionPlan.free) {
+      rightFeatures.add(const _FeatureRow(icon: Icons.add_shopping_cart, text: 'Buy additional token packs anytime'));
+    }
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          margin: isRecommended ? const EdgeInsets.only(top: 12) : null,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDark ? ColorConstants.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isCurrentPlan || isRecommended
+                  ? ColorConstants.primary.withValues(alpha: 0.3)
+                  : (isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+              width: isCurrentPlan || isRecommended ? 2 : 1,
+            ),
+            boxShadow: isCurrentPlan || isRecommended
+                ? [
+                    BoxShadow(
+                      color: ColorConstants.primary.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    )
+                  ]
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.radio_button_unchecked,
+                    color: isCurrentPlan || isRecommended ? ColorConstants.primary : Colors.grey,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          plan.name,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          titleOverride,
+                          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          subtitleOverride,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: ColorConstants.textSecondaryLight,
                           ),
                         ),
-                        if (isRecommended) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: ColorConstants.primary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'POPULAR',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
-                    if (plan != SubscriptionPlan.free) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            '₱${plan.price.toStringAsFixed(0)}',
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: ColorConstants.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            plan.isYearly ? '/year' : '/month',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isDark
-                                  ? ColorConstants.textSecondaryDark
-                                  : ColorConstants.textSecondaryLight,
-                            ),
-                          ),
-                          if (savingsPercent != null) ...[
-                            const SizedBox(width: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: ColorConstants.success.withValues(
-                                  alpha: 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Save $savingsPercent%',
-                                style: TextStyle(
-                                  color: ColorConstants.success,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
+                  ),
+                  Container(width: 1, height: 40, color: Colors.grey.withValues(alpha: 0.3)),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: 80,
+                    child: Text(
+                      plan == SubscriptionPlan.free ? 'FREE' : '₱${plan.price.toStringAsFixed(0)}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: ColorConstants.primary,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ] else
-                      const SizedBox(height: 4),
-                  ],
-                ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: leftFeatures)),
+                  if (rightFeatures.isNotEmpty) const SizedBox(width: 16),
+                  if (rightFeatures.isNotEmpty) Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: rightFeatures)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: isCurrentPlan
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? ColorConstants.surfaceVariantDark : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text('Current Plan', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                      )
+                    : FilledButton(
+                        onPressed: onSubscribe,
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(plan == SubscriptionPlan.free ? 'Downgrade' : 'Subscribe'),
+                      ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _FeatureRow(
-            icon: Icons.gavel,
-            text:
-                '${plan.biddingTokens} bidding tokens${plan != SubscriptionPlan.free && plan.isYearly ? ' monthly' : ''}',
-          ),
-          const SizedBox(height: 8),
-          _FeatureRow(
-            icon: Icons.format_list_bulleted,
-            text:
-                '${plan.listingTokens} listing tokens${plan != SubscriptionPlan.free && plan.isYearly ? ' monthly' : ''}',
-          ),
-          if (plan.includesAutoBid) ...[
-            const SizedBox(height: 8),
-            _FeatureRow(icon: Icons.auto_mode, text: 'Auto-bid access'),
-          ],
-          if (plan != SubscriptionPlan.free) ...[
-            const SizedBox(height: 8),
-            _FeatureRow(
-              icon: Icons.add_shopping_cart,
-              text: 'Buy additional token packs anytime',
-            ),
-          ],
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: isCurrentPlan
-                ? OutlinedButton(
-                    onPressed: null,
-                    child: const Text('Current Plan'),
-                  )
-                : FilledButton(
-                    onPressed: onSubscribe,
-                    child: Text(
-                      plan == SubscriptionPlan.free ? 'Downgrade' : 'Subscribe',
-                    ),
+        ),
+        if (isRecommended && savingsPercent != null)
+          Positioned(
+            top: 2,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: ColorConstants.primary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('POPULAR ', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2)),
+                    child: Text('SAVE $savingsPercent%', style: const TextStyle(color: ColorConstants.primary, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -486,11 +509,15 @@ class _FeatureRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: ColorConstants.primary),
-        const SizedBox(width: 12),
+        Icon(icon, size: 16, color: ColorConstants.primary),
+        const SizedBox(width: 8),
         Expanded(
-          child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12),
+          ),
         ),
       ],
     );

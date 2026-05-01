@@ -26,7 +26,7 @@ class ProfileHeader extends StatelessWidget {
         _buildCoverPhoto(),
         Positioned(
           bottom: -50,
-          left: 24,
+          left: 20,
           child: _buildProfilePhoto(),
         ),
       ],
@@ -36,55 +36,28 @@ class ProfileHeader extends StatelessWidget {
   Widget _buildCoverPhoto() {
     return GestureDetector(
       onTap: isEditable ? onCoverPhotoTap : null,
-      child: Stack(
-        children: [
-          Container(
-            height: 200,
-            decoration: BoxDecoration(
-              color: ColorConstants.backgroundSecondaryLight,
-            ),
-            child: CachedNetworkImage(
-              imageUrl: coverPhotoUrl,
-              width: double.infinity,
-              height: 200,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: ColorConstants.backgroundSecondaryLight,
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: ColorConstants.backgroundSecondaryLight,
-                child: const Icon(
-                  Icons.landscape_rounded,
-                  size: 64,
-                  color: ColorConstants.textSecondaryLight,
-                ),
-              ),
+      child: Container(
+        height: 220,
+        decoration: BoxDecoration(
+          color: ColorConstants.backgroundSecondaryLight,
+        ),
+        child: CachedNetworkImage(
+          imageUrl: coverPhotoUrl,
+          width: double.infinity,
+          height: 220,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            color: ColorConstants.backgroundSecondaryLight,
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: ColorConstants.backgroundSecondaryLight,
+            child: const Icon(
+              Icons.landscape_rounded,
+              size: 64,
+              color: ColorConstants.textSecondaryLight,
             ),
           ),
-          if (isEditable)
-            Positioned(
-              bottom: 12,
-              right: 12,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
-                    SizedBox(width: 4),
-                    Text(
-                      'Edit',
-                      style: TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -92,63 +65,42 @@ class ProfileHeader extends StatelessWidget {
   Widget _buildProfilePhoto() {
     return GestureDetector(
       onTap: isEditable ? onProfilePhotoTap : null,
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 4),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 4), // TODO: Adapt to dark mode if needed
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: profilePhotoUrl,
-                width: 100,
-                height: 100,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  width: 100,
-                  height: 100,
-                  color: ColorConstants.backgroundSecondaryLight,
-                  child: const CircularProgressIndicator(),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  width: 100,
-                  height: 100,
-                  color: ColorConstants.backgroundSecondaryLight,
-                  child: const Icon(
-                    Icons.person_rounded,
-                    size: 48,
-                    color: ColorConstants.textSecondaryLight,
-                  ),
-                ),
+          ],
+        ),
+        child: ClipOval(
+          child: CachedNetworkImage(
+            imageUrl: profilePhotoUrl,
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              width: 100,
+              height: 100,
+              color: ColorConstants.backgroundSecondaryLight,
+              child: const CircularProgressIndicator(),
+            ),
+            errorWidget: (context, url, error) => Container(
+              width: 100,
+              height: 100,
+              color: ColorConstants.backgroundSecondaryLight,
+              child: const Icon(
+                Icons.person_rounded,
+                size: 48,
+                color: ColorConstants.textSecondaryLight,
               ),
             ),
           ),
-          if (isEditable)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: ColorConstants.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.camera_alt_rounded,
-                  size: 16,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

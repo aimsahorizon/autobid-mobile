@@ -468,18 +468,7 @@ class ReviewsSummarySection extends StatelessWidget {
                   ),
                 ),
               ] else ...[
-                // Show recent reviews (max 3)
-                ...reviewController
-                    .getRecentReviews(count: 3)
-                    .map(
-                      (review) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: ReviewCard(review: review),
-                      ),
-                    ),
-
-                const SizedBox(height: 4),
-
+                const SizedBox(height: 16),
                 // "View All Reviews" button
                 SizedBox(
                   width: double.infinity,
@@ -487,7 +476,8 @@ class ReviewsSummarySection extends StatelessWidget {
                     onPressed: onViewAll,
                     icon: const Icon(Icons.reviews_outlined, size: 18),
                     label: Text(
-                      'View All ${reviewController.summary.totalReviews} Reviews',
+                      'View All Reviews (${reviewController.summary.totalReviews})',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: ColorConstants.primary,

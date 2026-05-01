@@ -133,6 +133,49 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _showEditMediaBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Edit Profile Media',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              ListTile(
+                leading: const Icon(Icons.landscape_outlined),
+                title: const Text('Change Cover Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showImageSourceDialog(isCover: true);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Change Profile Picture'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showImageSourceDialog(isCover: false);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _handleCoverPhotoTap() {
     _showImageSourceDialog(isCover: true);
   }
@@ -392,6 +435,81 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Widget _buildListedSoldStats(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? ColorConstants.surfaceDark : Colors.white;
+    final border = Border.all(
+      color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+                border: border,
+              ),
+              child: const Column(
+                children: [
+                  Text(
+                    '1', // Dummy data matching inspiration
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Listed',
+                    style: TextStyle(
+                      color: ColorConstants.textSecondaryLight,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+                border: border,
+              ),
+              child: const Column(
+                children: [
+                  Text(
+                    '12', // Dummy data matching inspiration
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Sold',
+                    style: TextStyle(
+                      color: ColorConstants.textSecondaryLight,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -463,12 +581,15 @@ class _ProfilePageState extends State<ProfilePage> {
                       onCoverPhotoTap: _handleCoverPhotoTap,
                       onProfilePhotoTap: _handleProfilePhotoTap,
                     ),
-                    const SizedBox(height: 60),
+                    const SizedBox(height: 16),
                     ProfileInfoSection(
                       fullName: profile.fullName,
                       username: profile.username,
                       email: profile.email,
+                      onEditProfileMedia: _showEditMediaBottomSheet,
                     ),
+                    const SizedBox(height: 16),
+                    _buildListedSoldStats(context),
                     const SizedBox(height: 16),
                     ReviewsSummarySection(
                       reviewController: widget.reviewController,

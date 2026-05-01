@@ -68,63 +68,8 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Show error if there is one
           if (widget.controller.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: ColorConstants.error,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading packages',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.controller.error!,
-                    style: theme.textTheme.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: () =>
-                        widget.controller.loadUserPricing(widget.userId),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // Check if packages are empty
-          if (widget.controller.biddingPackages.isEmpty &&
-              widget.controller.listingPackages.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.inventory_2_outlined, size: 64),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No packages available',
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: () =>
-                        widget.controller.loadUserPricing(widget.userId),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh'),
-                  ),
-                ],
-              ),
-            );
+            return Center(child: Text(widget.controller.error!));
           }
 
           return SingleChildScrollView(
@@ -132,135 +77,114 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Current balance card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        ColorConstants.primary,
-                        ColorConstants.secondary,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Your Token Balance',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Bidding Tokens',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.controller.biddingTokens.toString(),
-                                  style: theme.textTheme.headlineMedium
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Listing Tokens',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.controller.listingTokens.toString(),
-                                  style: theme.textTheme.headlineMedium
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Bidding tokens section
+                // Bidding Tokens Section
                 Text(
                   'Bidding Tokens',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Each bid consumes 1 bidding token',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark
-                        ? ColorConstants.textSecondaryDark
-                        : ColorConstants.textSecondaryLight,
+                    color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight,
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...widget.controller.biddingPackages.map(
-                  (package) => _PackageCard(
-                    package: package,
-                    onPurchase: () => _purchasePackage(package),
-                    isDark: isDark,
-                  ),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildBiddingTokenCard(
+                        title: '5 Bidding Tokens',
+                        price: 99,
+                        icon: Icons.gavel,
+                        isDark: isDark,
+                        theme: theme,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildBiddingTokenCard(
+                        title: '25 Bidding Tokens',
+                        price: 349,
+                        icon: Icons.gavel,
+                        isDark: isDark,
+                        theme: theme,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                _buildBiddingTokenCard(
+                  title: '100 Bidding Tokens',
+                  price: 1299,
+                  icon: Icons.gavel,
+                  isDark: isDark,
+                  theme: theme,
+                  isFullWidth: true,
+                  badgeText: 'MOST POPULAR',
+                  subtitle: '₱12.99/ea',
+                ),
+
                 const SizedBox(height: 32),
 
-                // Listing tokens section
+                // Listing Tokens Section
                 Text(
                   'Listing Tokens',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Each listing submission consumes 1 listing token',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark
-                        ? ColorConstants.textSecondaryDark
-                        : ColorConstants.textSecondaryLight,
+                    color: isDark ? ColorConstants.textSecondaryDark : ColorConstants.textSecondaryLight,
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...widget.controller.listingPackages.map(
-                  (package) => _PackageCard(
-                    package: package,
-                    onPurchase: () => _purchasePackage(package),
-                    isDark: isDark,
+
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end, // Align to bottom to handle badge height differences
+                  children: [
+                    Expanded(
+                      child: _buildListingTokenCard(
+                        title: '1 Listing Token',
+                        price: 199,
+                        subtitle: 'Single Use',
+                        isDark: isDark,
+                        theme: theme,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildListingTokenCard(
+                        title: '3 Listing Token',
+                        price: 499,
+                        subtitle: 'Save 16%',
+                        isDark: isDark,
+                        theme: theme,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildListingTokenCard(
+                        title: '10 Listing Token',
+                        price: 1499,
+                        subtitle: 'Single Use',
+                        isDark: isDark,
+                        theme: theme,
+                        badgeText: 'BEST VALUE',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: Text(
+                    'Secure checkout via top methods  [ GCash | VISA | Mastercard ]',
+                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
                   ),
                 ),
+                const SizedBox(height: 32),
               ],
             ),
           );
@@ -268,112 +192,180 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
       ),
     );
   }
-}
 
-class _PackageCard extends StatelessWidget {
-  final TokenPackageEntity package;
-  final VoidCallback onPurchase;
-  final bool isDark;
-
-  const _PackageCard({
-    required this.package,
-    required this.onPurchase,
-    required this.isDark,
-  });
-
-  String _formatPrice(double price) {
-    return price
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark
-            ? ColorConstants.surfaceDark
-            : ColorConstants.surfaceLight,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? ColorConstants.borderDark
-              : ColorConstants.borderLight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ColorConstants.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              package.type == TokenType.bidding
-                  ? Icons.gavel
-                  : Icons.format_list_bulleted,
-              color: ColorConstants.primary,
-              size: 28,
+  Widget _buildBiddingTokenCard({
+    required String title,
+    required double price,
+    required IconData icon,
+    required bool isDark,
+    required ThemeData theme,
+    bool isFullWidth = false,
+    String? badgeText,
+    String? subtitle,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? ColorConstants.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  package.description,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isFullWidth)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Icon(icon, color: ColorConstants.primary, size: 64),
+                  ],
+                )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold))),
+                    Icon(icon, color: ColorConstants.primary, size: 32),
+                  ],
                 ),
-                if (package.bonusTokens > 0) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '+${package.bonusTokens} bonus tokens',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: ColorConstants.success,
-                      fontWeight: FontWeight.w600,
+              SizedBox(height: isFullWidth ? 8 : 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('₱${price.toStringAsFixed(0)}', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      if (subtitle != null)
+                        Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                    ],
+                  ),
+                  FilledButton(
+                    onPressed: () {},
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      minimumSize: const Size(0, 36),
                     ),
+                    child: const Text('Buy'),
                   ),
                 ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₱${_formatPrice(package.price)}',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: ColorConstants.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              FilledButton(
-                onPressed: onPurchase,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                ),
-                child: const Text('Buy'),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        if (badgeText != null)
+          Positioned(
+            top: -10,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: ColorConstants.primary,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                badgeText,
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildListingTokenCard({
+    required String title,
+    required double price,
+    required String subtitle,
+    required bool isDark,
+    required ThemeData theme,
+    String? badgeText,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          margin: EdgeInsets.only(top: badgeText != null ? 10 : 0),
+          decoration: BoxDecoration(
+            color: isDark ? ColorConstants.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                decoration: const BoxDecoration(
+                  color: ColorConstants.primary,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      title.replaceFirst(' ', '\n'), // break after number
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.bold, height: 1.2),
+                    ),
+                    const SizedBox(height: 16),
+                    const Icon(Icons.receipt_long, color: Colors.white, size: 48),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Text('₱${price.toStringAsFixed(0)}', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(fontSize: 10)),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () {},
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          minimumSize: const Size(0, 36),
+                        ),
+                        child: const Text('Buy'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (badgeText != null)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.center,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: ColorConstants.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  badgeText,
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
