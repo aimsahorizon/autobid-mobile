@@ -22,6 +22,8 @@ class ListsPage extends StatefulWidget {
 class _ListsPageState extends State<ListsPage>
     with TickerProviderStateMixin, WidgetsBindingObserver {
   late TabController _tabController;
+  bool _filtersExpanded = false;
+  String _sortBy = 'Latest';
 
   static const _currentTabs = [
     null, // "All" tab
@@ -44,6 +46,9 @@ class _ListsPageState extends State<ListsPage>
     _controller.addListener(_onControllerChanged);
 
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _controller.loadListings();
   }
 
@@ -70,7 +75,13 @@ class _ListsPageState extends State<ListsPage>
 
   List<SellerListingEntity> _getAllListings() {
     final all = _controller.listings.values.expand((l) => l).toList();
-    all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    if (_sortBy == 'Oldest') {
+      all.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    } else if (_sortBy == 'Status') {
+      all.sort((a, b) => a.status.index.compareTo(b.status.index));
+    } else { // Latest
+      all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
     return all;
   }
 
@@ -167,7 +178,13 @@ class _ListsPageState extends State<ListsPage>
             : null,
         title: _controller.isSelectionMode
             ? Text('${_controller.selectedCount} Selected')
-            : const Text('My Listings'),
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('My Listings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                  Text('Manage all your car listings', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
         actions: _controller.isSelectionMode
             ? [
                 IconButton(
@@ -197,66 +214,6 @@ class _ListsPageState extends State<ListsPage>
                   ),
                 ),
               ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: ListenableBuilder(
-            listenable: _controller,
-            builder: (context, _) {
-              return Container(
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? ColorConstants.backgroundDark
-                      : ColorConstants.backgroundSecondaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  padding: const EdgeInsets.all(4),
-                  indicator: BoxDecoration(
-                    color: isDark ? ColorConstants.surfaceDark : Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  dividerColor: Colors.transparent,
-                  labelColor: ColorConstants.primary,
-                  unselectedLabelColor: isDark
-                      ? ColorConstants.textSecondaryDark
-                      : ColorConstants.textSecondaryLight,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                  tabs: _tabs.map((status) {
-                    if (status == null) {
-                      final allCount = _controller.listings.values
-                          .expand((l) => l)
-                          .length;
-                      return _TabWithBadge(
-                        label: 'All',
-                        count: allCount,
-                        color: ColorConstants.primary,
-                      );
-                    }
-                    return _TabWithBadge(
-                      label: status.tabLabel,
-                      count: _controller.getCountByStatus(status),
-                      color: _getStatusColor(status),
-                    );
-                  }).toList(),
-                ),
-              );
-            },
-          ),
-        ),
       ),
       body: ListenableBuilder(
         listenable: _controller,
@@ -265,17 +222,24 @@ class _ListsPageState extends State<ListsPage>
             return const Center(child: CircularProgressIndicator());
           }
 
-          return RefreshIndicator(
-            onRefresh: () => _controller.loadListings(),
-            child: TabBarView(
-              controller: _tabController,
-              children: _tabs.map((status) {
-                if (status == null) {
-                  return _buildUnifiedView();
-                }
-                return _buildGridForStatus(status);
-              }).toList(),
-            ),
+          return Column(
+            children: [
+              _buildFilterSection(context, isDark),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () => _controller.loadListings(),
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: _tabs.map((status) {
+                      if (status == null) {
+                        return _buildUnifiedView();
+                      }
+                      return _buildGridForStatus(status);
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -285,6 +249,212 @@ class _ListsPageState extends State<ListsPage>
         label: const Text('Sell My Car'),
         backgroundColor: ColorConstants.primary,
         foregroundColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildFilterSection(BuildContext context, bool isDark) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      decoration: BoxDecoration(
+        color: isDark ? ColorConstants.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _filtersExpanded = !_filtersExpanded;
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: ColorConstants.primary,
+                borderRadius: _filtersExpanded 
+                    ? const BorderRadius.vertical(top: Radius.circular(12))
+                    : BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'FILTERS & SORTING',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Icon(
+                    _filtersExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_filtersExpanded)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.swap_vert, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'SORT BY',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildSortButton('Latest', isDark),
+                      const SizedBox(width: 8),
+                      _buildSortButton('Oldest', isDark),
+                      const SizedBox(width: 8),
+                      _buildSortButton('Status', isDark),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      const Icon(Icons.filter_alt_outlined, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'FILTER BY',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 80,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _tabs.length,
+                      itemBuilder: (context, index) {
+                        final status = _tabs[index];
+                        final isSelected = _tabController.index == index;
+                        
+                        String label = 'All';
+                        int count = 0;
+                        Color color = ColorConstants.primary;
+                        IconData icon = Icons.dashboard;
+
+                        if (status == null) {
+                          count = _controller.listings.values.expand((l) => l).length;
+                        } else {
+                          label = status.tabLabel;
+                          count = _controller.getCountByStatus(status);
+                          color = _getStatusColor(status);
+                          icon = _getEmptyIcon(status); 
+                        }
+
+                        return InkWell(
+                          onTap: () {
+                            _tabController.animateTo(index);
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                              border: isSelected ? Border.all(color: color.withValues(alpha: 0.3)) : null,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(icon, color: color, size: 20),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      label,
+                                      style: TextStyle(
+                                        color: color,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        count.toString(),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: color,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortButton(String label, bool isDark) {
+    final isSelected = _sortBy == label;
+    final theme = Theme.of(context);
+    
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _sortBy = label;
+        });
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? ColorConstants.primary.withValues(alpha: 0.2) 
+              : (isDark ? ColorConstants.surfaceDark : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: isSelected ? ColorConstants.primary : (isDark ? Colors.white : Colors.black),
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
@@ -301,7 +471,6 @@ class _ListsPageState extends State<ListsPage>
       emptySubtitle: 'Try changing the filter or add a new listing',
       emptyIcon: Icons.filter_alt_off,
       enableNavigation: !_controller.isSelectionMode,
-      // Pass controller/sellerId if needed for actions, though they might not apply to all types
       draftController: sl<ListingDraftController>(),
       sellerId: userId,
       isSelectionMode: _controller.isSelectionMode,
@@ -319,8 +488,17 @@ class _ListsPageState extends State<ListsPage>
     final needsSellerId = needsController;
     final userId = SupabaseConfig.client.auth.currentUser?.id;
 
+    var statusListings = _controller.getListingsByStatus(status).toList();
+    if (_sortBy == 'Oldest') {
+      statusListings.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    } else if (_sortBy == 'Status') {
+      statusListings.sort((a, b) => a.status.index.compareTo(b.status.index));
+    } else { // Latest
+      statusListings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+
     return ListingsGrid(
-      listings: _controller.getListingsByStatus(status),
+      listings: statusListings,
       isGridView: _controller.isGridView,
       isLoading: _controller.isLoading,
       emptyTitle: _getEmptyTitle(status),
@@ -442,47 +620,5 @@ class _ListsPageState extends State<ListsPage>
       case ListingStatus.dealFailed:
         return Icons.cancel_outlined;
     }
-  }
-}
-
-class _TabWithBadge extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-
-  const _TabWithBadge({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tab(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label),
-          if (count > 0) ...[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                count.toString(),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
   }
 }

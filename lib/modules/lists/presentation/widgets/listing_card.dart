@@ -291,6 +291,7 @@ class _ListingCardState extends State<ListingCard> {
                 _PriceInfo(listing: widget.listing, compact: true),
                 const SizedBox(height: 4),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Expanded(
                       child: _StatsRow(listing: widget.listing, compact: true),
@@ -305,6 +306,11 @@ class _ListingCardState extends State<ListingCard> {
                         constraints: const BoxConstraints(),
                         padding: const EdgeInsets.all(4),
                       ),
+                    _StatusInfo(
+                      listing: widget.listing,
+                      timeRemaining: _timeRemaining,
+                      timeUntilStart: _timeUntilStart,
+                    ),
                   ],
                 ),
                 if (widget.listing.status == ListingStatus.sold &&
