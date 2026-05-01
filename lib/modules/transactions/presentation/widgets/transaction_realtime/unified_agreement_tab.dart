@@ -133,42 +133,40 @@ class UnifiedAgreementTab extends StatelessWidget {
 
   Widget _buildEmptyState(bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: ColorConstants.info.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ColorConstants.info.withValues(alpha: 0.2)),
+        color: const Color(0xFFE8F5FC), // Light blue background
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFB3E5FC)),
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.description_outlined,
+          const Icon(
+            Icons.description,
             size: 48,
-            color: ColorConstants.info,
+            color: Color(0xFF29B6F6), // Blue icon
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             'Collaborative Agreement',
             style: TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
               color: isDark
-                  ? ColorConstants.textPrimaryDark
-                  : ColorConstants.textPrimaryLight,
+                  ? Colors.black87
+                  : Colors.black87,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Use this shared document to agree on transaction details. '
-            'Both parties can add and edit fields. '
-            'Tap "Add from Templates" below to get started.',
+            'Both parties can add and edit fields. Tap "Add from\nTemplates" below to get started.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
-              color: isDark
-                  ? ColorConstants.textSecondaryDark
-                  : ColorConstants.textSecondaryLight,
+              color: Colors.grey[700],
+              height: 1.4,
             ),
           ),
         ],
@@ -364,11 +362,13 @@ class _StatusHeader extends StatelessWidget {
   }
 
   Widget _lockBadge(String label, bool locked, IconData icon) {
-    final color = locked ? ColorConstants.success : ColorConstants.info;
+    final color = locked ? ColorConstants.success : const Color(0xFF29B6F6); // Blue
+    final bgColor = locked ? ColorConstants.success.withValues(alpha: 0.1) : const Color(0xFFE8F5FC); // Light blue
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: bgColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),

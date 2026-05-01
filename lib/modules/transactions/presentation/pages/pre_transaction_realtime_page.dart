@@ -434,6 +434,245 @@ class _PreTransactionRealtimePageState
                 // Transaction status banner
                 _buildStatusBanner(transaction, isDark),
 
+                // Seller Profile Accordion
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? ColorConstants.surfaceDark : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+                    ),
+                  ),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      collapsedBackgroundColor: ColorConstants.primary,
+                      backgroundColor: ColorConstants.primary,
+                      collapsedShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      iconColor: Colors.white,
+                      collapsedIconColor: Colors.white,
+                      title: Row(
+                        children: [
+                          const Icon(Icons.person, color: Colors.white),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'View Seller Profile & Stats',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: isDark ? ColorConstants.backgroundDark : Colors.white,
+                            borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(12),
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Profile Info
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: ColorConstants.primary.withValues(alpha: 0.1),
+                                    backgroundImage: null,
+                                    child: const Icon(Icons.person, color: ColorConstants.primary),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Seller',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        'seller',
+                                        style: TextStyle(
+                                          color: ColorConstants.primary,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              
+                              // Stats Grid
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? ColorConstants.surfaceDark : ColorConstants.backgroundSecondaryLight,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          const Text(
+                                            '1',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: ColorConstants.primary,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Listed',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? ColorConstants.surfaceDark : ColorConstants.backgroundSecondaryLight,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          const Text(
+                                            '12',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: ColorConstants.primary,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Sold',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Reviews Section
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: isDark ? ColorConstants.borderDark : ColorConstants.borderLight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber.withValues(alpha: 0.1),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.star, color: Colors.amber, size: 16),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'Reviews & Ratings',
+                                                style: TextStyle(fontWeight: FontWeight.w600),
+                                              ),
+                                              Text(
+                                                '5.0 avg • 1 review',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: ColorConstants.success.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.star, color: ColorConstants.success, size: 10),
+                                              const SizedBox(width: 2),
+                                              const Text(
+                                                '5.0',
+                                                style: TextStyle(
+                                                  color: ColorConstants.success,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton.icon(
+                                        onPressed: () {},
+                                        icon: const Icon(Icons.reviews_outlined, size: 16),
+                                        label: const Text('View All Reviews (1)'),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: ColorConstants.primary,
+                                          side: BorderSide(
+                                            color: ColorConstants.primary.withValues(alpha: 0.3),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 // Tab bar
                 Container(
                   margin: const EdgeInsets.symmetric(

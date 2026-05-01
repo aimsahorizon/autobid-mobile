@@ -678,9 +678,9 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  transaction.status.label,
-                  style: const TextStyle(
+                child: const Text(
+                  'Discussion',
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -715,25 +715,25 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
   Widget _buildProgressSteps(TransactionEntity transaction, bool isDark) {
     final steps = [
       _ProgressStep(
-        title: 'Transaction Started',
+        title: 'Transaction\nStarted',
         isComplete: true,
-        icon: Icons.handshake,
+        icon: Icons.check,
       ),
       _ProgressStep(
-        title: 'Agreement Locked',
+        title: 'Agreement\nLocked',
         isComplete:
             transaction.sellerFormSubmitted && transaction.buyerFormSubmitted,
         icon: Icons.lock,
       ),
       _ProgressStep(
-        title: 'Both Confirmed',
+        title: 'Both\nConfirmed',
         isComplete: transaction.sellerConfirmed && transaction.buyerConfirmed,
         icon: Icons.verified,
       ),
       _ProgressStep(
         title: 'Finalized',
         isComplete: transaction.adminApproved,
-        icon: Icons.check_circle,
+        icon: Icons.check,
       ),
       _ProgressStep(
         title: 'Completed',
@@ -750,76 +750,73 @@ class _ProgressRealtimeTabState extends State<ProgressRealtimeTab> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        ...steps.asMap().entries.map((entry) {
-          final index = entry.key;
-          final step = entry.value;
-          final isLast = index == steps.length - 1;
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+          decoration: BoxDecoration(
+            color: ColorConstants.primary,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: steps.asMap().entries.map((entry) {
+                final index = entry.key;
+                final step = entry.value;
+                final isLast = index == steps.length - 1;
 
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Step indicator
-              Column(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: step.isComplete
-                          ? ColorConstants.success
-                          : (isDark
-                                ? ColorConstants.surfaceDark
-                                : ColorConstants.backgroundSecondaryLight),
-                      shape: BoxShape.circle,
-                      border: step.isComplete
-                          ? null
-                          : Border.all(
-                              color: ColorConstants.textSecondaryLight,
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 100, // Fixed width for each step to center text under icon
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: step.isComplete
+                                  ? ColorConstants.success
+                                  : Colors.black.withValues(alpha: 0.4),
+                              shape: BoxShape.circle,
                             ),
-                    ),
-                    child: Icon(
-                      step.isComplete ? Icons.check : step.icon,
-                      size: 16,
-                      color: step.isComplete
-                          ? Colors.white
-                          : ColorConstants.textSecondaryLight,
-                    ),
-                  ),
-                  if (!isLast)
-                    Container(
-                      width: 2,
-                      height: 32,
-                      color: step.isComplete
-                          ? ColorConstants.success
-                          : ColorConstants.textSecondaryLight.withValues(
-                              alpha: 0.3,
+                            child: Icon(
+                              step.icon,
+                              color: Colors.white,
+                              size: 28,
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            step.title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                ],
-              ),
-              const SizedBox(width: 12),
-              // Step text
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    step.title,
-                    style: TextStyle(
-                      fontWeight: step.isComplete
-                          ? FontWeight.w600
-                          : FontWeight.normal,
-                      color: step.isComplete
-                          ? (isDark
-                                ? ColorConstants.textPrimaryDark
-                                : ColorConstants.textPrimaryLight)
-                          : ColorConstants.textSecondaryLight,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        }),
+                    if (!isLast)
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(top: 26),
+                        color: step.isComplete
+                            ? ColorConstants.success
+                            : Colors.white.withValues(alpha: 0.4),
+                      ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ],
     );
   }
