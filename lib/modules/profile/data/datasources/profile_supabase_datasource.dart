@@ -355,14 +355,50 @@ class ProfileSupabaseDataSource {
       if (result is Map<String, dynamic>) {
         return UserProfileModel.fromStatsJson(result);
       }
-      return null;
+
+      // Some PostgREST configurations can wrap JSON in a single-item list.
+      if (result is List &&
+          result.isNotEmpty &&
+          result.first is Map<String, dynamic>) {
+        return UserProfileModel.fromStatsJson(
+          result.first as Map<String, dynamic>,
+        );
+      }
+
+      debugPrint(
+        'Unexpected get_user_bidding_stats result type: ${result.runtimeType}',
+      );
+      return _buildFallbackUserStats(userId);
     } on PostgrestException catch (e) {
-      debugPrint('Failed to get user bidding stats: ${e.message}');
-      return null;
+      debugPrint(
+        'Failed to get user bidding stats (code=${e.code}, details=${e.details}): ${e.message}',
+      );
+      return _buildFallbackUserStats(userId);
     } catch (e) {
       debugPrint('Failed to get user bidding stats: $e');
-      return null;
+      return _buildFallbackUserStats(userId);
     }
+  }
+
+  UserProfileModel _buildFallbackUserStats(String userId) {
+    return UserProfileModel(
+      id: userId,
+      coverPhotoUrl: '',
+      profilePhotoUrl: '',
+      fullName: 'User',
+      username: '',
+      email: '',
+      province: null,
+      city: null,
+      totalBids: 0,
+      totalWins: 0,
+      biddingRate: 0,
+      totalTransactions: 0,
+      completedTransactions: 0,
+      selfCancelledTransactions: 0,
+      successRate: 0,
+      cancellationRate: 0,
+    );
   }
 
   /// Fetch the current user's KYC data (personal info + documents).
