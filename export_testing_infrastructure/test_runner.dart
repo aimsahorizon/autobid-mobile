@@ -26,10 +26,20 @@ class TestModule {
   TestModule(this.name);
 }
 
+String _getProjectName() {
+  final pubspecFile = File('pubspec.yaml');
+  if (!pubspecFile.existsSync()) return 'PROJECT';
+  
+  final content = pubspecFile.readAsStringSync();
+  final nameMatch = RegExp(r'^name:\s+([a-z0-9_]+)', multiLine: true).firstMatch(content);
+  return nameMatch?.group(1)?.toUpperCase() ?? 'PROJECT';
+}
+
 void main(List<String> args) async {
+  final projectName = _getProjectName();
   print('\x1B[2J\x1B[0;0H'); // Clear screen
   print('\x1B[1;35m============================================================\x1B[0m');
-  print('\x1B[1;35m🚀 AUTOBID INTERACTIVE TUI TEST RUNNER\x1B[0m');
+  print('\x1B[1;35m🚀 $projectName INTERACTIVE TUI TEST RUNNER\x1B[0m');
   print('\x1B[1;35m============================================================\x1B[0m\n');
 
   stdout.write('\x1B[1;37mWhat would you like to test?\x1B[0m\n[1] Unit & Widget Tests\n[2] Integration Tests\n\x1B[36mSelect (1/2):\x1B[0m ');
@@ -209,7 +219,7 @@ void main(List<String> args) async {
   // Print Tree
   print('\x1B[2J\x1B[0;0H'); // Clear screen
   print('\x1B[1;35m============================================================\x1B[0m');
-  print('\x1B[1;35m🚀 AUTOBID INTERACTIVE TUI TEST RUNNER\x1B[0m');
+  print('\x1B[1;35m🚀 $projectName INTERACTIVE TUI TEST RUNNER\x1B[0m');
   print('\x1B[1;35m============================================================\x1B[0m\n');
 
   void printCategory(String catName, List<TestFile> files, String type) {
