@@ -937,7 +937,7 @@ class _Step7PhotosState extends State<Step7Photos>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Upload car photos - AI will auto-detect details',
+                              'Upload car photos',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: isDark

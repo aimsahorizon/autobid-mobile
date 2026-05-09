@@ -1051,6 +1051,35 @@ class ListingSupabaseDataSource {
     }
   }
 
+  /// Dev test mode: update auction end time for active/live auctions.
+  /// Uses dedicated RPC that bypasses pending/approved status restriction.
+  Future<void> updateAuctionEndTimeDev(
+    String auctionId,
+    DateTime newEndTime,
+  ) async {
+    try {
+      final response = await _supabase.rpc(
+        'update_auction_end_time_dev',
+        params: {
+          'p_auction_id': auctionId,
+          'p_new_end_time': newEndTime.toIso8601String(),
+        },
+      );
+
+      if (response is Map) {
+        if (response['success'] == false) {
+          throw Exception(
+            response['error'] ?? 'Failed to update auction end time (dev)',
+          );
+        }
+      }
+    } on PostgrestException catch (e) {
+      throw Exception('Failed to update end time (dev): ${e.message}');
+    } catch (e) {
+      throw Exception('Failed to update end time (dev): $e');
+    }
+  }
+
   /// Complete sale (mark as sold)
   Future<void> completeSale(String listingId, double finalPrice) async {
     try {

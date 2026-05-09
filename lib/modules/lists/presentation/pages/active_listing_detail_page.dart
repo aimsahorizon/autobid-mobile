@@ -31,7 +31,7 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
   List<Map<String, dynamic>> _bids = [];
   bool _isLoading = false;
   bool _isLoadingBids = false;
-  bool _showEndAuction = false; // Hidden by default, revealed by demo button
+  bool _isDevTestModeEnabled = false;
 
   @override
   void initState() {
@@ -103,7 +103,10 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
     }
   }
 
-  Future<void> _updateEndTime(BuildContext context) async {
+  Future<void> _updateEndTime(
+    BuildContext context, {
+    bool devMode = false,
+  }) async {
     final picked = await showDatePicker(
       context: context,
       initialDate:
@@ -144,17 +147,25 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
     );
 
     try {
-      await _datasource.updateAuctionEndTime(_listing.id, newEndTime);
+      if (devMode) {
+        await _datasource.updateAuctionEndTimeDev(_listing.id, newEndTime);
+      } else {
+        await _datasource.updateAuctionEndTime(_listing.id, newEndTime);
+      }
 
       if (context.mounted) {
         navigator.pop(); // Close loading
         navigator.pop(true); // Return to refresh
 
         (messenger..clearSnackBars()).showSnackBar(
-          const SnackBar(
-            content: Text('Auction end time updated successfully'),
+          SnackBar(
+            content: Text(
+              devMode
+                  ? 'Dev mode: Auction end time updated successfully'
+                  : 'Auction end time updated successfully',
+            ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -295,87 +306,82 @@ class _ActiveListingDetailPageState extends State<ActiveListingDetailPage> {
           ],
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Update End Time button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _updateEndTime(context),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+          child: SizedBox(
+            height: 48,
+            child: Row(
+              children: [
+                if (_listing.visibility == 'private') ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showInviteManagement(context),
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Invite'),
+                      style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                    ),
                   ),
-                  icon: const Icon(Icons.access_time),
-                  label: const Text(
-                    'Update End Time',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  const SizedBox(width: 12),
+                ],
+                if (!_isDevTestModeEnabled)
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() => _isDevTestModeEnabled = true);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.purple,
+                        side: const BorderSide(color: Colors.purple),
+                      ),
+                      icon: const Icon(Icons.science, size: 18),
+                      label: const Text(
+                        'Enable Dev Test Mode',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 48,
-                child: Row(
-                  children: [
-                    if (_listing.visibility == 'private') ...[
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showInviteManagement(context),
-                          icon: const Icon(Icons.person_add),
-                          label: const Text('Invite'),
-                          style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                          ),
+                if (_isDevTestModeEnabled)
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _updateEndTime(context, devMode: true),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: ColorConstants.primary,
+                      ),
+                      icon: const Icon(Icons.access_time, size: 18),
+                      label: const Text(
+                        'Dev: Update Time',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                    ],
-                    // Demo toggle for End Auction
-                    if (!_showEndAuction)
-                      Expanded(
-                        flex: 2,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            setState(() => _showEndAuction = true);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.purple,
-                            side: const BorderSide(color: Colors.purple),
-                          ),
-                          icon: const Icon(Icons.science, size: 18),
-                          label: const Text(
-                            '\ud83e\uddea Demo: End Auction',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                    ),
+                  ),
+                if (_isDevTestModeEnabled) const SizedBox(width: 8),
+                if (_isDevTestModeEnabled)
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton.icon(
+                      onPressed: () => _endAuction(context),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: ColorConstants.warning,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.flag),
+                      label: const Text(
+                        'Dev: End Auction',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    if (_showEndAuction)
-                      Expanded(
-                        flex: 2,
-                        child: FilledButton.icon(
-                          onPressed: () => _endAuction(context),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: ColorConstants.warning,
-                            foregroundColor: Colors.white,
-                          ),
-                          icon: const Icon(Icons.flag),
-                          label: const Text(
-                            'End Auction',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
