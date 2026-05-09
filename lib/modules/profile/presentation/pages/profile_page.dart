@@ -458,10 +458,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   Text(
                     '1', // Dummy data matching inspiration
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
@@ -488,10 +485,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   Text(
                     '12', // Dummy data matching inspiration
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
@@ -581,7 +575,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       onCoverPhotoTap: _handleCoverPhotoTap,
                       onProfilePhotoTap: _handleProfilePhotoTap,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 60),
                     ProfileInfoSection(
                       fullName: profile.fullName,
                       username: profile.username,

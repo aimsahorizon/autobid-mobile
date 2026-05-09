@@ -94,10 +94,17 @@ class ProfileInfoSection extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: onEditProfileMedia,
-                icon: const Icon(Icons.edit_outlined, color: Colors.white, size: 18),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: Colors.white,
+                  size: 18,
+                ),
                 label: const Text(
                   'Edit Profile Media',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E1E1E),
