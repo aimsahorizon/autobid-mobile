@@ -36,6 +36,8 @@ class AuctionFilter {
   // Auction type / privacy
   final String? visibility; // public | private
 
+  final String? auctionType; // live | timed | buy_now
+
   const AuctionFilter({
     this.searchQuery,
     this.make,
@@ -54,6 +56,7 @@ class AuctionFilter {
     this.city,
     this.endingSoon,
     this.visibility,
+    this.auctionType,
   });
 
   /// Create empty filter (no filtering)
@@ -74,7 +77,8 @@ class AuctionFilter {
       province = null,
       city = null,
       endingSoon = null,
-      visibility = null;
+      visibility = null,
+      auctionType = null;
 
   /// Copy with updated values
   AuctionFilter copyWith({
@@ -95,6 +99,7 @@ class AuctionFilter {
     String? city,
     bool? endingSoon,
     String? visibility,
+    String? auctionType,
   }) {
     return AuctionFilter(
       searchQuery: searchQuery ?? this.searchQuery,
@@ -114,6 +119,7 @@ class AuctionFilter {
       city: city ?? this.city,
       endingSoon: endingSoon ?? this.endingSoon,
       visibility: visibility ?? this.visibility,
+      auctionType: auctionType ?? this.auctionType,
     );
   }
 
@@ -122,6 +128,8 @@ class AuctionFilter {
     switch (filterKey) {
       case 'searchQuery':
         return copyWith(searchQuery: '');
+      case 'auctionType':
+        return copyWith(auctionType: '');
       case 'make':
         return copyWith(make: '');
       case 'model':
@@ -186,13 +194,15 @@ class AuctionFilter {
         province != null ||
         city != null ||
         endingSoon != null ||
-        (visibility != null && visibility!.isNotEmpty);
+        (visibility != null && visibility!.isNotEmpty) ||
+        (auctionType != null && auctionType!.isNotEmpty);
   }
 
   /// Count active filters
   int get activeFilterCount {
     int count = 0;
     if (searchQuery != null && searchQuery!.isNotEmpty) count++;
+    if (auctionType != null && auctionType!.isNotEmpty) count++;
     if (make != null) count++;
     if (model != null) count++;
     if (yearFrom != null || yearTo != null) count++;

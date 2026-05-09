@@ -1,6 +1,9 @@
 /// Static filter options and constants
 /// Provides predefined values for dropdown filters
 class FilterOptions {
+  // Auction types
+  static const List<String> auctionTypes = ['Live', 'Timed', 'Buy Now'];
+
   // Car makes (common brands in Philippines)
   static const List<String> makes = [
     'Toyota',
@@ -44,12 +47,7 @@ class FilterOptions {
   ];
 
   // Drive types
-  static const List<String> driveTypes = [
-    'FWD',
-    '4WD',
-    'AWD',
-    'RWD',
-  ];
+  static const List<String> driveTypes = ['FWD', '4WD', 'AWD', 'RWD'];
 
   // Vehicle conditions
   static const List<String> conditions = [

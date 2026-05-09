@@ -13,7 +13,8 @@ import 'package:autobid_mobile/modules/browse/presentation/controllers/auction_d
 import 'package:autobid_mobile/modules/browse/presentation/controllers/browse_controller.dart';
 import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_card.dart';
 import 'package:autobid_mobile/modules/notifications/presentation/widgets/notification_bell_widget.dart';
-import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_filter_sheet.dart';
+import 'package:autobid_mobile/modules/browse/domain/entities/auction_filter.dart';
+import 'package:autobid_mobile/modules/browse/presentation/widgets/auction_filter_collapsible.dart';
 import 'package:autobid_mobile/modules/browse/presentation/pages/auction_detail_page.dart';
 
 class BrowsePage extends StatefulWidget {
@@ -43,20 +44,6 @@ class _BrowsePageState extends State<BrowsePage> {
     super.dispose();
   }
 
-  void _openFilterSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => AuctionFilterSheet(
-        initialFilter: _controller.currentFilter,
-        onApply: (filter) {
-          _controller.applyFilter(filter);
-        },
-      ),
-    );
-  }
-
   /// Build a filter chip with delete functionality
   Widget _buildFilterChip({
     required String label,
@@ -69,7 +56,6 @@ class _BrowsePageState extends State<BrowsePage> {
     );
   }
 
-  /// Convert AuctionDetailEntity to ListingDetailEntity for seller view
   ListingDetailEntity _convertAuctionToListingDetail(
     AuctionDetailEntity auction,
   ) {
@@ -170,11 +156,7 @@ class _BrowsePageState extends State<BrowsePage> {
               ),
               const Text(
                 'Explore available vehicles\nand start bidding',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                  height: 1.2,
-                ),
+                style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.2),
               ),
             ],
           ),
@@ -209,35 +191,12 @@ class _BrowsePageState extends State<BrowsePage> {
         body: Column(
           children: [
             // FILTERS & SORTING block
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: InkWell(
-                onTap: _openFilterSheet, // Re-use bottom sheet for now
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: ColorConstants.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'FILTERS & SORTING',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.white,
-                      ),
-                    ],
-                  ),
-                ),
+            ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) => AuctionFilterCollapsible(
+                initialFilter: _controller.currentFilter,
+                onApply: (filter) => _controller.applyFilter(filter),
+                onClear: () => _controller.applyFilter(const AuctionFilter()),
               ),
             ),
             // Active filter chips
@@ -358,52 +317,58 @@ class _BrowsePageState extends State<BrowsePage> {
 
                   if (_controller.hasError) {
                     return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: ColorConstants.error,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _controller.errorMessage!,
-                            style: TextStyle(
-                              color: theme.textTheme.bodyLarge?.color,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: ColorConstants.error,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            onPressed: _controller.loadAuctions,
-                            icon: const Icon(Icons.refresh_rounded),
-                            label: const Text('Retry'),
-                          ),
-                        ],
+                            const SizedBox(height: 16),
+                            Text(
+                              _controller.errorMessage!,
+                              style: TextStyle(
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _controller.loadAuctions,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Retry'),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }
 
                   if (_controller.auctions.isEmpty) {
                     return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.search_off_rounded,
-                            size: 64,
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.5,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.search_off_rounded,
+                              size: 64,
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.5,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No auctions found',
-                            style: TextStyle(
-                              color: theme.textTheme.bodyLarge?.color,
+                            const SizedBox(height: 16),
+                            Text(
+                              'No auctions found',
+                              style: TextStyle(
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   }
