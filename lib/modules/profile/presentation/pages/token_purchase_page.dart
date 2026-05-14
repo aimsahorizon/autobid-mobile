@@ -112,6 +112,9 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildTokenBalanceHeader(theme),
+                const SizedBox(height: 28),
+
                 // Bidding Tokens Section
                 Text(
                   'Bidding Tokens',
@@ -335,6 +338,108 @@ class _TokenPurchasePageState extends State<TokenPurchasePage> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildTokenBalanceHeader(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFF7A2CF2), Color(0xFF23003D)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3D1378).withValues(alpha: 0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Your Token Balance',
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 20,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTokenBalanceItem(
+                  label: 'Bidding Tokens',
+                  value: widget.controller.biddingTokens,
+                  icon: Icons.gavel_rounded,
+                ),
+              ),
+              const SizedBox(width: 22),
+              Expanded(
+                child: _buildTokenBalanceItem(
+                  label: 'Listing Tokens',
+                  value: widget.controller.listingTokens,
+                  icon: Icons.format_list_bulleted_rounded,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTokenBalanceItem({
+    required String label,
+    required int value,
+    required IconData icon,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$value',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 207, 184, 236),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: ColorConstants.primary, size: 28),
+        ),
+      ],
     );
   }
 
