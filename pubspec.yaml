@@ -78,6 +78,7 @@ dependencies:
   flutter_secure_storage: ^10.0.0
   go_router: ^17.1.0
   async: ^2.13.0
+  flutter_svg: ^2.0.17
 
 dev_dependencies:
   flutter_test:
@@ -136,6 +137,7 @@ flutter:
     - assets/images/2017 Honda Civic Type R/steering wheel and controls/
     - assets/images/2017 Honda Civic Type R/title or registration/
     - assets/images/2017 Honda Civic Type R/trunk or cargo area/
+    - z/inspiration_images/profile_module/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
