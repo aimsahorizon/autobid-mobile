@@ -107,7 +107,7 @@ class _BrowsePageState extends State<BrowsePage> {
           onChanged: _onSearchChanged,
           onSubmitted: (value) => _controller.updateSearchQuery(value.trim()),
           decoration: InputDecoration(
-            hintText: 'Search auctions...',
+            hintText: 'Search car brand, model, year...',
             prefixIcon: const Icon(Icons.search),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
