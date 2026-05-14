@@ -3,7 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/modules/browse/data/models/auction_model.dart';
 import 'package:autobid_mobile/modules/browse/data/models/auction_detail_model.dart';
 import 'package:autobid_mobile/modules/browse/domain/entities/auction_filter.dart';
-import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart' show DepositSupabaseDataSource;
+import 'package:autobid_mobile/modules/browse/data/datasources/deposit_supabase_datasource.dart'
+    show DepositSupabaseDataSource;
 
 /// Supabase datasource for auction operations
 /// Handles fetching, filtering, and managing auctions from vehicles table
@@ -17,36 +18,60 @@ class AuctionSupabaseDataSource {
     _depositDatasource = DepositSupabaseDataSource(_supabase);
   }
 
-  /// Get all live auctions with comprehensive filtering
-  /// Tries full browse view first, then authorized_auctions (both enforce invite visibility)
+  /// Get all live auctions with comprehensive filtering.
+  /// Fallback order:
+  /// 1) auction_browse_listings
+  /// 2) auction_browse_simple
+  /// 3) authorized_auctions
+  /// 4) auctions table (live + not ended)
   Future<List<AuctionModel>> getActiveAuctions({AuctionFilter? filter}) async {
-    try {
-      debugPrint(
-        '[AuctionSupabaseDataSource] Loading auctions with filter: $filter',
-      );
-
-      return await _fetchFromView(
-        viewName: 'auction_browse_listings',
-        filter: filter,
-        applyIsActiveFilter: true,
-      );
-    } catch (e) {
-      debugPrint(
-        '[AuctionSupabaseDataSource] Full view failed: $e. Trying authorized_auctions fallback...',
-      );
+    Future<List<AuctionModel>> run(
+      Future<List<AuctionModel>> Function() loader,
+      String label,
+    ) async {
       try {
-        return await _fetchFromView(
-          viewName: 'authorized_auctions',
-          filter: filter,
-          applyIsActiveFilter: false,
-        );
-      } catch (e2) {
+        final rows = await loader();
         debugPrint(
-          '[AuctionSupabaseDataSource] Authorized fallback failed: $e2. Returning empty list to avoid privacy leaks.',
+          '[AuctionSupabaseDataSource] $label returned ${rows.length} auctions',
         );
+        return rows;
+      } catch (e) {
+        debugPrint('[AuctionSupabaseDataSource] $label failed: $e');
         return const <AuctionModel>[];
       }
     }
+
+    debugPrint(
+      '[AuctionSupabaseDataSource] Loading auctions with filter: $filter',
+    );
+
+    final browseListings = await run(
+      () => _fetchFromView(
+        viewName: 'auction_browse_listings',
+        filter: filter,
+        applyIsActiveFilter: false,
+      ),
+      'auction_browse_listings',
+    );
+    if (browseListings.isNotEmpty) return browseListings;
+
+    final browseSimple = await run(
+      () => _fetchFromView(
+        viewName: 'auction_browse_simple',
+        filter: filter,
+        applyIsActiveFilter: false,
+      ),
+      'auction_browse_simple',
+    );
+    if (browseSimple.isNotEmpty) return browseSimple;
+
+    final authorized = await run(
+      () => _fetchFromAuthorizedAuctions(filter: filter),
+      'authorized_auctions',
+    );
+    if (authorized.isNotEmpty) return authorized;
+
+    return run(() => _fetchFromAuctionsTable(filter: filter), 'auctions_table');
   }
 
   /// Helper method to fetch from a specific view
@@ -59,7 +84,10 @@ class AuctionSupabaseDataSource {
     dynamic queryBuilder = _supabase
         .from(viewName)
         .select(
-          'id, title, description, primary_image_url, vehicle_year, vehicle_make, vehicle_model, current_price, starting_price, watchers_count, total_bids, end_time, seller_id, seller_display_name, seller_profile_image_url, visibility, bidding_type, created_at',
+          'id, title, description, primary_image_url, vehicle_year, vehicle_make,'
+          ' vehicle_model, current_price, starting_price, watchers_count, total_bids,'
+          ' end_time, seller_id, seller_display_name, seller_profile_image_url,'
+          ' visibility, bidding_type, created_at',
         );
 
     if (applyIsActiveFilter) {
@@ -70,8 +98,7 @@ class AuctionSupabaseDataSource {
     if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
       final query = filter.searchQuery!.toLowerCase();
       queryBuilder = queryBuilder.or(
-        'title.ilike.%$query%,'
-        'description.ilike.%$query%',
+        'title.ilike.%$query%,description.ilike.%$query%',
       );
     }
 
@@ -85,7 +112,7 @@ class AuctionSupabaseDataSource {
 
     // Vehicle filters
     if (filter?.make != null && filter!.make!.isNotEmpty) {
-      queryBuilder = queryBuilder.ilike('vehicle_make', filter.make!);
+      queryBuilder = queryBuilder.ilike('vehicle_make', '%${filter.make}%');
     }
     if (filter?.model != null && filter!.model!.isNotEmpty) {
       queryBuilder = queryBuilder.ilike('vehicle_model', '%${filter.model}%');
@@ -103,16 +130,9 @@ class AuctionSupabaseDataSource {
     }
 
     // Transmission & Fuel (Attempting to filter if columns exist in view)
-    if (filter?.transmission != null && filter!.transmission!.isNotEmpty) {
-      // Using generic 'transmission' or 'vehicle_transmission' depending on view definition
-      // Safest to try 'transmission' if view flattens it, or 'vehicle_transmission'
-      // Based on other columns, likely 'vehicle_transmission'
-      // But to avoid breakage if column missing, we might need to skip or use try/catch
-      // For now, let's assume vehicle_transmission matches naming convention
-      // If this fails, the 'catch' block in getActiveAuctions will handle it (fallback)
-      // But fallback also needs these filters!
-      // Ideally we should know the schema.
-      // Given the user report is about BRAND, I will prioritize Make/Model/Year which are known.
+    // Auction type → bidding_type column (available in view)
+    if (filter?.auctionType != null && filter!.auctionType!.isNotEmpty) {
+      queryBuilder = queryBuilder.eq('bidding_type', filter.auctionType!);
     }
 
     // Apply ending soon filter (within 24 hours)
@@ -132,48 +152,272 @@ class AuctionSupabaseDataSource {
       '[AuctionSupabaseDataSource] Fetched ${(response as List).length} auctions from $viewName',
     );
 
-    final rows = (response as List<Map<String, dynamic>>);
+    var rows = response
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
 
-    // Batch-enrich visibility from auctions table (not exposed by view)
-    final auctionIds = rows.map((row) => row['id'] as String).toList();
-    final visibilityById = <String, String>{};
-    if (auctionIds.isNotEmpty) {
+    // --- Vehicle-specific post-filter (transmission/fuel/condition etc.) ---
+    // These columns are not in the browse view, so we batch-query auction_vehicles
+    // for the fetched auction IDs and keep only matching rows.
+    final needsVehicleFilter =
+        (filter?.transmission != null && filter!.transmission!.isNotEmpty) ||
+        (filter?.fuelType != null && filter!.fuelType!.isNotEmpty) ||
+        (filter?.driveType != null && filter!.driveType!.isNotEmpty) ||
+        (filter?.condition != null && filter!.condition!.isNotEmpty) ||
+        filter?.maxMileage != null ||
+        (filter?.exteriorColor != null && filter!.exteriorColor!.isNotEmpty) ||
+        (filter?.province != null && filter!.province!.isNotEmpty) ||
+        (filter?.city != null && filter!.city!.isNotEmpty);
+
+    if (needsVehicleFilter && rows.isNotEmpty) {
+      final ids = rows
+          .map((r) => r['id']?.toString())
+          .whereType<String>()
+          .where((id) => id.isNotEmpty)
+          .toList();
       try {
-        final visResp = await _supabase
-            .from('auctions')
-            .select('id, visibility')
-            .inFilter('id', auctionIds);
-        for (final r in (visResp as List)) {
-          final m = r as Map<String, dynamic>;
-          visibilityById[m['id'] as String] =
-              m['visibility'] as String? ?? 'public';
+        dynamic vq = _supabase
+            .from('auction_vehicles')
+            .select('auction_id')
+            .inFilter('auction_id', ids);
+        if (filter!.transmission != null && filter.transmission!.isNotEmpty) {
+          vq = vq.ilike('transmission', '%${filter.transmission}%');
         }
+        if (filter.fuelType != null && filter.fuelType!.isNotEmpty) {
+          vq = vq.ilike('fuel_type', '%${filter.fuelType}%');
+        }
+        if (filter.driveType != null && filter.driveType!.isNotEmpty) {
+          vq = vq.ilike('drive_type', '%${filter.driveType}%');
+        }
+        if (filter.condition != null && filter.condition!.isNotEmpty) {
+          vq = vq.ilike('condition', '%${filter.condition}%');
+        }
+        if (filter.maxMileage != null) {
+          vq = vq.lte('mileage', filter.maxMileage!);
+        }
+        if (filter.exteriorColor != null && filter.exteriorColor!.isNotEmpty) {
+          vq = vq.ilike('exterior_color', '%${filter.exteriorColor}%');
+        }
+        if (filter.province != null && filter.province!.isNotEmpty) {
+          vq = vq.ilike('province', '%${filter.province}%');
+        }
+        if (filter.city != null && filter.city!.isNotEmpty) {
+          vq = vq.ilike('city_municipality', '%${filter.city}%');
+        }
+        final vResp = await vq;
+        final matchIds = (vResp as List)
+            .map((r) => (r as Map)['auction_id']?.toString())
+            .whereType<String>()
+            .toSet();
+        rows = rows
+            .where((r) => matchIds.contains(r['id']?.toString()))
+            .toList();
       } catch (e) {
         debugPrint(
-          '[AuctionSupabaseDataSource] Visibility enrichment failed: $e',
+          '[AuctionSupabaseDataSource] Vehicle post-filter failed: $e',
         );
       }
     }
 
     // Convert to AuctionModel list
-    return rows.map((json) {
-      return AuctionModel.fromJson({
-        'id': json['id'],
-        'car_image_url': json['primary_image_url'] ?? '',
-        'year': json['vehicle_year'] ?? 0,
-        'make': json['vehicle_make'] ?? '',
-        'model': json['vehicle_model'] ?? '',
-        'title': json['title'] ?? '',
-        'current_bid': json['current_price'] ?? json['starting_price'],
-        'watchers_count': json['watchers_count'] ?? 0,
-        'bidders_count': json['total_bids'] ?? 0,
-        'end_time': json['end_time'],
-        'seller_id': json['seller_id'],
-        'seller_display_name': json['seller_display_name'],
-        'seller_profile_image_url': json['seller_profile_image_url'],
-        'visibility': visibilityById[json['id'] as String] ?? 'public',
-      });
-    }).toList();
+    final models = <AuctionModel>[];
+    for (final json in rows) {
+      try {
+        final id = json['id']?.toString() ?? '';
+        models.add(
+          AuctionModel.fromJson({
+            'id': id,
+            'car_image_url': json['primary_image_url'] ?? '',
+            'year': json['vehicle_year'] ?? 0,
+            'make': json['vehicle_make'] ?? '',
+            'model': json['vehicle_model'] ?? '',
+            'title': json['title'] ?? '',
+            'current_bid': json['current_price'] ?? json['starting_price'],
+            'watchers_count': json['watchers_count'] ?? 0,
+            'bidders_count': json['total_bids'] ?? 0,
+            'end_time': json['end_time'],
+            'seller_id': json['seller_id'],
+            'seller_display_name': json['seller_display_name'],
+            'seller_profile_image_url': json['seller_profile_image_url'],
+            'visibility': json['visibility'] ?? 'open',
+          }),
+        );
+      } catch (e) {
+        debugPrint(
+          '[AuctionSupabaseDataSource] Skipping malformed view row: $e',
+        );
+      }
+    }
+    return models;
+  }
+
+  Future<List<AuctionModel>> _fetchFromAuthorizedAuctions({
+    required AuctionFilter? filter,
+  }) async {
+    final nowIso = DateTime.now().toIso8601String();
+    dynamic queryBuilder = _supabase
+        .from('authorized_auctions')
+        .select(
+          'id, title, description, current_price, starting_price, end_time, total_bids, seller_id, visibility',
+        )
+        .or('end_time.gt.$nowIso,end_time.is.null');
+
+    if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
+      final query = filter.searchQuery!.toLowerCase();
+      queryBuilder = queryBuilder.or(
+        'title.ilike.%$query%,description.ilike.%$query%',
+      );
+    }
+
+    if (filter?.priceMin != null) {
+      queryBuilder = queryBuilder.gte('current_price', filter!.priceMin!);
+    }
+    if (filter?.priceMax != null) {
+      queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
+    }
+
+    if (filter?.visibility != null && filter!.visibility!.isNotEmpty) {
+      queryBuilder = queryBuilder.eq('visibility', filter.visibility!);
+    }
+
+    if (filter?.endingSoon == true) {
+      final twentyFourHoursLater = DateTime.now().add(
+        const Duration(hours: 24),
+      );
+      queryBuilder = queryBuilder.lte(
+        'end_time',
+        twentyFourHoursLater.toIso8601String(),
+      );
+    }
+
+    final response = await queryBuilder.order('end_time', ascending: true);
+    final rows = response
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+
+    final models = <AuctionModel>[];
+    for (final json in rows) {
+      try {
+        models.add(
+          AuctionModel.fromJson({
+            'id': json['id'],
+            'title': json['title'] ?? '',
+            'car_image_url': '',
+            'year': 0,
+            'make': '',
+            'model': '',
+            'current_bid': json['current_price'] ?? json['starting_price'] ?? 0,
+            'watchers_count': 0,
+            'bidders_count': json['total_bids'] ?? 0,
+            'end_time': json['end_time'],
+            'seller_id': json['seller_id'],
+            'visibility': json['visibility'] ?? 'public',
+          }),
+        );
+      } catch (e) {
+        debugPrint(
+          '[AuctionSupabaseDataSource] Skipping malformed authorized row: $e',
+        );
+      }
+    }
+    return models;
+  }
+
+  Future<List<AuctionModel>> _fetchFromAuctionsTable({
+    required AuctionFilter? filter,
+  }) async {
+    List<dynamic> statusRows = const [];
+    try {
+      statusRows = await _supabase
+          .from('auction_statuses')
+          .select('id,status_name')
+          .inFilter('status_name', [
+            'live',
+            'active',
+            'scheduled',
+            'ongoing',
+            'in_progress',
+          ]);
+    } catch (_) {
+      statusRows = const [];
+    }
+
+    final allowedStatusIds = statusRows
+        .map((row) => (row as Map<String, dynamic>)['id'])
+        .whereType<String>()
+        .toList();
+    dynamic queryBuilder = _supabase
+        .from('auctions')
+        .select(
+          'id, title, description, starting_price, current_price, end_time, total_bids, seller_id, visibility',
+        );
+
+    if (allowedStatusIds.isNotEmpty) {
+      queryBuilder = queryBuilder.inFilter('status_id', allowedStatusIds);
+    }
+
+    if (filter?.searchQuery != null && filter!.searchQuery!.isNotEmpty) {
+      final query = filter.searchQuery!.toLowerCase();
+      queryBuilder = queryBuilder.or(
+        'title.ilike.%$query%,description.ilike.%$query%',
+      );
+    }
+
+    if (filter?.priceMin != null) {
+      queryBuilder = queryBuilder.gte('current_price', filter!.priceMin!);
+    }
+    if (filter?.priceMax != null) {
+      queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
+    }
+
+    if (filter?.visibility != null && filter!.visibility!.isNotEmpty) {
+      queryBuilder = queryBuilder.eq('visibility', filter.visibility!);
+    }
+
+    if (filter?.endingSoon == true) {
+      final twentyFourHoursLater = DateTime.now().add(
+        const Duration(hours: 24),
+      );
+      queryBuilder = queryBuilder.lte(
+        'end_time',
+        twentyFourHoursLater.toIso8601String(),
+      );
+    }
+
+    final response = await queryBuilder.order('end_time', ascending: true);
+    final rows = response
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+
+    final models = <AuctionModel>[];
+    for (final json in rows) {
+      try {
+        models.add(
+          AuctionModel.fromJson({
+            'id': json['id'],
+            'title': json['title'] ?? '',
+            'car_image_url': '',
+            'year': 0,
+            'make': '',
+            'model': '',
+            'current_bid': json['current_price'] ?? json['starting_price'] ?? 0,
+            'watchers_count': 0,
+            'bidders_count': json['total_bids'] ?? 0,
+            'end_time': json['end_time'],
+            'seller_id': json['seller_id'],
+            'visibility': json['visibility'] ?? 'public',
+          }),
+        );
+      } catch (e) {
+        debugPrint(
+          '[AuctionSupabaseDataSource] Skipping malformed auctions row: $e',
+        );
+      }
+    }
+    return models;
   }
 
   /// Get auction details by ID for live auctions
@@ -208,10 +452,7 @@ class AuctionSupabaseDataSource {
             .single();
       }
 
-      // Fetch the associated vehicle specs similar to the Lists module implementation
-      final vehicleResponse = await _supabase
-          .from('auction_vehicles')
-          .select('''
+      const vehicleDetailSelect = '''
             brand, model, variant, year,
             engine_type, engine_displacement, cylinder_count, horsepower, torque,
             transmission, fuel_type, drive_type,
@@ -220,16 +461,70 @@ class AuctionSupabaseDataSource {
             exterior_color, paint_type, rim_type, rim_size, tire_size, tire_brand,
             condition, mileage, previous_owners, has_modifications, modifications_details,
             has_warranty, warranty_details, usage_type,
-            plate_number, orcr_status, registration_status, registration_expiry,
+            plate_number, chassis_number, orcr_status, registration_status, registration_expiry,
             province, city_municipality,
             known_issues, features
-            ''')
+            ''';
+
+      // Fetch the associated vehicle specs similar to the Lists module implementation
+      final vehicleResponse = await _supabase
+          .from('auction_vehicles')
+          .select(vehicleDetailSelect)
           .eq('auction_id', auctionId)
           .maybeSingle();
 
-      final vehicleData = vehicleResponse == null
+      Map<String, dynamic>? vehicleData = vehicleResponse == null
           ? null
           : Map<String, dynamic>.from(vehicleResponse as Map);
+
+      // Match list-module robustness: if direct select returns null, try joined fetch from auctions.
+      if (vehicleData == null) {
+        try {
+          final joinedAuction = await _supabase
+              .from('auctions')
+              .select('auction_vehicles($vehicleDetailSelect)')
+              .eq('id', auctionId)
+              .maybeSingle();
+
+          final joinedVehicle = joinedAuction?['auction_vehicles'];
+          if (joinedVehicle is List && joinedVehicle.isNotEmpty) {
+            vehicleData = Map<String, dynamic>.from(joinedVehicle.first as Map);
+          } else if (joinedVehicle is Map<String, dynamic>) {
+            vehicleData = Map<String, dynamic>.from(joinedVehicle);
+          }
+        } catch (_) {
+          // Keep null if joined fallback fails.
+        }
+      }
+
+      // Transaction-context fallback: some RLS policies allow auction_vehicles only
+      // through the current user's auction_transactions relationship.
+      if (vehicleData == null && userId != null && userId.isNotEmpty) {
+        try {
+          final txnScoped = await _supabase
+              .from('auction_transactions')
+              .select(
+                'auctions!auction_id(auction_vehicles($vehicleDetailSelect))',
+              )
+              .eq('auction_id', auctionId)
+              .or('seller_id.eq.$userId,buyer_id.eq.$userId')
+              .limit(1)
+              .maybeSingle();
+
+          final txnAuction = txnScoped?['auctions'];
+          final txnVehicle = txnAuction is Map<String, dynamic>
+              ? txnAuction['auction_vehicles']
+              : null;
+
+          if (txnVehicle is List && txnVehicle.isNotEmpty) {
+            vehicleData = Map<String, dynamic>.from(txnVehicle.first as Map);
+          } else if (txnVehicle is Map<String, dynamic>) {
+            vehicleData = Map<String, dynamic>.from(txnVehicle);
+          }
+        } catch (_) {
+          // Keep null if transaction-scoped fallback fails.
+        }
+      }
 
       // Get all photos for the auction
       final photosResponse = await _supabase
@@ -383,13 +678,52 @@ class AuctionSupabaseDataSource {
             // Fetch vehicle data
             Map<String, dynamic>? vehicleData;
             try {
+              const fallbackVehicleSelect = '''
+                  brand, model, variant, year,
+                  engine_type, engine_displacement, cylinder_count, horsepower, torque,
+                  transmission, fuel_type, drive_type,
+                  length, width, height, wheelbase, ground_clearance,
+                  seating_capacity, door_count, fuel_tank_capacity, curb_weight, gross_weight,
+                  exterior_color, paint_type, rim_type, rim_size, tire_size, tire_brand,
+                  condition, mileage, previous_owners, has_modifications, modifications_details,
+                  has_warranty, warranty_details, usage_type,
+                  plate_number, chassis_number, orcr_status, registration_status, registration_expiry,
+                  province, city_municipality,
+                  known_issues, features
+                  ''';
+
               final vResp = await _supabase
                   .from('auction_vehicles')
-                  .select('brand, model, variant, year')
+                  .select(fallbackVehicleSelect)
                   .eq('auction_id', auctionId)
                   .maybeSingle();
               if (vResp != null) vehicleData = Map<String, dynamic>.from(vResp);
             } catch (_) {}
+
+            if (vehicleData == null && userId != null && userId.isNotEmpty) {
+              try {
+                final txnScoped = await _supabase
+                    .from('auction_transactions')
+                    .select('auctions!auction_id(auction_vehicles(*))')
+                    .eq('auction_id', auctionId)
+                    .or('seller_id.eq.$userId,buyer_id.eq.$userId')
+                    .limit(1)
+                    .maybeSingle();
+
+                final txnAuction = txnScoped?['auctions'];
+                final txnVehicle = txnAuction is Map<String, dynamic>
+                    ? txnAuction['auction_vehicles']
+                    : null;
+
+                if (txnVehicle is List && txnVehicle.isNotEmpty) {
+                  vehicleData = Map<String, dynamic>.from(
+                    txnVehicle.first as Map,
+                  );
+                } else if (txnVehicle is Map<String, dynamic>) {
+                  vehicleData = Map<String, dynamic>.from(txnVehicle);
+                }
+              } catch (_) {}
+            }
 
             // Fetch photos
             final photos = <String, List<String>>{};
@@ -467,6 +801,47 @@ class AuctionSupabaseDataSource {
               'model': vehicleData?['model'] ?? '',
               'year': vehicleData?['year'] ?? 0,
               'variant': vehicleData?['variant'],
+              'engine_type': vehicleData?['engine_type'],
+              'engine_displacement': vehicleData?['engine_displacement'],
+              'cylinder_count': vehicleData?['cylinder_count'],
+              'horsepower': vehicleData?['horsepower'],
+              'torque': vehicleData?['torque'],
+              'transmission': vehicleData?['transmission'],
+              'fuel_type': vehicleData?['fuel_type'],
+              'drive_type': vehicleData?['drive_type'],
+              'length': vehicleData?['length'],
+              'width': vehicleData?['width'],
+              'height': vehicleData?['height'],
+              'wheelbase': vehicleData?['wheelbase'],
+              'ground_clearance': vehicleData?['ground_clearance'],
+              'seating_capacity': vehicleData?['seating_capacity'],
+              'door_count': vehicleData?['door_count'],
+              'fuel_tank_capacity': vehicleData?['fuel_tank_capacity'],
+              'curb_weight': vehicleData?['curb_weight'],
+              'gross_weight': vehicleData?['gross_weight'],
+              'exterior_color': vehicleData?['exterior_color'],
+              'paint_type': vehicleData?['paint_type'],
+              'rim_type': vehicleData?['rim_type'],
+              'rim_size': vehicleData?['rim_size'],
+              'tire_size': vehicleData?['tire_size'],
+              'tire_brand': vehicleData?['tire_brand'],
+              'condition': vehicleData?['condition'],
+              'mileage': vehicleData?['mileage'],
+              'previous_owners': vehicleData?['previous_owners'],
+              'has_modifications': vehicleData?['has_modifications'],
+              'modifications_details': vehicleData?['modifications_details'],
+              'has_warranty': vehicleData?['has_warranty'],
+              'warranty_details': vehicleData?['warranty_details'],
+              'usage_type': vehicleData?['usage_type'],
+              'plate_number': vehicleData?['plate_number'],
+              'chassis_number': vehicleData?['chassis_number'],
+              'orcr_status': vehicleData?['orcr_status'],
+              'registration_status': vehicleData?['registration_status'],
+              'registration_expiry': vehicleData?['registration_expiry'],
+              'province': vehicleData?['province'],
+              'city_municipality': vehicleData?['city_municipality'],
+              'known_issues': vehicleData?['known_issues'],
+              'features': vehicleData?['features'],
               'minimum_bid': auctionCheck['starting_price'] ?? 0,
               'is_reserve_met':
                   biddingType != 'mystery' &&

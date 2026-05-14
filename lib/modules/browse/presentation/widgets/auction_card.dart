@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/modules/browse/domain/entities/auction_entity.dart';
+import 'package:autobid_mobile/modules/profile/data/datasources/profile_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/domain/entities/user_profile_entity.dart';
 
 bool _isAssetPath(String url) => url.startsWith('assets/');
 
@@ -60,7 +63,9 @@ class AuctionCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
-        child: isListLayout ? _buildListLayout(theme, isDark) : _buildGridLayout(theme, isDark),
+        child: isListLayout
+            ? _buildListLayout(theme, isDark)
+            : _buildGridLayout(theme, isDark),
       ),
     );
   }
@@ -90,10 +95,7 @@ class AuctionCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildCurrentBid(theme),
-                    _buildTimeRemaining(),
-                  ],
+                  children: [_buildCurrentBid(theme), _buildTimeRemaining()],
                 ),
                 const SizedBox(height: 8),
                 _buildStats(theme, isDark),
@@ -117,15 +119,12 @@ class AuctionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildCarName(theme),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 _buildSellerInfo(theme, isDark),
-                const Spacer(),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildCurrentBid(theme),
-                    _buildTimeRemaining(),
-                  ],
+                  children: [_buildCurrentBid(theme), _buildTimeRemaining()],
                 ),
                 const SizedBox(height: 8),
                 _buildStats(theme, isDark),
@@ -141,88 +140,88 @@ class AuctionCard extends StatelessWidget {
     final isExclusive = auction.visibility == 'exclusive';
     final isMystery = auction.visibility == 'mystery';
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        isListLayout
-            ? _isAssetPath(auction.carImageUrl)
-                ? Image.asset(auction.carImageUrl, fit: BoxFit.cover)
-                : CachedNetworkImage(imageUrl: auction.carImageUrl, fit: BoxFit.cover)
-            : AspectRatio(
-                aspectRatio: 16 / 9,
-                child: _isAssetPath(auction.carImageUrl)
-                    ? Image.asset(
-                        auction.carImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: ColorConstants.backgroundSecondaryLight,
-                          child: const Icon(
-                            Icons.directions_car,
-                            size: 48,
-                            color: ColorConstants.textSecondaryLight,
-                          ),
-                        ),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: auction.carImageUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          color: ColorConstants.backgroundSecondaryLight,
-                          child: const Center(child: CircularProgressIndicator()),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: ColorConstants.backgroundSecondaryLight,
-                          child: const Icon(
-                            Icons.directions_car,
-                            size: 48,
-                            color: ColorConstants.textSecondaryLight,
-                          ),
-                        ),
-                      ),
+    final imageChild = _isAssetPath(auction.carImageUrl)
+        ? Image.asset(
+            auction.carImageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(
+              color: ColorConstants.backgroundSecondaryLight,
+              child: const Icon(
+                Icons.directions_car,
+                size: 48,
+                color: ColorConstants.textSecondaryLight,
               ),
-        Positioned(
-          top: 8,
-          left: 8,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isExclusive
-                  ? ColorConstants.warning.withValues(alpha: 0.9)
-                  : isMystery
-                  ? Colors.purple.withValues(alpha: 0.9)
-                  : ColorConstants.success.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(6),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isExclusive
-                      ? Icons.lock_outline
-                      : isMystery
-                      ? Icons.visibility_off
-                      : Icons.public,
-                  size: 12,
-                  color: Colors.white,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  isExclusive
-                      ? 'Exclusive'
-                      : isMystery
-                      ? 'Mystery'
-                      : 'Open',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+          )
+        : CachedNetworkImage(
+            imageUrl: auction.carImageUrl,
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              color: ColorConstants.backgroundSecondaryLight,
+              child: const Center(child: CircularProgressIndicator()),
             ),
-          ),
+            errorWidget: (context, url, error) => Container(
+              color: ColorConstants.backgroundSecondaryLight,
+              child: const Icon(
+                Icons.directions_car,
+                size: 48,
+                color: ColorConstants.textSecondaryLight,
+              ),
+            ),
+          );
+
+    final badge = Positioned(
+      top: 8,
+      left: 8,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isExclusive
+              ? ColorConstants.warning.withValues(alpha: 0.9)
+              : isMystery
+              ? Colors.purple.withValues(alpha: 0.9)
+              : ColorConstants.success.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(6),
         ),
-      ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isExclusive
+                  ? Icons.lock_outline
+                  : isMystery
+                  ? Icons.visibility_off
+                  : Icons.public,
+              size: 12,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              isExclusive
+                  ? 'Exclusive'
+                  : isMystery
+                  ? 'Mystery'
+                  : 'Open',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (isListLayout) {
+      return Stack(fit: StackFit.expand, children: [imageChild, badge]);
+    }
+
+    // Grid layout: AspectRatio must wrap the Stack so the Column child has
+    // bounded height. StackFit.expand is safe once the Stack is constrained.
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(fit: StackFit.expand, children: [imageChild, badge]),
     );
   }
 
@@ -233,7 +232,7 @@ class AuctionCard extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: theme.textTheme.titleMedium?.copyWith(
         fontWeight: FontWeight.w600,
-        fontSize: 14,
+        fontSize: 16,
         height: 1.2,
       ),
     );
@@ -251,12 +250,12 @@ class AuctionCard extends StatelessWidget {
           ClipOval(
             child: CachedNetworkImage(
               imageUrl: auction.sellerProfileImageUrl!,
-              width: 14,
-              height: 14,
+              width: 18,
+              height: 18,
               fit: BoxFit.cover,
               errorWidget: (context, url, error) => Icon(
-                Icons.person,
-                size: 14,
+                Icons.person_rounded,
+                size: 18,
                 color: isDark
                     ? ColorConstants.textSecondaryDark
                     : ColorConstants.textSecondaryLight,
@@ -265,13 +264,13 @@ class AuctionCard extends StatelessWidget {
           )
         else
           Icon(
-            Icons.person,
-            size: 14,
+            Icons.person_rounded,
+            size: 18,
             color: isDark
                 ? ColorConstants.textSecondaryDark
                 : ColorConstants.textSecondaryLight,
           ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 5),
         Expanded(
           child: Text(
             sellerName,
@@ -281,7 +280,7 @@ class AuctionCard extends StatelessWidget {
               color: isDark
                   ? ColorConstants.textSecondaryDark
                   : ColorConstants.textSecondaryLight,
-              fontSize: 11,
+              fontSize: 13,
             ),
           ),
         ),
@@ -348,78 +347,124 @@ class AuctionCard extends StatelessWidget {
   }
 
   Widget _buildStats(ThemeData theme, bool isDark) {
-    final isMystery = auction.visibility == 'mystery';
+    return _SellerStatsRow(
+      sellerId: auction.sellerId,
+      watchersCount: auction.watchersCount,
+      biddersCount: auction.biddersCount,
+      visibility: auction.visibility,
+      theme: theme,
+      isDark: isDark,
+    );
+  }
+}
 
-    return Row(
-      children: [
-        _buildStatItem(
-          icon: Icons.visibility_outlined,
-          count: auction.watchersCount,
-          theme: theme,
-          isDark: isDark,
-        ),
-        const SizedBox(width: 16),
-        if (isMystery)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+// ---------------------------------------------------------------------------
+// Seller stats row — lazily fetches seller reputation via getUserBiddingStats
+// ---------------------------------------------------------------------------
+
+class _SellerStatsRow extends StatefulWidget {
+  final String sellerId;
+  final int watchersCount;
+  final int biddersCount;
+  final String visibility;
+  final ThemeData theme;
+  final bool isDark;
+
+  const _SellerStatsRow({
+    required this.sellerId,
+    required this.watchersCount,
+    required this.biddersCount,
+    required this.visibility,
+    required this.theme,
+    required this.isDark,
+  });
+
+  @override
+  State<_SellerStatsRow> createState() => _SellerStatsRowState();
+}
+
+class _SellerStatsRowState extends State<_SellerStatsRow> {
+  late final Future<UserProfileEntity?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ProfileSupabaseDataSource(
+      Supabase.instance.client,
+    ).getUserBiddingStats(widget.sellerId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMystery = widget.visibility == 'mystery';
+    final textColor = widget.isDark
+        ? ColorConstants.textSecondaryDark
+        : ColorConstants.textSecondaryLight;
+    final style = widget.theme.textTheme.bodySmall?.copyWith(
+      color: textColor,
+      fontWeight: FontWeight.w500,
+      fontSize: 11,
+    );
+
+    return FutureBuilder<UserProfileEntity?>(
+      future: _future,
+      builder: (context, snapshot) {
+        final sold = snapshot.data?.completedTransactions ?? 0;
+        final rate = snapshot.data?.successRate ?? 0.0;
+
+        return Row(
+          children: [
+            // Watchers
+            Icon(Icons.visibility_outlined, size: 13, color: textColor),
+            const SizedBox(width: 3),
+            Text('${widget.watchersCount}', style: style),
+            const SizedBox(width: 10),
+            // Bids / sealed
+            if (isMystery) ...[
+              Icon(Icons.lock_outline, size: 13, color: textColor),
+              const SizedBox(width: 3),
+              Text('Sealed', style: style),
+            ] else ...[
+              Icon(Icons.gavel_rounded, size: 13, color: textColor),
+              const SizedBox(width: 3),
+              Text('${widget.biddersCount}', style: style),
+            ],
+            // Seller sold count — shown once data loads
+            if (snapshot.hasData && sold > 0) ...[
+              const SizedBox(width: 10),
               Icon(
-                Icons.lock_outline,
-                size: 16,
-                color: isDark
-                    ? ColorConstants.textSecondaryDark
-                    : ColorConstants.textSecondaryLight,
+                Icons.verified_rounded,
+                size: 13,
+                color: ColorConstants.success,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 3),
               Text(
-                'Sealed',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: isDark
-                      ? ColorConstants.textSecondaryDark
-                      : ColorConstants.textSecondaryLight,
-                  fontWeight: FontWeight.w500,
+                '$sold sold',
+                style: style?.copyWith(color: ColorConstants.success),
+              ),
+            ],
+            // Success rate badge — only if seller has a meaningful rate
+            if (snapshot.hasData && rate >= 80) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: ColorConstants.success.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${rate.toStringAsFixed(0)}%',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: ColorConstants.success,
+                  ),
                 ),
               ),
             ],
-          )
-        else
-          _buildStatItem(
-            icon: Icons.gavel_rounded,
-            count: auction.biddersCount,
-            theme: theme,
-            isDark: isDark,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildStatItem({
-    required IconData icon,
-    required int count,
-    required ThemeData theme,
-    required bool isDark,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 16,
-          color: isDark
-              ? ColorConstants.textSecondaryDark
-              : ColorConstants.textSecondaryLight,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          count.toString(),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: isDark
-                ? ColorConstants.textSecondaryDark
-                : ColorConstants.textSecondaryLight,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }

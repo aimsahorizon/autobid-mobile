@@ -72,9 +72,23 @@ class BrowseController extends ChangeNotifier {
     }
 
     try {
+      debugPrint(
+        '[BrowseController] loadAuctions(bg=$isBackground) filter=$_currentFilter',
+      );
       _auctions = await _repository.getActiveAuctions(filter: _currentFilter);
+      if (_auctions.isEmpty && _currentFilter.hasActiveFilters) {
+        debugPrint(
+          '[BrowseController] empty with active filters, retrying unfiltered',
+        );
+        _currentFilter = const AuctionFilter();
+        _auctions = await _repository.getActiveAuctions(filter: _currentFilter);
+      }
+      debugPrint(
+        '[BrowseController] loaded auctions count=${_auctions.length}',
+      );
       _errorMessage = null;
     } catch (e) {
+      debugPrint('[BrowseController] load failed: $e');
       _errorMessage = 'Failed to load auctions';
       // Don't clear auctions on background error to keep showing stale data
       if (!isBackground) {

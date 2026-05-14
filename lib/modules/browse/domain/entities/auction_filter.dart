@@ -179,20 +179,20 @@ class AuctionFilter {
   /// Check if any filter is active
   bool get hasActiveFilters {
     return searchQuery != null && searchQuery!.isNotEmpty ||
-        make != null ||
-        model != null ||
+        (make != null && make!.isNotEmpty) ||
+        (model != null && model!.isNotEmpty) ||
         yearFrom != null ||
         yearTo != null ||
         priceMin != null ||
         priceMax != null ||
-        transmission != null ||
-        fuelType != null ||
-        driveType != null ||
-        condition != null ||
+        (transmission != null && transmission!.isNotEmpty) ||
+        (fuelType != null && fuelType!.isNotEmpty) ||
+        (driveType != null && driveType!.isNotEmpty) ||
+        (condition != null && condition!.isNotEmpty) ||
         maxMileage != null ||
-        exteriorColor != null ||
-        province != null ||
-        city != null ||
+        (exteriorColor != null && exteriorColor!.isNotEmpty) ||
+        (province != null && province!.isNotEmpty) ||
+        (city != null && city!.isNotEmpty) ||
         endingSoon != null ||
         (visibility != null && visibility!.isNotEmpty) ||
         (auctionType != null && auctionType!.isNotEmpty);
@@ -203,18 +203,18 @@ class AuctionFilter {
     int count = 0;
     if (searchQuery != null && searchQuery!.isNotEmpty) count++;
     if (auctionType != null && auctionType!.isNotEmpty) count++;
-    if (make != null) count++;
-    if (model != null) count++;
+    if (make != null && make!.isNotEmpty) count++;
+    if (model != null && model!.isNotEmpty) count++;
     if (yearFrom != null || yearTo != null) count++;
     if (priceMin != null || priceMax != null) count++;
-    if (transmission != null) count++;
-    if (fuelType != null) count++;
-    if (driveType != null) count++;
-    if (condition != null) count++;
+    if (transmission != null && transmission!.isNotEmpty) count++;
+    if (fuelType != null && fuelType!.isNotEmpty) count++;
+    if (driveType != null && driveType!.isNotEmpty) count++;
+    if (condition != null && condition!.isNotEmpty) count++;
     if (maxMileage != null) count++;
-    if (exteriorColor != null) count++;
-    if (province != null) count++;
-    if (city != null) count++;
+    if (exteriorColor != null && exteriorColor!.isNotEmpty) count++;
+    if (province != null && province!.isNotEmpty) count++;
+    if (city != null && city!.isNotEmpty) count++;
     if (endingSoon == true) count++;
     if (visibility != null && visibility!.isNotEmpty) count++;
     return count;

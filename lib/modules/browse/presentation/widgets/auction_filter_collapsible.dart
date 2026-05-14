@@ -71,7 +71,7 @@ class _AuctionFilterCollapsibleState extends State<AuctionFilterCollapsible> {
     final theme = Theme.of(context);
 
     // Get screen height to bound the inner scrollable area so it doesn't overflow RenderFlex
-    final maxFilterHeight = MediaQuery.of(context).size.height * 0.55;
+    final maxFilterHeight = MediaQuery.of(context).size.height * 0.48;
 
     return Column(
       children: [
