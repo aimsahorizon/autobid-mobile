@@ -73,33 +73,31 @@ class AuctionCard extends StatelessWidget {
   Widget _buildListLayout(ThemeData theme, bool isDark) {
     return Padding(
       padding: const EdgeInsets.all(12),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
               child: _buildImage(isListLayout: true),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCarName(theme),
-                const SizedBox(height: 4),
-                _buildSellerInfo(theme, isDark),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [_buildCurrentBid(theme), _buildTimeRemaining()],
-                ),
-                const SizedBox(height: 8),
-                _buildStats(theme, isDark),
-              ],
-            ),
+          const SizedBox(height: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCarName(theme),
+              const SizedBox(height: 5),
+              _buildSellerInfo(theme, isDark),
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [_buildCurrentBid(theme), _buildTimeRemaining()],
+              ),
+              const SizedBox(height: 5),
+              _buildStats(theme, isDark, true),
+            ],
           ),
         ],
       ),
@@ -121,15 +119,15 @@ class AuctionCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildCarName(theme),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
                 _buildSellerInfo(theme, isDark),
-                const SizedBox(height: 8),
+                const SizedBox(height: 5),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [_buildCurrentBid(theme), _buildTimeRemaining()],
                 ),
                 const SizedBox(height: 8),
-                _buildStats(theme, isDark),
+                _buildStats(theme, isDark, false),
               ],
             ),
           ),
@@ -348,11 +346,12 @@ class AuctionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStats(ThemeData theme, bool isDark) {
+  Widget _buildStats(ThemeData theme, bool isDark, bool isListLayout) {
     return _SellerStatsRow(
       sellerId: auction.sellerId,
       theme: theme,
       isDark: isDark,
+      isListLayout: isListLayout,
     );
   }
 }
@@ -365,11 +364,13 @@ class _SellerStatsRow extends StatefulWidget {
   final String sellerId;
   final ThemeData theme;
   final bool isDark;
+  final bool isListLayout;
 
   const _SellerStatsRow({
     required this.sellerId,
     required this.theme,
     required this.isDark,
+    required this.isListLayout,
   });
 
   @override
@@ -426,38 +427,66 @@ class _SellerStatsRowState extends State<_SellerStatsRow> {
                 Icon(Icons.emoji_events_rounded, size: 12, color: textColor),
                 const SizedBox(width: 3),
                 Text('$totalWins wins', style: style),
-                if (biddingRate > 0) ...[
-                  const SizedBox(width: 6),
-                  _RateBadge(rate: biddingRate, color: ColorConstants.primary),
-                ],
+
                 const SizedBox(width: 8),
                 Icon(Icons.handshake_rounded, size: 12, color: textColor),
                 Text('$totalDeals deals', style: style),
               ],
             ),
             const SizedBox(height: 3),
-            // Row 2 — Transaction History
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (successRate > 0) ...[
-                  const SizedBox(width: 6),
-                  _RateBadge(
-                    rate: successRate,
-                    color: ColorConstants.success,
-                    prefix: 'Success: ',
+
+            widget.isListLayout
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: 3,
+                    children: [
+                      if (successRate > 0) ...[
+                        _RateBadge(
+                          rate: successRate,
+                          color: ColorConstants.success,
+                          prefix: 'Deal Success Rate: ',
+                        ),
+                      ],
+                      if (cancelRate > 5) ...[
+                        _RateBadge(
+                          rate: cancelRate,
+                          color: ColorConstants.error,
+                          prefix: 'Deal Cancel Rate: ',
+                        ),
+                      ],
+                      _RateBadge(
+                        rate: biddingRate,
+                        color: ColorConstants.primary,
+                        prefix: 'Bidding Rate: ',
+                      ),
+                    ],
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 3,
+                    children: [
+                      if (successRate > 0) ...[
+                        _RateBadge(
+                          rate: successRate,
+                          color: ColorConstants.success,
+                          prefix: 'Deal Success Rate: ',
+                        ),
+                      ],
+                      if (cancelRate > 5) ...[
+                        _RateBadge(
+                          rate: cancelRate,
+                          color: ColorConstants.error,
+                          prefix: 'Deal Cancel Rate: ',
+                        ),
+                      ],
+                      _RateBadge(
+                        rate: biddingRate,
+                        color: ColorConstants.primary,
+                        prefix: 'Bidding Rate: ',
+                      ),
+                    ],
                   ),
-                ],
-                if (cancelRate > 5) ...[
-                  const SizedBox(width: 4),
-                  _RateBadge(
-                    rate: cancelRate,
-                    color: ColorConstants.error,
-                    prefix: 'Cancel: ',
-                  ),
-                ],
-              ],
-            ),
           ],
         );
       },

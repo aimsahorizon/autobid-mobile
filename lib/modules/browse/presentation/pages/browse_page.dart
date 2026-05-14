@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import services for SystemUiOverlayStyle
 import 'package:get_it/get_it.dart';
@@ -28,20 +30,112 @@ class BrowsePage extends StatefulWidget {
 
 class _BrowsePageState extends State<BrowsePage> {
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   bool _isGridView = true; // Toggle between grid and list view
+  bool _isSearchMode = false;
+  Timer? _searchDebounce;
 
   BrowseController get _controller => widget.controller;
 
   @override
   void initState() {
     super.initState();
+    _searchController.text = _controller.currentFilter.searchQuery ?? '';
     _controller.loadAuctions();
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _toggleSearchMode() {
+    if (_isSearchMode) {
+      _closeSearchMode();
+      return;
+    }
+
+    setState(() => _isSearchMode = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+  }
+
+  void _closeSearchMode() {
+    if (!_isSearchMode) return;
+    _searchFocusNode.unfocus();
+    setState(() => _isSearchMode = false);
+  }
+
+  Future<void> _onSearchChanged(String value) async {
+    if (mounted) {
+      setState(() {});
+    }
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      _controller.updateSearchQuery(value.trim());
+    });
+  }
+
+  Widget _buildSearchBar(ThemeData theme, bool isDarkMode) {
+    return TapRegion(
+      onTapOutside: (_) => _closeSearchMode(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? ColorConstants.surfaceDark
+              : ColorConstants.surfaceLight,
+          border: Border(
+            bottom: BorderSide(
+              color: isDarkMode
+                  ? ColorConstants.borderDark
+                  : ColorConstants.borderLight,
+            ),
+          ),
+        ),
+        child: TextField(
+          controller: _searchController,
+          focusNode: _searchFocusNode,
+          textInputAction: TextInputAction.search,
+          onChanged: _onSearchChanged,
+          onSubmitted: (value) => _controller.updateSearchQuery(value.trim()),
+          decoration: InputDecoration(
+            hintText: 'Search auctions...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      _searchController.clear();
+                      _controller.updateSearchQuery('');
+                      setState(() {});
+                    },
+                  )
+                : null,
+            isDense: true,
+            filled: true,
+            fillColor: isDarkMode
+                ? ColorConstants.backgroundDark
+                : ColorConstants.backgroundSecondaryLight,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   /// Build a filter chip with delete functionality
@@ -169,10 +263,8 @@ class _BrowsePageState extends State<BrowsePage> {
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {
-                // Focus search or show dialog
-              },
+              icon: Icon(_isSearchMode ? Icons.close : Icons.search),
+              onPressed: _toggleSearchMode,
               tooltip: 'Search',
             ),
             IconButton(
@@ -190,15 +282,18 @@ class _BrowsePageState extends State<BrowsePage> {
         ),
         body: Column(
           children: [
-            // FILTERS & SORTING block
-            ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) => AuctionFilterCollapsible(
-                initialFilter: _controller.currentFilter,
-                onApply: (filter) => _controller.applyFilter(filter),
-                onClear: () => _controller.applyFilter(const AuctionFilter()),
+            if (_isSearchMode)
+              _buildSearchBar(theme, isDarkMode)
+            else
+              // FILTERS & SORTING block
+              ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) => AuctionFilterCollapsible(
+                  initialFilter: _controller.currentFilter,
+                  onApply: (filter) => _controller.applyFilter(filter),
+                  onClear: () => _controller.applyFilter(const AuctionFilter()),
+                ),
               ),
-            ),
             // Active filter chips
             ListenableBuilder(
               listenable: _controller,
@@ -495,6 +590,7 @@ class _BrowsePageState extends State<BrowsePage> {
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: AuctionCard(
                                   auction: auction,
+                                  isListLayout: true,
                                   onTap: () async {
                                     // Check if user is trying to bid on their own listing
                                     final currentUserId = SupabaseConfig
