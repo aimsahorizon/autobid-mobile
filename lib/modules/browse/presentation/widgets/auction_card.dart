@@ -109,12 +109,15 @@ class AuctionCard extends StatelessWidget {
   Widget _buildGridLayout(ThemeData theme, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         _buildImage(),
-        Expanded(
+        Flexible(
+          fit: FlexFit.loose,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildCarName(theme),
