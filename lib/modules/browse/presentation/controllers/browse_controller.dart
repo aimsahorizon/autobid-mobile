@@ -76,13 +76,6 @@ class BrowseController extends ChangeNotifier {
         '[BrowseController] loadAuctions(bg=$isBackground) filter=$_currentFilter',
       );
       _auctions = await _repository.getActiveAuctions(filter: _currentFilter);
-      if (_auctions.isEmpty && _currentFilter.hasActiveFilters) {
-        debugPrint(
-          '[BrowseController] empty with active filters, retrying unfiltered',
-        );
-        _currentFilter = const AuctionFilter();
-        _auctions = await _repository.getActiveAuctions(filter: _currentFilter);
-      }
       debugPrint(
         '[BrowseController] loaded auctions count=${_auctions.length}',
       );

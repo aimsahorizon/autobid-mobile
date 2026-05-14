@@ -71,7 +71,9 @@ class _AuctionFilterCollapsibleState extends State<AuctionFilterCollapsible> {
     final theme = Theme.of(context);
 
     // Get screen height to bound the inner scrollable area so it doesn't overflow RenderFlex
-    final maxFilterHeight = MediaQuery.of(context).size.height * 0.48;
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final maxFilterHeight =
+        (MediaQuery.of(context).size.height - keyboardHeight) * 0.48;
 
     return Column(
       children: [
@@ -357,22 +359,6 @@ class _AuctionFilterCollapsibleState extends State<AuctionFilterCollapsible> {
                               onChanged: (val) => setState(
                                 () => _filter = _filter.copyWith(
                                   province: val ?? '',
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          _buildAccordion(
-                            title: 'Visibility',
-                            isActive:
-                                _filter.visibility != null &&
-                                _filter.visibility!.isNotEmpty,
-                            child: _buildDropdown<String>(
-                              value: _filter.visibility,
-                              items: const ['public', 'private'],
-                              onChanged: (val) => setState(
-                                () => _filter = _filter.copyWith(
-                                  visibility: val ?? '',
                                 ),
                               ),
                             ),

@@ -78,7 +78,6 @@ class AuctionCard extends StatelessWidget {
         children: [
           SizedBox(
             width: 120,
-            height: 90,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: _buildImage(isListLayout: true),
@@ -349,9 +348,6 @@ class AuctionCard extends StatelessWidget {
   Widget _buildStats(ThemeData theme, bool isDark) {
     return _SellerStatsRow(
       sellerId: auction.sellerId,
-      watchersCount: auction.watchersCount,
-      biddersCount: auction.biddersCount,
-      visibility: auction.visibility,
       theme: theme,
       isDark: isDark,
     );
@@ -364,17 +360,11 @@ class AuctionCard extends StatelessWidget {
 
 class _SellerStatsRow extends StatefulWidget {
   final String sellerId;
-  final int watchersCount;
-  final int biddersCount;
-  final String visibility;
   final ThemeData theme;
   final bool isDark;
 
   const _SellerStatsRow({
     required this.sellerId,
-    required this.watchersCount,
-    required this.biddersCount,
-    required this.visibility,
     required this.theme,
     required this.isDark,
   });
@@ -396,7 +386,6 @@ class _SellerStatsRowState extends State<_SellerStatsRow> {
 
   @override
   Widget build(BuildContext context) {
-    final isMystery = widget.visibility == 'mystery';
     final textColor = widget.isDark
         ? ColorConstants.textSecondaryDark
         : ColorConstants.textSecondaryLight;
@@ -409,62 +398,93 @@ class _SellerStatsRowState extends State<_SellerStatsRow> {
     return FutureBuilder<UserProfileEntity?>(
       future: _future,
       builder: (context, snapshot) {
-        final sold = snapshot.data?.completedTransactions ?? 0;
-        final rate = snapshot.data?.successRate ?? 0.0;
+        if (!snapshot.hasData) {
+          return const SizedBox(height: 28);
+        }
+        final p = snapshot.data!;
+        final totalBids = p.totalBids ?? 0;
+        final totalWins = p.totalWins ?? 0;
+        final biddingRate = p.biddingRate ?? 0.0;
+        final totalDeals = p.totalTransactions ?? 0;
+        final successRate = p.successRate ?? 0.0;
+        final cancelRate = p.cancellationRate ?? 0.0;
 
-        return Row(
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Watchers
-            Icon(Icons.visibility_outlined, size: 13, color: textColor),
-            const SizedBox(width: 3),
-            Text('${widget.watchersCount}', style: style),
-            const SizedBox(width: 10),
-            // Bids / sealed
-            if (isMystery) ...[
-              Icon(Icons.lock_outline, size: 13, color: textColor),
-              const SizedBox(width: 3),
-              Text('Sealed', style: style),
-            ] else ...[
-              Icon(Icons.gavel_rounded, size: 13, color: textColor),
-              const SizedBox(width: 3),
-              Text('${widget.biddersCount}', style: style),
-            ],
-            // Seller sold count — shown once data loads
-            if (snapshot.hasData && sold > 0) ...[
-              const SizedBox(width: 10),
-              Icon(
-                Icons.verified_rounded,
-                size: 13,
-                color: ColorConstants.success,
-              ),
-              const SizedBox(width: 3),
-              Text(
-                '$sold sold',
-                style: style?.copyWith(color: ColorConstants.success),
-              ),
-            ],
-            // Success rate badge — only if seller has a meaningful rate
-            if (snapshot.hasData && rate >= 80) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: ColorConstants.success.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  '${rate.toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+            // Row 1 — Bidding Activity
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.gavel_rounded, size: 12, color: textColor),
+                const SizedBox(width: 3),
+                Text('$totalBids bids', style: style),
+                const SizedBox(width: 8),
+                Icon(Icons.emoji_events_rounded, size: 12, color: textColor),
+                const SizedBox(width: 3),
+                Text('$totalWins wins', style: style),
+                if (biddingRate > 0) ...[
+                  const SizedBox(width: 6),
+                  _RateBadge(rate: biddingRate, color: ColorConstants.primary),
+                ],
+                const SizedBox(width: 8),
+                Icon(Icons.handshake_rounded, size: 12, color: textColor),
+                Text('$totalDeals deals', style: style),
+              ],
+            ),
+            const SizedBox(height: 3),
+            // Row 2 — Transaction History
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (successRate > 0) ...[
+                  const SizedBox(width: 6),
+                  _RateBadge(
+                    rate: successRate,
                     color: ColorConstants.success,
+                    prefix: 'Success: ',
                   ),
-                ),
-              ),
-            ],
+                ],
+                if (cancelRate > 5) ...[
+                  const SizedBox(width: 4),
+                  _RateBadge(
+                    rate: cancelRate,
+                    color: ColorConstants.error,
+                    prefix: 'Cancel: ',
+                  ),
+                ],
+              ],
+            ),
           ],
         );
       },
+    );
+  }
+}
+
+class _RateBadge extends StatelessWidget {
+  final double rate;
+  final Color color;
+  final String prefix;
+
+  const _RateBadge({required this.rate, required this.color, this.prefix = ''});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        '$prefix${rate.toStringAsFixed(0)}%',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
     );
   }
 }

@@ -53,7 +53,12 @@ class AuctionSupabaseDataSource {
       ),
       'auction_browse_listings',
     );
-    if (browseListings.isNotEmpty) return browseListings;
+    // When a visibility/type filter is active, a 0-result response is correct
+    // (means no matching auctions). Do NOT fall back — fallbacks return all types.
+    final hasVisibilityFilter =
+        (filter?.auctionType != null && filter!.auctionType!.isNotEmpty) ||
+        (filter?.visibility != null && filter!.visibility!.isNotEmpty);
+    if (browseListings.isNotEmpty || hasVisibilityFilter) return browseListings;
 
     final browseSimple = await run(
       () => _fetchFromView(
@@ -130,9 +135,12 @@ class AuctionSupabaseDataSource {
     }
 
     // Transmission & Fuel (Attempting to filter if columns exist in view)
-    // Auction type → bidding_type column (available in view)
+    // Auction type → visibility column ('open', 'exclusive', 'mystery')
     if (filter?.auctionType != null && filter!.auctionType!.isNotEmpty) {
-      queryBuilder = queryBuilder.eq('bidding_type', filter.auctionType!);
+      queryBuilder = queryBuilder.eq('visibility', filter.auctionType!);
+    } else if (filter?.visibility != null && filter!.visibility!.isNotEmpty) {
+      // Legacy visibility filter — only apply if no auctionType is set
+      queryBuilder = queryBuilder.eq('visibility', filter.visibility!);
     }
 
     // Apply ending soon filter (within 24 hours)
@@ -277,7 +285,10 @@ class AuctionSupabaseDataSource {
       queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
     }
 
-    if (filter?.visibility != null && filter!.visibility!.isNotEmpty) {
+    // auctionType maps to the visibility column ('open'/'exclusive'/'mystery')
+    if (filter?.auctionType != null && filter!.auctionType!.isNotEmpty) {
+      queryBuilder = queryBuilder.eq('visibility', filter.auctionType!);
+    } else if (filter?.visibility != null && filter!.visibility!.isNotEmpty) {
       queryBuilder = queryBuilder.eq('visibility', filter.visibility!);
     }
 
@@ -372,7 +383,10 @@ class AuctionSupabaseDataSource {
       queryBuilder = queryBuilder.lte('current_price', filter!.priceMax!);
     }
 
-    if (filter?.visibility != null && filter!.visibility!.isNotEmpty) {
+    // auctionType maps to the visibility column ('open'/'exclusive'/'mystery')
+    if (filter?.auctionType != null && filter!.auctionType!.isNotEmpty) {
+      queryBuilder = queryBuilder.eq('visibility', filter.auctionType!);
+    } else if (filter?.visibility != null && filter!.visibility!.isNotEmpty) {
       queryBuilder = queryBuilder.eq('visibility', filter.visibility!);
     }
 
