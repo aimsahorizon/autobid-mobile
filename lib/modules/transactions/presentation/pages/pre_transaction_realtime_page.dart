@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/core/constants/policy_constants.dart';
@@ -18,6 +19,7 @@ import 'package:autobid_mobile/modules/transactions/presentation/widgets/transac
 import 'package:autobid_mobile/modules/transactions/presentation/widgets/transaction_realtime/unified_agreement_tab.dart';
 import 'package:autobid_mobile/modules/transactions/presentation/widgets/transaction_realtime/installment_tracker_tab.dart';
 import 'package:autobid_mobile/modules/transactions/presentation/widgets/transaction_realtime/deposit_payment_tab.dart';
+import 'package:autobid_mobile/modules/transactions/presentation/pages/transaction_auction_view_page.dart';
 
 /// Real-time Pre-Transaction Page
 /// Supports live chat and form updates between buyer and seller
@@ -199,6 +201,21 @@ class _PreTransactionRealtimePageState
           },
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TransactionAuctionViewPage(
+                    transactionId: widget.transactionId,
+                    userId: widget.userId,
+                  ),
+                ),
+              );
+            },
+            icon: Icon(MdiIcons.carSearch),
+            tooltip: 'View Car',
+          ),
           // Report button
           IconButton(
             onPressed: () => _showReportDialog(context),
@@ -220,10 +237,11 @@ class _PreTransactionRealtimePageState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh),
-                tooltip: 'Refreshed',
+                tooltip: 'Refresh',
               );
             },
           ),
+          // Car view button
         ],
       ),
       body: ListenableBuilder(
