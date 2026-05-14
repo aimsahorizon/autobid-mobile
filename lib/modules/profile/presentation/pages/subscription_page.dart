@@ -599,15 +599,18 @@ class _PlanCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
-                  vertical: 10,
+                  vertical: 7,
                 ),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color.fromARGB(255, 165, 92, 229),
-                      Color(0xFF5A189A),
+                      Color.fromARGB(255, 188, 112, 255),
+                      Color.fromARGB(255, 188, 112, 255),
+                      Color.fromARGB(255, 142, 50, 234),
+                      Color.fromARGB(255, 145, 45, 245),
+                      Color.fromARGB(255, 145, 45, 245),
                     ],
                   ),
                   borderRadius: const BorderRadius.only(
