@@ -886,10 +886,10 @@ class _PreTransactionRealtimePageState
                                   userId: otherPartyId,
                                 ),
                                 icon: const Icon(
-                                  Icons.reviews_outlined,
+                                  Icons.query_stats_rounded,
                                   size: 16,
                                 ),
-                                label: const Text('View All Reviews'),
+                                label: const Text('View User Statistics'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: ColorConstants.primary,
                                   side: BorderSide(

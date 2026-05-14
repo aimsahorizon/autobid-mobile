@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:autobid_mobile/core/constants/color_constants.dart';
 import 'package:autobid_mobile/modules/profile/data/models/user_profile_model.dart';
 import 'package:autobid_mobile/modules/profile/data/datasources/profile_supabase_datasource.dart';
+import 'package:autobid_mobile/modules/profile/presentation/controllers/review_controller.dart';
+import 'package:autobid_mobile/modules/profile/presentation/pages/user_reviews_page.dart';
 
 /// Bottom sheet to view another user's public profile and stats.
 /// Shows bidding rate, transaction success/cancellation rate.
@@ -43,6 +45,27 @@ class UserProfileBottomSheet extends StatefulWidget {
 class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
   UserProfileModel? _profile;
   bool _isLoading = true;
+
+  Future<void> _openAllReviews() async {
+    final reviewController = ReviewController(
+      dataSource: ProfileSupabaseDataSource(Supabase.instance.client),
+    );
+
+    await reviewController.loadReviews(widget.userId);
+    if (!mounted) {
+      reviewController.dispose();
+      return;
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => UserReviewsPage(reviewController: reviewController),
+      ),
+    );
+
+    reviewController.dispose();
+  }
 
   @override
   void initState() {
@@ -235,6 +258,25 @@ class _UserProfileBottomSheetState extends State<UserProfileBottomSheet> {
                   ],
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _openAllReviews,
+              icon: const Icon(Icons.reviews_outlined, size: 18),
+              label: const Text('View All Reviews'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: ColorConstants.primary,
+                side: BorderSide(
+                  color: ColorConstants.primary.withValues(alpha: 0.3),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 8),
